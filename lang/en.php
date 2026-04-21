@@ -35,4 +35,21 @@ return [
     // Navbar
     'nav.logout'         => 'Log out',
     'nav.profile'        => 'My profile',
+    'nav.dashboard'      => 'Go to dashboard',
+
+    // Auth extras (E1-01)
+    'auth.rate_limited'  => 'Too many attempts. Please try again in a few minutes.',
+
+    // Dashboards (stubs in E1-01; replaced in later epics)
+    'dashboard.teacher.title'   => 'Teacher dashboard',
+    'dashboard.teacher.welcome' => 'Welcome, :name.',
+    'dashboard.student.title'   => 'Student dashboard',
+    'dashboard.student.welcome' => 'Welcome, :name.',
+    'dashboard.admin.title'     => 'Super-admin dashboard',
+    'dashboard.admin.welcome'   => 'Welcome, :name.',
+    'dashboard.stub_notice'     => 'This screen is a placeholder — real content lands in later epics.',
+
+    // Errors
+    'error.404'          => 'Page not found',
+    'error.404_message'  => 'The page you tried to reach does not exist or has been moved.',
 ];

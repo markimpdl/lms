@@ -30,14 +30,16 @@ try {
         $existingId = $stmt->fetchColumn();
 
         if ($existingId !== false) {
-            $upd = $pdo->prepare('UPDATE users SET password_hash = ?, active = 1 WHERE id = ?');
+            $upd = $pdo->prepare(
+                'UPDATE users SET password_hash = ?, password_changed_at = CURRENT_TIMESTAMP, active = 1 WHERE id = ?'
+            );
             $upd->execute([$hash, $existingId]);
             return 'senha rotacionada';
         }
 
         $ins = $pdo->prepare(
-            'INSERT INTO users (email, password_hash, name, role, language, active, tenant_id) '
-            . "VALUES (?, ?, ?, 'super_admin', 'pt', 1, NULL)"
+            'INSERT INTO users (email, password_hash, password_changed_at, name, role, language, active, tenant_id) '
+            . "VALUES (?, ?, CURRENT_TIMESTAMP, ?, 'super_admin', 'pt', 1, NULL)"
         );
         $ins->execute([$adminEmail, $hash, $adminName]);
         return 'conta criada';
