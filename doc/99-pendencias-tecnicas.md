@@ -17,10 +17,11 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
 - Lógica revisada por código; rollback automático ao lançar exceção dentro do callable.
 - **Ação:** validar no primeiro model real (E2 ou E3) com um teste do tipo: `tx(fn() => insert + throw)` e confirmar que a linha **não** existe no banco depois.
 
-### [E0-05] `install/schema.sql` executa limpo no phpMyAdmin
+### [E0-05/06] `install/schema.sql` executa limpo no phpMyAdmin
 - Revisão visual feita por código, mas nenhum MySQL real foi executado no dev local (sem `pdo_mysql`, sem mysql client).
-- **Ação:** rodar o SQL em banco vazio no phpMyAdmin Hostinger **ou** em MySQL 8 local. Esperado: criar 17 tabelas, inserir 2 linhas (`settings.public_registration=off` e admin placeholder), zero erros. Rodar duas vezes — segunda execução deve ser no-op (idempotente).
-- **Riscos conhecidos:** (a) `CHECK` constraints só são enforcadas em MySQL 8.0.16+; (b) coluna gerada `STORED` + `UNIQUE` requer MySQL 5.7.6+; (c) `groups` é palavra reservada — cobri com backticks; (d) o bloco final com `PREPARE/EXECUTE` para ALTER idempotente depende de sessão única (phpMyAdmin executa tudo numa sessão).
+- **Ação:** rodar o SQL em banco vazio no phpMyAdmin Hostinger **ou** em MySQL 8 local. Esperado: criar **18 tabelas** (17 do domínio + `login_attempts`), inserir 2 seeds, zero erros. Rodar duas vezes — segunda execução deve ser no-op (idempotente via `CREATE TABLE IF NOT EXISTS` + `INSERT IGNORE`).
+- **Riscos conhecidos:** (a) `CHECK` constraints só são enforcadas em MySQL 8.0.16+; (b) coluna gerada `STORED` + `UNIQUE` requer MySQL 5.7.6+; (c) `groups` é palavra reservada — cobri com backticks.
+- **Atualização E0-06:** TIMESTAMP → DATETIME em todas as colunas (evita 2038); FK circular agora via `SET FOREIGN_KEY_CHECKS=0/1` (mais simples que o ALTER condicional anterior).
 
 ### [E0-05] `install/seed-admin.php` contra MySQL real
 - Rodou `php -l` (ok). Não foi executado contra banco real.

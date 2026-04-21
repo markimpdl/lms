@@ -182,6 +182,14 @@ feat!: muda contrato da API de notificações (BREAKING CHANGE)
 
 ---
 
+## Alterações de schema (install/schema.sql)
+
+**Toda mudança em `install/schema.sql` — criar tabela, alterar coluna, adicionar índice, ajustar seed — passa pela skill `/mysql-schema`.** Não editar o arquivo diretamente a olho, para evitar drift nas convenções (DATETIME vs TIMESTAMP, utf8mb4_unicode_ci, `tenant_id` nas tabelas do tenant, `INSERT IGNORE` nos seeds, etc.). A skill contém o checklist e os padrões consolidados do projeto — ver `.claude/skills/mysql-schema.md`.
+
+Como não há migrations versionadas (ADR-017), o schema.sql precisa continuar idempotente (`CREATE TABLE IF NOT EXISTS`, `INSERT IGNORE`, FK condicional via `FOREIGN_KEY_CHECKS`) para rodar duas vezes sem erro no phpMyAdmin.
+
+---
+
 ## Estrutura de pastas (planejada)
 
 ```
