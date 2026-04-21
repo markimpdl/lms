@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 
-// Logout só aceita POST com CSRF — evita logout via GET/prefetch.
+// Logout só aceita POST com CSRF — evita logout via GET/prefetch/<img src>.
+// Em GET a sessão NÃO é destruída; o usuário é redirecionado para a home
+// sem efeito colateral (o 405+Location anterior misturava semânticas).
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    header('Allow: POST');
     header('Location: /');
     exit;
 }
