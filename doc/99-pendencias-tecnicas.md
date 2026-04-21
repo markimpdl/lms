@@ -17,6 +17,15 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
 - Lógica revisada por código; rollback automático ao lançar exceção dentro do callable.
 - **Ação:** validar no primeiro model real (E2 ou E3) com um teste do tipo: `tx(fn() => insert + throw)` e confirmar que a linha **não** existe no banco depois.
 
+### [E0-05] `install/schema.sql` executa limpo no phpMyAdmin
+- Revisão visual feita por código, mas nenhum MySQL real foi executado no dev local (sem `pdo_mysql`, sem mysql client).
+- **Ação:** rodar o SQL em banco vazio no phpMyAdmin Hostinger **ou** em MySQL 8 local. Esperado: criar 17 tabelas, inserir 2 linhas (`settings.public_registration=off` e admin placeholder), zero erros. Rodar duas vezes — segunda execução deve ser no-op (idempotente).
+- **Riscos conhecidos:** (a) `CHECK` constraints só são enforcadas em MySQL 8.0.16+; (b) coluna gerada `STORED` + `UNIQUE` requer MySQL 5.7.6+; (c) `groups` é palavra reservada — cobri com backticks; (d) o bloco final com `PREPARE/EXECUTE` para ALTER idempotente depende de sessão única (phpMyAdmin executa tudo numa sessão).
+
+### [E0-05] `install/seed-admin.php` contra MySQL real
+- Rodou `php -l` (ok). Não foi executado contra banco real.
+- **Ação:** depois de rodar `schema.sql`, executar `php install/seed-admin.php` e confirmar que imprime o bloco com email/senha. Rodar de novo e confirmar que aparece "senha rotacionada".
+
 ### [E0-04] Layout em viewport 360px (mobile-first)
 - Precisa de Chrome DevTools para validar: sem overflow horizontal, fontes ≥16px, navbar collapse funciona com o botão hamburger, dropdowns de idioma/usuário não saem da viewport.
 - **Ação:** depois de mergear E0-04, abrir `index.php` em DevTools device mode 360×640.
