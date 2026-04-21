@@ -35,4 +35,21 @@ return [
     // Navbar
     'nav.logout'         => 'Sair',
     'nav.profile'        => 'Meu perfil',
+    'nav.dashboard'      => 'Ir para o painel',
+
+    // Auth extras (E1-01)
+    'auth.rate_limited'  => 'Muitas tentativas. Tente novamente em alguns minutos.',
+
+    // Dashboards (stubs em E1-01; substituídos em épicos dedicados)
+    'dashboard.teacher.title'   => 'Painel do professor',
+    'dashboard.teacher.welcome' => 'Bem-vindo(a), :name.',
+    'dashboard.student.title'   => 'Painel do aluno',
+    'dashboard.student.welcome' => 'Bem-vindo(a), :name.',
+    'dashboard.admin.title'     => 'Painel do super-admin',
+    'dashboard.admin.welcome'   => 'Bem-vindo(a), :name.',
+    'dashboard.stub_notice'     => 'Esta tela é um placeholder — o conteúdo real é implementado em épicos posteriores.',
+
+    // Erros
+    'error.404'          => 'Página não encontrada',
+    'error.404_message'  => 'A página que você tentou acessar não existe ou foi movida.',
 ];

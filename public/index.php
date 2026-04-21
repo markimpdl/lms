@@ -3,23 +3,22 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/src/bootstrap.php';
 
-// Botão de teste do flash (será removido quando houver rotas reais em E1+).
-if (isset($_GET['demo_flash'])) {
-    flash('success', __t('app.demo_flash_ok'));
-    header('Location: /');
-    exit;
+$path = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+$path = ($path === '' || $path === '/') ? '/' : rtrim($path, '/');
+
+$routes = [
+    '/'         => '/src/pages/home.php',
+    '/login'    => '/src/pages/login.php',
+    '/logout'   => '/src/pages/logout.php',
+    '/admin'    => '/src/pages/dashboard/admin.php',
+    '/teacher'  => '/src/pages/dashboard/teacher.php',
+    '/student'  => '/src/pages/dashboard/student.php',
+];
+
+if (isset($routes[$path])) {
+    require LMS_ROOT . $routes[$path];
+    return;
 }
 
-$page_title = __t('app.title');
-
-ob_start();
-?>
-<div class="text-center py-4">
-    <h1 class="display-6"><?= e(__t('app.title')) ?></h1>
-    <p class="lead text-muted"><?= e(__t('app.bootstrap_ok', ['tz' => date_default_timezone_get()])) ?></p>
-    <a class="btn btn-outline-primary" href="?demo_flash=1"><?= e(__t('app.demo_flash_btn')) ?></a>
-</div>
-<?php
-$page_content = ob_get_clean();
-
-require LMS_ROOT . '/src/templates/layout.php';
+http_response_code(404);
+require LMS_ROOT . '/src/pages/404.php';

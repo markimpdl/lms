@@ -47,7 +47,7 @@ if (PHP_SAPI !== 'cli' && session_status() === PHP_SESSION_NONE) {
 
 // 4. Autoload por convenção ----------------------------------------------
 spl_autoload_register(static function (string $class): void {
-    static $roots = ['lib', 'models', 'services'];
+    static $roots = ['lib', 'models', 'services', 'controllers'];
     $relative = str_replace('\\', '/', $class) . '.php';
     foreach ($roots as $root) {
         $path = LMS_ROOT . '/src/' . $root . '/' . $relative;

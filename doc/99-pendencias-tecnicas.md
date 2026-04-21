@@ -17,6 +17,13 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
 - Lógica revisada por código; rollback automático ao lançar exceção dentro do callable.
 - **Ação:** validar no primeiro model real (E2 ou E3) com um teste do tipo: `tx(fn() => insert + throw)` e confirmar que a linha **não** existe no banco depois.
 
+### [E1-01] Login end-to-end com MySQL real
+- Smoke testado só o rendering e a lógica pura do `AuthController` (`dashboardFor`, `safeNext`). `isIpBlocked`, `recordAttempt` e `authenticate` requerem `login_attempts` e `users` em banco real.
+- **Ações:** (a) rodar `install/schema.sql` atualizado (agora com `password_changed_at` em users) no phpMyAdmin; (b) `php install/seed-admin.php` para definir a senha do super-admin; (c) `curl -i http://<host>/login` deve retornar 200 com form; (d) submeter POST inválido 6× e verificar que o 6º recebe `auth.rate_limited`; (e) submeter POST válido e verificar redirect para `/admin` + sessão persistida.
+
+### [E1-01] Validar mobile 360×640 do /login
+- Form com `form-control-lg` (≥48px de altura) + botão `btn-lg`, layout `col-12 col-sm-8`. Precisa de DevTools para confirmar zero overflow e fontes ≥16px.
+
 ### [E0-05/06] `install/schema.sql` executa limpo no phpMyAdmin
 - Revisão visual feita por código, mas nenhum MySQL real foi executado no dev local (sem `pdo_mysql`, sem mysql client).
 - **Ação:** rodar o SQL em banco vazio no phpMyAdmin Hostinger **ou** em MySQL 8 local. Esperado: criar **18 tabelas** (17 do domínio + `login_attempts`), inserir 2 seeds, zero erros. Rodar duas vezes — segunda execução deve ser no-op (idempotente via `CREATE TABLE IF NOT EXISTS` + `INSERT IGNORE`).

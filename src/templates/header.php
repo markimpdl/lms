@@ -30,7 +30,12 @@ $lang = current_lang();
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="/profile"><?= e(__t('nav.profile')) ?></a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/logout"><?= e(__t('nav.logout')) ?></a></li>
+                            <li>
+                                <form method="post" action="/logout" class="m-0">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" class="dropdown-item"><?= e(__t('nav.logout')) ?></button>
+                                </form>
+                            </li>
                         </ul>
                     </li>
                 <?php endif; ?>
