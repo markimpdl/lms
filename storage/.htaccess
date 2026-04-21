@@ -1,0 +1,3 @@
+# Bloqueia qualquer acesso direto à pasta de storage.
+# Arquivos devem ser servidos via PHP (stream) quando necessário.
+Require all denied

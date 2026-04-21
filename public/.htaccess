@@ -1,0 +1,22 @@
+# LMS — front controller rewrite
+# Document root deve apontar para /public em produção.
+
+Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Permite servir arquivos e diretórios existentes (assets, uploads)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Todo o resto vai para o front controller
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+# Bloqueia acesso a arquivos sensíveis
+<FilesMatch "^(\.ht|\.git|composer\.(json|lock)|package(-lock)?\.json)">
+    Require all denied
+</FilesMatch>
