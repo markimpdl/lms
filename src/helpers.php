@@ -50,11 +50,14 @@ function current_lang(): string
 /**
  * Traduz uma chave. Substitui placeholders `:var` com valores de $params.
  * Se a chave não existir, retorna a própria chave e loga em storage/logs/i18n-missing.log.
+ *
+ * $lang opcional permite renderizar num idioma específico (ex.: email seguindo
+ * preferência do destinatário — ADR-014). Quando omitido usa current_lang().
  */
-function __t(string $key, array $params = []): string
+function __t(string $key, array $params = [], ?string $lang = null): string
 {
     static $cache = [];
-    $lang = current_lang();
+    $lang = $lang ?? current_lang();
 
     if (!isset($cache[$lang])) {
         $file = LMS_ROOT . '/lang/' . $lang . '.php';

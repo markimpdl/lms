@@ -24,6 +24,25 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
 ### [E1-01] Validar mobile 360×640 do /login
 - Form com `form-control-lg` (≥48px de altura) + botão `btn-lg`, layout `col-12 col-sm-8`. Precisa de DevTools para confirmar zero overflow e fontes ≥16px.
 
+### [E1-03] Fluxo de recuperação de senha com MySQL real
+- Schema tem nova tabela `password_resets` (id, user_id FK CASCADE, token_hash CHAR(64) UNIQUE, expires_at, used_at, created_at, idx user+created).
+- Lógica testada só em partes: `__t(lang)`, `Mailer::send` (fallback log), rotas. A geração+validação+consumo de token precisa de MySQL real.
+- **Ações:**
+  - Rodar schema.sql atualizado (agora 19 tabelas); conferir `password_resets` criada
+  - Em `/forgot`, submeter email de super-admin → verificar linha nova em `password_resets`, email em `storage/logs/mail-debug.log` com link `/reset?token=...`
+  - Abrir o link em browser → form de nova senha aparece
+  - Submeter senha nova ≥8 chars → login funciona; token fica `used_at` preenchido
+  - Submeter o mesmo link 2ª vez → "Link inválido ou expirado" (one-time use confirmado)
+  - Submeter `/forgot` 4× no mesmo email → 4ª solicitação silenciosamente ignorada (rate limit 3/h)
+  - Email inexistente → sempre mensagem genérica, nenhum token criado
+
+### [E1-03] Integração PHPMailer quando E10 chegar
+- `src/lib/Mailer.php` hoje só escreve em `storage/logs/mail-debug.log`.
+- **Ação em E10-03:** adicionar composer, PHPMailer, e trocar o corpo de `Mailer::send()` para enviar via SMTP Hostgator. Interface pública fica igual — nenhum caller precisa mudar.
+
+### [E1-03] Mobile 360×640 das telas /forgot e /reset
+- Mesmo padrão do login (`col-12 col-sm-8`, `form-control-lg`). Validar no DevTools.
+
 ### [E0-05/06] `install/schema.sql` executa limpo no phpMyAdmin
 - Revisão visual feita por código, mas nenhum MySQL real foi executado no dev local (sem `pdo_mysql`, sem mysql client).
 - **Ação:** rodar o SQL em banco vazio no phpMyAdmin Hostinger **ou** em MySQL 8 local. Esperado: criar **18 tabelas** (17 do domínio + `login_attempts`), inserir 2 seeds, zero erros. Rodar duas vezes — segunda execução deve ser no-op (idempotente via `CREATE TABLE IF NOT EXISTS` + `INSERT IGNORE`).
