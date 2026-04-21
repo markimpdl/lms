@@ -9,10 +9,15 @@ config/env.php
 .mcp.json
 .claude/settings.local.json
 
-# Uploads de produção (alunos enviam arquivos lá)
+# Uploads de produção (alunos enviam arquivos lá) — pasta criada pelo installer
 storage/uploads/
 public/uploads/
 uploads/
+
+# Logs de runtime — versionar só .gitkeep e .htaccess
+storage/logs/*
+!storage/logs/.gitkeep
+!storage/logs/.htaccess
 
 # Dependências
 /vendor/
