@@ -5,6 +5,8 @@ return [
     // App
     'app.title'          => 'LMS',
     'app.bootstrap_ok'   => 'Bootstrap OK. Timezone: :tz',
+    'app.demo_flash_ok'  => 'Flash is working — this message was carried over from a previous session.',
+    'app.demo_flash_btn' => 'Test flash',
 
     // Common
     'common.save'        => 'Save',
@@ -29,4 +31,8 @@ return [
     'auth.forgot'        => 'Forgot my password',
     'auth.invalid'       => 'Invalid e-mail or password.',
     'auth.forbidden'     => 'Access denied.',
+
+    // Navbar
+    'nav.logout'         => 'Log out',
+    'nav.profile'        => 'My profile',
 ];
