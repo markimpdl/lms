@@ -57,3 +57,6 @@ spl_autoload_register(static function (string $class): void {
         }
     }
 });
+
+// 5. Helpers globais ------------------------------------------------------
+require LMS_ROOT . '/src/helpers.php';
