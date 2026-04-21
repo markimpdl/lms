@@ -4,7 +4,7 @@ Plataforma LMS mini-SaaS para apoiar cursos presenciais nos Emirados Árabes Uni
 
 ## Stack
 
-- **Backend:** PHP 8.2+ (sem framework)
+- **Backend:** PHP **8.2** (produção na Hostinger roda em 8.2 — **não usar features de 8.3/8.4**: property hooks, asymmetric visibility, typed class constants, `json_validate`, `#[Override]`) — sem framework
 - **DB:** MySQL 8 (InnoDB + utf8mb4) via PDO com prepared statements
 - **Frontend:** HTML5 + **Bootstrap 5** (CDN) + Alpine.js para interações leves
 - **Editor de conteúdo:** TinyMCE 6 community (com plugin `media` para YouTube/Vimeo)
