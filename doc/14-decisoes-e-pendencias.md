@@ -1,0 +1,161 @@
+# 14 — Decisões e pendências
+
+## Decisões tomadas (ADRs curtos)
+
+### ADR-001 — Multi-tenant por coluna, não por banco
+**Decisão:** um único banco MySQL, `tenant_id` em todas as tabelas relevantes.
+**Por quê:** escala alvo é pequena (<5 professores iniciais) e manter múltiplos bancos aumenta complexidade operacional no cPanel.
+**Implicação:** toda query precisa respeitar filtro de tenant — criar helpers de repositório que não permitam esquecer.
+
+### ADR-002 — XP seguindo modelo "B"
+**Decisão:** atividades concedem XP fixo ao entregar; avaliações concedem XP se nota ≥ 8/10.
+**Por quê:** atividades não têm nota, então condicionar XP a um critério de qualidade contradiz o desenho. A avaliação continua sendo o filtro de mérito.
+**Alternativas descartadas:** (A) só avaliações dão XP (desmotiva entregas); (C) professor marca "aceito/refazer" em cada atividade (trabalho manual a mais).
+
+### ADR-003 — Ranking com janelas rolantes
+**Decisão:** últimos 7 dias e últimos 30 dias são janelas rolantes (`NOW() - X dias`), não semana/mês do calendário.
+**Por quê:** mais justo para alunos que pontuam em datas distintas; mais simples de calcular.
+
+### ADR-004 — Correção manual no MVP
+**Decisão:** todas as atividades e avaliações são corrigidas manualmente pelo professor, inclusive código.
+**Por quê:** professor tem ~10 alunos; autocorreção adiciona complexidade sem ganho real nesta escala.
+
+### ADR-005 — Judge0 via RapidAPI
+**Decisão:** usar Judge0 CE hospedado por terceiro (RapidAPI) em vez de self-host.
+**Por quê:** Hostinger cPanel não roda Docker; self-host exigiria VPS separada.
+**A revisar quando:** volume de execuções ultrapassar o plano gratuito do RapidAPI.
+
+### ADR-006 — Mobile-first
+**Decisão:** design começa por mobile, depois expande para desktop.
+**Por quê:** alunos nos EAU consomem conteúdo majoritariamente por celular; experiência precisa ser boa nesse formato primeiro.
+
+### ADR-007 — Uma avaliação por CU
+**Decisão:** cada competence unit tem no máximo uma avaliação.
+**Por quê:** modela "prova final da matéria" de forma unívoca; múltiplas avaliações confundiriam o cálculo de progresso e aprovação.
+
+### ADR-008 — PDF do enunciado é upload do professor
+**Decisão:** o enunciado da avaliação é um PDF que o professor faz upload, não algo gerado pela plataforma.
+**Por quê:** muitos professores já têm suas provas em PDF; gerar PDF complicaria o editor sem valor claro.
+
+### ADR-009 — Editor de conteúdo: TinyMCE 6 community
+**Decisão:** usar TinyMCE 6 community (GPLv2+) como editor WYSIWYG do conteúdo das CUs.
+**Por quê:** plugin `media` já reconhece URLs de YouTube/Vimeo e gera iframe; toolbar amigável; boa experiência mobile; integração PHP bem documentada.
+**Alternativa descartada:** CKEditor 5 (alguns plugins úteis são só pagos).
+
+### ADR-010 — Editor de código: CodeMirror 6
+**Decisão:** usar CodeMirror 6 no editor da atividade de código.
+**Por quê:** bundle modular e significativamente mais leve que Monaco (Monaco ~5 MB é impraticável em 4G/celular). Suporta as linguagens-alvo via pacotes enxutos.
+**Alternativa descartada:** Monaco Editor (peso excessivo e UX fraca em mobile).
+
+### ADR-011 — UI framework: Bootstrap 5
+**Decisão:** usar Bootstrap 5 como framework de UI.
+**Por quê:** componentes prontos (cards, navbar, modals, toasts) entregam uma interface profissional sem wireframes prévios. Tailwind exigiria mais trabalho de design customizado antes de parecer pronto.
+**Alternativa descartada:** Tailwind CSS (melhor com wireframes maduros, não é o caso).
+
+### ADR-012 — SMTP da Hostgator
+**Decisão:** envio de email via SMTP da Hostgator; credenciais fornecidas pelo professor durante o desenvolvimento e armazenadas em `config/env.php` fora do repositório.
+**Por quê:** o professor já tem essa conta; evita dependência de terceiros pagos no MVP.
+
+### ADR-013 — Sem backup automatizado no MVP
+**Decisão:** não há rotina de backup automatizada. Em emergência, dump SQL manual via phpMyAdmin e cópia da pasta `storage/uploads` pelo cPanel.
+**Por quê:** escala pequena, risco aceito pelo usuário. Simplifica o MVP.
+**A revisar quando:** entrarem professores externos via SaaS.
+
+### ADR-014 — Idioma do email segue idioma do curso
+**Decisão:** emails relacionados a um curso (feedback, nota, nova atividade, reenvio liberado) usam o idioma configurado no curso pelo professor. Emails fora desse contexto (boas-vindas, recuperação de senha) usam o idioma do perfil do usuário.
+**Por quê:** preserva coerência com o conteúdo que o aluno está estudando, mesmo que a preferência pessoal dele seja outra.
+
+### ADR-015 — Nota com uma casa decimal
+**Decisão:** notas da avaliação aceitam valores de 0.0 a 10.0 com passo de 0.1 (schema `DECIMAL(3,1)`).
+**Por quê:** dá ao professor granularidade para diferenciar entregas próximas (ex.: 7.5 vs 8.0 altera liberação de XP).
+
+### ADR-016 — Sem exportação de notas no MVP
+**Decisão:** dashboards não oferecem exportação CSV ou PDF de notas/status.
+**Por quê:** não há necessidade imediata apontada pelo usuário; dados acessíveis via UI são suficientes.
+**A revisar quando:** houver demanda oficial por relatórios externos.
+
+### ADR-017 — Instalação via script SQL manual
+**Decisão:** o banco é criado manualmente no cPanel e o schema é carregado a partir de `install/schema.sql` executado no phpMyAdmin. Não há instalador web.
+**Por quê:** usuário-alvo é um professor técnico com acesso ao phpMyAdmin; instalador web é esforço a mais sem valor imediato.
+**Arquivo produzido:** `install/schema.sql` com tabelas + seeds (super-admin padrão, etc.).
+
+### ADR-018 — Sem Termos de Uso/Privacidade no MVP
+**Decisão:** a plataforma não exibe termos de uso nem política de privacidade enquanto o cadastro público estiver desativado (uso só do autor + colega).
+**Por quê:** dados são restritos ao círculo de teste; obrigações formais (LGPD/GDPR) entram em cena somente quando o SaaS abrir cadastro público.
+**A revisar quando:** habilitar o cadastro público de professores.
+
+### ADR-019 — Rate limits do Judge0
+**Decisão:** 30 execuções por aluno por minuto, 3 execuções simultâneas por aluno, cap diário de 200 execuções por aluno.
+**Por quê:** dimensionado para <10 alunos simultâneos e <30 totais; folga para iteração de código sem expor a chave do Judge0 a abuso.
+**A revisar quando:** escala crescer ou aparecer demanda de uso muito intenso por atividade.
+
+### ADR-020 — Cascade em exclusão de avaliação com submissões
+**Decisão:** excluir uma avaliação com submissões remove em cascade todas as submissões e `xp_events` relacionados, sob confirmação explícita do professor.
+**Por quê:** mantém o modelo simples; usuário aceita o risco.
+**Alternativa descartada:** arquivar em vez de excluir (mais complexo, sem pedido do usuário).
+
+### ADR-021 — Email do usuário é imutável
+**Decisão:** o email de qualquer usuário (super-admin, professor, aluno) não pode ser alterado após a criação da conta. Nenhum papel — inclusive super-admin — expõe a edição de email na UI.
+**Por quê:** email é a chave lógica de identidade no MVP (usado em login, notificações, histórico de auditoria); permitir troca abriria superfície para erros e exigiria fluxo de confirmação por email duplo sem valor imediato.
+**Implicação operacional:** se um usuário realmente precisar trocar o endereço, a saída é criar uma conta nova e desativar a antiga (perfil/histórico não migra).
+**A revisar quando:** cadastro público for habilitado e surgir demanda real de usuários trocando provedor de email.
+
+### ADR-022 — Senha inicial do aluno é definida pelo professor
+**Decisão:** no cadastro do aluno, o professor define manualmente a senha inicial (ou usa o botão "gerar forte" que produz 12 caracteres alfanuméricos + símbolos). A senha é armazenada com bcrypt cost 12 e enviada ao aluno por email (opt-out no form).
+**Por quê:** contexto presencial — o professor está com o aluno na sala e pode entregar a senha diretamente; fluxo de self-service ("aluno escolhe senha") adicionaria uma etapa que atrasa o primeiro acesso em aula.
+**Alternativa descartada:** email de ativação com link para o aluno definir a senha (mais seguro, porém exige conectividade imediata do aluno, que nem sempre há em sala).
+**A revisar quando:** cadastro público / auto-matrícula for habilitado.
+
+### ADR-023 — `courses.year` armazenado como `YEAR` (inteiro)
+**Decisão:** o campo `year` do curso é um inteiro representando o ano civil (ex.: `2026`), tipo MySQL `YEAR` ou `SMALLINT`. Não é intervalo, período letivo nem string.
+**Por quê:** alinha com rankings por "ano civil" (ADR-003 e doc/08); simplifica ordenação e filtros; evita ambiguidade de períodos letivos que variam entre países.
+**Validação:** `1900 ≤ year ≤ current_year + 1` na criação e edição.
+
+### ADR-024 — Professor só é desativado, nunca excluído
+**Decisão:** o MVP não oferece exclusão definitiva de professor nem do tenant associado. O super-admin apenas ativa/desativa.
+**Por quê:** preserva histórico completo de cursos, alunos, submissões e XP; evita exclusões irreversíveis acidentais; em escala <5 professores na fase inicial, o custo de manter registros inativos é desprezível.
+**Implicação:** tabela `tenants` cresce monotonicamente; se necessário, limpeza vira processo manual fora da UI.
+**A revisar quando:** surgir demanda formal (LGPD/GDPR) ou quando a escala crescer a ponto de exigir higienização programada.
+
+### ADR-025 — Owner do tenant é fixo na criação
+**Decisão:** `tenants.owner_user_id` não pode ser alterado no MVP. Se um tenant precisar mudar de dono, a prática é criar um tenant novo.
+**Por quê:** simplifica ACL e auditoria; troca de owner implica rever permissões em cascata (cursos, conteúdo, submissões) com risco que não se justifica no MVP.
+**A revisar quando:** houver cenário formal de transferência (venda do espaço, sucessão, etc.).
+
+### ADR-030 — Sem `audit_log` no MVP
+**Decisão:** o MVP **não** implementa a tabela `audit_log` nem registra eventos estruturados de domínio (`create_teacher`, `enroll_student`, `delete_activity`, `grade_evaluation`, `login_success`, etc.). O sistema mantém apenas:
+- Log de erros do PHP (padrão da hospedagem + `storage/logs/error.log`).
+- Logs operacionais em arquivo (`storage/logs/mail-debug.log`, `judge0.log`, `cron-digest.log`, `cron-cleanup.log`, `deploy.log`).
+- Dados de domínio próprios (submissões, notas, feedback, XP) que já registram a história visível do produto.
+**Por quê:** escala alvo é <30 usuários ativos; rastro via git, logs operacionais e os próprios dados do modelo é suficiente para investigar a maioria dos incidentes. Auditoria estruturada custa trabalho em cada ponto de escrita sem ganho imediato percebido.
+**Supersede:** todo o Epic E12 (Auditoria) — sai do roadmap do MVP. A rota `/admin/audit`, o model `AuditLog`, o helper `audit()`, a constante `AuditEvents.php` e todos os AC "Evento `audit_log`: …" previstos nos épicos E2–E11 deixam de existir.
+**A revisar quando:** (a) cadastro público for aberto e a base crescer; (b) incidente de segurança exigir investigação retroativa; (c) LGPD/GDPR entrarem em cena.
+
+### ADR-029 — MVP roda no plano gratuito do Judge0 sem rate limit próprio
+**Decisão:** o LMS consome Judge0 CE pelo plano **gratuito** da RapidAPI e **não implementa** rate limit por aluno, contador de simultâneas, cap diário, nem controle tenant-wide no próprio código. O único limite de sanidade preservado é **64 KB por submissão de código** (validado localmente antes de chamar o Judge0).
+**Comportamento ao esgotar a cota:** quando o Judge0 retornar HTTP 429 (ou equivalente), o backend repassa como erro amigável e o front exibe "Serviço de execução temporariamente indisponível — tente novamente mais tarde". Não há aviso prévio, não há fila, não há quota interna.
+**Por quê:** na escala alvo (1 professor, <10 alunos), construir contadores, tabela `code_run_events`, cron de limpeza e painel administrativo custa mais do que o incômodo eventual de esgotar a cota. Aceita-se o trade-off.
+**Supersede:** ADR-019 (rate limits numéricos). ADR-019 fica histórico para referência.
+**A revisar quando:** (a) o plano pago for assinado; (b) a indisponibilidade por cota se tornar frequente a ponto de atrapalhar aulas; (c) o cadastro público for habilitado e alunos desconhecidos entrarem na plataforma.
+
+### ADR-028 — PDF do enunciado de avaliação aceita até 10 MB
+**Decisão:** o upload do PDF do enunciado de uma avaliação tem teto de **10 MB** (não os 3 MB padrão dos demais uploads). Demais uploads (submissões do aluno, anexos de conteúdo, imagens inline) seguem em 3 MB.
+**Por quê:** enunciados de prova frequentemente incluem figuras, diagramas e tabelas de referência, estourando 3 MB com facilidade. Submissões do aluno e anexos gerais não têm essa necessidade.
+**Implicação:** `UPLOAD_MAX_MB_PDF_BRIEF = 10` em `config/env.php`; validação específica em `UploadService::store($scope='evaluation_brief', …)`.
+**A revisar quando:** surgirem casos reais de enunciados acima desse limite.
+
+### ADR-027 — Aluno pode editar ou remover a própria entrega de atividade até o feedback
+**Decisão:** após enviar uma atividade, o aluno pode (a) substituir o arquivo enviado ou (b) remover completamente a submissão enquanto ela **ainda não tiver feedback** registrado. No momento em que o professor grava feedback pela primeira vez, a submissão fica imutável (mesmo que o feedback seja editado depois).
+**Por quê:** reduz fricção em erros honestos (aluno percebe que enviou o arquivo errado) sem abrir brecha para "tentar até colar"; o feedback do professor é o marco natural de imutabilidade.
+**Impacto em XP:** substituir o arquivo **não** altera o `xp_event` já gravado (o aluno só entrega uma atividade, já ganhou o XP). Remover a submissão **apaga** o `xp_event` correspondente. Re-submeter após remoção gera um `xp_event` novo.
+**Substitui:** a restrição "entrega única e não substituível" do doc/06, que fica obsoleta para atividades (avaliações seguem com fluxo próprio de reenvio — ADR-020 e E7).
+
+### ADR-026 — Aluno é exclusivo do tenant
+**Decisão:** cada aluno pertence a exatamente um tenant. O mesmo email pode existir como alunos independentes em tenants diferentes (são contas distintas, cada uma com sua senha, idioma, XP e histórico). O mesmo email **não** pode ser reutilizado entre professor/super-admin, e um email já usado como professor/super-admin não pode voltar como aluno.
+**Por quê:** alinha com o contexto presencial em que cada professor monta sua própria turma e não há consentimento implícito para compartilhar dados do aluno entre tenants; elimina a fricção de "aluno compartilhado" no cadastro; reforça o isolamento multi-tenant.
+**Impacto no schema:** `users.tenant_id INT NULL` (FK para `tenants`). `role='student'` exige `tenant_id NOT NULL`; `role='teacher'` e `role='super_admin'` exigem `tenant_id IS NULL` (o vínculo do professor ao tenant continua via `tenants.owner_user_id`). Unicidade: coluna gerada `email_tenant_key = CONCAT(email, ':', COALESCE(tenant_id, 0))` com `UNIQUE (email_tenant_key)`, garantindo: (a) email único entre teachers+super-admins; (b) email único entre alunos do mesmo tenant; (c) email livre entre alunos de tenants distintos.
+**Consequência para remoção:** remover um aluno **é** apagar a conta — ele não pode "sair de um tenant" e ficar em outro, porque só está em um.
+
+## Pendências em aberto
+
+Nenhuma no momento. Novas dúvidas ou decisões a revisar devem ser adicionadas aqui à medida que aparecerem.

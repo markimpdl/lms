@@ -1,0 +1,41 @@
+# Pasta de exemplos copiados de outros projetos — NUNCA versionar
+examples/
+
+# Configs locais com segredos
+.env
+.env.*
+!.env.example
+config/env.php
+.mcp.json
+.claude/settings.local.json
+
+# Uploads de produção (alunos enviam arquivos lá)
+storage/uploads/
+public/uploads/
+uploads/
+
+# Dependências
+/vendor/
+/node_modules/
+
+# Estado local de scripts (ex.: deploy incremental)
+scripts/deploy/.ftp-state.json
+
+# Logs e temporários
+*.log
+*.tmp
+*.cache
+.DS_Store
+Thumbs.db
+
+# IDE
+/.idea/
+/.vscode/
+*.swp
+
+# Composer
+composer.phar
+
+# Build outputs
+/dist/
+/build/
