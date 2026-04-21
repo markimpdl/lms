@@ -10,7 +10,7 @@
 --
 -- Decisões que impactam o schema:
 --   ADR-026: alunos são exclusivos do tenant; professores/super-admin não têm tenant.
---            Uniqueness por (email, tenant_id) via coluna gerada.
+--            Uniqueness por (email, tenant_id) via coluna gerada `email_tenant_key`.
 --   ADR-030: SEM tabela audit_log.
 --   ADR-020: excluir avaliação → cascade em submissões (xp_events fica polimórfico,
 --            cascade tratado na camada de aplicação — ver comentário em xp_events).
@@ -18,26 +18,33 @@
 --   ADR-023: courses.year como SMALLINT (inteiro do ano civil).
 --   ADR-015: evaluation_submissions.grade DECIMAL(3,1).
 --
--- Idempotência: todas as tabelas usam CREATE TABLE IF NOT EXISTS; seeds usam
--- INSERT IGNORE. Rodar duas vezes não produz erro.
+-- Convenções do projeto (ver skill /mysql-schema):
+--   - Timestamps: DATETIME (não TIMESTAMP — evita o teto de 2038-01-19).
+--   - Charset utf8mb4 + collation utf8mb4_unicode_ci; engine InnoDB.
+--   - IDs: BIGINT UNSIGNED AUTO_INCREMENT.
+--   - Idempotência: CREATE TABLE IF NOT EXISTS + INSERT IGNORE. Rodar duas vezes é no-op.
+--   - FK circular tenants<->users resolvida via SET FOREIGN_KEY_CHECKS=0 no topo.
+--   - Palavras reservadas (`groups`) usam backticks; demais identificadores, sem.
 -- ============================================================================
 
 SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
 SET @OLD_SQL_MODE = @@SQL_MODE;
 SET SQL_MODE = 'STRICT_ALL_TABLES,NO_ENGINE_SUBSTITUTION,ERROR_FOR_DIVISION_BY_ZERO,NO_ZERO_DATE,NO_ZERO_IN_DATE';
 
 -- ----------------------------------------------------------------------------
--- 1. tenants (sem FK owner_user_id inicialmente — criada no final)
+-- 1. tenants — FK para users já declarada (FOREIGN_KEY_CHECKS desligada)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS tenants (
     id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     owner_user_id   BIGINT UNSIGNED NOT NULL,
     name            VARCHAR(150) NOT NULL,
     active          TINYINT(1) NOT NULL DEFAULT 1,
-    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    KEY idx_tenants_owner (owner_user_id)
+    KEY idx_tenants_owner (owner_user_id),
+    CONSTRAINT fk_tenants_owner FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
@@ -53,8 +60,8 @@ CREATE TABLE IF NOT EXISTS users (
     language          ENUM('pt','en') NOT NULL DEFAULT 'pt',
     active            TINYINT(1) NOT NULL DEFAULT 1,
     email_tenant_key  VARCHAR(220) GENERATED ALWAYS AS (CONCAT(email, ':', COALESCE(tenant_id, 0))) STORED,
-    created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_users_email_tenant (email_tenant_key),
     KEY idx_users_tenant (tenant_id),
@@ -72,7 +79,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS settings (
     setting_key    VARCHAR(100) NOT NULL,
     setting_value  VARCHAR(500) NOT NULL,
-    updated_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (setting_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -87,8 +94,8 @@ CREATE TABLE IF NOT EXISTS courses (
     year         SMALLINT UNSIGNED NOT NULL,
     language     ENUM('pt','en') NOT NULL DEFAULT 'pt',
     archived     TINYINT(1) NOT NULL DEFAULT 0,
-    created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_courses_tenant_year (tenant_id, year),
     CONSTRAINT fk_courses_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
@@ -103,8 +110,8 @@ CREATE TABLE IF NOT EXISTS core_competencies (
     course_id  BIGINT UNSIGNED NOT NULL,
     name       VARCHAR(150) NOT NULL,
     position   INT UNSIGNED NOT NULL DEFAULT 0,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_cc_course_pos (course_id, position),
     CONSTRAINT fk_cc_course FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
@@ -118,8 +125,8 @@ CREATE TABLE IF NOT EXISTS competence_units (
     core_competency_id  BIGINT UNSIGNED NOT NULL,
     name                VARCHAR(150) NOT NULL,
     position            INT UNSIGNED NOT NULL DEFAULT 0,
-    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_cu_cc_pos (core_competency_id, position),
     CONSTRAINT fk_cu_cc FOREIGN KEY (core_competency_id) REFERENCES core_competencies(id) ON DELETE CASCADE
@@ -132,8 +139,8 @@ CREATE TABLE IF NOT EXISTS contents (
     id                  BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     competence_unit_id  BIGINT UNSIGNED NOT NULL,
     html                MEDIUMTEXT NOT NULL,
-    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_contents_cu (competence_unit_id),
     CONSTRAINT fk_contents_cu FOREIGN KEY (competence_unit_id) REFERENCES competence_units(id) ON DELETE CASCADE
@@ -149,7 +156,7 @@ CREATE TABLE IF NOT EXISTS content_attachments (
     stored_path VARCHAR(500) NOT NULL,
     mime        VARCHAR(100) NOT NULL,
     size_bytes  INT UNSIGNED NOT NULL,
-    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_ca_content (content_id),
     CONSTRAINT fk_ca_content FOREIGN KEY (content_id) REFERENCES contents(id) ON DELETE CASCADE
@@ -167,8 +174,8 @@ CREATE TABLE IF NOT EXISTS activities (
     xp_value              INT UNSIGNED NOT NULL DEFAULT 0,
     submission_open       TINYINT(1) NOT NULL DEFAULT 1,
     allow_online_code_run TINYINT(1) NOT NULL DEFAULT 0,
-    created_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_activities_cu (competence_unit_id),
     CONSTRAINT fk_activities_cu FOREIGN KEY (competence_unit_id) REFERENCES competence_units(id) ON DELETE CASCADE
@@ -185,9 +192,9 @@ CREATE TABLE IF NOT EXISTS activity_submissions (
     stored_path     VARCHAR(500) NULL,
     code_text       MEDIUMTEXT NULL,
     feedback        TEXT NULL,
-    feedback_at     TIMESTAMP NULL DEFAULT NULL,
-    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    feedback_at     DATETIME NULL DEFAULT NULL,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_as_activity_student (activity_id, student_user_id),
     KEY idx_as_student (student_user_id),
@@ -205,8 +212,8 @@ CREATE TABLE IF NOT EXISTS evaluations (
     pdf_path            VARCHAR(500) NULL,
     xp_value            INT UNSIGNED NOT NULL DEFAULT 0,
     submission_open     TINYINT(1) NOT NULL DEFAULT 1,
-    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_evaluations_cu (competence_unit_id),
     CONSTRAINT fk_evaluations_cu FOREIGN KEY (competence_unit_id) REFERENCES competence_units(id) ON DELETE CASCADE
@@ -224,11 +231,11 @@ CREATE TABLE IF NOT EXISTS evaluation_submissions (
     stored_path     VARCHAR(500) NULL,
     grade           DECIMAL(3,1) NULL,
     feedback        TEXT NULL,
-    feedback_at     TIMESTAMP NULL DEFAULT NULL,
+    feedback_at     DATETIME NULL DEFAULT NULL,
     retry_allowed   TINYINT(1) NOT NULL DEFAULT 0,
     is_current      TINYINT(1) NOT NULL DEFAULT 1,
-    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_es_eval_student_attempt (evaluation_id, student_user_id, attempt),
     KEY idx_es_student (student_user_id),
@@ -244,7 +251,7 @@ CREATE TABLE IF NOT EXISTS enrollments (
     id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     student_user_id BIGINT UNSIGNED NOT NULL,
     course_id       BIGINT UNSIGNED NOT NULL,
-    enrolled_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    enrolled_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_enr_student_course (student_user_id, course_id),
     KEY idx_enr_course (course_id),
@@ -254,13 +261,14 @@ CREATE TABLE IF NOT EXISTS enrollments (
 
 -- ----------------------------------------------------------------------------
 -- 14. groups — agrupamentos de alunos (ex.: Skills Challenge)
+-- Backticks obrigatórios: `groups` é palavra reservada no MySQL 8.
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `groups` (
     id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     tenant_id  BIGINT UNSIGNED NOT NULL,
     name       VARCHAR(100) NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_groups_tenant_name (tenant_id, name),
     CONSTRAINT fk_groups_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
@@ -272,7 +280,7 @@ CREATE TABLE IF NOT EXISTS `groups` (
 CREATE TABLE IF NOT EXISTS group_members (
     group_id        BIGINT UNSIGNED NOT NULL,
     student_user_id BIGINT UNSIGNED NOT NULL,
-    joined_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    joined_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (group_id, student_user_id),
     KEY idx_gm_student (student_user_id),
     CONSTRAINT fk_gm_group   FOREIGN KEY (group_id) REFERENCES `groups`(id) ON DELETE CASCADE,
@@ -292,7 +300,7 @@ CREATE TABLE IF NOT EXISTS xp_events (
     source_type     ENUM('activity','evaluation') NOT NULL,
     source_id       BIGINT UNSIGNED NOT NULL,
     value           INT NOT NULL,
-    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_xp_student_created (student_user_id, created_at),
     KEY idx_xp_tenant_created (tenant_id, created_at),
@@ -312,31 +320,27 @@ CREATE TABLE IF NOT EXISTS notifications (
     title      VARCHAR(200) NOT NULL,
     body       TEXT NULL,
     link       VARCHAR(500) NULL,
-    read_at    TIMESTAMP NULL DEFAULT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    read_at    DATETIME NULL DEFAULT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_notif_user_read_created (user_id, read_at, created_at),
     CONSTRAINT fk_notif_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- Finalização: FK circular tenants.owner_user_id → users.id
--- (ON DELETE RESTRICT — ADR-024: professor nunca é excluído)
+-- 18. login_attempts — usado para rate limit de login (E1-04).
+-- Sem FK para users: registra tentativas inclusive com email não cadastrado.
 -- ----------------------------------------------------------------------------
--- ALTER só adiciona a constraint se ela ainda não existir (idempotência).
-SET @fk_exists = (
-    SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
-    WHERE CONSTRAINT_SCHEMA = DATABASE()
-      AND TABLE_NAME = 'tenants'
-      AND CONSTRAINT_NAME = 'fk_tenants_owner'
-);
-SET @sql = IF(@fk_exists = 0,
-    'ALTER TABLE tenants ADD CONSTRAINT fk_tenants_owner FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE RESTRICT',
-    'SELECT 1'
-);
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    email       VARCHAR(191) NOT NULL,
+    ip_address  VARCHAR(45) NOT NULL,
+    success     TINYINT(1) NOT NULL DEFAULT 0,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_la_email_created (email, created_at),
+    KEY idx_la_ip_created (ip_address, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
 -- SEEDS
@@ -353,4 +357,5 @@ INSERT IGNORE INTO users (email, password_hash, name, role, language, active, te
     ('admin@lms.local', '!', 'Super Admin', 'super_admin', 'pt', 1, NULL);
 
 -- ----------------------------------------------------------------------------
+SET FOREIGN_KEY_CHECKS = 1;
 SET SQL_MODE = @OLD_SQL_MODE;
