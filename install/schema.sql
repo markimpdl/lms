@@ -329,7 +329,24 @@ CREATE TABLE IF NOT EXISTS notifications (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 18. login_attempts — usado para rate limit de login (E1-04).
+-- 18. password_resets — tokens uso único para recuperação de senha (E1-03).
+-- Armazenamos SHA-256 hex do token (não o token em si). FK CASCADE com users.
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS password_resets (
+    id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id    BIGINT UNSIGNED NOT NULL,
+    token_hash CHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used_at    DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_pr_token (token_hash),
+    KEY idx_pr_user_created (user_id, created_at),
+    CONSTRAINT fk_pr_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- 19. login_attempts — usado para rate limit de login (E1-04).
 -- Sem FK para users: registra tentativas inclusive com email não cadastrado.
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS login_attempts (

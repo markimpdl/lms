@@ -82,7 +82,7 @@ ob_start();
                 </form>
 
                 <div class="text-center mt-3">
-                    <a href="/forgot-password" class="text-decoration-none small"><?= e(__t('auth.forgot')) ?></a>
+                    <a href="/forgot" class="text-decoration-none small"><?= e(__t('auth.forgot')) ?></a>
                 </div>
             </div>
         </div>
