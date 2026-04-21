@@ -5,6 +5,8 @@ return [
     // App
     'app.title'          => 'LMS',
     'app.bootstrap_ok'   => 'Bootstrap OK. Fuso horário: :tz',
+    'app.demo_flash_ok'  => 'Flash funcionando — esta mensagem veio de uma sessão anterior.',
+    'app.demo_flash_btn' => 'Testar flash',
 
     // Common
     'common.save'        => 'Salvar',
@@ -29,4 +31,8 @@ return [
     'auth.forgot'        => 'Esqueci minha senha',
     'auth.invalid'       => 'E-mail ou senha inválidos.',
     'auth.forbidden'     => 'Acesso negado.',
+
+    // Navbar
+    'nav.logout'         => 'Sair',
+    'nav.profile'        => 'Meu perfil',
 ];

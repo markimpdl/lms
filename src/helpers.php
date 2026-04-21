@@ -165,3 +165,28 @@ function require_role(string ...$roles): void
         exit;
     }
 }
+
+// ---------------------------------------------------------------------
+// Flash messages
+// ---------------------------------------------------------------------
+
+/**
+ * Empilha uma mensagem flash para aparecer no próximo render do layout.
+ * $type: success | danger | warning | info
+ */
+function flash(string $type, string $message): void
+{
+    if (!isset($_SESSION['flash']) || !is_array($_SESSION['flash'])) {
+        $_SESSION['flash'] = [];
+    }
+    $_SESSION['flash'][] = ['type' => $type, 'message' => $message];
+}
+
+/**
+ * Renderiza todas as mensagens flash pendentes. Invocado pelo layout;
+ * pode ser chamado manualmente em páginas que não usam o layout mestre.
+ */
+function render_flash(): void
+{
+    require LMS_ROOT . '/src/templates/flash.php';
+}

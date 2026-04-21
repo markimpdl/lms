@@ -18,12 +18,22 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
 - **Ação:** validar no primeiro model real (E2 ou E3) com um teste do tipo: `tx(fn() => insert + throw)` e confirmar que a linha **não** existe no banco depois.
 
 ### [E0-04] Layout em viewport 360px (mobile-first)
-- Precisa de Chrome DevTools para validar: sem overflow horizontal, fontes ≥16px.
+- Precisa de Chrome DevTools para validar: sem overflow horizontal, fontes ≥16px, navbar collapse funciona com o botão hamburger, dropdowns de idioma/usuário não saem da viewport.
 - **Ação:** depois de mergear E0-04, abrir `index.php` em DevTools device mode 360×640.
 
-### [E0-04] Flash messages renderizando em Bootstrap
-- Precisa de browser para validar que o alerta aparece após redirect e desaparece ao fechar.
-- **Ação:** validar manualmente no primeiro fluxo que usar `flash()` (provavelmente E1-02 login).
+### [E0-04] Flash messages no browser
+- Smoke via render test já validou que `flash()` → layout renderiza `alert-success`, que `$_SESSION['flash']` é drenado e que o markup tem `data-bs-dismiss` + `btn-close`.
+- **Ainda falta validar no browser:** clicar no "Testar flash" na raiz faz redirect 302 → `/` → mostra o alerta; botão "×" fecha o alerta com animação (depende do bundle JS do Bootstrap carregado do CDN).
+- **Ação:** abrir a home, clicar em "Testar flash".
+
+### [E0-04] Seletor de idioma preserva query string atual
+- Links atuais são `?lang=pt` / `?lang=en` — se a URL for `/courses/5?tab=overview`, trocar idioma joga fora o `tab`.
+- **Ação (follow-up):** substituir por um helper `lang_url('pt')` que chama `http_build_query(array_merge($_GET, ['lang' => 'pt']))`. Fazer junto da primeira página que tiver query string real (E3 ou E4).
+
+### [E0-04] Divergência "toast" no AC vs "alert" implementado
+- A issue #17 fala em "toast Bootstrap"; a implementação usa `alert-dismissible`.
+- **Justificativa:** alerts são melhores para o fluxo PRG (persistem até dismiss; não auto-fecham). Toasts combinam mais com notificações ephemeral dirigidas por JS client-side.
+- **Ação:** se preferir toast de verdade, trocar em follow-up (ex.: após login poderia ser toast, após erro de validação fica alert).
 
 ---
 
