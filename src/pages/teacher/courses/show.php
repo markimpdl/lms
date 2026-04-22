@@ -2,9 +2,11 @@
 declare(strict_types=1);
 
 /**
- * /teacher/courses/{id} — detalhes do curso (E3-01).
- * Base para E3-02 adicionar listagem de CCs. Inclui dados, contadores e botão
- * arquivar/restaurar.
+ * /teacher/courses/{id} — detalhes do curso + listagem e CRUD de CCs (E3-01 + E3-02).
+ *
+ * Ações sobre CCs ocorrem via POSTs em rotas dedicadas (/teacher/cc/new, /rename,
+ * /move-up|down) — esta página só renderiza a lista + modais. Curso arquivado
+ * esconde botões de ação e desabilita inputs nos modais.
  */
 
 $tenantId = current_tenant_id();
@@ -23,6 +25,9 @@ if ($course === null) {
 }
 
 $isArchived = (int) $course['archived'] === 1;
+$ccs = CoreCompetency::listByCourse($courseId, $tenantId);
+$ccCount = count($ccs);
+
 $page_title = (string) $course['name'];
 
 ob_start();
@@ -77,24 +82,120 @@ ob_start();
     </div>
 <?php endif; ?>
 
-<div class="row g-2 mb-3">
-    <div class="col-6 col-md-3">
-        <div class="card card-body text-center">
-            <div class="display-6"><?= (int) $course['cc_count'] ?></div>
-            <div class="small text-muted"><?= e(__t('courses.col.cc_count')) ?></div>
+<!-- Core Competencies -->
+<div class="card shadow-sm mb-3">
+    <div class="card-header d-flex align-items-center justify-content-between gap-2 flex-wrap">
+        <div>
+            <h2 class="h6 mb-0"><?= e(__t('cc.section.title')) ?></h2>
+            <small class="text-muted"><?= e(__t('cc.section.subtitle', ['count' => (string) $ccCount])) ?></small>
         </div>
+        <?php if (!$isArchived): ?>
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#ccNewModal">
+                + <?= e(__t('cc.new_button')) ?>
+            </button>
+        <?php endif; ?>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card card-body text-center">
-            <div class="display-6"><?= (int) $course['cu_count'] ?></div>
-            <div class="small text-muted"><?= e(__t('courses.col.cu_count')) ?></div>
+
+    <?php if ($ccCount === 0): ?>
+        <div class="card-body text-center text-muted py-4">
+            <p class="mb-0"><?= e(__t('cc.empty')) ?></p>
         </div>
+    <?php else: ?>
+        <ul class="list-group list-group-flush">
+            <?php foreach ($ccs as $i => $cc): ?>
+                <?php $ccId = (int) $cc['id']; $ccName = (string) $cc['name']; ?>
+                <li class="list-group-item d-flex align-items-center gap-2">
+                    <span class="text-muted small" style="min-width: 1.5rem;"><?= $i + 1 ?>.</span>
+                    <div class="flex-grow-1">
+                        <span class="fw-semibold"><?= e($ccName) ?></span>
+                        <small class="text-muted ms-2"><?= (int) $cc['cu_count'] ?> <?= e(__t('courses.col.cu_count')) ?></small>
+                    </div>
+                    <?php if (!$isArchived): ?>
+                        <div class="d-flex gap-1">
+                            <form method="POST" action="/teacher/cc/<?= $ccId ?>/move-up" class="d-inline">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="btn btn-sm btn-outline-secondary" <?= $i === 0 ? 'disabled' : '' ?>
+                                        aria-label="<?= e(__t('cc.action.move_up')) ?>">↑</button>
+                            </form>
+                            <form method="POST" action="/teacher/cc/<?= $ccId ?>/move-down" class="d-inline">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="btn btn-sm btn-outline-secondary" <?= $i === $ccCount - 1 ? 'disabled' : '' ?>
+                                        aria-label="<?= e(__t('cc.action.move_down')) ?>">↓</button>
+                            </form>
+                            <button type="button" class="btn btn-sm btn-outline-primary"
+                                    data-bs-toggle="modal" data-bs-target="#ccEditModal"
+                                    data-cc-id="<?= $ccId ?>" data-cc-name="<?= e($ccName) ?>"
+                                    aria-label="<?= e(__t('cc.action.rename')) ?>">✎</button>
+                        </div>
+                    <?php endif; ?>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    <?php endif; ?>
+</div>
+
+<?php if (!$isArchived): ?>
+<!-- Modal: Nova CC -->
+<div class="modal fade" id="ccNewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <form method="POST" action="/teacher/cc/new" class="modal-content" novalidate>
+            <?= csrf_field() ?>
+            <input type="hidden" name="course_id" value="<?= (int) $course['id'] ?>">
+            <div class="modal-header">
+                <h5 class="modal-title"><?= e(__t('cc.new.title')) ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label for="ccNewName" class="form-label"><?= e(__t('cc.form.name')) ?></label>
+                <input type="text" id="ccNewName" name="name" class="form-control form-control-lg"
+                       required minlength="2" maxlength="150" autofocus>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= e(__t('common.cancel')) ?></button>
+                <button type="submit" class="btn btn-primary"><?= e(__t('common.save')) ?></button>
+            </div>
+        </form>
     </div>
 </div>
 
-<div class="card card-body bg-light-subtle small text-muted">
-    <?= e(__t('courses.show.cc_placeholder')) ?>
+<!-- Modal: Editar CC (populado via data-*) -->
+<div class="modal fade" id="ccEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <form method="POST" action="" id="ccEditForm" class="modal-content" novalidate>
+            <?= csrf_field() ?>
+            <div class="modal-header">
+                <h5 class="modal-title"><?= e(__t('cc.edit.title')) ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label for="ccEditName" class="form-label"><?= e(__t('cc.form.name')) ?></label>
+                <input type="text" id="ccEditName" name="name" class="form-control form-control-lg"
+                       required minlength="2" maxlength="150">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= e(__t('common.cancel')) ?></button>
+                <button type="submit" class="btn btn-primary"><?= e(__t('common.save')) ?></button>
+            </div>
+        </form>
+    </div>
 </div>
+
+<script>
+(function () {
+    var modal = document.getElementById('ccEditModal');
+    if (!modal) return;
+    modal.addEventListener('show.bs.modal', function (event) {
+        var btn = event.relatedTarget;
+        if (!btn) return;
+        var id = btn.getAttribute('data-cc-id');
+        var name = btn.getAttribute('data-cc-name');
+        var form = document.getElementById('ccEditForm');
+        form.action = '/teacher/cc/' + id + '/rename';
+        document.getElementById('ccEditName').value = name;
+    });
+})();
+</script>
+<?php endif; ?>
 <?php
 $page_content = ob_get_clean();
 require LMS_ROOT . '/src/templates/layout.php';

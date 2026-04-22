@@ -40,6 +40,7 @@ return [
         '/teacher'             => ['file' => '/src/pages/dashboard/teacher.php',     'role' => 'teacher'],
         '/teacher/courses'     => ['file' => '/src/pages/teacher/courses/index.php', 'role' => 'teacher'],
         '/teacher/courses/new' => ['file' => '/src/pages/teacher/courses/new.php',   'role' => 'teacher'],
+        '/teacher/cc/new'      => ['file' => '/src/pages/teacher/cc/new.php',        'role' => 'teacher'],
         '/student'             => ['file' => '/src/pages/dashboard/student.php',     'role' => 'student'],
     ],
 
@@ -73,6 +74,16 @@ return [
             'file'   => '/src/pages/teacher/courses/toggle-archive.php',
             'role'   => 'teacher',
             'params' => ['id'],
+        ],
+        '#^/teacher/cc/(\d+)/rename$#' => [
+            'file'   => '/src/pages/teacher/cc/rename.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/cc/(\d+)/move-(up|down)$#' => [
+            'file'   => '/src/pages/teacher/cc/move.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'direction'],
         ],
     ],
 ];
