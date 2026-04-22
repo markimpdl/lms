@@ -33,12 +33,14 @@ return [
     ],
 
     'roles' => [
-        '/admin'              => ['file' => '/src/pages/dashboard/admin.php',      'role' => 'super_admin'],
-        '/admin/settings'     => ['file' => '/src/pages/admin/settings.php',       'role' => 'super_admin'],
-        '/admin/teachers'     => ['file' => '/src/pages/admin/teachers/index.php', 'role' => 'super_admin'],
-        '/admin/teachers/new' => ['file' => '/src/pages/admin/teachers/new.php',   'role' => 'super_admin'],
-        '/teacher'            => ['file' => '/src/pages/dashboard/teacher.php',    'role' => 'teacher'],
-        '/student'            => ['file' => '/src/pages/dashboard/student.php',    'role' => 'student'],
+        '/admin'               => ['file' => '/src/pages/dashboard/admin.php',       'role' => 'super_admin'],
+        '/admin/settings'      => ['file' => '/src/pages/admin/settings.php',        'role' => 'super_admin'],
+        '/admin/teachers'      => ['file' => '/src/pages/admin/teachers/index.php',  'role' => 'super_admin'],
+        '/admin/teachers/new'  => ['file' => '/src/pages/admin/teachers/new.php',    'role' => 'super_admin'],
+        '/teacher'             => ['file' => '/src/pages/dashboard/teacher.php',     'role' => 'teacher'],
+        '/teacher/courses'     => ['file' => '/src/pages/teacher/courses/index.php', 'role' => 'teacher'],
+        '/teacher/courses/new' => ['file' => '/src/pages/teacher/courses/new.php',   'role' => 'teacher'],
+        '/student'             => ['file' => '/src/pages/dashboard/student.php',     'role' => 'student'],
     ],
 
     'role_patterns' => [
@@ -55,6 +57,21 @@ return [
         '#^/admin/teachers/(\d+)/reset-password$#' => [
             'file'   => '/src/pages/admin/teachers/reset-password.php',
             'role'   => 'super_admin',
+            'params' => ['id'],
+        ],
+        '#^/teacher/courses/(\d+)$#' => [
+            'file'   => '/src/pages/teacher/courses/show.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/courses/(\d+)/edit$#' => [
+            'file'   => '/src/pages/teacher/courses/edit.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/courses/(\d+)/toggle-archive$#' => [
+            'file'   => '/src/pages/teacher/courses/toggle-archive.php',
+            'role'   => 'teacher',
             'params' => ['id'],
         ],
     ],
