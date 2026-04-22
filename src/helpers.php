@@ -232,3 +232,39 @@ function render_flash(): void
 {
     require LMS_ROOT . '/src/templates/flash.php';
 }
+
+// ---------------------------------------------------------------------
+// Settings (KV) — E2-05
+// ---------------------------------------------------------------------
+
+/**
+ * Lê um valor da tabela `settings`. Cache estático por request evita N
+ * SELECTs quando a mesma chave é consultada várias vezes na renderização
+ * de uma página. Seeds iniciais ficam em install/schema.sql.
+ */
+function setting_get(string $key, ?string $default = null): ?string
+{
+    static $cache = [];
+    if (array_key_exists($key, $cache)) {
+        return $cache[$key];
+    }
+
+    $stmt = Database::pdo()->prepare('SELECT setting_value FROM settings WHERE setting_key = ? LIMIT 1');
+    $stmt->execute([$key]);
+    $value = $stmt->fetchColumn();
+
+    $cache[$key] = $value === false ? $default : (string) $value;
+    return $cache[$key];
+}
+
+/**
+ * Grava (ou atualiza) um valor na tabela `settings`. `updated_at` é
+ * mantido pelo próprio MySQL (`ON UPDATE CURRENT_TIMESTAMP` no schema).
+ */
+function setting_set(string $key, string $value): void
+{
+    Database::pdo()->prepare(
+        'INSERT INTO settings (setting_key, setting_value) VALUES (?, ?)
+              ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)'
+    )->execute([$key, $value]);
+}

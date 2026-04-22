@@ -20,11 +20,12 @@ declare(strict_types=1);
  */
 return [
     'public' => [
-        '/'       => '/src/pages/home.php',
-        '/login'  => '/src/pages/login.php',
-        '/logout' => '/src/pages/logout.php',
-        '/forgot' => '/src/pages/forgot.php',
-        '/reset'  => '/src/pages/reset.php',
+        '/'                 => '/src/pages/home.php',
+        '/login'            => '/src/pages/login.php',
+        '/logout'           => '/src/pages/logout.php',
+        '/forgot'           => '/src/pages/forgot.php',
+        '/reset'            => '/src/pages/reset.php',
+        '/register-teacher' => '/src/pages/register-teacher.php',
     ],
 
     'authenticated' => [
@@ -33,6 +34,7 @@ return [
 
     'roles' => [
         '/admin'              => ['file' => '/src/pages/dashboard/admin.php',      'role' => 'super_admin'],
+        '/admin/settings'     => ['file' => '/src/pages/admin/settings.php',       'role' => 'super_admin'],
         '/admin/teachers'     => ['file' => '/src/pages/admin/teachers/index.php', 'role' => 'super_admin'],
         '/admin/teachers/new' => ['file' => '/src/pages/admin/teachers/new.php',   'role' => 'super_admin'],
         '/teacher'            => ['file' => '/src/pages/dashboard/teacher.php',    'role' => 'teacher'],

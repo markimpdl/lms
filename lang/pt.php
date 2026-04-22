@@ -168,6 +168,19 @@ return [
     'admin.teachers.deactivated'              => ':name foi desativado(a).',
     'admin.teachers.reactivated'              => ':name foi reativado(a).',
 
+    // Configurações globais (E2-05)
+    'admin.settings.title'                => 'Configurações',
+    'admin.settings.public_reg'           => 'Cadastro público de professores',
+    'admin.settings.public_reg_hint'      => 'Quando ligado, a página /register-teacher permitirá auto-cadastro. Formulário ainda em implementação — pós-MVP.',
+    'admin.settings.public_reg_on'        => 'Aberto — qualquer pessoa pode se cadastrar como professor',
+    'admin.settings.public_reg_off'       => 'Fechado — apenas super-admin cadastra novos professores',
+    'admin.settings.public_reg_enabled'   => 'Cadastro público habilitado.',
+    'admin.settings.public_reg_disabled'  => 'Cadastro público desabilitado.',
+
+    // Cadastro público de professor (E2-05 — placeholder; form real é pós-MVP)
+    'auth.register_teacher.title'         => 'Cadastro de professor',
+    'public_reg.closed'                   => 'Cadastro público fechado. Entre em contato com o administrador para receber suas credenciais.',
+
     // Email de recuperação (idioma segue o do destinatário — ADR-014)
     'email.reset.subject'   => 'LMS — redefinição de senha',
     'email.reset.greeting'  => 'Olá, :name',

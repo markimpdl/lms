@@ -11,6 +11,14 @@ ob_start();
 <div class="py-4">
     <h1 class="h3 mb-3"><?= e(__t('dashboard.admin.title')) ?></h1>
     <p class="lead text-muted"><?= e(__t('dashboard.admin.welcome', ['name' => $user['name']])) ?></p>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <a href="/admin/teachers" class="btn btn-outline-primary">
+            <?= e(__t('admin.teachers.title')) ?>
+        </a>
+        <a href="/admin/settings" class="btn btn-outline-secondary">
+            <?= e(__t('admin.settings.title')) ?>
+        </a>
+    </div>
     <p class="text-muted small"><?= e(__t('dashboard.stub_notice')) ?></p>
 </div>
 <?php
