@@ -28,18 +28,34 @@ if ($cc === null) {
 $isArchived = (int) $cc['course_archived'] === 1;
 $cus = CompetenceUnit::listByCc($ccId, $tenantId);
 $cuCount = count($cus);
+$tree = curriculum_tree($courseId, $tenantId);
+$activeCcId = $ccId;
+$activeCuId = 0;
 
 $page_title = (string) $cc['name'];
 
 ob_start();
 ?>
-<nav aria-label="breadcrumb" class="small">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="/teacher/courses"><?= e(__t('courses.index.title')) ?></a></li>
-        <li class="breadcrumb-item"><a href="/teacher/courses/<?= $courseId ?>"><?= e((string) $cc['course_name']) ?></a></li>
-        <li class="breadcrumb-item active" aria-current="page"><?= e((string) $cc['name']) ?></li>
-    </ol>
-</nav>
+<?= breadcrumbs([
+    ['label' => __t('courses.index.title'), 'url' => '/teacher/courses'],
+    ['label' => (string) $cc['course_name'], 'url' => '/teacher/courses/' . $courseId],
+    ['label' => (string) $cc['name']],
+]) ?>
+
+<button type="button" class="btn btn-outline-secondary d-md-none mb-2"
+        data-bs-toggle="offcanvas" data-bs-target="#curriculumOffcanvas">
+    ☰ <?= e(__t('nav.curriculum.open')) ?>
+</button>
+
+<div class="row g-3">
+<aside class="col-md-3 d-none d-md-block">
+    <div class="card shadow-sm sticky-top" style="top: 1rem;">
+        <div class="card-body p-2">
+            <?php require LMS_ROOT . '/src/templates/partials/curriculum_nav.php'; ?>
+        </div>
+    </div>
+</aside>
+<div class="col-12 col-md-9">
 
 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
     <div>
@@ -160,6 +176,20 @@ ob_start();
 })();
 </script>
 <?php endif; ?>
+
+</div>
+</div>
+
+<!-- Offcanvas (mobile) -->
+<div class="offcanvas offcanvas-start" tabindex="-1" id="curriculumOffcanvas" aria-labelledby="curriculumOffcanvasLabel">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="curriculumOffcanvasLabel"><?= e(__t('nav.curriculum.title')) ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <?php require LMS_ROOT . '/src/templates/partials/curriculum_nav.php'; ?>
+    </div>
+</div>
 <?php
 $page_content = ob_get_clean();
 require LMS_ROOT . '/src/templates/layout.php';

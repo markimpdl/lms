@@ -314,3 +314,96 @@ function cached_json(string $key, int $ttl, callable $producer): array
 
     return $fresh;
 }
+
+// ---------------------------------------------------------------------
+// Navegação hierárquica do currículo (E3-04)
+// ---------------------------------------------------------------------
+
+/**
+ * Carrega toda a árvore curso → CCs → CUs com um único SELECT + LEFT JOIN,
+ * filtrado por tenant. Retorna:
+ *
+ *   ['id' => 1, 'name' => 'Curso', 'ccs' => [
+ *       ['id' => 5, 'name' => 'CC A', 'cus' => [['id' => 10, 'name' => 'CU α'], ...]],
+ *       ...
+ *   ]]
+ *
+ * Curso fora do tenant → ['id' => 0, 'name' => '', 'ccs' => []]. Caller
+ * decide não mostrar sidebar nesse caso.
+ *
+ * @return array{id:int, name:string, ccs:list<array{id:int, name:string, cus:list<array{id:int, name:string}>}>}
+ */
+function curriculum_tree(int $courseId, int $tenantId): array
+{
+    $sql = 'SELECT c.id  AS course_id, c.name AS course_name,
+                   cc.id AS cc_id,     cc.name AS cc_name,
+                   cu.id AS cu_id,     cu.name AS cu_name
+              FROM courses c
+              LEFT JOIN core_competencies cc ON cc.course_id = c.id
+              LEFT JOIN competence_units  cu ON cu.core_competency_id = cc.id
+             WHERE c.id = ? AND c.tenant_id = ?
+             ORDER BY cc.position ASC, cc.id ASC, cu.position ASC, cu.id ASC';
+
+    $stmt = Database::pdo()->prepare($sql);
+    $stmt->execute([$courseId, $tenantId]);
+    $rows = $stmt->fetchAll();
+
+    if ($rows === []) {
+        return ['id' => 0, 'name' => '', 'ccs' => []];
+    }
+
+    $tree = [
+        'id'   => (int)    $rows[0]['course_id'],
+        'name' => (string) $rows[0]['course_name'],
+        'ccs'  => [],
+    ];
+
+    $ccIndex = [];
+    foreach ($rows as $row) {
+        if ($row['cc_id'] === null) {
+            continue;
+        }
+        $ccId = (int) $row['cc_id'];
+        if (!isset($ccIndex[$ccId])) {
+            $ccIndex[$ccId] = count($tree['ccs']);
+            $tree['ccs'][] = [
+                'id'   => $ccId,
+                'name' => (string) $row['cc_name'],
+                'cus'  => [],
+            ];
+        }
+        if ($row['cu_id'] !== null) {
+            $tree['ccs'][$ccIndex[$ccId]]['cus'][] = [
+                'id'   => (int)    $row['cu_id'],
+                'name' => (string) $row['cu_name'],
+            ];
+        }
+    }
+
+    return $tree;
+}
+
+/**
+ * Renderiza um <nav> com breadcrumb Bootstrap a partir de uma lista de itens.
+ * O último item vira `active` sem link; os demais viram `<a>` se tiverem `url`.
+ *
+ * @param list<array{label:string, url?:string}> $items
+ */
+function breadcrumbs(array $items): string
+{
+    if ($items === []) {
+        return '';
+    }
+    $out = '<nav aria-label="breadcrumb" class="small"><ol class="breadcrumb">';
+    $n = count($items);
+    foreach ($items as $i => $it) {
+        $isLast = $i === $n - 1;
+        $label  = (string) ($it['label'] ?? '');
+        if ($isLast || !isset($it['url'])) {
+            $out .= '<li class="breadcrumb-item active" aria-current="page">' . e($label) . '</li>';
+        } else {
+            $out .= '<li class="breadcrumb-item"><a href="' . e((string) $it['url']) . '">' . e($label) . '</a></li>';
+        }
+    }
+    return $out . '</ol></nav>';
+}

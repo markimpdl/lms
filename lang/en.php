@@ -300,4 +300,8 @@ return [
     'cu.renamed'          => 'CU renamed to ":name".',
     'cu.err.cc_unavailable' => 'This CC does not exist, does not belong to you, or the course is archived.',
     'cu.err.move'         => 'Could not move the CU (already at the edge or data changed).',
+
+    // Hierarchical nav (E3-04)
+    'nav.curriculum.title' => 'Course structure',
+    'nav.curriculum.open'  => 'Course structure',
 ];
