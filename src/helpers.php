@@ -145,19 +145,57 @@ function current_tenant_id(): ?int
     return $tid !== null ? (int) $tid : null;
 }
 
+/**
+ * Middleware de autenticação (E1-05).
+ *
+ * Garante que:
+ *   (a) há um usuário na sessão;
+ *   (b) esse usuário ainda está `active = 1` no banco;
+ *   (c) `password_changed_at` no banco bate com o da sessão — se divergir,
+ *       significa que a senha foi trocada em outro dispositivo (ou via reset)
+ *       e a sessão corrente deve ser invalidada.
+ *
+ * Qualquer falha faz logout, empilha flash explicativo e redireciona para /login
+ * preservando o `next` para retomar após autenticação.
+ */
 function require_auth(): void
 {
-    if (current_user() !== null) {
-        return;
+    $user = current_user();
+    if ($user === null) {
+        $next = $_SERVER['REQUEST_URI'] ?? '/';
+        header('Location: /login?next=' . urlencode($next));
+        exit;
     }
-    $next = $_SERVER['REQUEST_URI'] ?? '/';
-    header('Location: /login?next=' . urlencode($next));
-    exit;
+
+    $stmt = Database::pdo()->prepare(
+        'SELECT active, password_changed_at FROM users WHERE id = ? LIMIT 1'
+    );
+    $stmt->execute([(int) $user['id']]);
+    $row = $stmt->fetch();
+
+    if (!$row || (int) $row['active'] !== 1) {
+        AuthController::logout();
+        flash('warning', __t('auth.account_deactivated'));
+        header('Location: /login');
+        exit;
+    }
+
+    $dbChanged      = (string) ($row['password_changed_at'] ?? '');
+    $sessionChanged = (string) ($user['password_changed_at'] ?? '');
+    if ($dbChanged !== $sessionChanged) {
+        AuthController::logout();
+        flash('info', __t('auth.session_invalidated'));
+        header('Location: /login');
+        exit;
+    }
 }
 
 /**
  * Exige que o usuário logado tenha um dos papéis informados.
  * Uso: require_role('teacher'); ou require_role('teacher', 'super_admin');
+ *
+ * Se o usuário está autenticado mas não tem o papel, renderiza a página 403
+ * amigável em vez de encerrar com resposta vazia.
  */
 function require_role(string ...$roles): void
 {
@@ -165,6 +203,7 @@ function require_role(string ...$roles): void
     $userRole = current_user()['role'] ?? null;
     if (!in_array($userRole, $roles, true)) {
         http_response_code(403);
+        require LMS_ROOT . '/src/templates/errors/403.php';
         exit;
     }
 }

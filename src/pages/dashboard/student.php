@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-require_role('student');
+// Auth + papel garantidos pelo front controller via src/routes.php (E1-05).
 $user = current_user();
 
 $page_title = __t('dashboard.student.title');

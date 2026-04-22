@@ -8,8 +8,7 @@ declare(strict_types=1);
  * hidden "form" (data|password). Email é exibido como readonly permanente.
  */
 
-require_auth();
-
+// Auth garantida pelo front controller via src/routes.php (E1-05).
 $user = current_user();
 $activeTab = 'data';
 $error = null;
@@ -45,12 +44,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $current = (string) ($_POST['current_password'] ?? '');
         $new     = (string) ($_POST['new_password'] ?? '');
         $confirm = (string) ($_POST['new_password_confirm'] ?? '');
-        $err     = UserController::changePassword((int) $user['id'], $current, $new, $confirm);
+        $changedAt = null;
+        $err = UserController::changePassword((int) $user['id'], $current, $new, $confirm, $changedAt);
 
         if ($err !== null) {
             $error = __t($err);
         } else {
-            $_SESSION['user']['password_changed_at'] = date('Y-m-d H:i:s');
+            // Mesmo timestamp literal que foi ao banco — o middleware de E1-05
+            // compara string-a-string e deslogaria por divergência de 1s.
+            $_SESSION['user']['password_changed_at'] = $changedAt;
             flash('success', __t('profile.password_changed'));
             header('Location: /profile');
             exit;

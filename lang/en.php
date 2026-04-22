@@ -52,6 +52,12 @@ return [
     // Errors
     'error.404'          => 'Page not found',
     'error.404_message'  => 'The page you tried to reach does not exist or has been moved.',
+    'error.403'          => 'Access denied',
+    'error.403_message'  => 'You do not have permission to access this page.',
+
+    // Session middleware (E1-05)
+    'auth.account_deactivated' => 'Your account has been deactivated. Please contact the administrator.',
+    'auth.session_invalidated' => 'Your session expired because the password was changed. Please log in again.',
 
     // Password reset (E1-03) — forgot
     'auth.forgot.title'            => 'Forgot my password',

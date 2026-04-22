@@ -63,6 +63,17 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
 - **Impacto:** usuário com `users.language='en'` no banco vê a UI em PT até clicar `?lang=en` pela primeira vez ou atualizar o perfil.
 - **Ação:** corrigir a chave no helper (de `'lang'` para `'language'`) em uma story futura — fora do escopo de E1-04.
 
+### [E1-05] Middleware de auth com MySQL real
+- Código revisado; sem MySQL local não dá para validar as SELECTs de `active` + `password_changed_at` que `require_auth()` agora faz a cada request autenticada.
+- **Ações:**
+  - Logar como super-admin → acessar `/admin` (funciona normal); abrir DevTools Network e checar que a request não dispara logout.
+  - No banco, `UPDATE users SET active = 0 WHERE id = 1` → próxima navegação para `/admin` deve deslogar com flash `auth.account_deactivated`.
+  - Restaurar `active = 1`, logar de novo. Em outra aba, usar `/profile` → aba Senha para trocar a senha. Na aba antiga, qualquer clique deve disparar `auth.session_invalidated` (comparação de `password_changed_at`).
+  - Aluno tentar acessar `/admin` → 403 amigável (não stack trace nem tela branca).
+  - Rota inexistente (`/qualquer-coisa-aleatoria`) → 404 amigável.
+  - `/admin/foo/bar` → deve cair no handler de `/admin` (prefix match); aluno em `/admin/foo` ainda recebe 403.
+- **Risco conhecido:** a comparação de `password_changed_at` é string-to-string. O UserController já gera o timestamp em PHP e passa literal ao UPDATE para evitar divergência de 1s entre clock do MySQL e do PHP. Se um futuro caller voltar a usar `CURRENT_TIMESTAMP`, o bug ressurge — sentinela para o review.
+
 ### [E0-05/06] `install/schema.sql` executa limpo no phpMyAdmin
 - Revisão visual feita por código, mas nenhum MySQL real foi executado no dev local (sem `pdo_mysql`, sem mysql client).
 - **Ação:** rodar o SQL em banco vazio no phpMyAdmin Hostinger **ou** em MySQL 8 local. Esperado: criar **18 tabelas** (17 do domínio + `login_attempts`), inserir 2 seeds, zero erros. Rodar duas vezes — segunda execução deve ser no-op (idempotente via `CREATE TABLE IF NOT EXISTS` + `INSERT IGNORE`).
