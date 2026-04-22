@@ -125,6 +125,30 @@ return [
     'admin.teachers.next'              => 'Próxima',
     'admin.teachers.page_of'           => 'Página :page de :total',
 
+    // Cadastro de professor (E2-02)
+    'admin.teachers.form.title'            => 'Novo professor',
+    'admin.teachers.form.name'             => 'Nome completo',
+    'admin.teachers.form.password'         => 'Senha inicial',
+    'admin.teachers.form.password_hint'    => 'Mínimo de 8 caracteres. O professor pode trocar após o primeiro login.',
+    'admin.teachers.form.tenant_name'      => 'Nome do espaço (tenant)',
+    'admin.teachers.form.tenant_hint'      => 'Pode ser o mesmo nome do professor ou um nome institucional.',
+    'admin.teachers.form.send_email'       => 'Enviar credenciais por email',
+    'admin.teachers.form.submit'           => 'Cadastrar professor',
+    'admin.teachers.form.has_errors'       => 'Revise os campos destacados abaixo.',
+    'admin.teachers.form.smtp_off_notice'  => 'O envio de email ainda não está configurado — as credenciais aparecerão na tela após o cadastro.',
+    'admin.teachers.form.err.name'            => 'Nome precisa ter entre 3 e 120 caracteres.',
+    'admin.teachers.form.err.email_invalid'   => 'Informe um email válido.',
+    'admin.teachers.form.err.email_taken'     => 'Já existe um usuário com esse email.',
+    'admin.teachers.form.err.password_min'    => 'Senha precisa ter ao menos 8 caracteres.',
+    'admin.teachers.form.err.language'        => 'Idioma inválido.',
+    'admin.teachers.form.err.tenant_name'     => 'Nome do espaço precisa ter entre 3 e 120 caracteres.',
+    'admin.teachers.form.err.tenant_taken'    => 'Já existe um espaço com esse nome.',
+
+    'admin.teachers.created'            => 'Professor :name criado com sucesso.',
+    'admin.teachers.creds_title'        => 'Credenciais de :name',
+    'admin.teachers.creds_smtp_off'     => 'Copie as credenciais abaixo e entregue ao professor — este painel some ao recarregar.',
+    'admin.teachers.creds_opted_out'    => 'Você optou por não enviar email. Copie as credenciais antes de sair da tela.',
+
     // Email de recuperação (idioma segue o do destinatário — ADR-014)
     'email.reset.subject'   => 'LMS — redefinição de senha',
     'email.reset.greeting'  => 'Olá, :name',

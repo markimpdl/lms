@@ -16,6 +16,19 @@ final class Mailer
     private const LOG_PATH = '/storage/logs/mail-debug.log';
 
     /**
+     * True quando há SMTP real por trás (Hostgator + PHPMailer, vindo em E10-03).
+     * Usado por fluxos que precisam decidir entre enviar credenciais por email ou
+     * exibi-las na tela para o admin copiar (E2-02).
+     *
+     * Enquanto `send()` só escreve em log, isso devolve false. Ao ligar o SMTP
+     * de verdade, passa a consultar a config de env.
+     */
+    public static function isConfigured(): bool
+    {
+        return false;
+    }
+
+    /**
      * Envia (ou, na fase atual, registra) um email.
      * $htmlBody e $textBody são fornecidos por quem chama — o Mailer não gera
      * um a partir do outro (mantém controle total de formatação).

@@ -125,6 +125,30 @@ return [
     'admin.teachers.next'              => 'Next',
     'admin.teachers.page_of'           => 'Page :page of :total',
 
+    // Teacher creation (E2-02)
+    'admin.teachers.form.title'            => 'New teacher',
+    'admin.teachers.form.name'             => 'Full name',
+    'admin.teachers.form.password'         => 'Initial password',
+    'admin.teachers.form.password_hint'    => 'At least 8 characters. The teacher can change it after the first login.',
+    'admin.teachers.form.tenant_name'      => 'Workspace (tenant) name',
+    'admin.teachers.form.tenant_hint'      => 'Can be the teacher\'s name or an institutional name.',
+    'admin.teachers.form.send_email'       => 'Send credentials by email',
+    'admin.teachers.form.submit'           => 'Create teacher',
+    'admin.teachers.form.has_errors'       => 'Please review the highlighted fields below.',
+    'admin.teachers.form.smtp_off_notice'  => 'Email delivery is not configured yet — credentials will be shown on screen after creation.',
+    'admin.teachers.form.err.name'            => 'Name must be between 3 and 120 characters.',
+    'admin.teachers.form.err.email_invalid'   => 'Enter a valid email.',
+    'admin.teachers.form.err.email_taken'     => 'A user with this email already exists.',
+    'admin.teachers.form.err.password_min'    => 'Password must be at least 8 characters long.',
+    'admin.teachers.form.err.language'        => 'Invalid language.',
+    'admin.teachers.form.err.tenant_name'     => 'Workspace name must be between 3 and 120 characters.',
+    'admin.teachers.form.err.tenant_taken'    => 'A workspace with this name already exists.',
+
+    'admin.teachers.created'            => 'Teacher :name created successfully.',
+    'admin.teachers.creds_title'        => 'Credentials for :name',
+    'admin.teachers.creds_smtp_off'     => 'Copy the credentials below and hand them to the teacher — this panel disappears on refresh.',
+    'admin.teachers.creds_opted_out'    => 'You opted not to send an email. Copy the credentials before leaving this page.',
+
     // Reset email (language follows the recipient — ADR-014)
     'email.reset.subject'   => 'LMS — password reset',
     'email.reset.greeting'  => 'Hello, :name',

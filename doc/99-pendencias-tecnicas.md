@@ -88,6 +88,23 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
 - **Mobile 360×640:** tabela some e vira cartão empilhado em `<lg`; validar que cada cartão não estoura a viewport e que badges ficam legíveis.
 - **Placeholders E2-03 / E2-04:** botões "Abrir" e "Desativar/Reativar" estão com `disabled`. Quando E2-03 chegar, trocar `href="#"` por `/admin/teachers/<id>`; quando E2-04 chegar, ligar o botão de toggle.
 
+### [E2-02] Cadastro de professor com MySQL real
+- Schema ganhou `UNIQUE KEY uk_tenants_name (name)` — precisa re-rodar `install/schema.sql` (ou `ALTER TABLE tenants ADD UNIQUE KEY uk_tenants_name (name);`).
+- `TeacherProvisioningService::create` faz pré-check de unicidade + transação com rollback em falha. Precisa validar em MySQL real que o rollback funciona: forçar um ERROR (ex.: violar `chk_users_role_tenant` temporariamente) e confirmar que nenhum user/tenant foi gravado.
+- Email é enviado via `Mailer::send`; `Mailer::isConfigured()` devolve `false` até E10-03 conectar o PHPMailer. Enquanto isso, o fallback grava credenciais em `$_SESSION['teacher_creds_once']` e a listagem mostra uma vez.
+- **Ações:**
+  - Abrir `/admin/teachers/new` logado como super-admin → ver alert azul informando que email não está configurado.
+  - Submeter form vazio → erros por campo visíveis (name, email, password, tenant_name).
+  - Email com formato inválido → erro `form.err.email_invalid`.
+  - Reutilizar email já existente em users → erro `form.err.email_taken`.
+  - Reutilizar nome de tenant já existente → erro `form.err.tenant_taken` (case-insensitive via collation).
+  - Criar com sucesso (checkbox ligado, mas SMTP off) → redirect para `/admin/teachers` com flash + card alert verde mostrando email/senha/tenant.
+  - Atualizar a página → card some (transient drenado da sessão).
+  - Logar com o novo professor e confirmar acesso + idioma correto.
+  - Testar edge: o JS de sugestão automática do nome do tenant espelha enquanto o campo não é editado, mas para de espelhar assim que admin digita no tenant.
+- **Mobile 360×640:** form em coluna única, campos com `form-control-lg`, botões visíveis sem scroll horizontal. Alert de credenciais com `dl.row.small` precisa caber na viewport.
+- **Placeholder de template de email:** templates PHP por idioma (`teacher_welcome.{pt,en}.php`) duplicam pouca HTML mas saem do padrão `__t()` do email de reset. Considerado aceitável pela separação clara do AC; se virar problema de manutenção, migrar para chaves i18n + template único.
+
 ### [E0-05/06] `install/schema.sql` executa limpo no phpMyAdmin
 - Revisão visual feita por código, mas nenhum MySQL real foi executado no dev local (sem `pdo_mysql`, sem mysql client).
 - **Ação:** rodar o SQL em banco vazio no phpMyAdmin Hostinger **ou** em MySQL 8 local. Esperado: criar **18 tabelas** (17 do domínio + `login_attempts`), inserir 2 seeds, zero erros. Rodar duas vezes — segunda execução deve ser no-op (idempotente via `CREATE TABLE IF NOT EXISTS` + `INSERT IGNORE`).

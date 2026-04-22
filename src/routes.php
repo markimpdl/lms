@@ -30,9 +30,10 @@ return [
     ],
 
     'roles' => [
-        '/admin'          => ['file' => '/src/pages/dashboard/admin.php',       'role' => 'super_admin'],
-        '/admin/teachers' => ['file' => '/src/pages/admin/teachers/index.php',  'role' => 'super_admin'],
-        '/teacher'        => ['file' => '/src/pages/dashboard/teacher.php',     'role' => 'teacher'],
-        '/student'        => ['file' => '/src/pages/dashboard/student.php',     'role' => 'student'],
+        '/admin'              => ['file' => '/src/pages/dashboard/admin.php',      'role' => 'super_admin'],
+        '/admin/teachers'     => ['file' => '/src/pages/admin/teachers/index.php', 'role' => 'super_admin'],
+        '/admin/teachers/new' => ['file' => '/src/pages/admin/teachers/new.php',   'role' => 'super_admin'],
+        '/teacher'            => ['file' => '/src/pages/dashboard/teacher.php',    'role' => 'teacher'],
+        '/student'            => ['file' => '/src/pages/dashboard/student.php',    'role' => 'student'],
     ],
 ];
