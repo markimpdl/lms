@@ -23,14 +23,17 @@ return [
     'DB_USER'       => 'lms_user',
     'DB_PASS'       => 'change-me',
 
-    // --- SMTP (Hostgator) ----------------------------------------------
-    'SMTP_HOST'     => 'smtp.hostgator.com.br',
-    'SMTP_PORT'     => 587,
-    'SMTP_USER'     => 'naoresponda@exemplo.com',
-    'SMTP_PASS'     => 'change-me',
+    // --- SMTP ----------------------------------------------------------
+    // Deixe SMTP_HOST vazio para cair no fallback de log (storage/logs/mail-debug.log).
+    // Port 465 → SMTP_SECURE='ssl' (SMTPS, SSL implícito).
+    // Port 587 → SMTP_SECURE='tls' (STARTTLS).
+    'SMTP_HOST'     => '',
+    'SMTP_PORT'     => 465,
+    'SMTP_USER'     => '',
+    'SMTP_PASS'     => '',
     'SMTP_FROM'     => 'naoresponda@exemplo.com',
     'SMTP_FROM_NAME'=> 'LMS',
-    'SMTP_SECURE'   => 'tls',              // tls | ssl
+    'SMTP_SECURE'   => 'ssl',              // ssl | tls
 
     // --- Judge0 (RapidAPI plano gratuito) ------------------------------
     'JUDGE0_HOST'   => 'judge0-ce.p.rapidapi.com',
