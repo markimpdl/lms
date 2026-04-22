@@ -168,6 +168,19 @@ return [
     'admin.teachers.deactivated'              => ':name has been deactivated.',
     'admin.teachers.reactivated'              => ':name has been reactivated.',
 
+    // Global settings (E2-05)
+    'admin.settings.title'                => 'Settings',
+    'admin.settings.public_reg'           => 'Public teacher registration',
+    'admin.settings.public_reg_hint'      => 'When enabled, /register-teacher will allow self-signup. The public form is still pending implementation — post-MVP.',
+    'admin.settings.public_reg_on'        => 'Open — anyone can register as a teacher',
+    'admin.settings.public_reg_off'       => 'Closed — only super-admin can register new teachers',
+    'admin.settings.public_reg_enabled'   => 'Public registration enabled.',
+    'admin.settings.public_reg_disabled'  => 'Public registration disabled.',
+
+    // Public teacher registration (E2-05 — placeholder; real form is post-MVP)
+    'auth.register_teacher.title'         => 'Teacher registration',
+    'public_reg.closed'                   => 'Public registration is closed. Please contact the administrator to receive your credentials.',
+
     // Reset email (language follows the recipient — ADR-014)
     'email.reset.subject'   => 'LMS — password reset',
     'email.reset.greeting'  => 'Hello, :name',

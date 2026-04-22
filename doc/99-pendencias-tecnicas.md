@@ -134,6 +134,15 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
 - **Mobile 360×640:** modal usa `modal-fullscreen-sm-down` → ocupa a tela toda abaixo de sm.
 - **Follow-up E3/E4:** `Course::listByTenant` (ainda não existe) deve filtrar `tenants.active = 1` para que cursos de tenant desativado não apareçam no dashboard do aluno. O AC de E2-04 cita esse comportamento, mas depende de features que entram em épicos posteriores. Deixar registrado para quando o model `Course` for criado.
 
+### [E2-05] Toggle de cadastro público com MySQL real
+- Helpers `setting_get` e `setting_set` usam `INSERT ... ON DUPLICATE KEY UPDATE` sobre `settings(setting_key, setting_value)` — a tabela já existia desde E0 com seed `public_registration=off`.
+- **Ações:**
+  - Logar como super-admin → `/admin/settings` → switch deve estar desligado (seed inicial).
+  - Ligar + salvar → flash verde; reabrir a tela mostra o switch ligado.
+  - Verificar no banco: `SELECT * FROM settings WHERE setting_key = 'public_registration';` → `on`; `updated_at` no momento do save.
+  - `/register-teacher` (deslogado ou logado) → mensagem "cadastro fechado" (o switch não afeta ainda, porque o form público só vem pós-MVP — AC explícito).
+- **Pós-MVP:** ligar o form de cadastro público de verdade em `/register-teacher`, consultando `setting_get('public_registration')`. Quando isso chegar, reusar `TeacherProvisioningService::create` (já pronto) mudando apenas quem preenche os campos (o próprio usuário).
+
 ### [E0-05/06] `install/schema.sql` executa limpo no phpMyAdmin
 - Revisão visual feita por código, mas nenhum MySQL real foi executado no dev local (sem `pdo_mysql`, sem mysql client).
 - **Ação:** rodar o SQL em banco vazio no phpMyAdmin Hostinger **ou** em MySQL 8 local. Esperado: criar **18 tabelas** (17 do domínio + `login_attempts`), inserir 2 seeds, zero erros. Rodar duas vezes — segunda execução deve ser no-op (idempotente via `CREATE TABLE IF NOT EXISTS` + `INSERT IGNORE`).
