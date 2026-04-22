@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS users (
     email                 VARCHAR(191) NOT NULL,
     password_hash         VARCHAR(255) NOT NULL,
     password_changed_at   DATETIME NULL,
+    last_login_at         DATETIME NULL,
     name                  VARCHAR(150) NOT NULL,
     role                  ENUM('super_admin','teacher','student') NOT NULL,
     language              ENUM('pt','en') NOT NULL DEFAULT 'pt',

@@ -69,13 +69,20 @@ final class AuthController
     }
 
     /**
-     * Regenera o ID de sessão e grava o payload do usuário autenticado.
+     * Regenera o ID de sessão, marca o login em `users.last_login_at` e grava
+     * o payload do usuário autenticado.
      */
     public static function completeLogin(array $user): void
     {
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_regenerate_id(true);
         }
+
+        // Registra último login para a listagem administrativa (E2-01).
+        Database::pdo()
+            ->prepare('UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?')
+            ->execute([(int) $user['id']]);
+
         $_SESSION['user'] = [
             'id'                  => (int) $user['id'],
             'tenant_id'           => $user['tenant_id'] !== null ? (int) $user['tenant_id'] : null,
