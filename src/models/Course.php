@@ -197,22 +197,22 @@ final class Course
     {
         $stmt = Database::pdo()->prepare(
             'SELECT
-                (SELECT COUNT(*) FROM core_competencies WHERE course_id = :id) AS ccs,
+                (SELECT COUNT(*) FROM core_competencies WHERE course_id = ?) AS ccs,
                 (SELECT COUNT(*) FROM competence_units cu
                     JOIN core_competencies cc ON cc.id = cu.core_competency_id
-                    WHERE cc.course_id = :id) AS cus,
+                    WHERE cc.course_id = ?) AS cus,
                 (SELECT COUNT(*) FROM activities a
                     JOIN competence_units cu ON cu.id = a.competence_unit_id
                     JOIN core_competencies cc ON cc.id = cu.core_competency_id
-                    WHERE cc.course_id = :id) AS activities,
+                    WHERE cc.course_id = ?) AS activities,
                 (SELECT COUNT(*) FROM evaluations ev
                     JOIN competence_units cu ON cu.id = ev.competence_unit_id
                     JOIN core_competencies cc ON cc.id = cu.core_competency_id
-                    WHERE cc.course_id = :id) AS evaluations,
-                (SELECT COUNT(*) FROM enrollments WHERE course_id = :id) AS enrollments
-              FROM courses WHERE id = :id AND tenant_id = :tid LIMIT 1'
+                    WHERE cc.course_id = ?) AS evaluations,
+                (SELECT COUNT(*) FROM enrollments WHERE course_id = ?) AS enrollments
+              FROM courses WHERE id = ? AND tenant_id = ? LIMIT 1'
         );
-        $stmt->execute([':id' => $courseId, ':tid' => $tenantId]);
+        $stmt->execute([$courseId, $courseId, $courseId, $courseId, $courseId, $courseId, $tenantId]);
         $row = $stmt->fetch();
         if ($row === false) {
             return ['ccs' => 0, 'cus' => 0, 'activities' => 0, 'evaluations' => 0, 'enrollments' => 0];
