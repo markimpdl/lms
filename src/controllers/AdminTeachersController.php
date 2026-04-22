@@ -60,6 +60,64 @@ final class AdminTeachersController
     }
 
     /**
+     * Processa o POST de /admin/teachers/{id} (E2-03).
+     *
+     * Atualiza `users.name`/`users.language` e `tenants.name` em uma
+     * transação. Erros por campo voltam como mapa i18n → caller re-renderiza
+     * o form; em sucesso, redirect 303 para a listagem com flash.
+     *
+     * @param array<string,string> $input Chaves: name, language, tenant_name.
+     * @return array<string,string> Mapa field → i18n key.
+     */
+    public static function update(int $teacherId, array $input): array
+    {
+        $name   = trim((string) ($input['name']        ?? ''));
+        $lang   = (string)      ($input['language']    ?? '');
+        $tenant = trim((string) ($input['tenant_name'] ?? ''));
+
+        $errors = [];
+        if (mb_strlen($name) < 3 || mb_strlen($name) > 120) {
+            $errors['name'] = 'admin.teachers.form.err.name';
+        }
+        if ($lang !== 'pt' && $lang !== 'en') {
+            $errors['language'] = 'admin.teachers.form.err.language';
+        }
+        if (mb_strlen($tenant) < 3 || mb_strlen($tenant) > 120) {
+            $errors['tenant_name'] = 'admin.teachers.form.err.tenant_name';
+        }
+        if ($errors !== []) {
+            return $errors;
+        }
+
+        $teacher = TeacherAdmin::findById($teacherId);
+        if ($teacher === null) {
+            // Id sumiu no meio do fluxo — trata como 404 amigável.
+            http_response_code(404);
+            require LMS_ROOT . '/src/templates/errors/404.php';
+            exit;
+        }
+        $tenantId = (int) $teacher['tenant_id'];
+
+        try {
+            Database::tx(static function (PDO $pdo) use ($teacherId, $tenantId, $name, $lang, $tenant): void {
+                $pdo->prepare('UPDATE users SET name = ?, language = ? WHERE id = ?')
+                    ->execute([$name, $lang, $teacherId]);
+
+                $renameErr = Tenant::rename($tenantId, $tenant);
+                if ($renameErr !== null) {
+                    throw new RuntimeException($renameErr);
+                }
+            });
+        } catch (RuntimeException $e) {
+            return ['tenant_name' => $e->getMessage()];
+        }
+
+        flash('success', __t('admin.teachers.edit.updated', ['name' => $name]));
+        header('Location: /admin/teachers', true, 303);
+        exit;
+    }
+
+    /**
      * Monta e entrega o email de boas-vindas no idioma do professor.
      * O template é um arquivo PHP por idioma (ADR-014 adaptado: não queremos
      * depender de __t() em email, para evitar fallback de chave ausente).

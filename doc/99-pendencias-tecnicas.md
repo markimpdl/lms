@@ -86,7 +86,7 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
   - Clicar em cada cabeçalho de coluna e confirmar que ordena corretamente (e alterna ASC/DESC ao clicar duas vezes).
   - Criar >20 professores (script rápido) para ver paginação funcionando (prev/next, página X de Y, anchors preservam filtros).
 - **Mobile 360×640:** tabela some e vira cartão empilhado em `<lg`; validar que cada cartão não estoura a viewport e que badges ficam legíveis.
-- **Placeholders E2-03 / E2-04:** botões "Abrir" e "Desativar/Reativar" estão com `disabled`. Quando E2-03 chegar, trocar `href="#"` por `/admin/teachers/<id>`; quando E2-04 chegar, ligar o botão de toggle.
+- **Placeholder E2-04 remanescente:** botão "Desativar/Reativar" segue `disabled` — E2-03 já ativou o "Abrir".
 
 ### [E2-02] Cadastro de professor com MySQL real
 - Schema ganhou `UNIQUE KEY uk_tenants_name (name)` — precisa re-rodar `install/schema.sql` (ou `ALTER TABLE tenants ADD UNIQUE KEY uk_tenants_name (name);`).
@@ -104,6 +104,21 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
   - Testar edge: o JS de sugestão automática do nome do tenant espelha enquanto o campo não é editado, mas para de espelhar assim que admin digita no tenant.
 - **Mobile 360×640:** form em coluna única, campos com `form-control-lg`, botões visíveis sem scroll horizontal. Alert de credenciais com `dl.row.small` precisa caber na viewport.
 - **Placeholder de template de email:** templates PHP por idioma (`teacher_welcome.{pt,en}.php`) duplicam pouca HTML mas saem do padrão `__t()` do email de reset. Considerado aceitável pela separação clara do AC; se virar problema de manutenção, migrar para chaves i18n + template único.
+
+### [E2-03] Edição de professor com MySQL real
+- Nova camada no roteador: `role_patterns` em `src/routes.php` + bloco regex em `public/index.php` (entre exact e prefix match). Capturas viram `$_REQUEST[nome_param]`.
+- `TeacherAdmin::findById` reusa o JOIN da listagem com `WHERE u.id = ? AND u.role = 'teacher'` — carrega também `tenant_id` e `tenant_name`.
+- `Tenant::rename` faz pré-check + UPDATE; captura SQLSTATE 23000 como rede de segurança.
+- `AdminTeachersController::update` envolve `UPDATE users` e `Tenant::rename` em `Database::tx`. Erro do rename é propagado como RuntimeException e capturado como erro no campo `tenant_name`.
+- **Ações:**
+  - `/admin/teachers/<id>` com id válido → form preenchido + resumo read-only (status, criado em, último login, cursos ativos, alunos únicos).
+  - `/admin/teachers/999999` (inexistente) → 404 amigável.
+  - `/admin/teachers/abc` → 404 (regex só aceita `\d+`).
+  - Email aparece readonly com tooltip e `form-text` explicativos (ADR-021).
+  - Alterar nome + idioma + nome de tenant → submit → flash + redirect para listagem; F5 não altera nada.
+  - Renomear tenant para um nome já usado por outro → erro `tenant_taken`; a transação não grava o UPDATE em users.
+  - Logar como o professor após alterar idioma → UI no idioma novo.
+- **Mobile 360×640:** form em coluna única em <md; `dl.row` usa `col-6 col-md-4` para o resumo; validar sem overflow.
 
 ### [E0-05/06] `install/schema.sql` executa limpo no phpMyAdmin
 - Revisão visual feita por código, mas nenhum MySQL real foi executado no dev local (sem `pdo_mysql`, sem mysql client).

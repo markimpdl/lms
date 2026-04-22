@@ -149,6 +149,13 @@ return [
     'admin.teachers.creds_smtp_off'     => 'Copy the credentials below and hand them to the teacher — this panel disappears on refresh.',
     'admin.teachers.creds_opted_out'    => 'You opted not to send an email. Copy the credentials before leaving this page.',
 
+    // Teacher edit (E2-03)
+    'admin.teachers.edit.title'      => 'Edit teacher',
+    'admin.teachers.edit.metadata'   => 'Account summary',
+    'admin.teachers.edit.status'     => 'Status',
+    'admin.teachers.edit.updated'    => 'Details for :name updated.',
+    'admin.teachers.email_immutable' => 'Email cannot be changed (ADR-021).',
+
     // Reset email (language follows the recipient — ADR-014)
     'email.reset.subject'   => 'LMS — password reset',
     'email.reset.greeting'  => 'Hello, :name',

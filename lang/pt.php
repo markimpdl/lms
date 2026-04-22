@@ -149,6 +149,13 @@ return [
     'admin.teachers.creds_smtp_off'     => 'Copie as credenciais abaixo e entregue ao professor — este painel some ao recarregar.',
     'admin.teachers.creds_opted_out'    => 'Você optou por não enviar email. Copie as credenciais antes de sair da tela.',
 
+    // Edição de professor (E2-03)
+    'admin.teachers.edit.title'      => 'Editar professor',
+    'admin.teachers.edit.metadata'   => 'Resumo da conta',
+    'admin.teachers.edit.status'     => 'Status',
+    'admin.teachers.edit.updated'    => 'Dados de :name atualizados.',
+    'admin.teachers.email_immutable' => 'Email não pode ser alterado (ADR-021).',
+
     // Email de recuperação (idioma segue o do destinatário — ADR-014)
     'email.reset.subject'   => 'LMS — redefinição de senha',
     'email.reset.greeting'  => 'Olá, :name',

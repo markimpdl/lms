@@ -21,11 +21,22 @@ if (isset($routes['authenticated'][$path])) {
     return;
 }
 
-// 3. Por papel — exact match primeiro, depois prefixo (/admin/** → /admin).
+// 3. Por papel — exact match primeiro, depois patterns, depois prefixo
+//    (/admin/** → /admin). Patterns capturam params nomeados em $_REQUEST.
 if (isset($routes['roles'][$path])) {
     require_role($routes['roles'][$path]['role']);
     require LMS_ROOT . $routes['roles'][$path]['file'];
     return;
+}
+foreach ($routes['role_patterns'] ?? [] as $pattern => $meta) {
+    if (preg_match($pattern, $path, $matches) === 1) {
+        foreach (($meta['params'] ?? []) as $i => $name) {
+            $_REQUEST[$name] = $matches[$i + 1] ?? null;
+        }
+        require_role($meta['role']);
+        require LMS_ROOT . $meta['file'];
+        return;
+    }
 }
 foreach ($routes['roles'] as $prefix => $meta) {
     if (str_starts_with($path, $prefix . '/')) {
