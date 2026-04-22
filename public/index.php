@@ -6,22 +6,35 @@ require dirname(__DIR__) . '/src/bootstrap.php';
 $path = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $path = ($path === '' || $path === '/') ? '/' : rtrim($path, '/');
 
-$routes = [
-    '/'         => '/src/pages/home.php',
-    '/login'    => '/src/pages/login.php',
-    '/logout'   => '/src/pages/logout.php',
-    '/forgot'   => '/src/pages/forgot.php',
-    '/reset'    => '/src/pages/reset.php',
-    '/profile'  => '/src/pages/profile.php',
-    '/admin'    => '/src/pages/dashboard/admin.php',
-    '/teacher'  => '/src/pages/dashboard/teacher.php',
-    '/student'  => '/src/pages/dashboard/student.php',
-];
+$routes = require LMS_ROOT . '/src/routes.php';
 
-if (isset($routes[$path])) {
-    require LMS_ROOT . $routes[$path];
+// 1. Público — sem auth.
+if (isset($routes['public'][$path])) {
+    require LMS_ROOT . $routes['public'][$path];
     return;
 }
 
+// 2. Autenticado — exige sessão válida (active + senha não rotacionada em outro device).
+if (isset($routes['authenticated'][$path])) {
+    require_auth();
+    require LMS_ROOT . $routes['authenticated'][$path];
+    return;
+}
+
+// 3. Por papel — exact match primeiro, depois prefixo (/admin/** → /admin).
+if (isset($routes['roles'][$path])) {
+    require_role($routes['roles'][$path]['role']);
+    require LMS_ROOT . $routes['roles'][$path]['file'];
+    return;
+}
+foreach ($routes['roles'] as $prefix => $meta) {
+    if (str_starts_with($path, $prefix . '/')) {
+        require_role($meta['role']);
+        require LMS_ROOT . $meta['file'];
+        return;
+    }
+}
+
+// 4. Nada bateu → 404.
 http_response_code(404);
-require LMS_ROOT . '/src/pages/404.php';
+require LMS_ROOT . '/src/templates/errors/404.php';

@@ -52,6 +52,12 @@ return [
     // Erros
     'error.404'          => 'Página não encontrada',
     'error.404_message'  => 'A página que você tentou acessar não existe ou foi movida.',
+    'error.403'          => 'Acesso negado',
+    'error.403_message'  => 'Você não tem permissão para acessar esta página.',
+
+    // Middleware de sessão (E1-05)
+    'auth.account_deactivated' => 'Sua conta foi desativada. Fale com o administrador.',
+    'auth.session_invalidated' => 'Sua sessão expirou porque a senha foi alterada. Entre novamente.',
 
     // Recuperação de senha (E1-03) — forgot
     'auth.forgot.title'            => 'Esqueci minha senha',

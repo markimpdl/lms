@@ -34,14 +34,19 @@ final class UserController
 
     /**
      * Troca a senha validando a atual com password_verify. Nova senha usa bcrypt
-     * cost 12 e atualiza password_changed_at. Retorna null em sucesso ou a
-     * chave i18n do erro.
+     * cost 12 e atualiza password_changed_at com um timestamp gerado em PHP —
+     * ele é também devolvido em `$changedAt` (by-ref) para o caller gravar na
+     * sessão com valor idêntico ao que ficou no banco. Isso é crítico: o
+     * middleware de E1-05 desloga a sessão se os dois valores divergirem.
+     *
+     * Retorna null em sucesso ou a chave i18n do erro.
      */
     public static function changePassword(
         int $userId,
         string $currentPassword,
         string $newPassword,
-        string $confirmPassword
+        string $confirmPassword,
+        ?string &$changedAt = null
     ): ?string {
         if (strlen($newPassword) < self::PASSWORD_MIN_LENGTH) {
             return 'profile.error.password_min';
@@ -59,12 +64,14 @@ final class UserController
             return 'profile.error.current_wrong';
         }
 
+        $now     = date('Y-m-d H:i:s');
         $newHash = password_hash($newPassword, PASSWORD_BCRYPT, ['cost' => 12]);
         $pdo->prepare(
-            'UPDATE users SET password_hash = ?, password_changed_at = CURRENT_TIMESTAMP
+            'UPDATE users SET password_hash = ?, password_changed_at = ?
               WHERE id = ?'
-        )->execute([$newHash, $userId]);
+        )->execute([$newHash, $now, $userId]);
 
+        $changedAt = $now;
         return null;
     }
 }
