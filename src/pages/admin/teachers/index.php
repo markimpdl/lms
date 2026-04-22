@@ -169,7 +169,7 @@ ob_start();
                         </td>
                         <td class="text-end">
                             <div class="btn-group btn-group-sm" role="group">
-                                <a href="#" class="btn btn-outline-primary disabled" aria-disabled="true" tabindex="-1">
+                                <a href="/admin/teachers/<?= (int) $row['id'] ?>" class="btn btn-outline-primary">
                                     <?= e(__t('admin.teachers.open')) ?>
                                 </a>
                                 <?php if ((int) $row['active'] === 1): ?>
@@ -218,7 +218,7 @@ ob_start();
                         </div>
                     </div>
                     <div class="d-flex gap-2">
-                        <a href="#" class="btn btn-sm btn-outline-primary disabled" aria-disabled="true" tabindex="-1">
+                        <a href="/admin/teachers/<?= (int) $row['id'] ?>" class="btn btn-sm btn-outline-primary">
                             <?= e(__t('admin.teachers.open')) ?>
                         </a>
                         <?php if ((int) $row['active'] === 1): ?>

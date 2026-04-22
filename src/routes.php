@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * Mapa de rotas do LMS (E1-05).
+ * Mapa de rotas do LMS (E1-05 + E2-03).
  *
  *   public         → qualquer visitante pode abrir; o front controller NÃO
  *                    chama require_auth antes.
@@ -11,10 +11,12 @@ declare(strict_types=1);
  *   roles          → o front controller chama require_role($role). O path
  *                    casa por exact match OU por prefixo (ex.: /admin/users
  *                    cai no handler de /admin).
+ *   role_patterns  → rotas com parâmetros capturáveis via regex. Testadas
+ *                    entre exact e prefix match. Capturas nomeadas caem em
+ *                    $_REQUEST conforme `params`.
  *
- * Match é exact-first; prefixo só é testado quando nenhum exact bateu.
- * Sub-rotas específicas podem sobrescrever um prefixo adicionando-se às
- * próprias listas acima (exact match ganha).
+ * Match é exact → pattern → prefix. Sub-rotas específicas ganham ao estar
+ * na lista exata (exact match tem a maior precedência).
  */
 return [
     'public' => [
@@ -35,5 +37,13 @@ return [
         '/admin/teachers/new' => ['file' => '/src/pages/admin/teachers/new.php',   'role' => 'super_admin'],
         '/teacher'            => ['file' => '/src/pages/dashboard/teacher.php',    'role' => 'teacher'],
         '/student'            => ['file' => '/src/pages/dashboard/student.php',    'role' => 'student'],
+    ],
+
+    'role_patterns' => [
+        '#^/admin/teachers/(\d+)$#' => [
+            'file'   => '/src/pages/admin/teachers/edit.php',
+            'role'   => 'super_admin',
+            'params' => ['id'],
+        ],
     ],
 ];

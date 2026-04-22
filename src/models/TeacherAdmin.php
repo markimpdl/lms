@@ -108,4 +108,37 @@ final class TeacherAdmin
             'per_page'    => self::PER_PAGE,
         ];
     }
+
+    /**
+     * Retorna um único professor + métricas + dados do tenant dele. Usado pela
+     * tela de edição (E2-03). Null se não existir professor com esse id.
+     *
+     * @return array<string,mixed>|null
+     */
+    public static function findById(int $userId): ?array
+    {
+        $sql = <<<SQL
+            SELECT
+                u.id, u.name, u.email, u.language, u.active,
+                u.created_at, u.last_login_at,
+                t.id   AS tenant_id,
+                t.name AS tenant_name,
+                COUNT(DISTINCT CASE WHEN c.archived = 0 THEN c.id END) AS active_courses,
+                COUNT(DISTINCT e.student_user_id)                    AS unique_students
+            FROM users u
+            LEFT JOIN tenants     t ON t.owner_user_id = u.id
+            LEFT JOIN courses     c ON c.tenant_id     = t.id
+            LEFT JOIN enrollments e ON e.course_id     = c.id
+            WHERE u.id = :id AND u.role = 'teacher'
+            GROUP BY u.id, u.name, u.email, u.language, u.active,
+                     u.created_at, u.last_login_at, t.id, t.name
+            LIMIT 1
+            SQL;
+
+        $stmt = Database::pdo()->prepare($sql);
+        $stmt->bindValue(':id', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch();
+        return $row === false ? null : $row;
+    }
 }
