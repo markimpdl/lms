@@ -69,6 +69,26 @@ return [
     'auth.reset.invalid_link' => 'Invalid or expired link. Please request a new one.',
     'auth.reset.success'      => 'Password updated. Log in with your new password.',
 
+    // Profile (E1-04)
+    'profile.title'                   => 'My profile',
+    'profile.tab_data'                => 'Details',
+    'profile.tab_password'            => 'Password',
+    'profile.name'                    => 'Name',
+    'profile.email_readonly'          => 'Email cannot be changed',
+    'profile.lang_pt'                 => 'Portuguese',
+    'profile.lang_en'                 => 'English',
+    'profile.current_password'        => 'Current password',
+    'profile.new_password'            => 'New password',
+    'profile.confirm_password'        => 'Confirm new password',
+    'profile.change_password'         => 'Change password',
+    'profile.updated'                 => 'Profile updated.',
+    'profile.password_changed'        => 'Password changed successfully.',
+    'profile.error.name'              => 'Enter a name between 1 and 150 characters.',
+    'profile.error.language'          => 'Invalid language.',
+    'profile.error.current_wrong'     => 'Current password is incorrect.',
+    'profile.error.password_min'      => 'The new password must have at least 8 characters.',
+    'profile.error.password_mismatch' => 'The passwords do not match.',
+
     // Reset email (language follows the recipient — ADR-014)
     'email.reset.subject'   => 'LMS — password reset',
     'email.reset.greeting'  => 'Hello, :name',

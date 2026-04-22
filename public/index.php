@@ -12,6 +12,7 @@ $routes = [
     '/logout'   => '/src/pages/logout.php',
     '/forgot'   => '/src/pages/forgot.php',
     '/reset'    => '/src/pages/reset.php',
+    '/profile'  => '/src/pages/profile.php',
     '/admin'    => '/src/pages/dashboard/admin.php',
     '/teacher'  => '/src/pages/dashboard/teacher.php',
     '/student'  => '/src/pages/dashboard/student.php',

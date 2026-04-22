@@ -69,6 +69,26 @@ return [
     'auth.reset.invalid_link' => 'Link inválido ou expirado. Solicite um novo.',
     'auth.reset.success'      => 'Senha atualizada. Faça login com a nova senha.',
 
+    // Perfil (E1-04)
+    'profile.title'                   => 'Meu perfil',
+    'profile.tab_data'                => 'Dados',
+    'profile.tab_password'            => 'Senha',
+    'profile.name'                    => 'Nome',
+    'profile.email_readonly'          => 'Email não pode ser alterado',
+    'profile.lang_pt'                 => 'Português',
+    'profile.lang_en'                 => 'Inglês',
+    'profile.current_password'        => 'Senha atual',
+    'profile.new_password'            => 'Nova senha',
+    'profile.confirm_password'        => 'Confirme a nova senha',
+    'profile.change_password'         => 'Alterar senha',
+    'profile.updated'                 => 'Perfil atualizado.',
+    'profile.password_changed'        => 'Senha alterada com sucesso.',
+    'profile.error.name'              => 'Informe um nome entre 1 e 150 caracteres.',
+    'profile.error.language'          => 'Idioma inválido.',
+    'profile.error.current_wrong'     => 'Senha atual incorreta.',
+    'profile.error.password_min'      => 'A nova senha precisa ter ao menos 8 caracteres.',
+    'profile.error.password_mismatch' => 'As senhas digitadas não conferem.',
+
     // Email de recuperação (idioma segue o do destinatário — ADR-014)
     'email.reset.subject'   => 'LMS — redefinição de senha',
     'email.reset.greeting'  => 'Olá, :name',

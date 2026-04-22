@@ -43,6 +43,26 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
 ### [E1-03] Mobile 360×640 das telas /forgot e /reset
 - Mesmo padrão do login (`col-12 col-sm-8`, `form-control-lg`). Validar no DevTools.
 
+### [E1-04] Fluxo de edição de perfil com MySQL real
+- Código revisado; sem MySQL local não dá para validar as queries `UPDATE users` e `password_verify` na senha atual.
+- **Ações:**
+  - Logar como super-admin → acessar `/profile` → ver abas "Dados" e "Senha"
+  - Editar nome, salvar → flash de sucesso; recarregar e confirmar que persistiu
+  - Trocar idioma pt → en → UI deve ficar em inglês imediatamente (sem logout/login)
+  - Confirmar que o campo email está `readonly` + `disabled` e tooltip aparece no hover
+  - Aba "Senha": submeter com senha atual errada → erro `profile.error.current_wrong`
+  - Submeter nova senha com <8 chars → erro `profile.error.password_min`
+  - Submeter nova ≠ confirmação → erro `profile.error.password_mismatch`
+  - Submeter válido → flash; logout/login com a nova senha deve funcionar; `users.password_changed_at` atualizado no banco
+
+### [E1-04] Mobile 360×640 da tela /profile
+- `col-12 col-md-10 col-lg-8`, `form-control-lg`. Validar no DevTools que as nav-tabs não quebram em 360px e que os botões ficam full-width abaixo de sm.
+
+### [E1-04] Bug menor no helper `current_lang()`
+- Em `src/helpers.php:43`, fallback lê `current_user()['lang']`, mas o payload de sessão em `AuthController::completeLogin()` grava `'language'`. Na prática a condição nunca dispara — só `$_SESSION['lang']` (do `?lang=` ou da atualização de perfil) é que funciona.
+- **Impacto:** usuário com `users.language='en'` no banco vê a UI em PT até clicar `?lang=en` pela primeira vez ou atualizar o perfil.
+- **Ação:** corrigir a chave no helper (de `'lang'` para `'language'`) em uma story futura — fora do escopo de E1-04.
+
 ### [E0-05/06] `install/schema.sql` executa limpo no phpMyAdmin
 - Revisão visual feita por código, mas nenhum MySQL real foi executado no dev local (sem `pdo_mysql`, sem mysql client).
 - **Ação:** rodar o SQL em banco vazio no phpMyAdmin Hostinger **ou** em MySQL 8 local. Esperado: criar **18 tabelas** (17 do domínio + `login_attempts`), inserir 2 seeds, zero erros. Rodar duas vezes — segunda execução deve ser no-op (idempotente via `CREATE TABLE IF NOT EXISTS` + `INSERT IGNORE`).
