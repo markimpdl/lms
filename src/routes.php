@@ -41,6 +41,7 @@ return [
         '/teacher/courses'     => ['file' => '/src/pages/teacher/courses/index.php', 'role' => 'teacher'],
         '/teacher/courses/new' => ['file' => '/src/pages/teacher/courses/new.php',   'role' => 'teacher'],
         '/teacher/cc/new'      => ['file' => '/src/pages/teacher/cc/new.php',        'role' => 'teacher'],
+        '/teacher/cu/new'      => ['file' => '/src/pages/teacher/cu/new.php',        'role' => 'teacher'],
         '/student'             => ['file' => '/src/pages/dashboard/student.php',     'role' => 'student'],
     ],
 
@@ -82,6 +83,21 @@ return [
         ],
         '#^/teacher/cc/(\d+)/move-(up|down)$#' => [
             'file'   => '/src/pages/teacher/cc/move.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'direction'],
+        ],
+        '#^/teacher/courses/(\d+)/cc/(\d+)$#' => [
+            'file'   => '/src/pages/teacher/cc/show.php',
+            'role'   => 'teacher',
+            'params' => ['course_id', 'cc_id'],
+        ],
+        '#^/teacher/cu/(\d+)/rename$#' => [
+            'file'   => '/src/pages/teacher/cu/rename.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/cu/(\d+)/move-(up|down)$#' => [
+            'file'   => '/src/pages/teacher/cu/move.php',
             'role'   => 'teacher',
             'params' => ['id', 'direction'],
         ],

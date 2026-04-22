@@ -284,4 +284,20 @@ return [
     'cc.renamed'          => 'CC renamed to ":name".',
     'cc.err.course_unavailable' => 'This course is archived or does not belong to you.',
     'cc.err.move'         => 'Could not move the CC (already at the edge or data changed).',
+
+    // Competence Units (E3-03)
+    'cu.section.subtitle' => ':count CUs',
+    'cu.new_button'       => 'New CU',
+    'cu.new.title'        => 'New Competence Unit',
+    'cu.edit.title'       => 'Rename Competence Unit',
+    'cu.form.name'        => 'Name',
+    'cu.form.err.name'    => 'Between 2 and 150 characters.',
+    'cu.action.move_up'   => 'Move up',
+    'cu.action.move_down' => 'Move down',
+    'cu.action.rename'    => 'Rename',
+    'cu.empty'            => 'No CUs yet. Click "New CU" to create the first one.',
+    'cu.created'          => 'CU ":name" created.',
+    'cu.renamed'          => 'CU renamed to ":name".',
+    'cu.err.cc_unavailable' => 'This CC does not exist, does not belong to you, or the course is archived.',
+    'cu.err.move'         => 'Could not move the CU (already at the edge or data changed).',
 ];
