@@ -49,16 +49,41 @@ $sortable = static function (string $key, string $label) use ($filters, $teacher
         . '">' . e($label) . $arrow . '</a>';
 };
 
+// Credenciais recém-geradas (E2-02) — mostradas UMA vez e drenadas da sessão.
+$justCreated = $_SESSION['teacher_creds_once'] ?? null;
+unset($_SESSION['teacher_creds_once']);
+
 $page_title = __t('admin.teachers.title');
 
 ob_start();
 ?>
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
     <h1 class="h4 mb-0"><?= e(__t('admin.teachers.title')) ?></h1>
-    <a href="#" class="btn btn-primary disabled" aria-disabled="true" tabindex="-1">
+    <a href="/admin/teachers/new" class="btn btn-primary">
         <?= e(__t('admin.teachers.new')) ?>
     </a>
 </div>
+
+<?php if ($justCreated !== null): ?>
+    <div class="alert alert-success" role="alert">
+        <h2 class="h6 mb-2"><?= e(__t('admin.teachers.creds_title', ['name' => $justCreated['name']])) ?></h2>
+        <p class="small mb-2">
+            <?= e(__t(
+                $justCreated['reason'] === 'smtp_unavailable'
+                    ? 'admin.teachers.creds_smtp_off'
+                    : 'admin.teachers.creds_opted_out'
+            )) ?>
+        </p>
+        <dl class="row mb-0 small">
+            <dt class="col-4 col-md-3"><?= e(__t('auth.email')) ?></dt>
+            <dd class="col-8 col-md-9"><code><?= e($justCreated['email']) ?></code></dd>
+            <dt class="col-4 col-md-3"><?= e(__t('admin.teachers.form.password')) ?></dt>
+            <dd class="col-8 col-md-9"><code><?= e($justCreated['password']) ?></code></dd>
+            <dt class="col-4 col-md-3"><?= e(__t('admin.teachers.form.tenant_name')) ?></dt>
+            <dd class="col-8 col-md-9"><?= e($justCreated['tenant_name']) ?></dd>
+        </dl>
+    </div>
+<?php endif; ?>
 
 <form method="GET" action="/admin/teachers" class="card card-body mb-3 shadow-sm">
     <div class="row g-2 align-items-end">
@@ -95,7 +120,7 @@ ob_start();
         <?php if ($noFilters): ?>
             <p class="lead mb-3"><?= e(__t('admin.teachers.empty')) ?></p>
             <div>
-                <a href="#" class="btn btn-primary disabled" aria-disabled="true" tabindex="-1">
+                <a href="/admin/teachers/new" class="btn btn-primary">
                     <?= e(__t('admin.teachers.empty_cta')) ?>
                 </a>
             </div>
