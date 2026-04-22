@@ -148,6 +148,25 @@ ob_start();
                 <dt class="col-6 col-md-4"><?= e(__t('admin.teachers.students')) ?></dt>
                 <dd class="col-6 col-md-8"><?= (int) $teacher['unique_students'] ?></dd>
             </dl>
+
+            <hr>
+
+            <form method="POST" action="/admin/teachers/<?= (int) $teacher['id'] ?>/toggle" class="m-0 text-end js-toggle-form"
+                  <?php if ((int) $teacher['active'] === 1): ?>
+                      data-confirm="<?= e(__t('admin.teachers.deactivate.confirm_short', ['name' => $teacher['name']])) ?>"
+                  <?php endif; ?>>
+                <?= csrf_field() ?>
+                <input type="hidden" name="from" value="edit">
+                <?php if ((int) $teacher['active'] === 1): ?>
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                        <?= e(__t('admin.teachers.deactivate')) ?>
+                    </button>
+                <?php else: ?>
+                    <button type="submit" class="btn btn-sm btn-outline-success">
+                        <?= e(__t('admin.teachers.reactivate')) ?>
+                    </button>
+                <?php endif; ?>
+            </form>
         </div>
     </div>
 </div>
@@ -158,6 +177,16 @@ ob_start();
 window.addEventListener('load', function () {
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
         new bootstrap.Tooltip(el);
+    });
+});
+
+// Confirmação via data-confirm — evita incorporar a string no atributo
+// onsubmit (que quebraria se o nome tivesse apóstrofo).
+document.querySelectorAll('form.js-toggle-form[data-confirm]').forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+        if (!window.confirm(form.dataset.confirm)) {
+            event.preventDefault();
+        }
     });
 });
 </script>

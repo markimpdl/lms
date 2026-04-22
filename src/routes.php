@@ -45,5 +45,10 @@ return [
             'role'   => 'super_admin',
             'params' => ['id'],
         ],
+        '#^/admin/teachers/(\d+)/toggle$#' => [
+            'file'   => '/src/pages/admin/teachers/toggle.php',
+            'role'   => 'super_admin',
+            'params' => ['id'],
+        ],
     ],
 ];

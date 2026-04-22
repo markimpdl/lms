@@ -86,7 +86,7 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
   - Clicar em cada cabeçalho de coluna e confirmar que ordena corretamente (e alterna ASC/DESC ao clicar duas vezes).
   - Criar >20 professores (script rápido) para ver paginação funcionando (prev/next, página X de Y, anchors preservam filtros).
 - **Mobile 360×640:** tabela some e vira cartão empilhado em `<lg`; validar que cada cartão não estoura a viewport e que badges ficam legíveis.
-- **Placeholder E2-04 remanescente:** botão "Desativar/Reativar" segue `disabled` — E2-03 já ativou o "Abrir".
+- Todos os botões de ação agora estão funcionais (E2-03 liga "Abrir", E2-04 liga toggle).
 
 ### [E2-02] Cadastro de professor com MySQL real
 - Schema ganhou `UNIQUE KEY uk_tenants_name (name)` — precisa re-rodar `install/schema.sql` (ou `ALTER TABLE tenants ADD UNIQUE KEY uk_tenants_name (name);`).
@@ -119,6 +119,20 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
   - Renomear tenant para um nome já usado por outro → erro `tenant_taken`; a transação não grava o UPDATE em users.
   - Logar como o professor após alterar idioma → UI no idioma novo.
 - **Mobile 360×640:** form em coluna única em <md; `dl.row` usa `col-6 col-md-4` para o resumo; validar sem overflow.
+
+### [E2-04] Toggle active do professor com MySQL real
+- Rota nova `POST /admin/teachers/{id}/toggle` via `role_patterns` (reusa o padrão de E2-03). Handler em `src/pages/admin/teachers/toggle.php` só aceita POST + CSRF.
+- `AdminTeachersController::toggleActive` envolve `UPDATE users` + `UPDATE tenants WHERE owner_user_id = ?` em `Database::tx`. O middleware de E1-05 cuida de expulsar sessões vivas na próxima request.
+- Modal de confirmação (listagem): único no DOM, preenchido dinamicamente por `show.bs.modal` com `data-*` do botão clicado. Reativar é form POST direto (sem modal). Na tela de edição, desativar usa `window.confirm` simples porque o resumo read-only já mostra os números.
+- **Ações:**
+  - Listagem: clicar "Desativar" em um professor ativo → modal mostra nome, nº de cursos e de alunos; confirmar → flash "desativado" + badge vira "Inativo".
+  - Cancelar no modal → nada muda.
+  - Sessão ativa do professor desativado (em outra aba) → próxima request desloga com `auth.account_deactivated`.
+  - Tentar logar com credenciais do professor desativado → erro genérico "E-mail ou senha inválidos".
+  - Reativar → botão direto na listagem (form POST) → badge volta para "Ativo", login volta a funcionar.
+  - Tela de edição `/admin/teachers/<id>`: botão no fim do card "Resumo da conta"; desativar pede `confirm()`; redirect traz de volta para a própria tela (from=edit) com flash.
+- **Mobile 360×640:** modal usa `modal-fullscreen-sm-down` → ocupa a tela toda abaixo de sm.
+- **Follow-up E3/E4:** `Course::listByTenant` (ainda não existe) deve filtrar `tenants.active = 1` para que cursos de tenant desativado não apareçam no dashboard do aluno. O AC de E2-04 cita esse comportamento, mas depende de features que entram em épicos posteriores. Deixar registrado para quando o model `Course` for criado.
 
 ### [E0-05/06] `install/schema.sql` executa limpo no phpMyAdmin
 - Revisão visual feita por código, mas nenhum MySQL real foi executado no dev local (sem `pdo_mysql`, sem mysql client).

@@ -156,6 +156,18 @@ return [
     'admin.teachers.edit.updated'    => 'Dados de :name atualizados.',
     'admin.teachers.email_immutable' => 'Email não pode ser alterado (ADR-021).',
 
+    // Desativar/reativar professor (E2-04)
+    'admin.teachers.deactivate.title'         => 'Desativar professor',
+    'admin.teachers.deactivate.intro_prefix'  => 'Você vai desativar ',
+    'admin.teachers.deactivate.intro_suffix'  => '. O acesso é bloqueado imediatamente.',
+    'admin.teachers.deactivate.note'          => 'Matrículas e histórico são preservados. Você pode reativar depois a qualquer momento.',
+    'admin.teachers.deactivate.confirm'       => 'Desativar',
+    'admin.teachers.deactivate.confirm_short' => 'Desativar :name? O acesso é bloqueado imediatamente.',
+    'admin.teachers.impact_courses'           => 'cursos ativos ficarão temporariamente inacessíveis.',
+    'admin.teachers.impact_students'          => 'alunos matriculados perderão a visibilidade dos cursos.',
+    'admin.teachers.deactivated'              => ':name foi desativado(a).',
+    'admin.teachers.reactivated'              => ':name foi reativado(a).',
+
     // Email de recuperação (idioma segue o do destinatário — ADR-014)
     'email.reset.subject'   => 'LMS — redefinição de senha',
     'email.reset.greeting'  => 'Olá, :name',
