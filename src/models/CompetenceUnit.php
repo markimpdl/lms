@@ -44,14 +44,14 @@ final class CompetenceUnit
     {
         $stmt = Database::pdo()->prepare(
             'SELECT
-                (SELECT COUNT(*) FROM activities  WHERE competence_unit_id = :id) AS activities,
-                (SELECT COUNT(*) FROM evaluations WHERE competence_unit_id = :id) AS evaluations
+                (SELECT COUNT(*) FROM activities  WHERE competence_unit_id = ?) AS activities,
+                (SELECT COUNT(*) FROM evaluations WHERE competence_unit_id = ?) AS evaluations
               FROM competence_units cu
               JOIN core_competencies cc ON cc.id = cu.core_competency_id
-              JOIN courses c ON c.id = cc.course_id AND c.tenant_id = :tid
-              WHERE cu.id = :id LIMIT 1'
+              JOIN courses c ON c.id = cc.course_id AND c.tenant_id = ?
+              WHERE cu.id = ? LIMIT 1'
         );
-        $stmt->execute([':id' => $id, ':tid' => $tenantId]);
+        $stmt->execute([$id, $id, $tenantId, $id]);
         $row = $stmt->fetch();
         if ($row === false) {
             return ['activities' => 0, 'evaluations' => 0];
