@@ -28,6 +28,7 @@ $ccCount = count($ccs);
 $tree = curriculum_tree($courseId, $tenantId);
 $activeCcId = 0;
 $activeCuId = 0;
+$courseCountsFormatted = format_delete_counts(Course::countDescendants($courseId, $tenantId));
 
 $page_title = (string) $course['name'];
 
@@ -87,6 +88,13 @@ ob_start();
                         </button>
                     <?php endif; ?>
                 </form>
+                <button type="button" class="btn btn-outline-danger"
+                        data-bs-toggle="modal" data-bs-target="#deleteConfirmModal"
+                        data-item-name="<?= e((string) $course['name']) ?>"
+                        data-action-url="/teacher/courses/<?= (int) $course['id'] ?>/delete"
+                        data-counts="<?= e(json_encode($courseCountsFormatted, JSON_UNESCAPED_UNICODE)) ?>">
+                    <?= e(__t('delete.action')) ?>
+                </button>
             </div>
         </div>
 
@@ -125,6 +133,11 @@ ob_start();
                                 <small class="text-muted ms-2"><?= (int) $cc['cu_count'] ?> <?= e(__t('courses.col.cu_count')) ?></small>
                             </div>
                             <?php if (!$isArchived): ?>
+                                <?php $ccCountsFormatted = format_delete_counts([
+                                    'cus'         => (int) $cc['cu_count'],
+                                    'activities'  => (int) $cc['activities_count'],
+                                    'evaluations' => (int) $cc['evaluations_count'],
+                                ]); ?>
                                 <div class="d-flex gap-1">
                                     <form method="POST" action="/teacher/cc/<?= $ccId ?>/move-up" class="d-inline">
                                         <?= csrf_field() ?>
@@ -140,6 +153,12 @@ ob_start();
                                             data-bs-toggle="modal" data-bs-target="#ccEditModal"
                                             data-cc-id="<?= $ccId ?>" data-cc-name="<?= e($ccName) ?>"
                                             aria-label="<?= e(__t('cc.action.rename')) ?>">✎</button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            data-bs-toggle="modal" data-bs-target="#deleteConfirmModal"
+                                            data-item-name="<?= e($ccName) ?>"
+                                            data-action-url="/teacher/cc/<?= $ccId ?>/delete"
+                                            data-counts="<?= e(json_encode($ccCountsFormatted, JSON_UNESCAPED_UNICODE)) ?>"
+                                            aria-label="<?= e(__t('delete.action')) ?>">🗑</button>
                                 </div>
                             <?php endif; ?>
                         </li>
@@ -223,6 +242,8 @@ ob_start();
 })();
 </script>
 <?php endif; ?>
+
+<?php require LMS_ROOT . '/src/templates/partials/delete_confirm_modal.php'; ?>
 <?php
 $page_content = ob_get_clean();
 require LMS_ROOT . '/src/templates/layout.php';

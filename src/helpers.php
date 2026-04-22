@@ -384,6 +384,27 @@ function curriculum_tree(int $courseId, int $tenantId): array
 }
 
 /**
+ * Formata as contagens de descendentes para o modal de exclusão (E3-05).
+ * Recebe um array associativo `['ccs' => 3, 'cus' => 8, ...]` e devolve
+ * uma lista de strings já no idioma atual — ex.: `['3 CCs', '8 CUs']`.
+ * Entradas com valor 0 são omitidas. Traduz cada chave via `delete.label.<key>`.
+ *
+ * @param array<string,int> $counts
+ * @return list<string>
+ */
+function format_delete_counts(array $counts): array
+{
+    $out = [];
+    foreach ($counts as $key => $val) {
+        $val = (int) $val;
+        if ($val > 0) {
+            $out[] = $val . ' ' . __t('delete.label.' . $key);
+        }
+    }
+    return $out;
+}
+
+/**
  * Renderiza um <nav> com breadcrumb Bootstrap a partir de uma lista de itens.
  * O último item vira `active` sem link; os demais viram `<a>` se tiverem `url`.
  *

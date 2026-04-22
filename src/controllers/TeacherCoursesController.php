@@ -117,6 +117,44 @@ final class TeacherCoursesController
     }
 
     /**
+     * POST /teacher/courses/{id}/delete → exclusão com confirmação por nome (E3-05).
+     * Cascade do schema cuida de CCs, CUs, conteúdo, atividades, avaliações
+     * e submissões. Redireciona para listagem em sucesso.
+     */
+    public static function delete(int $courseId, string $expectedName): void
+    {
+        $tenantId = current_tenant_id();
+        if ($tenantId === null) {
+            http_response_code(403);
+            require LMS_ROOT . '/src/templates/errors/403.php';
+            exit;
+        }
+
+        $course = Course::findForTenant($courseId, $tenantId);
+        if ($course === null) {
+            http_response_code(404);
+            require LMS_ROOT . '/src/templates/errors/404.php';
+            exit;
+        }
+
+        $result = Course::delete($courseId, $tenantId, $expectedName);
+        if ($result === 'name_mismatch') {
+            flash('danger', __t('delete.err.name_mismatch'));
+            header('Location: /teacher/courses/' . $courseId, true, 303);
+            exit;
+        }
+        if ($result !== 'ok') {
+            http_response_code(404);
+            require LMS_ROOT . '/src/templates/errors/404.php';
+            exit;
+        }
+
+        flash('success', __t('courses.deleted', ['name' => $course['name']]));
+        header('Location: /teacher/courses', true, 303);
+        exit;
+    }
+
+    /**
      * POST /teacher/courses/{id}/toggle-archive → alterna archived.
      */
     public static function toggleArchive(int $courseId): void

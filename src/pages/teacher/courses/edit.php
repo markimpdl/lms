@@ -53,6 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isArchived) {
 $tree = curriculum_tree($courseId, $tenantId);
 $activeCcId = 0;
 $activeCuId = 0;
+$courseCountsFormatted = format_delete_counts(Course::countDescendants($courseId, $tenantId));
 
 $page_title = __t('courses.edit.title');
 
@@ -149,6 +150,13 @@ ob_start();
                 <a href="/teacher/courses/<?= (int) $course['id'] ?>" class="btn btn-outline-secondary btn-lg">
                     <?= e(__t('common.cancel')) ?>
                 </a>
+                <button type="button" class="btn btn-outline-danger btn-lg ms-auto"
+                        data-bs-toggle="modal" data-bs-target="#deleteConfirmModal"
+                        data-item-name="<?= e((string) $course['name']) ?>"
+                        data-action-url="/teacher/courses/<?= (int) $course['id'] ?>/delete"
+                        data-counts="<?= e(json_encode($courseCountsFormatted, JSON_UNESCAPED_UNICODE)) ?>">
+                    <?= e(__t('delete.action')) ?>
+                </button>
             </div>
         </form>
     </div>
@@ -164,6 +172,8 @@ ob_start();
         <?php require LMS_ROOT . '/src/templates/partials/curriculum_nav.php'; ?>
     </div>
 </div>
+
+<?php require LMS_ROOT . '/src/templates/partials/delete_confirm_modal.php'; ?>
 <?php
 $page_content = ob_get_clean();
 require LMS_ROOT . '/src/templates/layout.php';

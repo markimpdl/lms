@@ -304,4 +304,22 @@ return [
     // Hierarchical nav (E3-04)
     'nav.curriculum.title' => 'Course structure',
     'nav.curriculum.open'  => 'Course structure',
+
+    // Deletion (E3-05)
+    'delete.modal.title'             => 'Delete',
+    'delete.modal.about_to_delete'   => 'You are about to delete',
+    'delete.modal.will_also_delete'  => 'This will also delete:',
+    'delete.modal.permanent_warning' => 'This action is permanent and cannot be undone.',
+    'delete.modal.type_to_confirm'   => 'To confirm, type the exact name below.',
+    'delete.modal.submit'            => 'Delete permanently',
+    'delete.err.name_mismatch'       => 'The typed name does not match. Deletion cancelled.',
+    'delete.action'                  => 'Delete',
+    'delete.label.ccs'               => 'CCs',
+    'delete.label.cus'               => 'CUs',
+    'delete.label.activities'        => 'activities',
+    'delete.label.evaluations'       => 'evaluations',
+    'delete.label.enrollments'       => 'enrollments',
+    'courses.deleted'                => 'Course ":name" deleted.',
+    'cc.deleted'                     => 'CC ":name" deleted.',
+    'cu.deleted'                     => 'CU ":name" deleted.',
 ];

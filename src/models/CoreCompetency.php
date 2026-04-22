@@ -15,8 +15,9 @@ declare(strict_types=1);
 final class CoreCompetency
 {
     /**
-     * Lista CCs de um curso do tenant, em ordem (position, id).
-     * Retorna array vazio se o curso não pertence ao tenant.
+     * Lista CCs de um curso do tenant, em ordem (position, id), com contagens
+     * de CUs e (via subselects) de atividades/avaliações descendentes para
+     * alimentar o modal de exclusão (E3-05).
      *
      * @return list<array<string,mixed>>
      */
@@ -25,7 +26,13 @@ final class CoreCompetency
         $stmt = Database::pdo()->prepare(
             'SELECT cc.id, cc.course_id, cc.name, cc.position,
                     cc.created_at, cc.updated_at,
-                    COUNT(cu.id) AS cu_count
+                    COUNT(cu.id) AS cu_count,
+                    (SELECT COUNT(*) FROM activities a
+                        JOIN competence_units cu2 ON cu2.id = a.competence_unit_id
+                        WHERE cu2.core_competency_id = cc.id) AS activities_count,
+                    (SELECT COUNT(*) FROM evaluations ev
+                        JOIN competence_units cu2 ON cu2.id = ev.competence_unit_id
+                        WHERE cu2.core_competency_id = cc.id) AS evaluations_count
                FROM core_competencies cc
                JOIN courses c ON c.id = cc.course_id AND c.tenant_id = ?
                LEFT JOIN competence_units cu ON cu.core_competency_id = cc.id
@@ -36,6 +43,61 @@ final class CoreCompetency
         );
         $stmt->execute([$tenantId, $courseId]);
         return $stmt->fetchAll();
+    }
+
+    /**
+     * Conta CUs + atividades + avaliações descendentes de uma CC. Zeros se
+     * CC não pertence ao tenant.
+     *
+     * @return array{cus:int, activities:int, evaluations:int}
+     */
+    public static function countDescendants(int $id, int $tenantId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT
+                (SELECT COUNT(*) FROM competence_units WHERE core_competency_id = :id) AS cus,
+                (SELECT COUNT(*) FROM activities a
+                    JOIN competence_units cu ON cu.id = a.competence_unit_id
+                    WHERE cu.core_competency_id = :id) AS activities,
+                (SELECT COUNT(*) FROM evaluations ev
+                    JOIN competence_units cu ON cu.id = ev.competence_unit_id
+                    WHERE cu.core_competency_id = :id) AS evaluations
+              FROM core_competencies cc
+              JOIN courses c ON c.id = cc.course_id AND c.tenant_id = :tid
+              WHERE cc.id = :id LIMIT 1'
+        );
+        $stmt->execute([':id' => $id, ':tid' => $tenantId]);
+        $row = $stmt->fetch();
+        if ($row === false) {
+            return ['cus' => 0, 'activities' => 0, 'evaluations' => 0];
+        }
+        return [
+            'cus'         => (int) $row['cus'],
+            'activities'  => (int) $row['activities'],
+            'evaluations' => (int) $row['evaluations'],
+        ];
+    }
+
+    /**
+     * Exclui CC do tenant após revalidar nome. Cascade cuida de CUs → contents,
+     * activities, evaluations e suas submissões.
+     *
+     * Retorna 'ok' | 'not_found' | 'name_mismatch'. Curso arquivado não bloqueia
+     * (o professor pode limpar restos de cursos arquivados).
+     */
+    public static function delete(int $id, int $tenantId, string $expectedName): string
+    {
+        $cc = self::findForTenant($id, $tenantId);
+        if ($cc === null) {
+            return 'not_found';
+        }
+        if ((string) $cc['name'] !== $expectedName) {
+            return 'name_mismatch';
+        }
+        Database::pdo()
+            ->prepare('DELETE FROM core_competencies WHERE id = ?')
+            ->execute([$id]);
+        return 'ok';
     }
 
     /**
