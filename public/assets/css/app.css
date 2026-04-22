@@ -1,0 +1,27 @@
+/* LMS — customização mínima em cima do Bootstrap 5.
+   Foco: mobile-first legível (360px+) e sticky footer. */
+
+html, body { min-height: 100vh; }
+body {
+    display: flex;
+    flex-direction: column;
+    font-size: 16px; /* inputs com <16px causam auto-zoom no iOS Safari */
+}
+
+main { flex: 1 0 auto; }
+
+/* Garante que inputs mantêm 16px em foco — Bootstrap usa 1rem que herda do body */
+.form-control, .form-select { font-size: 1rem; }
+
+/* Trunca nome/email longo do usuário no navbar em telas estreitas */
+.navbar .user-label {
+    max-width: 14rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Evita que o menu dropdown saia fora da viewport em mobile */
+@media (max-width: 575.98px) {
+    .navbar .user-label { max-width: 10rem; }
+}

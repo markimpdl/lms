@@ -1,0 +1,14 @@
+{
+    "name": "markimpdl/lms",
+    "description": "Mini-SaaS LMS multi-tenant em PHP 8.2 para cursos presenciais.",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.2",
+        "phpmailer/phpmailer": "^6.9"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}

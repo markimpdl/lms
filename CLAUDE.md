@@ -4,7 +4,7 @@ Plataforma LMS mini-SaaS para apoiar cursos presenciais nos Emirados Árabes Uni
 
 ## Stack
 
-- **Backend:** PHP 8.2+ (sem framework)
+- **Backend:** PHP **8.2** (produção na Hostinger roda em 8.2 — **não usar features de 8.3/8.4**: property hooks, asymmetric visibility, typed class constants, `json_validate`, `#[Override]`) — sem framework
 - **DB:** MySQL 8 (InnoDB + utf8mb4) via PDO com prepared statements
 - **Frontend:** HTML5 + **Bootstrap 5** (CDN) + Alpine.js para interações leves
 - **Editor de conteúdo:** TinyMCE 6 community (com plugin `media` para YouTube/Vimeo)
@@ -179,6 +179,14 @@ feat!: muda contrato da API de notificações (BREAKING CHANGE)
 - **Professor:** toda query precisa de `WHERE tenant_id = :tid`. Use o repositório/helper que injeta automaticamente — não construa queries sem ele.
 - **Aluno:** toda query precisa validar matrícula em curso ou pertencimento a tenant. Aluno **nunca** acessa dados de tenants em que não está matriculado.
 - **Super-admin:** opera fora do tenant; tem visibilidade administrativa, mas NÃO edita conteúdo dos professores.
+
+---
+
+## Alterações de schema (install/schema.sql)
+
+**Toda mudança em `install/schema.sql` — criar tabela, alterar coluna, adicionar índice, ajustar seed — passa pela skill `/mysql-schema`.** Não editar o arquivo diretamente a olho, para evitar drift nas convenções (DATETIME vs TIMESTAMP, utf8mb4_unicode_ci, `tenant_id` nas tabelas do tenant, `INSERT IGNORE` nos seeds, etc.). A skill contém o checklist e os padrões consolidados do projeto — ver `.claude/skills/mysql-schema.md`.
+
+Como não há migrations versionadas (ADR-017), o schema.sql precisa continuar idempotente (`CREATE TABLE IF NOT EXISTS`, `INSERT IGNORE`, FK condicional via `FOREIGN_KEY_CHECKS`) para rodar duas vezes sem erro no phpMyAdmin.
 
 ---
 

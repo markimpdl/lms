@@ -1,0 +1,61 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * Mapa de rotas do LMS (E1-05 + E2-03).
+ *
+ *   public         → qualquer visitante pode abrir; o front controller NÃO
+ *                    chama require_auth antes.
+ *   authenticated  → o front controller chama require_auth() antes de
+ *                    incluir o arquivo.
+ *   roles          → o front controller chama require_role($role). O path
+ *                    casa por exact match OU por prefixo (ex.: /admin/users
+ *                    cai no handler de /admin).
+ *   role_patterns  → rotas com parâmetros capturáveis via regex. Testadas
+ *                    entre exact e prefix match. Capturas nomeadas caem em
+ *                    $_REQUEST conforme `params`.
+ *
+ * Match é exact → pattern → prefix. Sub-rotas específicas ganham ao estar
+ * na lista exata (exact match tem a maior precedência).
+ */
+return [
+    'public' => [
+        '/'                 => '/src/pages/home.php',
+        '/login'            => '/src/pages/login.php',
+        '/logout'           => '/src/pages/logout.php',
+        '/forgot'           => '/src/pages/forgot.php',
+        '/reset'            => '/src/pages/reset.php',
+        '/register-teacher' => '/src/pages/register-teacher.php',
+    ],
+
+    'authenticated' => [
+        '/profile' => '/src/pages/profile.php',
+    ],
+
+    'roles' => [
+        '/admin'              => ['file' => '/src/pages/dashboard/admin.php',      'role' => 'super_admin'],
+        '/admin/settings'     => ['file' => '/src/pages/admin/settings.php',       'role' => 'super_admin'],
+        '/admin/teachers'     => ['file' => '/src/pages/admin/teachers/index.php', 'role' => 'super_admin'],
+        '/admin/teachers/new' => ['file' => '/src/pages/admin/teachers/new.php',   'role' => 'super_admin'],
+        '/teacher'            => ['file' => '/src/pages/dashboard/teacher.php',    'role' => 'teacher'],
+        '/student'            => ['file' => '/src/pages/dashboard/student.php',    'role' => 'student'],
+    ],
+
+    'role_patterns' => [
+        '#^/admin/teachers/(\d+)$#' => [
+            'file'   => '/src/pages/admin/teachers/edit.php',
+            'role'   => 'super_admin',
+            'params' => ['id'],
+        ],
+        '#^/admin/teachers/(\d+)/toggle$#' => [
+            'file'   => '/src/pages/admin/teachers/toggle.php',
+            'role'   => 'super_admin',
+            'params' => ['id'],
+        ],
+        '#^/admin/teachers/(\d+)/reset-password$#' => [
+            'file'   => '/src/pages/admin/teachers/reset-password.php',
+            'role'   => 'super_admin',
+            'params' => ['id'],
+        ],
+    ],
+];
