@@ -52,5 +52,10 @@ return [
             'role'   => 'super_admin',
             'params' => ['id'],
         ],
+        '#^/admin/teachers/(\d+)/reset-password$#' => [
+            'file'   => '/src/pages/admin/teachers/reset-password.php',
+            'role'   => 'super_admin',
+            'params' => ['id'],
+        ],
     ],
 ];

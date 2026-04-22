@@ -43,6 +43,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $errors = AdminTeachersController::update($teacherId, $old);
 }
 
+// Senha recém-resetada (E2-07) — mostrada UMA vez e drenada da sessão.
+// Só considerada se refere ao professor aberto agora.
+$resetOnce = $_SESSION['teacher_password_reset_once'] ?? null;
+if ($resetOnce !== null && (int) ($resetOnce['teacher_id'] ?? 0) === $teacherId) {
+    unset($_SESSION['teacher_password_reset_once']);
+} else {
+    $resetOnce = null;
+}
+
 $page_title = __t('admin.teachers.edit.title');
 
 ob_start();
@@ -59,6 +68,25 @@ ob_start();
         <?php if ($errors !== []): ?>
             <div class="alert alert-danger" role="alert">
                 <?= e(__t('admin.teachers.form.has_errors')) ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($resetOnce !== null): ?>
+            <div class="alert alert-success" role="alert">
+                <h2 class="h6 mb-2"><?= e(__t('admin.teachers.reset_password.creds_title', ['name' => $resetOnce['name']])) ?></h2>
+                <p class="small mb-2">
+                    <?= e(__t(
+                        $resetOnce['reason'] === 'smtp_unavailable'
+                            ? 'admin.teachers.reset_password.creds_smtp_off'
+                            : 'admin.teachers.reset_password.creds_opted_out'
+                    )) ?>
+                </p>
+                <dl class="row mb-0 small">
+                    <dt class="col-4 col-md-3"><?= e(__t('auth.email')) ?></dt>
+                    <dd class="col-8 col-md-9"><code><?= e($resetOnce['email']) ?></code></dd>
+                    <dt class="col-4 col-md-3"><?= e(__t('admin.teachers.reset_password.new_password')) ?></dt>
+                    <dd class="col-8 col-md-9"><code><?= e($resetOnce['password']) ?></code></dd>
+                </dl>
             </div>
         <?php endif; ?>
 
@@ -151,21 +179,82 @@ ob_start();
 
             <hr>
 
-            <form method="POST" action="/admin/teachers/<?= (int) $teacher['id'] ?>/toggle" class="m-0 text-end js-toggle-form"
-                  <?php if ((int) $teacher['active'] === 1): ?>
-                      data-confirm="<?= e(__t('admin.teachers.deactivate.confirm_short', ['name' => $teacher['name']])) ?>"
-                  <?php endif; ?>>
+            <div class="d-flex flex-wrap gap-2 justify-content-end">
+                <button type="button" class="btn btn-sm btn-outline-warning"
+                        data-bs-toggle="modal" data-bs-target="#reset-password-modal">
+                    <?= e(__t('admin.teachers.reset_password.button')) ?>
+                </button>
+
+                <form method="POST" action="/admin/teachers/<?= (int) $teacher['id'] ?>/toggle" class="m-0 js-toggle-form"
+                      <?php if ((int) $teacher['active'] === 1): ?>
+                          data-confirm="<?= e(__t('admin.teachers.deactivate.confirm_short', ['name' => $teacher['name']])) ?>"
+                      <?php endif; ?>>
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="from" value="edit">
+                    <?php if ((int) $teacher['active'] === 1): ?>
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <?= e(__t('admin.teachers.deactivate')) ?>
+                        </button>
+                    <?php else: ?>
+                        <button type="submit" class="btn btn-sm btn-outline-success">
+                            <?= e(__t('admin.teachers.reactivate')) ?>
+                        </button>
+                    <?php endif; ?>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de reset de senha (E2-07) -->
+<div class="modal fade" id="reset-password-modal" tabindex="-1" aria-hidden="true" aria-labelledby="reset-password-title">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <div class="modal-content">
+            <form method="POST" action="/admin/teachers/<?= (int) $teacher['id'] ?>/reset-password" novalidate>
                 <?= csrf_field() ?>
-                <input type="hidden" name="from" value="edit">
-                <?php if ((int) $teacher['active'] === 1): ?>
-                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                        <?= e(__t('admin.teachers.deactivate')) ?>
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="reset-password-title">
+                        <?= e(__t('admin.teachers.reset_password.title', ['name' => $teacher['name']])) ?>
+                    </h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= e(__t('common.cancel')) ?>"></button>
+                </div>
+                <div class="modal-body">
+                    <?php if (!Mailer::isConfigured()): ?>
+                        <div class="alert alert-info small" role="alert">
+                            <?= e(__t('admin.teachers.reset_password.smtp_off_notice')) ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="mb-3">
+                        <label for="f-new-password" class="form-label">
+                            <?= e(__t('admin.teachers.reset_password.new_password')) ?>
+                        </label>
+                        <input type="text" name="new_password" id="f-new-password"
+                               class="form-control form-control-lg"
+                               required minlength="8" autocomplete="new-password">
+                        <div class="form-text"><?= e(__t('admin.teachers.form.password_hint')) ?></div>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="f-send-email"
+                               name="send_email" value="1" checked>
+                        <label class="form-check-label" for="f-send-email">
+                            <?= e(__t('admin.teachers.reset_password.send_email')) ?>
+                        </label>
+                    </div>
+
+                    <p class="small text-muted mt-3 mb-0">
+                        <?= e(__t('admin.teachers.reset_password.note')) ?>
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <?= e(__t('common.cancel')) ?>
                     </button>
-                <?php else: ?>
-                    <button type="submit" class="btn btn-sm btn-outline-success">
-                        <?= e(__t('admin.teachers.reactivate')) ?>
+                    <button type="submit" class="btn btn-warning">
+                        <?= e(__t('admin.teachers.reset_password.confirm')) ?>
                     </button>
-                <?php endif; ?>
+                </div>
             </form>
         </div>
     </div>

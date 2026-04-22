@@ -168,6 +168,19 @@ return [
     'admin.teachers.deactivated'              => ':name has been deactivated.',
     'admin.teachers.reactivated'              => ':name has been reactivated.',
 
+    // Reset password (E2-07)
+    'admin.teachers.reset_password.button'            => 'Reset password',
+    'admin.teachers.reset_password.title'             => 'Reset password for :name',
+    'admin.teachers.reset_password.new_password'      => 'New password',
+    'admin.teachers.reset_password.send_email'        => 'Send new password by email',
+    'admin.teachers.reset_password.confirm'           => 'Reset password',
+    'admin.teachers.reset_password.smtp_off_notice'   => 'Email delivery is not configured yet — the new password will be shown on this screen after the reset.',
+    'admin.teachers.reset_password.note'              => 'Any active session of this teacher on any device will end at the next click.',
+    'admin.teachers.reset_password.done'              => "Password for :name has been reset.",
+    'admin.teachers.reset_password.creds_title'       => 'New password for :name',
+    'admin.teachers.reset_password.creds_smtp_off'    => 'Copy the password below and hand it to the teacher — this panel disappears on refresh.',
+    'admin.teachers.reset_password.creds_opted_out'   => 'You opted not to send an email. Copy the password before leaving this page.',
+
     // Global settings (E2-05)
     'admin.settings.title'                => 'Settings',
     'admin.settings.public_reg'           => 'Public teacher registration',
