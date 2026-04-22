@@ -44,9 +44,13 @@ final class AuthController
     {
         $pdo  = Database::pdo();
         $stmt = $pdo->prepare(
-            'SELECT id, tenant_id, email, password_hash, password_changed_at,
-                    name, role, language, active
-               FROM users WHERE email = ? LIMIT 1'
+            'SELECT u.id,
+                    COALESCE(t.id, u.tenant_id) AS tenant_id,
+                    u.email, u.password_hash, u.password_changed_at,
+                    u.name, u.role, u.language, u.active
+               FROM users u
+               LEFT JOIN tenants t ON t.owner_user_id = u.id AND t.active = 1
+              WHERE u.email = ? LIMIT 1'
         );
         $stmt->execute([$email]);
         $user = $stmt->fetch();

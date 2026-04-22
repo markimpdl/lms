@@ -97,10 +97,12 @@ CREATE TABLE IF NOT EXISTS courses (
     year         SMALLINT UNSIGNED NOT NULL,
     language     ENUM('pt','en') NOT NULL DEFAULT 'pt',
     archived     TINYINT(1) NOT NULL DEFAULT 0,
+    archived_at  DATETIME NULL,
     created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_courses_tenant_year (tenant_id, year),
+    KEY idx_courses_tenant_archived (tenant_id, archived),
     CONSTRAINT fk_courses_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
     CONSTRAINT chk_courses_year CHECK (year BETWEEN 1900 AND 2100)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -375,6 +377,42 @@ INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
 -- senha real e sobrescrever este hash.
 INSERT IGNORE INTO users (email, password_hash, name, role, language, active, tenant_id) VALUES
     ('admin@lms.local', '!', 'Super Admin', 'super_admin', 'pt', 1, NULL);
+
+-- ============================================================================
+-- MIGRAÇÕES INCREMENTAIS (pós-v0.1.0)
+-- ============================================================================
+-- Cada ALTER é idempotente via INFORMATION_SCHEMA + PREPARE/EXECUTE. Permite
+-- rodar schema.sql inteiro em banco que já tem v0.1.0 aplicado sem erro. O
+-- CREATE TABLE IF NOT EXISTS acima contempla bases novas; este bloco alinha
+-- bases antigas. Funciona em MySQL 8+ e MariaDB 10.5+.
+
+-- [E3-01] courses.archived_at — timestamp do arquivamento.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'courses'
+       AND COLUMN_NAME  = 'archived_at'
+);
+SET @sql := IF(@col_exists = 0,
+    'ALTER TABLE courses ADD COLUMN archived_at DATETIME NULL AFTER archived',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E3-01] idx_courses_tenant_archived — acelera filtro "ativos vs arquivados".
+SET @idx_exists := (
+    SELECT COUNT(*) FROM information_schema.STATISTICS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'courses'
+       AND INDEX_NAME   = 'idx_courses_tenant_archived'
+);
+SET @sql := IF(@idx_exists = 0,
+    'ALTER TABLE courses ADD KEY idx_courses_tenant_archived (tenant_id, archived)',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- ----------------------------------------------------------------------------
 SET FOREIGN_KEY_CHECKS = 1;

@@ -33,12 +33,16 @@ return [
     ],
 
     'roles' => [
-        '/admin'              => ['file' => '/src/pages/dashboard/admin.php',      'role' => 'super_admin'],
-        '/admin/settings'     => ['file' => '/src/pages/admin/settings.php',       'role' => 'super_admin'],
-        '/admin/teachers'     => ['file' => '/src/pages/admin/teachers/index.php', 'role' => 'super_admin'],
-        '/admin/teachers/new' => ['file' => '/src/pages/admin/teachers/new.php',   'role' => 'super_admin'],
-        '/teacher'            => ['file' => '/src/pages/dashboard/teacher.php',    'role' => 'teacher'],
-        '/student'            => ['file' => '/src/pages/dashboard/student.php',    'role' => 'student'],
+        '/admin'               => ['file' => '/src/pages/dashboard/admin.php',       'role' => 'super_admin'],
+        '/admin/settings'      => ['file' => '/src/pages/admin/settings.php',        'role' => 'super_admin'],
+        '/admin/teachers'      => ['file' => '/src/pages/admin/teachers/index.php',  'role' => 'super_admin'],
+        '/admin/teachers/new'  => ['file' => '/src/pages/admin/teachers/new.php',    'role' => 'super_admin'],
+        '/teacher'             => ['file' => '/src/pages/dashboard/teacher.php',     'role' => 'teacher'],
+        '/teacher/courses'     => ['file' => '/src/pages/teacher/courses/index.php', 'role' => 'teacher'],
+        '/teacher/courses/new' => ['file' => '/src/pages/teacher/courses/new.php',   'role' => 'teacher'],
+        '/teacher/cc/new'      => ['file' => '/src/pages/teacher/cc/new.php',        'role' => 'teacher'],
+        '/teacher/cu/new'      => ['file' => '/src/pages/teacher/cu/new.php',        'role' => 'teacher'],
+        '/student'             => ['file' => '/src/pages/dashboard/student.php',     'role' => 'student'],
     ],
 
     'role_patterns' => [
@@ -55,6 +59,61 @@ return [
         '#^/admin/teachers/(\d+)/reset-password$#' => [
             'file'   => '/src/pages/admin/teachers/reset-password.php',
             'role'   => 'super_admin',
+            'params' => ['id'],
+        ],
+        '#^/teacher/courses/(\d+)$#' => [
+            'file'   => '/src/pages/teacher/courses/show.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/courses/(\d+)/edit$#' => [
+            'file'   => '/src/pages/teacher/courses/edit.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/courses/(\d+)/toggle-archive$#' => [
+            'file'   => '/src/pages/teacher/courses/toggle-archive.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/courses/(\d+)/delete$#' => [
+            'file'   => '/src/pages/teacher/courses/delete.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/cc/(\d+)/rename$#' => [
+            'file'   => '/src/pages/teacher/cc/rename.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/cc/(\d+)/move-(up|down)$#' => [
+            'file'   => '/src/pages/teacher/cc/move.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'direction'],
+        ],
+        '#^/teacher/cc/(\d+)/delete$#' => [
+            'file'   => '/src/pages/teacher/cc/delete.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/courses/(\d+)/cc/(\d+)$#' => [
+            'file'   => '/src/pages/teacher/cc/show.php',
+            'role'   => 'teacher',
+            'params' => ['course_id', 'cc_id'],
+        ],
+        '#^/teacher/cu/(\d+)/rename$#' => [
+            'file'   => '/src/pages/teacher/cu/rename.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/cu/(\d+)/move-(up|down)$#' => [
+            'file'   => '/src/pages/teacher/cu/move.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'direction'],
+        ],
+        '#^/teacher/cu/(\d+)/delete$#' => [
+            'file'   => '/src/pages/teacher/cu/delete.php',
+            'role'   => 'teacher',
             'params' => ['id'],
         ],
     ],
