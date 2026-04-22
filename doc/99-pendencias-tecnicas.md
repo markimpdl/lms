@@ -74,6 +74,20 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
   - `/admin/foo/bar` → deve cair no handler de `/admin` (prefix match); aluno em `/admin/foo` ainda recebe 403.
 - **Risco conhecido:** a comparação de `password_changed_at` é string-to-string. O UserController já gera o timestamp em PHP e passa literal ao UPDATE para evitar divergência de 1s entre clock do MySQL e do PHP. Se um futuro caller voltar a usar `CURRENT_TIMESTAMP`, o bug ressurge — sentinela para o review.
 
+### [E2-01] Listagem de professores com MySQL real
+- `users.last_login_at` é nova (schema v atual). Schema precisa ser rerrodado (ou `ALTER TABLE users ADD COLUMN last_login_at DATETIME NULL AFTER password_changed_at;` manualmente em ambiente já existente — ainda não temos um, mas fica a nota).
+- `AuthController::completeLogin` agora dispara `UPDATE users SET last_login_at = CURRENT_TIMESTAMP` a cada login — testar que preenche e que a listagem mostra o valor corretamente formatado.
+- `TeacherAdmin::list` faz LEFT JOINs em `tenants → courses → enrollments` com `COUNT(DISTINCT ...)`. Volume esperado é baixo (dezenas de professores) — validar `EXPLAIN` se em produção a query começar a lentidão aparecer.
+- **Ações:**
+  - Sem professores: abrir `/admin/teachers` → empty state com CTA "Cadastrar primeiro professor" (botão desabilitado por ora).
+  - Inserir 2 professores via phpMyAdmin; logar com um → `last_login_at` preenchido, outro ainda em "nunca".
+  - Criar 1 curso ativo e 1 curso `archived=1` para um dos professores; matricular 2 alunos no ativo → contadores `Cursos ativos = 1` e `Alunos únicos = 2` devem bater.
+  - Testar filtros: buscar por fragmento do email; status ativo/inativo; idioma PT/EN.
+  - Clicar em cada cabeçalho de coluna e confirmar que ordena corretamente (e alterna ASC/DESC ao clicar duas vezes).
+  - Criar >20 professores (script rápido) para ver paginação funcionando (prev/next, página X de Y, anchors preservam filtros).
+- **Mobile 360×640:** tabela some e vira cartão empilhado em `<lg`; validar que cada cartão não estoura a viewport e que badges ficam legíveis.
+- **Placeholders E2-03 / E2-04:** botões "Abrir" e "Desativar/Reativar" estão com `disabled`. Quando E2-03 chegar, trocar `href="#"` por `/admin/teachers/<id>`; quando E2-04 chegar, ligar o botão de toggle.
+
 ### [E0-05/06] `install/schema.sql` executa limpo no phpMyAdmin
 - Revisão visual feita por código, mas nenhum MySQL real foi executado no dev local (sem `pdo_mysql`, sem mysql client).
 - **Ação:** rodar o SQL em banco vazio no phpMyAdmin Hostinger **ou** em MySQL 8 local. Esperado: criar **18 tabelas** (17 do domínio + `login_attempts`), inserir 2 seeds, zero erros. Rodar duas vezes — segunda execução deve ser no-op (idempotente via `CREATE TABLE IF NOT EXISTS` + `INSERT IGNORE`).
