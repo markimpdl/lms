@@ -168,6 +168,19 @@ return [
     'admin.teachers.deactivated'              => ':name foi desativado(a).',
     'admin.teachers.reactivated'              => ':name foi reativado(a).',
 
+    // Resetar senha (E2-07)
+    'admin.teachers.reset_password.button'            => 'Resetar senha',
+    'admin.teachers.reset_password.title'             => 'Resetar senha de :name',
+    'admin.teachers.reset_password.new_password'      => 'Nova senha',
+    'admin.teachers.reset_password.send_email'        => 'Enviar nova senha por email',
+    'admin.teachers.reset_password.confirm'           => 'Redefinir senha',
+    'admin.teachers.reset_password.smtp_off_notice'   => 'O envio de email ainda não está configurado — a nova senha aparecerá nesta tela após o reset.',
+    'admin.teachers.reset_password.note'              => 'A sessão atual do professor em qualquer dispositivo será encerrada no próximo clique.',
+    'admin.teachers.reset_password.done'              => 'Senha de :name redefinida.',
+    'admin.teachers.reset_password.creds_title'       => 'Nova senha de :name',
+    'admin.teachers.reset_password.creds_smtp_off'    => 'Copie a senha abaixo e entregue ao professor — este painel some ao recarregar.',
+    'admin.teachers.reset_password.creds_opted_out'   => 'Você optou por não enviar email. Copie a senha antes de sair da tela.',
+
     // Configurações globais (E2-05)
     'admin.settings.title'                => 'Configurações',
     'admin.settings.public_reg'           => 'Cadastro público de professores',

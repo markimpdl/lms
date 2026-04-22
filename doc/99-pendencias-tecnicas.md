@@ -156,6 +156,22 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
 - **Follow-up E10:** expor `emails_sent_30d` / `emails_failed_30d` a partir da tabela `email_failures` (ou tabela de log equivalente). Remover o `null` literal em `AdminMetricsService::snapshot` e a nota i18n `emails_pending_hint`.
 - **Produção:** validar permissões de escrita em `storage/cache/` (o helper usa `@mkdir` + `@file_put_contents` silenciosos — se falhar, página só recalcula a cada hit).
 
+### [E2-07] Reset administrativo de senha com MySQL real
+- Rota nova `POST /admin/teachers/{id}/reset-password` via `role_patterns`. Handler `src/pages/admin/teachers/reset-password.php` só aceita POST + CSRF.
+- `AdminTeachersController::resetPassword` gera timestamp em PHP e passa literal no UPDATE (consistente com `UserController::changePassword`), para o middleware de E1-05 não deslogar o próprio admin por drift de relógio.
+- Fluxo de transient replica o padrão de E2-02: quando SMTP off ou admin desmarca "enviar por email", a nova senha vai para `$_SESSION['teacher_password_reset_once']` e a tela de edição mostra uma vez, drenando depois. O transient é validado pelo `teacher_id` para não vazar entre telas.
+- Templates de email em `src/templates/email/password_reset_by_admin.{pt,en}.php` (controller gate entre welcome/reset via helper `sendEmailTemplate`).
+- **Ações:**
+  - Logar como super-admin → `/admin/teachers/<id>` → botão "Resetar senha" abre modal.
+  - Submeter vazio ou <8 chars → flash de erro `form.err.password_min` + redirect de volta.
+  - Submeter senha válida com checkbox ligado (SMTP off) → redirect + card alert verde mostrando nova senha.
+  - F5 na mesma tela → card some (transient drenado).
+  - Logar com o professor usando a senha antiga → falha (password_hash novo). Logar com a nova → sucesso.
+  - Sessão ativa do professor em outra aba → próximo clique desloga com `auth.session_invalidated` (middleware compara password_changed_at).
+  - Após E10 subir `Mailer::isConfigured()`: alert azul some, email sai para `storage/logs/mail-debug.log` (ou SMTP real), transient deixa de aparecer.
+- **Mobile 360×640:** modal usa `modal-fullscreen-sm-down`; validar que o campo de senha e checkbox cabem sem overflow.
+- **Rate limit 10/h (deixado fora do escopo):** o AC cita como proteção contra abuso interno. MVP tem 1-2 super-admins, papel confiável; implementar agora envolveria uma tabela nova (ou sujar `login_attempts`). Ação futura: criar `admin_actions(admin_id, action, created_at)` ou reusar algum log de E10-04 (falhas de email) quando este existir, e contar os últimos 60min por admin.
+
 ### [E0-05/06] `install/schema.sql` executa limpo no phpMyAdmin
 - Revisão visual feita por código, mas nenhum MySQL real foi executado no dev local (sem `pdo_mysql`, sem mysql client).
 - **Ação:** rodar o SQL em banco vazio no phpMyAdmin Hostinger **ou** em MySQL 8 local. Esperado: criar **18 tabelas** (17 do domínio + `login_attempts`), inserir 2 seeds, zero erros. Rodar duas vezes — segunda execução deve ser no-op (idempotente via `CREATE TABLE IF NOT EXISTS` + `INSERT IGNORE`).
