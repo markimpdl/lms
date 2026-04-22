@@ -284,4 +284,20 @@ return [
     'cc.renamed'          => 'CC renomeada para ":name".',
     'cc.err.course_unavailable' => 'Este curso está arquivado ou não pertence a você.',
     'cc.err.move'         => 'Não foi possível mover a CC (já está na ponta ou dados mudaram).',
+
+    // Competence Units (E3-03)
+    'cu.section.subtitle' => ':count CUs',
+    'cu.new_button'       => 'Nova CU',
+    'cu.new.title'        => 'Nova Competence Unit',
+    'cu.edit.title'       => 'Renomear Competence Unit',
+    'cu.form.name'        => 'Nome',
+    'cu.form.err.name'    => 'Entre 2 e 150 caracteres.',
+    'cu.action.move_up'   => 'Mover para cima',
+    'cu.action.move_down' => 'Mover para baixo',
+    'cu.action.rename'    => 'Renomear',
+    'cu.empty'            => 'Nenhuma CU ainda. Clique em "Nova CU" para criar a primeira.',
+    'cu.created'          => 'CU ":name" criada.',
+    'cu.renamed'          => 'CU renomeada para ":name".',
+    'cu.err.cc_unavailable' => 'Esta CC não existe, não pertence a você ou o curso está arquivado.',
+    'cu.err.move'         => 'Não foi possível mover a CU (já está na ponta ou dados mudaram).',
 ];

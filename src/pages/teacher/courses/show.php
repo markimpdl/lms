@@ -107,7 +107,7 @@ ob_start();
                 <li class="list-group-item d-flex align-items-center gap-2">
                     <span class="text-muted small" style="min-width: 1.5rem;"><?= $i + 1 ?>.</span>
                     <div class="flex-grow-1">
-                        <span class="fw-semibold"><?= e($ccName) ?></span>
+                        <a href="/teacher/courses/<?= (int) $course['id'] ?>/cc/<?= $ccId ?>" class="fw-semibold text-decoration-none"><?= e($ccName) ?></a>
                         <small class="text-muted ms-2"><?= (int) $cc['cu_count'] ?> <?= e(__t('courses.col.cu_count')) ?></small>
                     </div>
                     <?php if (!$isArchived): ?>
