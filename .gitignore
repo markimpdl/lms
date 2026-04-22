@@ -5,6 +5,7 @@ examples/
 .env
 .env.*
 !.env.example
+!scripts/deploy/.env.deploy.example
 config/env.php
 .mcp.json
 .claude/settings.local.json

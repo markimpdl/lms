@@ -1,0 +1,16 @@
+{
+  "name": "lms-deploy",
+  "version": "0.1.0",
+  "description": "Utilitários Node do LMS (deploy incremental via FTP/FTPS).",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "node scripts/deploy/ftp-deploy.mjs",
+    "deploy:dry": "node scripts/deploy/ftp-deploy.mjs --dry-run",
+    "deploy:force": "node scripts/deploy/ftp-deploy.mjs --force",
+    "upload-env": "node scripts/deploy/upload-env.mjs"
+  },
+  "dependencies": {
+    "basic-ftp": "^5.0.5"
+  }
+}

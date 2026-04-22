@@ -6,6 +6,17 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
 
 ---
 
+## Compatibilidade com PHP 8.3 em produção
+
+A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** durante o primeiro deploy (v0.1.0 — 2026-04-22). O projeto foi escrito mirando PHP 8.2 e `composer.json` trava em `"php": "^8.2"` (permite 8.2/8.3/8.4), então o código roda, mas não foi validado em 8.3.
+
+- **Ação:** varrer o código em busca de features/APIs que mudaram de comportamento em 8.3 e validar que nenhuma está em uso indevido. Candidatos a checar: [`DateTime::createFromFormat`](https://www.php.net/manual/en/datetime.createfromformat.php) (stricter), `Random\Randomizer` (não usamos), deprecations de `E_STRICT`, `readonly` em classes, `#[Override]` (não usamos — CLAUDE.md proíbe).
+- **Ação:** conferir no painel se é possível voltar a 8.2 (algumas hospedagens deprecam). Se não for possível, atualizar CLAUDE.md para refletir 8.3 e relaxar a proibição de features 8.3.
+- **Risco baixo:** o código usa subset conservador de PHP (PDO, sessões, funções string/array, `password_hash`, `random_bytes`, `hash_hmac`). Nada documentadamente quebrado em 8.3.
+- **Quando:** primeira oportunidade antes de E3 ganhar volume de código; minimamente rodar o smoke test de v0.1.0 e observar os `storage/logs/*.log` após as primeiras sessões reais.
+
+---
+
 ## Validações que dependem de ambiente real (Hostinger / MySQL)
 
 ### [E0-03] `scripts/dbcheck.php` contra MySQL real
