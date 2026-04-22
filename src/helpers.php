@@ -268,3 +268,49 @@ function setting_set(string $key, string $value): void
               ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)'
     )->execute([$key, $value]);
 }
+
+// ---------------------------------------------------------------------
+// Cache simples em arquivo (E2-06)
+// ---------------------------------------------------------------------
+
+/**
+ * Resultado de $producer cacheado em `storage/cache/<key>.json` por $ttl
+ * segundos. Se o arquivo estiver ausente, corrompido ou expirado, chama
+ * $producer novamente e regrava.
+ *
+ * Criado para o painel do super-admin (E2-06), onde recomputar métricas
+ * a cada F5 seria desperdício. Falhas de leitura/escrita são silenciosas:
+ * o cache é um otimizador, não uma fonte de verdade.
+ *
+ * `$key` precisa ser um slug simples ([a-z0-9_-]); o helper valida.
+ *
+ * @param callable(): array $producer
+ */
+function cached_json(string $key, int $ttl, callable $producer): array
+{
+    if (preg_match('/^[a-z0-9_\-]+$/', $key) !== 1) {
+        throw new InvalidArgumentException('cached_json: $key deve casar /[a-z0-9_-]+/');
+    }
+
+    $dir  = LMS_ROOT . '/storage/cache';
+    $path = $dir . '/' . $key . '.json';
+
+    if (is_file($path) && (filemtime($path) + $ttl) > time()) {
+        $raw = @file_get_contents($path);
+        if ($raw !== false) {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+    }
+
+    $fresh = $producer();
+
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+    }
+    @file_put_contents($path, json_encode($fresh, JSON_UNESCAPED_UNICODE), LOCK_EX);
+
+    return $fresh;
+}

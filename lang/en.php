@@ -181,6 +181,19 @@ return [
     'auth.register_teacher.title'         => 'Teacher registration',
     'public_reg.closed'                   => 'Public registration is closed. Please contact the administrator to receive your credentials.',
 
+    // Super-admin dashboard (E2-06)
+    'admin.dash.teachers_active'       => 'Active teachers',
+    'admin.dash.teachers_inactive_hint'=> ':count inactive',
+    'admin.dash.students_active'       => 'Active students',
+    'admin.dash.courses_active'        => 'Active courses',
+    'admin.dash.submissions_30d'       => 'Submissions (30 days)',
+    'admin.dash.last_login'            => 'Last login (any user)',
+    'admin.dash.emails_30d'            => 'Emails sent (30 days)',
+    'admin.dash.emails_pending_hint'   => 'Available once E10 ships.',
+    'admin.dash.chart_title'           => 'Submissions per day',
+    'admin.dash.chart_subtitle'        => 'Last 30 days — global aggregate',
+    'admin.dash.chart_empty'           => 'No submissions in the last 30 days.',
+
     // Reset email (language follows the recipient — ADR-014)
     'email.reset.subject'   => 'LMS — password reset',
     'email.reset.greeting'  => 'Hello, :name',

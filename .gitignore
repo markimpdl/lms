@@ -19,6 +19,11 @@ storage/logs/*
 !storage/logs/.gitkeep
 !storage/logs/.htaccess
 
+# Cache em arquivo — versionar só .gitkeep e .htaccess
+storage/cache/*
+!storage/cache/.gitkeep
+!storage/cache/.htaccess
+
 # Dependências
 /vendor/
 /node_modules/
