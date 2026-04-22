@@ -181,6 +181,19 @@ return [
     'auth.register_teacher.title'         => 'Cadastro de professor',
     'public_reg.closed'                   => 'Cadastro público fechado. Entre em contato com o administrador para receber suas credenciais.',
 
+    // Painel do super-admin (E2-06)
+    'admin.dash.teachers_active'       => 'Professores ativos',
+    'admin.dash.teachers_inactive_hint'=> ':count inativos',
+    'admin.dash.students_active'       => 'Alunos ativos',
+    'admin.dash.courses_active'        => 'Cursos ativos',
+    'admin.dash.submissions_30d'       => 'Submissões (30 dias)',
+    'admin.dash.last_login'            => 'Último login geral',
+    'admin.dash.emails_30d'            => 'Emails enviados (30 dias)',
+    'admin.dash.emails_pending_hint'   => 'Disponível quando E10 for entregue.',
+    'admin.dash.chart_title'           => 'Submissões por dia',
+    'admin.dash.chart_subtitle'        => 'Últimos 30 dias — agregado global',
+    'admin.dash.chart_empty'           => 'Nenhuma submissão nos últimos 30 dias.',
+
     // Email de recuperação (idioma segue o do destinatário — ADR-014)
     'email.reset.subject'   => 'LMS — redefinição de senha',
     'email.reset.greeting'  => 'Olá, :name',

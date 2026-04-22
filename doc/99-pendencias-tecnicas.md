@@ -143,6 +143,19 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
   - `/register-teacher` (deslogado ou logado) → mensagem "cadastro fechado" (o switch não afeta ainda, porque o form público só vem pós-MVP — AC explícito).
 - **Pós-MVP:** ligar o form de cadastro público de verdade em `/register-teacher`, consultando `setting_get('public_registration')`. Quando isso chegar, reusar `TeacherProvisioningService::create` (já pronto) mudando apenas quem preenche os campos (o próprio usuário).
 
+### [E2-06] Painel de métricas do super-admin com MySQL real
+- `AdminMetricsService::snapshot` faz 6+ queries agregadas (COUNT e MAX) + 1 UNION ALL para a série diária. Cache via `cached_json('admin-metrics', 300, …)` em `storage/cache/admin-metrics.json`.
+- `/admin` (antes stub) agora é o painel. AC pedia `/admin/dashboard`, mas como `/admin` já era a home do super-admin (redirect pós-login), concentramos na mesma URL para evitar duas rotas "home". `/admin/dashboard` não está registrada; se o super-admin digitar, cai no prefix match e acaba no mesmo painel.
+- **Ações:**
+  - Logar como super-admin → `/admin` carrega o painel com cartões e gráfico (ou placeholder "sem submissões" se `max=0`).
+  - Fazer submissões em `activity_submissions` / `evaluation_submissions` → os contadores sobem em ≤5 min (TTL do cache).
+  - Forçar invalidação: `rm storage/cache/admin-metrics.json` → próximo F5 recarrega do banco.
+  - Desativar um professor → `teachers_active` diminui, `teachers_inactive_hint` aumenta.
+  - Cartão "Emails" mostra `—` com nota "Disponível quando E10 for entregue".
+  - Mobile 360×640: cartões empilham em `col-6`; gráfico flex mantém 140px de altura com barras finas. Grid desktop volta a `col-lg-4` (3 por linha).
+- **Follow-up E10:** expor `emails_sent_30d` / `emails_failed_30d` a partir da tabela `email_failures` (ou tabela de log equivalente). Remover o `null` literal em `AdminMetricsService::snapshot` e a nota i18n `emails_pending_hint`.
+- **Produção:** validar permissões de escrita em `storage/cache/` (o helper usa `@mkdir` + `@file_put_contents` silenciosos — se falhar, página só recalcula a cada hit).
+
 ### [E0-05/06] `install/schema.sql` executa limpo no phpMyAdmin
 - Revisão visual feita por código, mas nenhum MySQL real foi executado no dev local (sem `pdo_mysql`, sem mysql client).
 - **Ação:** rodar o SQL em banco vazio no phpMyAdmin Hostinger **ou** em MySQL 8 local. Esperado: criar **18 tabelas** (17 do domínio + `login_attempts`), inserir 2 seeds, zero erros. Rodar duas vezes — segunda execução deve ser no-op (idempotente via `CREATE TABLE IF NOT EXISTS` + `INSERT IGNORE`).
