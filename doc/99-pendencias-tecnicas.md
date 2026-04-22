@@ -36,10 +36,6 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
   - Submeter `/forgot` 4× no mesmo email → 4ª solicitação silenciosamente ignorada (rate limit 3/h)
   - Email inexistente → sempre mensagem genérica, nenhum token criado
 
-### [E1-03] Integração PHPMailer quando E10 chegar
-- `src/lib/Mailer.php` hoje só escreve em `storage/logs/mail-debug.log`.
-- **Ação em E10-03:** adicionar composer, PHPMailer, e trocar o corpo de `Mailer::send()` para enviar via SMTP Hostgator. Interface pública fica igual — nenhum caller precisa mudar.
-
 ### [E1-03] Mobile 360×640 das telas /forgot e /reset
 - Mesmo padrão do login (`col-12 col-sm-8`, `form-control-lg`). Validar no DevTools.
 
@@ -208,10 +204,6 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
 - Plano **gratuito** (ADR-029). Precisa de `JUDGE0_HOST` e `JUDGE0_KEY` em `config/env.php`.
 - **Bloqueia:** E8 (compilador online).
 
-### SMTP Hostgator
-- Remetente fixo `naoresponda@<dominio>`; sem per-tenant no MVP.
-- **Bloqueia:** envio real em E10. Antes disso, stub loga em `storage/logs/mail-debug.log`.
-
 ### FTPS Hostinger cPanel
 - Credenciais necessárias: `FTP_HOST`, `FTP_USER`, `FTP_PASSWORD`, `FTP_REMOTE_ROOT=/public_html`, `FTP_SECURE=true`, `FTP_ALLOW_SELF_SIGNED=true`.
 - **Bloqueia:** E13-03 (script de deploy incremental).
@@ -239,13 +231,13 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
 
 ## Composer / dependências a trazer
 
-### `composer.json` com PHPMailer + HTMLPurifier
-- Ainda não existe `composer.json`.
-- **Quando criar:** na primeira story que precisar de biblioteca externa (E1-05 para password reset email, ou E5 para TinyMCE purifier, o que vier primeiro).
-- **Lembrar:** travar `"require": {"php": "^8.2"}` para barrar quem tenta rodar em <8.2.
+### HTMLPurifier
+- Ainda não entrou (`composer.json` já existe e trava `"php": "^8.2"` + PHPMailer 6.x desde E10-03).
+- **Quando adicionar:** E5, para sanitizar o HTML rico do TinyMCE antes de persistir em `contents.body_html`.
 
 ---
 
 ## Resolvidas
 
-_(Mova itens para cá com a data quando for concluída.)_
+- **2026-04-22 — [E10-03] PHPMailer + SMTP real.** `composer.json` criado (`php ^8.2` + `phpmailer/phpmailer ^6.9`), `bootstrap.php` passa a incluir `vendor/autoload.php`, `Mailer::send()` usa PHPMailer quando `SMTP_HOST/USER/PASS/FROM` estão preenchidos em `config/env.php` e mantém o fallback em `storage/logs/mail-debug.log` caso contrário. Falhas de SMTP vão para `storage/logs/mail.log` (não relançam). `Mailer::isConfigured()` passa a ler o env. Interface pública intocada — callers de E1-03/E2-02/E2-07 seguem iguais. Credenciais de produção: `lms.rumo.info:465 ssl`, remetente `noreply@lms.rumo.info`. Item "[E1-03] Integração PHPMailer quando E10 chegar" e "SMTP Hostgator" (pendência externa) saem da lista.
+- **2026-04-22 — Pendência externa "SMTP Hostgator" reclassificada.** O domínio `lms.rumo.info` oferece SMTP próprio (cPanel/Hostinger) — não é mais Hostgator. Credenciais já em `config/env.php` (gitignored).

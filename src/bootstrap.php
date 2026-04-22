@@ -45,7 +45,14 @@ if (PHP_SAPI !== 'cli' && session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 4. Autoload por convenção ----------------------------------------------
+// 4. Autoload -----------------------------------------------------------
+// Composer primeiro (dependências com namespace: PHPMailer, etc.). Depois o
+// autoload por convenção do projeto, que cobre classes sem namespace em
+// src/{lib,models,services,controllers}/.
+$composerAutoload = LMS_ROOT . '/vendor/autoload.php';
+if (is_file($composerAutoload)) {
+    require $composerAutoload;
+}
 spl_autoload_register(static function (string $class): void {
     static $roots = ['lib', 'models', 'services', 'controllers'];
     $relative = str_replace('\\', '/', $class) . '.php';
