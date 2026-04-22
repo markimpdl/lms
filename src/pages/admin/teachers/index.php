@@ -36,6 +36,26 @@ $teachersUrl = static function (array $overrides) use ($filters, $page): string 
     return '/admin/teachers' . ($qs !== '' ? '?' . $qs : '');
 };
 
+/** Botão Desativar (abre modal único) ou Reativar (form POST direto). */
+$toggleButton = static function (array $row, bool $small): string {
+    $id = (int) $row['id'];
+    $size = $small ? ' btn-sm' : '';
+    if ((int) $row['active'] === 1) {
+        return '<button type="button" class="btn btn-outline-secondary' . $size . '"'
+             . ' data-bs-toggle="modal" data-bs-target="#toggle-modal"'
+             . ' data-teacher-id="' . $id . '"'
+             . ' data-teacher-name="' . e($row['name']) . '"'
+             . ' data-courses="' . (int) $row['active_courses'] . '"'
+             . ' data-students="' . (int) $row['unique_students'] . '">'
+             . e(__t('admin.teachers.deactivate')) . '</button>';
+    }
+    return '<form method="POST" action="/admin/teachers/' . $id . '/toggle" class="d-inline m-0">'
+         . csrf_field()
+         . '<button type="submit" class="btn btn-outline-success' . $size . '">'
+         . e(__t('admin.teachers.reactivate'))
+         . '</button></form>';
+};
+
 /** Cabeçalho ordenável: inverte dir se já está ordenando por esta coluna. */
 $sortable = static function (string $key, string $label) use ($filters, $teachersUrl): string {
     $isCurrent = $filters['sort'] === $key;
@@ -168,19 +188,11 @@ ob_start();
                                 : '<span class="text-muted">' . e(__t('admin.teachers.never')) . '</span>' ?>
                         </td>
                         <td class="text-end">
-                            <div class="btn-group btn-group-sm" role="group">
-                                <a href="/admin/teachers/<?= (int) $row['id'] ?>" class="btn btn-outline-primary">
+                            <div class="d-flex justify-content-end gap-1">
+                                <a href="/admin/teachers/<?= (int) $row['id'] ?>" class="btn btn-sm btn-outline-primary">
                                     <?= e(__t('admin.teachers.open')) ?>
                                 </a>
-                                <?php if ((int) $row['active'] === 1): ?>
-                                    <a href="#" class="btn btn-outline-secondary disabled" aria-disabled="true" tabindex="-1">
-                                        <?= e(__t('admin.teachers.deactivate')) ?>
-                                    </a>
-                                <?php else: ?>
-                                    <a href="#" class="btn btn-outline-success disabled" aria-disabled="true" tabindex="-1">
-                                        <?= e(__t('admin.teachers.reactivate')) ?>
-                                    </a>
-                                <?php endif; ?>
+                                <?= $toggleButton($row, true) ?>
                             </div>
                         </td>
                     </tr>
@@ -217,19 +229,11 @@ ob_start();
                                 : '<span class="text-muted">' . e(__t('admin.teachers.never')) . '</span>' ?>
                         </div>
                     </div>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 flex-wrap">
                         <a href="/admin/teachers/<?= (int) $row['id'] ?>" class="btn btn-sm btn-outline-primary">
                             <?= e(__t('admin.teachers.open')) ?>
                         </a>
-                        <?php if ((int) $row['active'] === 1): ?>
-                            <a href="#" class="btn btn-sm btn-outline-secondary disabled" aria-disabled="true" tabindex="-1">
-                                <?= e(__t('admin.teachers.deactivate')) ?>
-                            </a>
-                        <?php else: ?>
-                            <a href="#" class="btn btn-sm btn-outline-success disabled" aria-disabled="true" tabindex="-1">
-                                <?= e(__t('admin.teachers.reactivate')) ?>
-                            </a>
-                        <?php endif; ?>
+                        <?= $toggleButton($row, true) ?>
                     </div>
                 </div>
             </div>
@@ -259,6 +263,59 @@ ob_start();
     <?php endif; ?>
 
 <?php endif; ?>
+
+<!-- Modal único de confirmação "Desativar professor" (E2-04) -->
+<div class="modal fade" id="toggle-modal" tabindex="-1" aria-hidden="true" aria-labelledby="toggle-modal-title">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="toggle-modal-title"><?= e(__t('admin.teachers.deactivate.title')) ?></h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= e(__t('common.cancel')) ?>"></button>
+            </div>
+            <div class="modal-body">
+                <p><?= e(__t('admin.teachers.deactivate.intro_prefix')) ?>
+                   <strong id="toggle-name"></strong><?= e(__t('admin.teachers.deactivate.intro_suffix')) ?></p>
+                <ul class="mb-3">
+                    <li><strong id="toggle-courses">0</strong> <?= e(__t('admin.teachers.impact_courses')) ?></li>
+                    <li><strong id="toggle-students">0</strong> <?= e(__t('admin.teachers.impact_students')) ?></li>
+                </ul>
+                <p class="small text-muted mb-0"><?= e(__t('admin.teachers.deactivate.note')) ?></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <?= e(__t('common.cancel')) ?>
+                </button>
+                <form id="toggle-form" method="POST" action="" class="m-0">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn btn-danger">
+                        <?= e(__t('admin.teachers.deactivate.confirm')) ?>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Preenche o modal com os dados do professor cujo botão "Desativar" foi
+// clicado (show.bs.modal é disparado antes da animação ficar visível).
+(function () {
+    var modal = document.getElementById('toggle-modal');
+    if (!modal) return;
+    var nameEl     = document.getElementById('toggle-name');
+    var coursesEl  = document.getElementById('toggle-courses');
+    var studentsEl = document.getElementById('toggle-students');
+    var form       = document.getElementById('toggle-form');
+    modal.addEventListener('show.bs.modal', function (event) {
+        var btn = event.relatedTarget;
+        if (!btn) return;
+        nameEl.textContent     = btn.getAttribute('data-teacher-name') || '';
+        coursesEl.textContent  = btn.getAttribute('data-courses')      || '0';
+        studentsEl.textContent = btn.getAttribute('data-students')     || '0';
+        form.action = '/admin/teachers/' + btn.getAttribute('data-teacher-id') + '/toggle';
+    });
+})();
+</script>
 <?php
 $page_content = ob_get_clean();
 

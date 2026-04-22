@@ -118,6 +118,49 @@ final class AdminTeachersController
     }
 
     /**
+     * Alterna `users.active` e `tenants.active` do professor em uma transação
+     * (E2-04). Não há exclusão dura (ADR-024). O middleware de E1-05 faz o
+     * resto: sessões ativas do professor são invalidadas no próximo request
+     * porque `require_auth` recarrega `active` do banco a cada hit.
+     *
+     * Alunos continuam com `active=1` e suas matrículas; o tenant desativado
+     * só fica invisível quando `Course::listByTenant` chegar em E3/E4 com o
+     * filtro `tenants.active=1`.
+     *
+     * @param string $from Override do Location de destino ('list'|'edit').
+     */
+    public static function toggleActive(int $teacherId, string $from = 'list'): void
+    {
+        $teacher = TeacherAdmin::findById($teacherId);
+        if ($teacher === null) {
+            http_response_code(404);
+            require LMS_ROOT . '/src/templates/errors/404.php';
+            exit;
+        }
+
+        $next = (int) $teacher['active'] === 1 ? 0 : 1;
+
+        Database::tx(static function (PDO $pdo) use ($teacherId, $next): void {
+            $pdo->prepare('UPDATE users SET active = ? WHERE id = ?')
+                ->execute([$next, $teacherId]);
+            $pdo->prepare('UPDATE tenants SET active = ? WHERE owner_user_id = ?')
+                ->execute([$next, $teacherId]);
+        });
+
+        flash(
+            'success',
+            __t(
+                $next === 1 ? 'admin.teachers.reactivated' : 'admin.teachers.deactivated',
+                ['name' => $teacher['name']]
+            )
+        );
+
+        $target = $from === 'edit' ? '/admin/teachers/' . $teacherId : '/admin/teachers';
+        header('Location: ' . $target, true, 303);
+        exit;
+    }
+
+    /**
      * Monta e entrega o email de boas-vindas no idioma do professor.
      * O template é um arquivo PHP por idioma (ADR-014 adaptado: não queremos
      * depender de __t() em email, para evitar fallback de chave ausente).

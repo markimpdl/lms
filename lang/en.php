@@ -156,6 +156,18 @@ return [
     'admin.teachers.edit.updated'    => 'Details for :name updated.',
     'admin.teachers.email_immutable' => 'Email cannot be changed (ADR-021).',
 
+    // Deactivate/reactivate teacher (E2-04)
+    'admin.teachers.deactivate.title'         => 'Deactivate teacher',
+    'admin.teachers.deactivate.intro_prefix'  => 'You are about to deactivate ',
+    'admin.teachers.deactivate.intro_suffix'  => '. Access is blocked immediately.',
+    'admin.teachers.deactivate.note'          => 'Enrollments and history are preserved. You can reactivate at any time.',
+    'admin.teachers.deactivate.confirm'       => 'Deactivate',
+    'admin.teachers.deactivate.confirm_short' => 'Deactivate :name? Access is blocked immediately.',
+    'admin.teachers.impact_courses'           => 'active courses will become temporarily inaccessible.',
+    'admin.teachers.impact_students'          => 'enrolled students will lose visibility of the courses.',
+    'admin.teachers.deactivated'              => ':name has been deactivated.',
+    'admin.teachers.reactivated'              => ':name has been reactivated.',
+
     // Reset email (language follows the recipient — ADR-014)
     'email.reset.subject'   => 'LMS — password reset',
     'email.reset.greeting'  => 'Hello, :name',
