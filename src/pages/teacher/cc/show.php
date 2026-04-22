@@ -31,6 +31,7 @@ $cuCount = count($cus);
 $tree = curriculum_tree($courseId, $tenantId);
 $activeCcId = $ccId;
 $activeCuId = 0;
+$ccCountsFormatted = format_delete_counts(CoreCompetency::countDescendants($ccId, $tenantId));
 
 $page_title = (string) $cc['name'];
 
@@ -63,9 +64,18 @@ ob_start();
         <small class="text-muted"><?= e(__t('cu.section.subtitle', ['count' => (string) $cuCount])) ?></small>
     </div>
     <?php if (!$isArchived): ?>
-        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#cuNewModal">
-            + <?= e(__t('cu.new_button')) ?>
-        </button>
+        <div class="d-flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#cuNewModal">
+                + <?= e(__t('cu.new_button')) ?>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger"
+                    data-bs-toggle="modal" data-bs-target="#deleteConfirmModal"
+                    data-item-name="<?= e((string) $cc['name']) ?>"
+                    data-action-url="/teacher/cc/<?= $ccId ?>/delete"
+                    data-counts="<?= e(json_encode($ccCountsFormatted, JSON_UNESCAPED_UNICODE)) ?>">
+                <?= e(__t('delete.action')) ?>
+            </button>
+        </div>
     <?php endif; ?>
 </div>
 
@@ -90,6 +100,10 @@ ob_start();
                         <span class="fw-semibold"><?= e($cuName) ?></span>
                     </div>
                     <?php if (!$isArchived): ?>
+                        <?php $cuCountsFormatted = format_delete_counts([
+                            'activities'  => (int) $cu['activities_count'],
+                            'evaluations' => (int) $cu['evaluations_count'],
+                        ]); ?>
                         <div class="d-flex gap-1">
                             <form method="POST" action="/teacher/cu/<?= $cuId ?>/move-up" class="d-inline">
                                 <?= csrf_field() ?>
@@ -105,6 +119,12 @@ ob_start();
                                     data-bs-toggle="modal" data-bs-target="#cuEditModal"
                                     data-cu-id="<?= $cuId ?>" data-cu-name="<?= e($cuName) ?>"
                                     aria-label="<?= e(__t('cu.action.rename')) ?>">✎</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                    data-bs-toggle="modal" data-bs-target="#deleteConfirmModal"
+                                    data-item-name="<?= e($cuName) ?>"
+                                    data-action-url="/teacher/cu/<?= $cuId ?>/delete"
+                                    data-counts="<?= e(json_encode($cuCountsFormatted, JSON_UNESCAPED_UNICODE)) ?>"
+                                    aria-label="<?= e(__t('delete.action')) ?>">🗑</button>
                         </div>
                     <?php endif; ?>
                 </li>
@@ -190,6 +210,8 @@ ob_start();
         <?php require LMS_ROOT . '/src/templates/partials/curriculum_nav.php'; ?>
     </div>
 </div>
+
+<?php require LMS_ROOT . '/src/templates/partials/delete_confirm_modal.php'; ?>
 <?php
 $page_content = ob_get_clean();
 require LMS_ROOT . '/src/templates/layout.php';

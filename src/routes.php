@@ -76,6 +76,11 @@ return [
             'role'   => 'teacher',
             'params' => ['id'],
         ],
+        '#^/teacher/courses/(\d+)/delete$#' => [
+            'file'   => '/src/pages/teacher/courses/delete.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
         '#^/teacher/cc/(\d+)/rename$#' => [
             'file'   => '/src/pages/teacher/cc/rename.php',
             'role'   => 'teacher',
@@ -85,6 +90,11 @@ return [
             'file'   => '/src/pages/teacher/cc/move.php',
             'role'   => 'teacher',
             'params' => ['id', 'direction'],
+        ],
+        '#^/teacher/cc/(\d+)/delete$#' => [
+            'file'   => '/src/pages/teacher/cc/delete.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
         ],
         '#^/teacher/courses/(\d+)/cc/(\d+)$#' => [
             'file'   => '/src/pages/teacher/cc/show.php',
@@ -100,6 +110,11 @@ return [
             'file'   => '/src/pages/teacher/cu/move.php',
             'role'   => 'teacher',
             'params' => ['id', 'direction'],
+        ],
+        '#^/teacher/cu/(\d+)/delete$#' => [
+            'file'   => '/src/pages/teacher/cu/delete.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
         ],
     ],
 ];

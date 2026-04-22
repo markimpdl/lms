@@ -86,6 +86,41 @@ final class TeacherCurriculumController
         exit;
     }
 
+    /** POST /teacher/cc/{id}/delete — exclusão com confirmação por nome (E3-05). */
+    public static function deleteCc(int $ccId, string $expectedName): void
+    {
+        $tenantId = current_tenant_id();
+        if ($tenantId === null) {
+            http_response_code(403);
+            require LMS_ROOT . '/src/templates/errors/403.php';
+            exit;
+        }
+
+        $cc = CoreCompetency::findForTenant($ccId, $tenantId);
+        if ($cc === null) {
+            http_response_code(404);
+            require LMS_ROOT . '/src/templates/errors/404.php';
+            exit;
+        }
+        $courseId = (int) $cc['course_id'];
+
+        $result = CoreCompetency::delete($ccId, $tenantId, $expectedName);
+        if ($result === 'name_mismatch') {
+            flash('danger', __t('delete.err.name_mismatch'));
+            header('Location: /teacher/courses/' . $courseId, true, 303);
+            exit;
+        }
+        if ($result !== 'ok') {
+            http_response_code(404);
+            require LMS_ROOT . '/src/templates/errors/404.php';
+            exit;
+        }
+
+        flash('success', __t('cc.deleted', ['name' => $cc['name']]));
+        header('Location: /teacher/courses/' . $courseId, true, 303);
+        exit;
+    }
+
     /** POST /teacher/cc/{id}/move-up|move-down — reordena. */
     public static function moveCc(int $ccId, string $direction): void
     {
@@ -197,6 +232,43 @@ final class TeacherCurriculumController
         } else {
             flash('success', __t('cu.renamed', ['name' => $name]));
         }
+        header('Location: ' . $backUrl, true, 303);
+        exit;
+    }
+
+    /** POST /teacher/cu/{id}/delete — exclusão com confirmação por nome (E3-05). */
+    public static function deleteCu(int $cuId, string $expectedName): void
+    {
+        $tenantId = current_tenant_id();
+        if ($tenantId === null) {
+            http_response_code(403);
+            require LMS_ROOT . '/src/templates/errors/403.php';
+            exit;
+        }
+
+        $cu = CompetenceUnit::findForTenant($cuId, $tenantId);
+        if ($cu === null) {
+            http_response_code(404);
+            require LMS_ROOT . '/src/templates/errors/404.php';
+            exit;
+        }
+        $courseId = (int) $cu['course_id'];
+        $ccId     = (int) $cu['core_competency_id'];
+        $backUrl  = '/teacher/courses/' . $courseId . '/cc/' . $ccId;
+
+        $result = CompetenceUnit::delete($cuId, $tenantId, $expectedName);
+        if ($result === 'name_mismatch') {
+            flash('danger', __t('delete.err.name_mismatch'));
+            header('Location: ' . $backUrl, true, 303);
+            exit;
+        }
+        if ($result !== 'ok') {
+            http_response_code(404);
+            require LMS_ROOT . '/src/templates/errors/404.php';
+            exit;
+        }
+
+        flash('success', __t('cu.deleted', ['name' => $cu['name']]));
         header('Location: ' . $backUrl, true, 303);
         exit;
     }

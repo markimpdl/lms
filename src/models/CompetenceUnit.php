@@ -14,14 +14,17 @@ declare(strict_types=1);
 final class CompetenceUnit
 {
     /**
-     * Lista CUs de uma CC do tenant, em ordem (position, id).
+     * Lista CUs de uma CC do tenant, em ordem (position, id), com contagens
+     * de atividades e avaliações (para alimentar o modal de exclusão E3-05).
      * @return list<array<string,mixed>>
      */
     public static function listByCc(int $ccId, int $tenantId): array
     {
         $stmt = Database::pdo()->prepare(
             'SELECT cu.id, cu.core_competency_id, cu.name, cu.position,
-                    cu.created_at, cu.updated_at
+                    cu.created_at, cu.updated_at,
+                    (SELECT COUNT(*) FROM activities  WHERE competence_unit_id = cu.id) AS activities_count,
+                    (SELECT COUNT(*) FROM evaluations WHERE competence_unit_id = cu.id) AS evaluations_count
                FROM competence_units cu
                JOIN core_competencies cc ON cc.id = cu.core_competency_id
                JOIN courses c ON c.id = cc.course_id AND c.tenant_id = ?
@@ -30,6 +33,54 @@ final class CompetenceUnit
         );
         $stmt->execute([$tenantId, $ccId]);
         return $stmt->fetchAll();
+    }
+
+    /**
+     * Conta atividades e avaliações descendentes de uma CU.
+     *
+     * @return array{activities:int, evaluations:int}
+     */
+    public static function countDescendants(int $id, int $tenantId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT
+                (SELECT COUNT(*) FROM activities  WHERE competence_unit_id = :id) AS activities,
+                (SELECT COUNT(*) FROM evaluations WHERE competence_unit_id = :id) AS evaluations
+              FROM competence_units cu
+              JOIN core_competencies cc ON cc.id = cu.core_competency_id
+              JOIN courses c ON c.id = cc.course_id AND c.tenant_id = :tid
+              WHERE cu.id = :id LIMIT 1'
+        );
+        $stmt->execute([':id' => $id, ':tid' => $tenantId]);
+        $row = $stmt->fetch();
+        if ($row === false) {
+            return ['activities' => 0, 'evaluations' => 0];
+        }
+        return [
+            'activities'  => (int) $row['activities'],
+            'evaluations' => (int) $row['evaluations'],
+        ];
+    }
+
+    /**
+     * Exclui CU do tenant após revalidar nome. Cascade cuida de contents,
+     * activities, evaluations e suas submissões.
+     *
+     * Retorna 'ok' | 'not_found' | 'name_mismatch'.
+     */
+    public static function delete(int $id, int $tenantId, string $expectedName): string
+    {
+        $cu = self::findForTenant($id, $tenantId);
+        if ($cu === null) {
+            return 'not_found';
+        }
+        if ((string) $cu['name'] !== $expectedName) {
+            return 'name_mismatch';
+        }
+        Database::pdo()
+            ->prepare('DELETE FROM competence_units WHERE id = ?')
+            ->execute([$id]);
+        return 'ok';
     }
 
     /**

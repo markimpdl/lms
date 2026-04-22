@@ -304,4 +304,22 @@ return [
     // Navegação hierárquica (E3-04)
     'nav.curriculum.title' => 'Estrutura do curso',
     'nav.curriculum.open'  => 'Estrutura do curso',
+
+    // Exclusão (E3-05)
+    'delete.modal.title'             => 'Excluir',
+    'delete.modal.about_to_delete'   => 'Você está prestes a excluir',
+    'delete.modal.will_also_delete'  => 'Isso também vai apagar:',
+    'delete.modal.permanent_warning' => 'Essa ação é permanente e não pode ser desfeita.',
+    'delete.modal.type_to_confirm'   => 'Para confirmar, digite o nome exato abaixo.',
+    'delete.modal.submit'            => 'Excluir permanentemente',
+    'delete.err.name_mismatch'       => 'O nome digitado não confere. Exclusão cancelada.',
+    'delete.action'                  => 'Excluir',
+    'delete.label.ccs'               => 'CCs',
+    'delete.label.cus'               => 'CUs',
+    'delete.label.activities'        => 'atividades',
+    'delete.label.evaluations'       => 'avaliações',
+    'delete.label.enrollments'       => 'matrículas',
+    'courses.deleted'                => 'Curso ":name" excluído.',
+    'cc.deleted'                     => 'CC ":name" excluída.',
+    'cu.deleted'                     => 'CU ":name" excluída.',
 ];
