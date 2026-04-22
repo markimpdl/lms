@@ -34,6 +34,7 @@ Você é um desenvolvedor PHP sênior revisando código do LMS antes de ir para 
 ### Segurança (OWASP Top 10)
 
 - [ ] **SQL Injection:** toda query MySQL usa **prepared statements** (`:placeholder` ou `?`). Zero concatenação.
+- [ ] **Reuso de placeholder nomeado:** se `:nome` aparece 2+ vezes na mesma query, o bind precisa repetir o valor **ou** usar `?` posicional. `Database::pdo()` seta `PDO::ATTR_EMULATE_PREPARES = false` → cada `:nome` vira slot separado e `execute([':nome' => X])` com um único valor dispara `SQLSTATE[HY093] Invalid parameter number`. Prefira `?` quando o mesmo valor entra em vários pontos.
 - [ ] **XSS:** todo output dinâmico passa por `e($valor)` ou `htmlspecialchars($valor, ENT_QUOTES, 'UTF-8')`
 - [ ] **CSRF:** `<form method="POST">` com `csrf_field()` + handler chama `csrf_verify()`
 - [ ] **Sessão:** `session_start()` no bootstrap; `session_regenerate_id(true)` após login
@@ -149,6 +150,7 @@ Você é um desenvolvedor PHP sênior revisando código do LMS antes de ir para 
 | Sintoma                                         | Severidade | Correção                                                                 |
 | ----------------------------------------------- | ---------- | ------------------------------------------------------------------------ |
 | `"SELECT * FROM x WHERE id = $id"`              | Crítico    | Prepared statement: `WHERE id = :id`                                     |
+| `:id` repetido em subqueries + `execute([':id' => X])` | Crítico | Trocar por `?` posicional e passar o valor N vezes; ou renomear (`:id1`, `:id2`). Emulação de prepare está `false` em `Database::pdo()`. |
 | Query sem `tenant_id` em rota de professor      | Crítico    | Adicionar `WHERE tenant_id = :tid` com `current_tenant_id()`             |
 | Aluno acessa CU sem checar matrícula            | Crítico    | Validar `enrollments` antes do retorno                                   |
 | `echo $_GET['x']`                               | Crítico    | `e($_GET['x'] ?? '')`                                                    |
