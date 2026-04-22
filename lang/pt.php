@@ -267,4 +267,21 @@ return [
 
     // Dashboard teacher — atalhos
     'dashboard.teacher.courses_hint' => 'Criar, editar e organizar os cursos que você leciona.',
+
+    // Core Competencies (E3-02)
+    'cc.section.title'    => 'Competências Centrais',
+    'cc.section.subtitle' => ':count CCs',
+    'cc.new_button'       => 'Nova CC',
+    'cc.new.title'        => 'Nova Core Competency',
+    'cc.edit.title'       => 'Renomear Core Competency',
+    'cc.form.name'        => 'Nome',
+    'cc.form.err.name'    => 'Entre 2 e 150 caracteres.',
+    'cc.action.move_up'   => 'Mover para cima',
+    'cc.action.move_down' => 'Mover para baixo',
+    'cc.action.rename'    => 'Renomear',
+    'cc.empty'            => 'Nenhuma CC ainda. Clique em "Nova CC" para criar a primeira.',
+    'cc.created'          => 'CC ":name" criada.',
+    'cc.renamed'          => 'CC renomeada para ":name".',
+    'cc.err.course_unavailable' => 'Este curso está arquivado ou não pertence a você.',
+    'cc.err.move'         => 'Não foi possível mover a CC (já está na ponta ou dados mudaram).',
 ];

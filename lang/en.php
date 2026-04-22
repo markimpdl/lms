@@ -267,4 +267,21 @@ return [
 
     // Teacher dashboard — shortcuts
     'dashboard.teacher.courses_hint' => 'Create, edit, and organise the courses you teach.',
+
+    // Core Competencies (E3-02)
+    'cc.section.title'    => 'Core Competencies',
+    'cc.section.subtitle' => ':count CCs',
+    'cc.new_button'       => 'New CC',
+    'cc.new.title'        => 'New Core Competency',
+    'cc.edit.title'       => 'Rename Core Competency',
+    'cc.form.name'        => 'Name',
+    'cc.form.err.name'    => 'Between 2 and 150 characters.',
+    'cc.action.move_up'   => 'Move up',
+    'cc.action.move_down' => 'Move down',
+    'cc.action.rename'    => 'Rename',
+    'cc.empty'            => 'No CCs yet. Click "New CC" to create the first one.',
+    'cc.created'          => 'CC ":name" created.',
+    'cc.renamed'          => 'CC renamed to ":name".',
+    'cc.err.course_unavailable' => 'This course is archived or does not belong to you.',
+    'cc.err.move'         => 'Could not move the CC (already at the edge or data changed).',
 ];
