@@ -91,4 +91,79 @@ final class EvaluationSubmissionService
             }
         );
     }
+
+    /**
+     * Corrige uma submissão (E7-03). Roda em transação:
+     *
+     *   1. Valida que a submissão pertence ao tenant e é `is_current=1`
+     *      (não deixa corrigir tentativa arquivada).
+     *   2. Clamp: se `grade >= 6`, força `retry_allowed = 0` — a regra de
+     *      negócio é "aprovado não reenvia", independente do que veio do
+     *      form (ADR-002 + regra PO E7).
+     *   3. UPDATE `grade`, `feedback`, `feedback_at=NOW()`, `retry_allowed`.
+     *   4. Se `grade >= 8`, dispara `XpEvents::awardEvaluation` — idempotente
+     *      via UK composite. Re-correção com mesma grade ≥ 8 não duplica XP.
+     *      Re-correção com grade ≥ 8 que antes era < 8: credita na segunda.
+     *
+     * Códigos de retorno:
+     *   'not_found'  — submissão não existe ou não pertence ao tenant
+     *   'not_current' — submissão existe mas é histórica (is_current=0)
+     *   'ok'         — gravado; retorna `retry_effective` (após clamp) e
+     *                  `xp_awarded` (true quando o INSERT IGNORE gerou linha).
+     *
+     * @return array{status:string, retry_effective?:int, xp_awarded?:bool}
+     */
+    public static function grade(
+        int $submissionId,
+        int $tenantId,
+        float $grade,
+        string $feedback,
+        bool $retryAllowed
+    ): array {
+        return Database::tx(
+            static function (PDO $pdo) use (
+                $submissionId, $tenantId, $grade, $feedback, $retryAllowed
+            ): array {
+                $stmt = $pdo->prepare(
+                    'SELECT s.id, s.evaluation_id, s.student_user_id, s.is_current
+                       FROM evaluation_submissions s
+                       JOIN evaluations e ON e.id = s.evaluation_id
+                      WHERE s.id = ? AND e.tenant_id = ?
+                      LIMIT 1'
+                );
+                $stmt->execute([$submissionId, $tenantId]);
+                $sub = $stmt->fetch();
+                if ($sub === false) {
+                    return ['status' => 'not_found'];
+                }
+                if ((int) $sub['is_current'] !== 1) {
+                    return ['status' => 'not_current'];
+                }
+
+                $retryEffective = ($grade >= 6.0) ? 0 : ($retryAllowed ? 1 : 0);
+
+                $pdo->prepare(
+                    'UPDATE evaluation_submissions
+                        SET grade = ?, feedback = ?,
+                            feedback_at = CURRENT_TIMESTAMP,
+                            retry_allowed = ?
+                      WHERE id = ?'
+                )->execute([$grade, $feedback, $retryEffective, $submissionId]);
+
+                $xpAwarded = false;
+                if ($grade >= 8.0) {
+                    $xpAwarded = XpEvents::awardEvaluation(
+                        (int) $sub['student_user_id'],
+                        (int) $sub['evaluation_id']
+                    );
+                }
+
+                return [
+                    'status'          => 'ok',
+                    'retry_effective' => $retryEffective,
+                    'xp_awarded'      => $xpAwarded,
+                ];
+            }
+        );
+    }
 }
