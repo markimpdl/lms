@@ -115,6 +115,21 @@ return [
             'role'   => 'teacher',
             'params' => ['id'],
         ],
+        '#^/teacher/cu/(\d+)/attachment$#' => [
+            'file'   => '/src/pages/teacher/cu/attachment-upload.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/cu/(\d+)/attachment/(\d+)/delete$#' => [
+            'file'   => '/src/pages/teacher/cu/attachment-delete.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'aid'],
+        ],
+        '#^/teacher/cu/(\d+)/attachment/(\d+)/view$#' => [
+            'file'   => '/src/pages/teacher/cu/attachment-view.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'aid'],
+        ],
         '#^/teacher/cu/(\d+)/rename$#' => [
             'file'   => '/src/pages/teacher/cu/rename.php',
             'role'   => 'teacher',

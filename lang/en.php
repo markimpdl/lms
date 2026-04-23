@@ -320,6 +320,25 @@ return [
     'content.form.publish_hint'  => 'When checked, enrolled students of this course will see the content in the CU. Uncheck to keep drafting without exposing.',
     'content.saved'              => 'Content saved.',
 
+    // Attachments (E5-03)
+    'attachments.section'                   => 'Attachments',
+    'attachments.section_hint'              => 'Support files (PDF, ZIP, TXT) and images to insert in the text. Max 3 MB per file.',
+    'attachments.upload_label'              => 'Pick file',
+    'attachments.upload_hint'               => 'Accepted: PDF, ZIP, TXT, PNG, JPG, GIF, WEBP. Max 3 MB.',
+    'attachments.upload_button'             => 'Upload',
+    'attachments.none'                      => 'No attachments yet.',
+    'attachments.delete_button'             => 'Remove',
+    'attachments.delete_confirm'            => 'Remove attachment ":name"? The file is permanently deleted from the server.',
+    'attachments.uploaded'                  => 'Attachment uploaded.',
+    'attachments.deleted'                   => 'Attachment removed.',
+    'attachments.image_available_in_editor' => 'available in editor',
+    'attachments.err.size'                  => 'File larger than 3 MB — pick a smaller one.',
+    'attachments.err.mime'                  => 'File type not accepted. Use PDF, ZIP, TXT or image.',
+    'attachments.err.no_file'               => 'No file selected.',
+    'attachments.err.cu_unavailable'        => 'This CU is not available to you.',
+    'attachments.err.not_found'             => 'Attachment not found.',
+    'attachments.err.generic'               => 'Could not upload the file. Try again.',
+
     // Deletion (E3-05)
     'delete.modal.title'             => 'Delete',
     'delete.modal.about_to_delete'   => 'You are about to delete',

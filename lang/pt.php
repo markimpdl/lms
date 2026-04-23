@@ -320,6 +320,25 @@ return [
     'content.form.publish_hint'  => 'Quando marcado, os alunos matriculados neste curso verão o conteúdo na CU. Desmarque para continuar rascunhando sem expor.',
     'content.saved'              => 'Conteúdo salvo.',
 
+    // Anexos (E5-03)
+    'attachments.section'                   => 'Anexos',
+    'attachments.section_hint'              => 'Arquivos de apoio (PDF, ZIP, TXT) e imagens para inserir no texto. Limite de 3 MB por arquivo.',
+    'attachments.upload_label'              => 'Selecionar arquivo',
+    'attachments.upload_hint'               => 'Aceitos: PDF, ZIP, TXT, PNG, JPG, GIF, WEBP. Máximo 3 MB.',
+    'attachments.upload_button'             => 'Enviar',
+    'attachments.none'                      => 'Nenhum anexo ainda.',
+    'attachments.delete_button'             => 'Remover',
+    'attachments.delete_confirm'            => 'Remover o anexo ":name"? O arquivo é apagado permanentemente do servidor.',
+    'attachments.uploaded'                  => 'Anexo enviado.',
+    'attachments.deleted'                   => 'Anexo removido.',
+    'attachments.image_available_in_editor' => 'disponível no editor',
+    'attachments.err.size'                  => 'Arquivo maior que 3 MB — selecione outro menor.',
+    'attachments.err.mime'                  => 'Tipo de arquivo não aceito. Use PDF, ZIP, TXT ou imagem.',
+    'attachments.err.no_file'               => 'Nenhum arquivo selecionado.',
+    'attachments.err.cu_unavailable'        => 'Esta CU não está disponível para você.',
+    'attachments.err.not_found'             => 'Anexo não encontrado.',
+    'attachments.err.generic'               => 'Não foi possível enviar o arquivo. Tente novamente.',
+
     // Exclusão (E3-05)
     'delete.modal.title'             => 'Excluir',
     'delete.modal.about_to_delete'   => 'Você está prestes a excluir',
