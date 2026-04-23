@@ -44,6 +44,8 @@ return [
         '/teacher/cu/new'       => ['file' => '/src/pages/teacher/cu/new.php',         'role' => 'teacher'],
         '/teacher/students'     => ['file' => '/src/pages/teacher/students/index.php', 'role' => 'teacher'],
         '/teacher/students/new' => ['file' => '/src/pages/teacher/students/new.php',   'role' => 'teacher'],
+        '/teacher/groups'       => ['file' => '/src/pages/teacher/groups/index.php',   'role' => 'teacher'],
+        '/teacher/groups/new'   => ['file' => '/src/pages/teacher/groups/new.php',     'role' => 'teacher'],
         '/student'             => ['file' => '/src/pages/dashboard/student.php',     'role' => 'student'],
     ],
 
@@ -142,6 +144,16 @@ return [
             'file'   => '/src/pages/teacher/students/unenroll.php',
             'role'   => 'teacher',
             'params' => ['id', 'course_id'],
+        ],
+        '#^/teacher/groups/(\d+)/rename$#' => [
+            'file'   => '/src/pages/teacher/groups/rename.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/groups/(\d+)/delete$#' => [
+            'file'   => '/src/pages/teacher/groups/delete.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
         ],
     ],
 ];
