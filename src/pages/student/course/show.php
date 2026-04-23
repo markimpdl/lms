@@ -2,8 +2,8 @@
 declare(strict_types=1);
 
 /**
- * /student/course/{id} — página do aluno de um curso específico (E5-05
- * polish). Lista as CCs e CUs do curso. Exige matrícula ativa.
+ * /student/course/{id} — tela do curso pro aluno. Lista CCs como seções
+ * com barra de progresso; cada CU vira card no padrão `.lms-card` (issue #99).
  */
 
 $user = current_user();
@@ -23,7 +23,7 @@ if ($course === null) {
     return;
 }
 
-$archived = (int) $course['course_archived'] === 1;
+$archived   = (int) $course['course_archived'] === 1;
 $page_title = (string) $course['course_name'];
 
 ob_start();
@@ -50,26 +50,58 @@ ob_start();
             </div>
         <?php else: ?>
             <?php foreach ($course['ccs'] as $cc): ?>
-                <div class="card shadow-sm mb-3">
-                    <div class="card-header">
+                <?php
+                    // % do CC = média dos percent das CUs (placeholder até E6/E7).
+                    // Hoje é sempre 0 porque student_cu_status é placeholder.
+                    $ccPercent = 0;
+                    if ($cc['cus'] !== []) {
+                        $sum = 0;
+                        foreach ($cc['cus'] as $cu) {
+                            $sum += student_cu_status((int) $cu['id'], $studentId)['percent'];
+                        }
+                        $ccPercent = (int) round($sum / count($cc['cus']));
+                    }
+                ?>
+                <section class="mb-4">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
                         <h2 class="h6 mb-0"><?= e((string) $cc['name']) ?></h2>
+                        <small class="text-muted"><?= e((string) $ccPercent) ?>%</small>
                     </div>
+                    <div class="progress mb-3" style="height: 6px;" role="progressbar"
+                         aria-valuenow="<?= e((string) $ccPercent) ?>" aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar" style="width: <?= e((string) $ccPercent) ?>%;"></div>
+                    </div>
+
                     <?php if ($cc['cus'] === []): ?>
-                        <div class="card-body text-muted small">
-                            <?= e(__t('dashboard.student.cc_empty')) ?>
-                        </div>
+                        <p class="small text-muted mb-0"><?= e(__t('dashboard.student.cc_empty')) ?></p>
                     <?php else: ?>
-                        <ul class="list-group list-group-flush">
+                        <div class="d-flex flex-column gap-2">
                             <?php foreach ($cc['cus'] as $cu): ?>
-                                <li class="list-group-item">
-                                    <a href="/student/cu/<?= (int) $cu['id'] ?>" class="text-decoration-none">
-                                        · <?= e((string) $cu['name']) ?>
-                                    </a>
-                                </li>
+                                <?php
+                                    $s       = student_cu_status((int) $cu['id'], $studentId);
+                                    $status  = $s['status'];
+                                    $percent = (int) $s['percent'];
+                                ?>
+                                <a href="/student/cu/<?= (int) $cu['id'] ?>"
+                                   class="lms-card lms-card--<?= e(str_replace('_', '-', $status)) ?>">
+                                    <div class="lms-card__body">
+                                        <div class="lms-card__title"><?= e((string) $cu['name']) ?></div>
+                                    </div>
+                                    <span class="badge text-bg-<?= $status === 'completed' ? 'success' : ($status === 'in_progress' ? 'warning' : 'secondary') ?>">
+                                        <?= e(__t('status.cu.' . $status)) ?>
+                                    </span>
+                                    <div class="lms-progress-ring lms-progress-ring--<?= e(str_replace('_', '-', $status)) ?>"
+                                         style="--pct: <?= e((string) $percent) ?>;"
+                                         role="progressbar"
+                                         aria-label="<?= e(__t('student.course.progress_aria', ['percent' => (string) $percent])) ?>"
+                                         aria-valuenow="<?= e((string) $percent) ?>" aria-valuemin="0" aria-valuemax="100">
+                                        <span class="lms-progress-ring__label"><?= e((string) $percent) ?>%</span>
+                                    </div>
+                                </a>
                             <?php endforeach; ?>
-                        </ul>
+                        </div>
                     <?php endif; ?>
-                </div>
+                </section>
             <?php endforeach; ?>
         <?php endif; ?>
     </div>

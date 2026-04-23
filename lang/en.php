@@ -349,6 +349,16 @@ return [
     'student.content.attachments_title'  => 'Attached materials',
     'student.content.download'           => 'Download',
 
+    // Progress status (placeholders; real calc in E6/E7)
+    'status.course.not_started' => 'Not started',
+    'status.course.in_progress' => 'In progress',
+    'status.course.completed'   => 'Completed',
+    'status.cu.not_started'     => 'Not started',
+    'status.cu.in_progress'     => 'In progress',
+    'status.cu.completed'       => 'Completed',
+    'student.course.enrolled_at' => 'Course started :date',
+    'student.course.progress_aria' => 'Progress :percent%',
+
     // Deletion (E3-05)
     'delete.modal.title'             => 'Delete',
     'delete.modal.about_to_delete'   => 'You are about to delete',
