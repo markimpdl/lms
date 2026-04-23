@@ -155,6 +155,11 @@ return [
             'role'   => 'teacher',
             'params' => ['id'],
         ],
+        '#^/teacher/activity/(\d+)/delete$#' => [
+            'file'   => '/src/pages/teacher/activity/delete.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
         '#^/teacher/activity/(\d+)/submission/(\d+)$#' => [
             'file'   => '/src/pages/teacher/activity/submission-review.php',
             'role'   => 'teacher',

@@ -141,6 +141,71 @@ final class Activity
     }
 
     /**
+     * Contagens usadas no modal de exclusão (E6-05). Submissions são apagadas
+     * via cascade FK; xp_events é polimórfico (sem FK) e precisa DELETE manual.
+     *
+     * @return array{submissions:int, xp_events:int}
+     */
+    public static function countForDelete(int $activityId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT
+                (SELECT COUNT(*) FROM activity_submissions WHERE activity_id = ?) AS submissions,
+                (SELECT COUNT(*) FROM xp_events
+                  WHERE source_type = \'activity\' AND source_id = ?) AS xp_events'
+        );
+        $stmt->execute([$activityId, $activityId]);
+        $row = $stmt->fetch();
+        return [
+            'submissions' => (int) ($row['submissions'] ?? 0),
+            'xp_events'   => (int) ($row['xp_events']   ?? 0),
+        ];
+    }
+
+    /**
+     * Exclui atividade após revalidar título (case-sensitive) e pertencimento
+     * ao tenant. Retorna 'ok' + lista de stored_paths pro handler apagar, ou
+     * 'not_found' / 'name_mismatch' em erro.
+     *
+     * Ordem: snapshot dos paths → DELETE xp_events (polimórfico, sem FK) →
+     * DELETE activities (cascade apaga activity_submissions).
+     *
+     * @return array{status:string, stored_paths?:list<string>}
+     */
+    public static function delete(int $id, int $tenantId, string $expectedTitle): array
+    {
+        $activity = self::findForTenant($id, $tenantId);
+        if ($activity === null) {
+            return ['status' => 'not_found'];
+        }
+        if ((string) $activity['title'] !== $expectedTitle) {
+            return ['status' => 'name_mismatch'];
+        }
+
+        return Database::tx(static function (PDO $pdo) use ($id): array {
+            $stmt = $pdo->prepare(
+                'SELECT stored_path FROM activity_submissions
+                  WHERE activity_id = ? AND stored_path IS NOT NULL'
+            );
+            $stmt->execute([$id]);
+            $paths = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            $pdo->prepare(
+                'DELETE FROM xp_events
+                  WHERE source_type = \'activity\' AND source_id = ?'
+            )->execute([$id]);
+
+            $pdo->prepare('DELETE FROM activities WHERE id = ?')
+                ->execute([$id]);
+
+            return [
+                'status'       => 'ok',
+                'stored_paths' => array_map('strval', $paths),
+            ];
+        });
+    }
+
+    /**
      * Lista atividades da CU ordenadas por `position ASC, id ASC` com
      * contagem de submissões. Valida que a CU pertence ao tenant via
      * JOIN em courses.
