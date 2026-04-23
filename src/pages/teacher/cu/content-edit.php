@@ -125,13 +125,39 @@ ob_start();
 
 <script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js" referrerpolicy="origin"></script>
 <script>
+// Resolver de URL para o plugin `media` (E5-02): só aceita YouTube e Vimeo,
+// converte qualquer forma (watch, youtu.be, shorts, vimeo.com) no iframe
+// canônico `/embed/` ou `player.vimeo.com/video/`. Qualquer outro provedor
+// retorna string vazia → o plugin não insere iframe algum. Mesmo que passasse,
+// o HtmlPurifier no backend (URI.SafeIframeRegexp) remove iframes fora dessa
+// allowlist — mas aqui a UX já bloqueia na hora do paste.
+function resolveVideoUrl(url) {
+    var m;
+
+    // YouTube: watch?v=ID, youtu.be/ID, /shorts/ID, /embed/ID
+    m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
+    if (m) {
+        return '<iframe src="https://www.youtube.com/embed/' + m[1] +
+               '" frameborder="0" allowfullscreen loading="lazy" class="content-video"></iframe>';
+    }
+
+    // Vimeo: vimeo.com/ID ou player.vimeo.com/video/ID (com opcional /h=hash)
+    m = url.match(/(?:player\.vimeo\.com\/video\/|vimeo\.com\/)(\d+)/);
+    if (m) {
+        return '<iframe src="https://player.vimeo.com/video/' + m[1] +
+               '" frameborder="0" allowfullscreen loading="lazy" class="content-video"></iframe>';
+    }
+
+    return '';
+}
+
 tinymce.init({
     selector: '#contentHtml',
     height: 500,
     menubar: false,
-    plugins: 'lists link table code codesample autolink',
+    plugins: 'lists link table code codesample autolink media',
     toolbar: 'undo redo | blocks | bold italic underline strikethrough forecolor | ' +
-             'alignleft aligncenter alignright | bullist numlist | link table | ' +
+             'alignleft aligncenter alignright | bullist numlist | link table media | ' +
              'codesample code removeformat',
     block_formats: 'Parágrafo=p; Título 2=h2; Título 3=h3; Título 4=h4',
     codesample_languages: [
@@ -141,12 +167,22 @@ tinymce.init({
         { text: 'HTML/XML',   value: 'markup' },
         { text: 'CSS',        value: 'css' }
     ],
+    // Plugin `media` — restringe aos provedores YouTube e Vimeo.
+    media_live_embeds: false,
+    media_alt_source: false,
+    media_poster: false,
+    media_dimensions: false,
+    media_url_resolver: function (data, resolve) {
+        var html = resolveVideoUrl(data.source);
+        resolve({ html: html });
+    },
     branding: false,
     promotion: false,
     skin: 'oxide',
     content_style: 'body{font-family:system-ui,sans-serif;font-size:15px;line-height:1.6}' +
                    'table{width:100%;border-collapse:collapse}' +
-                   'table td,table th{border:1px solid #dee2e6;padding:.4rem}',
+                   'table td,table th{border:1px solid #dee2e6;padding:.4rem}' +
+                   'iframe.content-video{width:100%;aspect-ratio:16/9;border:0}',
     mobile: { toolbar_mode: 'floating' }
 });
 </script>
