@@ -2,18 +2,23 @@
 declare(strict_types=1);
 
 /**
- * Wrapper de HTMLPurifier com config consolidada do LMS (E5-01).
+ * Sanitizador de HTML de conteúdo da CU (E5-01). Wrapper fino sobre a
+ * biblioteca ezyang/htmlpurifier.
  *
- * Sanitiza o HTML que o professor escreve no TinyMCE antes de gravar em
- * `contents.html`. Allowlist estrita (OWASP): tags de texto, títulos,
- * listas, links, tabelas, imagens e iframe restrito ao embed de YouTube
- * e Vimeo (E5-02). Remove silenciosamente qualquer tag/atributo fora da
+ * Allowlist estrita (OWASP): tags de texto, títulos, listas, links,
+ * tabelas, imagens e iframe restrito ao embed de YouTube e Vimeo
+ * (E5-02). Remove silenciosamente qualquer tag/atributo fora da
  * allowlist e event handlers (`onclick`, `onerror`, etc.).
  *
  * Cache de config serializada em `storage/cache/htmlpurifier/` para não
  * reconstruir a config a cada request (é custoso).
+ *
+ * ⚠ O nome desta classe NÃO pode colidir com `HTMLPurifier` da lib, pois
+ * PHP trata nomes de classe como case-insensitive e o Composer autoload
+ * (registrado antes do autoload do projeto) carrega a lib primeiro —
+ * qualquer wrapper chamado `HtmlPurifier` seria sombreado pela lib.
  */
-final class HtmlPurifier
+final class ContentSanitizer
 {
     private static ?HTMLPurifier $purifier = null;
 
