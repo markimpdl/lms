@@ -97,7 +97,9 @@ ob_start();
                 <li class="list-group-item d-flex align-items-center gap-2">
                     <span class="text-muted small" style="min-width: 1.5rem;"><?= $i + 1 ?>.</span>
                     <div class="flex-grow-1">
-                        <span class="fw-semibold"><?= e($cuName) ?></span>
+                        <a href="/teacher/cu/<?= $cuId ?>" class="fw-semibold text-decoration-none">
+                            <?= e($cuName) ?>
+                        </a>
                     </div>
                     <?php if (!$isArchived): ?>
                         <?php $cuCountsFormatted = format_delete_counts([

@@ -43,8 +43,12 @@ return [
     // Dashboards (stubs in E1-01; replaced in later epics)
     'dashboard.teacher.title'   => 'Teacher dashboard',
     'dashboard.teacher.welcome' => 'Welcome, :name.',
-    'dashboard.student.title'   => 'Student dashboard',
-    'dashboard.student.welcome' => 'Welcome, :name.',
+    'dashboard.student.title'        => 'My courses',
+    'dashboard.student.welcome'      => 'Welcome, :name.',
+    'dashboard.student.no_courses'   => 'You are not enrolled in any course yet.',
+    'dashboard.student.no_courses_hint' => 'Ask your teacher to enroll you.',
+    'dashboard.student.course_empty' => 'This course has no competencies yet.',
+    'dashboard.student.cc_empty'     => 'This competency has no units yet.',
     'dashboard.admin.title'     => 'Super-admin dashboard',
     'dashboard.admin.welcome'   => 'Welcome, :name.',
     'dashboard.stub_notice'     => 'This screen is a placeholder — real content lands in later epics.',
@@ -304,6 +308,46 @@ return [
     // Hierarchical nav (E3-04)
     'nav.curriculum.title' => 'Course structure',
     'nav.curriculum.open'  => 'Course structure',
+
+    // CU content (E5-01)
+    'content.status.published'   => 'Published',
+    'content.status.unpublished' => 'Draft',
+    'content.status.empty'       => 'No content',
+    'content.none_yet'           => 'This CU has no content yet. Click "Create content" to write the study material.',
+    'content.create_button'      => 'Create content',
+    'content.edit_button'        => 'Edit content',
+    'content.edit.title'         => 'Content for :name',
+    'content.edit.breadcrumb'    => 'Edit content',
+    'content.form.body'          => 'Study material',
+    'content.form.body_hint'     => 'Use headings, lists, tables and code blocks. Tags outside the allowlist are removed automatically on save.',
+    'content.form.publish'       => 'Publish to students',
+    'content.form.publish_hint'  => 'When checked, enrolled students of this course will see the content in the CU. Uncheck to keep drafting without exposing.',
+    'content.saved'              => 'Content saved.',
+
+    // Attachments (E5-03)
+    'attachments.section'                   => 'Attachments',
+    'attachments.section_hint'              => 'Support files (PDF, ZIP, TXT) and images to insert in the text. Max 3 MB per file.',
+    'attachments.upload_label'              => 'Pick file',
+    'attachments.upload_hint'               => 'Accepted: PDF, ZIP, TXT, PNG, JPG, GIF, WEBP. Max 3 MB.',
+    'attachments.upload_button'             => 'Upload',
+    'attachments.none'                      => 'No attachments yet.',
+    'attachments.delete_button'             => 'Remove',
+    'attachments.delete_confirm'            => 'Remove attachment ":name"? The file is permanently deleted from the server.',
+    'attachments.uploaded'                  => 'Attachment uploaded.',
+    'attachments.deleted'                   => 'Attachment removed.',
+    'attachments.image_available_in_editor' => 'available in editor',
+    'attachments.err.size'                  => 'File larger than 3 MB — pick a smaller one.',
+    'attachments.err.mime'                  => 'File type not accepted. Use PDF, ZIP, TXT or image.',
+    'attachments.err.no_file'               => 'No file selected.',
+    'attachments.err.cu_unavailable'        => 'This CU is not available to you.',
+    'attachments.err.not_found'             => 'Attachment not found.',
+    'attachments.err.generic'               => 'Could not upload the file. Try again.',
+
+    // Student's view of CU content (E5-05)
+    'student.content.not_available'      => 'Content not available yet.',
+    'student.content.not_available_hint' => 'When your teacher publishes the material, it will show here.',
+    'student.content.attachments_title'  => 'Attached materials',
+    'student.content.download'           => 'Download',
 
     // Deletion (E3-05)
     'delete.modal.title'             => 'Delete',

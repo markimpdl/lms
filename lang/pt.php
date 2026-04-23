@@ -43,8 +43,12 @@ return [
     // Dashboards (stubs em E1-01; substituídos em épicos dedicados)
     'dashboard.teacher.title'   => 'Painel do professor',
     'dashboard.teacher.welcome' => 'Bem-vindo(a), :name.',
-    'dashboard.student.title'   => 'Painel do aluno',
-    'dashboard.student.welcome' => 'Bem-vindo(a), :name.',
+    'dashboard.student.title'        => 'Meus cursos',
+    'dashboard.student.welcome'      => 'Bem-vindo(a), :name.',
+    'dashboard.student.no_courses'   => 'Você ainda não está matriculado em nenhum curso.',
+    'dashboard.student.no_courses_hint' => 'Peça ao seu professor para matriculá-lo.',
+    'dashboard.student.course_empty' => 'Este curso ainda não tem competências cadastradas.',
+    'dashboard.student.cc_empty'     => 'Esta competência ainda não tem unidades.',
     'dashboard.admin.title'     => 'Painel do super-admin',
     'dashboard.admin.welcome'   => 'Bem-vindo(a), :name.',
     'dashboard.stub_notice'     => 'Esta tela é um placeholder — o conteúdo real é implementado em épicos posteriores.',
@@ -304,6 +308,46 @@ return [
     // Navegação hierárquica (E3-04)
     'nav.curriculum.title' => 'Estrutura do curso',
     'nav.curriculum.open'  => 'Estrutura do curso',
+
+    // Conteúdo da CU (E5-01)
+    'content.status.published'   => 'Publicado',
+    'content.status.unpublished' => 'Rascunho',
+    'content.status.empty'       => 'Sem conteúdo',
+    'content.none_yet'           => 'Esta CU ainda não tem conteúdo. Clique em "Criar conteúdo" para escrever o material de estudo.',
+    'content.create_button'      => 'Criar conteúdo',
+    'content.edit_button'        => 'Editar conteúdo',
+    'content.edit.title'         => 'Conteúdo de :name',
+    'content.edit.breadcrumb'    => 'Editar conteúdo',
+    'content.form.body'          => 'Material de estudo',
+    'content.form.body_hint'     => 'Use títulos, listas, tabelas e blocos de código. Tags fora da lista permitida são removidas automaticamente ao salvar.',
+    'content.form.publish'       => 'Publicar para os alunos',
+    'content.form.publish_hint'  => 'Quando marcado, os alunos matriculados neste curso verão o conteúdo na CU. Desmarque para continuar rascunhando sem expor.',
+    'content.saved'              => 'Conteúdo salvo.',
+
+    // Anexos (E5-03)
+    'attachments.section'                   => 'Anexos',
+    'attachments.section_hint'              => 'Arquivos de apoio (PDF, ZIP, TXT) e imagens para inserir no texto. Limite de 3 MB por arquivo.',
+    'attachments.upload_label'              => 'Selecionar arquivo',
+    'attachments.upload_hint'               => 'Aceitos: PDF, ZIP, TXT, PNG, JPG, GIF, WEBP. Máximo 3 MB.',
+    'attachments.upload_button'             => 'Enviar',
+    'attachments.none'                      => 'Nenhum anexo ainda.',
+    'attachments.delete_button'             => 'Remover',
+    'attachments.delete_confirm'            => 'Remover o anexo ":name"? O arquivo é apagado permanentemente do servidor.',
+    'attachments.uploaded'                  => 'Anexo enviado.',
+    'attachments.deleted'                   => 'Anexo removido.',
+    'attachments.image_available_in_editor' => 'disponível no editor',
+    'attachments.err.size'                  => 'Arquivo maior que 3 MB — selecione outro menor.',
+    'attachments.err.mime'                  => 'Tipo de arquivo não aceito. Use PDF, ZIP, TXT ou imagem.',
+    'attachments.err.no_file'               => 'Nenhum arquivo selecionado.',
+    'attachments.err.cu_unavailable'        => 'Esta CU não está disponível para você.',
+    'attachments.err.not_found'             => 'Anexo não encontrado.',
+    'attachments.err.generic'               => 'Não foi possível enviar o arquivo. Tente novamente.',
+
+    // Visão do aluno sobre o conteúdo da CU (E5-05)
+    'student.content.not_available'      => 'Conteúdo ainda não disponível.',
+    'student.content.not_available_hint' => 'Quando seu professor publicar o material, ele aparece aqui.',
+    'student.content.attachments_title'  => 'Materiais anexos',
+    'student.content.download'           => 'Baixar',
 
     // Exclusão (E3-05)
     'delete.modal.title'             => 'Excluir',

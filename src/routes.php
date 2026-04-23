@@ -105,6 +105,56 @@ return [
             'role'   => 'teacher',
             'params' => ['course_id', 'cc_id'],
         ],
+        '#^/teacher/cu/(\d+)$#' => [
+            'file'   => '/src/pages/teacher/cu/show.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/cu/(\d+)/content/edit$#' => [
+            'file'   => '/src/pages/teacher/cu/content-edit.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/cu/(\d+)/attachment$#' => [
+            'file'   => '/src/pages/teacher/cu/attachment-upload.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/cu/(\d+)/attachment/(\d+)/delete$#' => [
+            'file'   => '/src/pages/teacher/cu/attachment-delete.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'aid'],
+        ],
+        '#^/teacher/cu/(\d+)/attachment/(\d+)/view$#' => [
+            'file'   => '/src/pages/teacher/cu/attachment-view.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'aid'],
+        ],
+        '#^/teacher/cu/(\d+)/attachment/(\d+)$#' => [
+            'file'   => '/src/pages/teacher/cu/attachment-download.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'aid'],
+        ],
+        '#^/student/course/(\d+)$#' => [
+            'file'   => '/src/pages/student/course/show.php',
+            'role'   => 'student',
+            'params' => ['id'],
+        ],
+        '#^/student/cu/(\d+)$#' => [
+            'file'   => '/src/pages/student/cu/show.php',
+            'role'   => 'student',
+            'params' => ['id'],
+        ],
+        '#^/student/cu/(\d+)/attachment/(\d+)/view$#' => [
+            'file'   => '/src/pages/student/cu/attachment-view.php',
+            'role'   => 'student',
+            'params' => ['id', 'aid'],
+        ],
+        '#^/student/cu/(\d+)/attachment/(\d+)$#' => [
+            'file'   => '/src/pages/student/cu/attachment-download.php',
+            'role'   => 'student',
+            'params' => ['id', 'aid'],
+        ],
         '#^/teacher/cu/(\d+)/rename$#' => [
             'file'   => '/src/pages/teacher/cu/rename.php',
             'role'   => 'teacher',

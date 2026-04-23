@@ -32,6 +32,11 @@ storage/cache/*
 # Estado local de scripts (ex.: deploy incremental)
 scripts/deploy/.ftp-state.json
 
+# Scripts web temporários de diagnóstico — só vivem em prod via deploy FTP,
+# nunca no repo. Nome começa com underscore para convenção.
+public/_diag_*.php
+public/_debug_*.php
+
 # Logs e temporários
 *.log
 *.tmp
