@@ -63,6 +63,13 @@ $availableCourses = array_values(array_filter(
     static fn(array $c): bool => !in_array($c['id'], $enrolledIds, true)
 ));
 
+$studentGroups = GroupMember::listByStudent($studentId, $tenantId);
+$studentGroupIds = array_map(static fn(array $g): int => (int) $g['group_id'], $studentGroups);
+$availableGroups = array_values(array_filter(
+    Group::listForSelect($tenantId),
+    static fn(array $g): bool => !in_array($g['id'], $studentGroupIds, true)
+));
+
 $deleteCountsFormatted = format_delete_counts([
     'enrollments' => (int) $student['enrollments_count'],
     'groups'      => (int) $student['groups_count'],
@@ -201,6 +208,54 @@ ob_start();
             <?php endif; ?>
         </div>
 
+        <!-- Grupos (E4-04) -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                <div>
+                    <h2 class="h6 mb-0"><?= e(__t('group_members.student_section.title')) ?></h2>
+                    <small class="text-muted">
+                        <?= e(__t('group_members.student_section.subtitle', ['count' => (string) count($studentGroups)])) ?>
+                    </small>
+                </div>
+                <?php if ($isActive && $availableGroups !== []): ?>
+                    <button type="button" class="btn btn-sm btn-primary"
+                            data-bs-toggle="modal" data-bs-target="#assignGroupsModal">
+                        + <?= e(__t('group_members.student_section.assign_button')) ?>
+                    </button>
+                <?php endif; ?>
+            </div>
+
+            <?php if ($studentGroups === []): ?>
+                <div class="card-body text-center text-muted py-4">
+                    <p class="mb-0"><?= e(__t('group_members.student_section.empty')) ?></p>
+                </div>
+            <?php else: ?>
+                <ul class="list-group list-group-flush">
+                    <?php foreach ($studentGroups as $g): ?>
+                        <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
+                            <div class="flex-grow-1">
+                                <a href="/teacher/groups/<?= (int) $g['group_id'] ?>" class="fw-semibold text-decoration-none">
+                                    <?= e((string) $g['name']) ?>
+                                </a>
+                                <div class="small text-muted">
+                                    <?= e(__t('group_members.joined_at', ['date' => substr((string) $g['joined_at'], 0, 10)])) ?>
+                                </div>
+                            </div>
+                            <form method="POST"
+                                  action="/teacher/students/<?= (int) $studentId ?>/unassign-group/<?= (int) $g['group_id'] ?>"
+                                  class="m-0 js-unassign-group-form"
+                                  data-confirm="<?= e(__t('group_members.unassign_confirm', ['name' => (string) $g['name']])) ?>">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <?= e(__t('group_members.action.remove')) ?>
+                                </button>
+                            </form>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        </div>
+
         <div class="card card-body shadow-sm">
             <h2 class="h6 mb-3"><?= e(__t('students.metadata')) ?></h2>
             <dl class="row mb-0 small">
@@ -293,6 +348,36 @@ ob_start();
 </div>
 <?php endif; ?>
 
+<?php if ($isActive && $availableGroups !== []): ?>
+<!-- Modal: atribuir aluno a grupos -->
+<div class="modal fade" id="assignGroupsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <form method="POST" action="/teacher/students/<?= (int) $studentId ?>/assign-groups" class="modal-content" novalidate>
+            <?= csrf_field() ?>
+            <div class="modal-header">
+                <h5 class="modal-title"><?= e(__t('group_members.student_section.assign_title')) ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= e(__t('common.cancel')) ?>"></button>
+            </div>
+            <div class="modal-body">
+                <label for="assignGroupIds" class="form-label"><?= e(__t('group_members.form.pick_groups')) ?></label>
+                <select name="group_ids[]" id="assignGroupIds" class="form-select" multiple size="8" required>
+                    <?php foreach ($availableGroups as $g): ?>
+                        <option value="<?= (int) $g['id'] ?>">
+                            <?= e($g['name']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <div class="form-text"><?= e(__t('group_members.form.pick_groups_hint')) ?></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= e(__t('common.cancel')) ?></button>
+                <button type="submit" class="btn btn-primary"><?= e(__t('group_members.student_section.assign_confirm')) ?></button>
+            </div>
+        </form>
+    </div>
+</div>
+<?php endif; ?>
+
 <script>
 window.addEventListener('load', function () {
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
@@ -300,7 +385,7 @@ window.addEventListener('load', function () {
     });
 });
 
-document.querySelectorAll('form.js-toggle-form[data-confirm], form.js-unenroll-form[data-confirm]').forEach(function (form) {
+document.querySelectorAll('form.js-toggle-form[data-confirm], form.js-unenroll-form[data-confirm], form.js-unassign-group-form[data-confirm]').forEach(function (form) {
     form.addEventListener('submit', function (event) {
         if (!window.confirm(form.dataset.confirm)) {
             event.preventDefault();

@@ -100,7 +100,11 @@ ob_start();
                     );
                 ?>
                 <tr>
-                    <td class="fw-semibold"><?= e($name) ?></td>
+                    <td>
+                        <a href="/teacher/groups/<?= $id ?>" class="fw-semibold text-decoration-none">
+                            <?= e($name) ?>
+                        </a>
+                    </td>
                     <td class="text-end"><?= $count ?></td>
                     <td class="small text-muted"><?= e(substr((string) $row['created_at'], 0, 10)) ?></td>
                     <td class="text-end">
@@ -143,7 +147,7 @@ ob_start();
             <div class="card shadow-sm mb-2">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                        <h2 class="h6 mb-0"><?= e($name) ?></h2>
+                        <a href="/teacher/groups/<?= $id ?>" class="h6 mb-0 text-decoration-none"><?= e($name) ?></a>
                         <span class="badge text-bg-secondary"><?= e(__t('groups.col.members_short', ['count' => (string) $count])) ?></span>
                     </div>
                     <div class="small text-muted mb-2">
