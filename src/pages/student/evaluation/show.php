@@ -240,11 +240,31 @@ ob_start();
             </div>
         <?php endif; ?>
 
-        <!-- Form de envio / reenvio -->
+        <!-- Form de envio / reenvio. Só renderiza quando há ação ou mensagem
+             útil pro aluno — aprovado (grade ≥ 6) não tem o que fazer aqui. -->
+        <?php
+            // $evState foi derivado no header: none | awaiting | approved | retry | failed.
+            // - canShowForm abrange: none com submission_open=1 (envio novo) + retry (reenvio).
+            // - approved: aluno já concluiu, sem card de ação.
+            // - awaiting: aguardando correção, só mensagem.
+            // - failed: reprovado sem reenvio, ciclo fechado.
+            // - none com submission_open=0: entrega fechada, sem ter enviado.
+            $showFormCard = $canShowForm || in_array($evState, ['awaiting', 'failed'], true)
+                         || ($evState === 'none' && !$isOpen);
+        ?>
+        <?php if ($showFormCard): ?>
         <div class="card shadow-sm mb-3">
             <div class="card-header">
                 <h2 class="h6 mb-0">
-                    <?= e(__t($canResubmit ? 'evaluations.student.resubmit_title' : 'evaluations.student.submit_title')) ?>
+                    <?php if ($canResubmit): ?>
+                        <?= e(__t('evaluations.student.resubmit_title')) ?>
+                    <?php elseif ($evState === 'awaiting'): ?>
+                        <?= e(__t('evaluations.student.awaiting_title')) ?>
+                    <?php elseif ($evState === 'failed'): ?>
+                        <?= e(__t('evaluations.student.failed_title')) ?>
+                    <?php else: ?>
+                        <?= e(__t('evaluations.student.submit_title')) ?>
+                    <?php endif; ?>
                 </h2>
             </div>
             <div class="card-body">
@@ -272,17 +292,22 @@ ob_start();
                             <?= e(__t($canResubmit ? 'evaluations.student.form.resubmit' : 'evaluations.student.form.submit')) ?>
                         </button>
                     </form>
-                <?php elseif ($current === null): ?>
+                <?php elseif ($evState === 'awaiting'): ?>
+                    <p class="small text-muted mb-0">
+                        <?= e(__t('evaluations.student.awaiting_notice')) ?>
+                    </p>
+                <?php elseif ($evState === 'failed'): ?>
+                    <p class="small text-muted mb-0">
+                        <?= e(__t('evaluations.student.failed_notice')) ?>
+                    </p>
+                <?php else: ?>
                     <div class="alert alert-warning mb-0" role="alert">
                         <?= e(__t('evaluations.student.closed_notice')) ?>
                     </div>
-                <?php else: ?>
-                    <p class="small text-muted mb-0">
-                        <?= e(__t('evaluations.student.no_retry_notice')) ?>
-                    </p>
                 <?php endif; ?>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- Histórico de tentativas (E7-05: com feedback expandido). -->
         <?php
