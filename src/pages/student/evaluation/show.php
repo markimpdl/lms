@@ -129,18 +129,41 @@ ob_start();
                     <?= e(__t('evaluations.student.xp_note')) ?>
                 </small>
             </div>
-            <?php if ($hasFeedback): ?>
-                <span class="badge text-bg-success"><?= e(__t('evaluations.student.status.graded')) ?></span>
-            <?php elseif ($current !== null): ?>
-                <span class="badge text-bg-warning"><?= e(__t('evaluations.student.status.submitted')) ?></span>
-            <?php else: ?>
-                <span class="badge text-bg-secondary"><?= e(__t('evaluations.student.status.not_submitted')) ?></span>
-            <?php endif; ?>
+            <?php
+                // Mesma derivação de estado do card em student/cu/show.php (E7-05).
+                if ($current === null) {
+                    $evState = 'none';
+                    $evBadge = 'secondary';
+                } elseif ($current['feedback_at'] === null) {
+                    $evState = 'awaiting';
+                    $evBadge = 'warning';
+                } elseif ($current['grade'] !== null && (float) $current['grade'] >= 6.0) {
+                    $evState = 'approved';
+                    $evBadge = 'success';
+                } elseif ((int) ($current['retry_allowed'] ?? 0) === 1) {
+                    $evState = 'retry';
+                    $evBadge = 'info';
+                } else {
+                    $evState = 'failed';
+                    $evBadge = 'danger';
+                }
+                $evGradeStr = ($current !== null && $current['grade'] !== null)
+                    ? number_format((float) $current['grade'], 1, ',', '')
+                    : '';
+            ?>
+            <span class="badge text-bg-<?= e($evBadge) ?>">
+                <?php if (in_array($evState, ['approved', 'retry', 'failed'], true)): ?>
+                    <?= e(__t('evaluations.student.state.' . $evState, ['grade' => $evGradeStr])) ?>
+                <?php else: ?>
+                    <?= e(__t('evaluations.student.state.' . $evState)) ?>
+                <?php endif; ?>
+            </span>
         </div>
 
         <?php if ($evaluation['instructions'] !== null && $evaluation['instructions'] !== ''): ?>
             <div class="card shadow-sm mb-3">
                 <div class="card-body content-render">
+                    <?php /* HTML já sanitizado pelo professor via HTML Purifier em E7-01 */ ?>
                     <?= (string) $evaluation['instructions'] ?>
                 </div>
             </div>
@@ -261,30 +284,39 @@ ob_start();
             </div>
         </div>
 
-        <!-- Histórico de tentativas -->
-        <?php if (count($history) > 1): ?>
+        <!-- Histórico de tentativas (E7-05: com feedback expandido). -->
+        <?php
+            $priorAttempts = array_filter($history, static fn ($h) => (int) $h['is_current'] !== 1);
+        ?>
+        <?php if ($priorAttempts !== []): ?>
             <div class="card shadow-sm">
                 <div class="card-header">
                     <h2 class="h6 mb-0"><?= e(__t('evaluations.student.history_title')) ?></h2>
                 </div>
                 <ul class="list-group list-group-flush">
-                    <?php foreach ($history as $h): ?>
-                        <?php if ((int) $h['is_current'] === 1) continue; ?>
-                        <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
-                            <span class="fw-semibold">
-                                <?= e(__t('evaluations.student.attempt_n', ['n' => (string) $h['attempt']])) ?>
-                            </span>
-                            <small class="text-muted flex-grow-1">
-                                <?= e(substr((string) $h['created_at'], 0, 16)) ?>
-                                <?php if ($h['grade'] !== null): ?>
-                                    · <?= e(__t('evaluations.student.grade_label')) ?>:
-                                    <?= e(number_format((float) $h['grade'], 1, ',', '')) ?>
-                                <?php endif; ?>
-                            </small>
-                            <a href="/student/evaluation/<?= $evaluationId ?>/submission/<?= (int) $h['id'] ?>/file"
-                               class="btn btn-sm btn-outline-secondary">
-                                <?= e((string) $h['filename']) ?>
-                            </a>
+                    <?php foreach ($priorAttempts as $h): ?>
+                        <li class="list-group-item">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="fw-semibold">
+                                    <?= e(__t('evaluations.student.attempt_n', ['n' => (string) $h['attempt']])) ?>
+                                </span>
+                                <small class="text-muted flex-grow-1">
+                                    <?= e(substr((string) $h['created_at'], 0, 16)) ?>
+                                    <?php if ($h['grade'] !== null): ?>
+                                        · <?= e(__t('evaluations.student.grade_label')) ?>:
+                                        <strong><?= e(number_format((float) $h['grade'], 1, ',', '')) ?></strong>
+                                    <?php endif; ?>
+                                </small>
+                                <a href="/student/evaluation/<?= $evaluationId ?>/submission/<?= (int) $h['id'] ?>/file"
+                                   class="btn btn-sm btn-outline-secondary">
+                                    <?= e((string) $h['filename']) ?>
+                                </a>
+                            </div>
+                            <?php if ($h['feedback'] !== null && $h['feedback'] !== ''): ?>
+                                <p class="mt-2 mb-0 small" style="white-space: pre-wrap;">
+                                    <?= e((string) $h['feedback']) ?>
+                                </p>
+                            <?php endif; ?>
                         </li>
                     <?php endforeach; ?>
                 </ul>

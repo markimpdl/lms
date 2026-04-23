@@ -492,7 +492,7 @@ return [
     'evaluations.submissions.status.retry'    => 'Resubmission allowed :grade',
     'evaluations.submissions.status.failed'   => 'Failed :grade',
 
-    // Evaluations — student view (E7-02)
+    // Evaluations — student view (E7-02 + E7-05)
     'evaluations.student.card_section'   => 'Final evaluation',
     'evaluations.student.has_pdf'        => 'with PDF instructions',
     'evaluations.student.status.open'    => 'Submissions open',
@@ -500,6 +500,11 @@ return [
     'evaluations.student.status.not_submitted' => 'Not submitted',
     'evaluations.student.status.submitted'     => 'Submitted',
     'evaluations.student.status.graded'        => 'Graded',
+    'evaluations.student.state.none'     => 'Not submitted',
+    'evaluations.student.state.awaiting' => 'Awaiting grading',
+    'evaluations.student.state.approved' => 'Approved :grade',
+    'evaluations.student.state.retry'    => 'Resubmission allowed :grade',
+    'evaluations.student.state.failed'   => 'Failed :grade',
     'evaluations.student.xp_note'        => '· XP released if grade ≥ 8.0',
     'evaluations.student.brief_title'    => 'Evaluation brief',
     'evaluations.student.brief_hint'     => 'Download the PDF to see all exam instructions.',
