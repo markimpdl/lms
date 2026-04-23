@@ -12,29 +12,39 @@ declare(strict_types=1);
  * (desktop ≥md) e do offcanvas (mobile <md). Todas as CCs aparecem; CUs
  * aparecem só dentro da CC ativa para não pesar listas longas. Quando não
  * há CC ativa (página do próprio curso), o "curso" fica marcado ativo.
+ *
+ * Todas as variáveis internas usam prefixo `$nav` para não vazarem via
+ * escopo global do `require` e poluírem a página hospedeira (PHP não tem
+ * escopo em include/require — `foreach ... as $cc` vazaria o último item
+ * pra chamadores que também usam `$cc`/`$ccId`, como `/teacher/cc/show.php`).
  */
 
-$courseId      = (int) $tree['id'];
-$hasActiveCc   = ($activeCcId ?? 0) > 0;
-$courseActive  = !$hasActiveCc && ($activeCuId ?? 0) === 0;
+$navCourseId     = (int) $tree['id'];
+$navActiveCcId   = (int) ($activeCcId ?? 0);
+$navActiveCuId   = (int) ($activeCuId ?? 0);
+$navHasActiveCc  = $navActiveCcId > 0;
+$navCourseActive = !$navHasActiveCc && $navActiveCuId === 0;
 ?>
 <nav aria-label="<?= e(__t('nav.curriculum.title')) ?>">
     <div class="list-group list-group-flush small">
-        <a href="/teacher/courses/<?= $courseId ?>"
-           class="list-group-item list-group-item-action fw-semibold<?= $courseActive ? ' active' : '' ?>">
+        <a href="/teacher/courses/<?= $navCourseId ?>"
+           class="list-group-item list-group-item-action fw-semibold<?= $navCourseActive ? ' active' : '' ?>">
             <?= e($tree['name']) ?>
         </a>
-        <?php foreach ($tree['ccs'] as $cc): ?>
-            <?php $ccId = (int) $cc['id']; $ccActive = $ccId === ($activeCcId ?? 0); ?>
-            <a href="/teacher/courses/<?= $courseId ?>/cc/<?= $ccId ?>"
-               class="list-group-item list-group-item-action ps-3<?= $ccActive && ($activeCuId ?? 0) === 0 ? ' active' : '' ?>">
-                <?= e((string) $cc['name']) ?>
+        <?php foreach ($tree['ccs'] as $navCc): ?>
+            <?php
+                $navCcId     = (int) $navCc['id'];
+                $navCcActive = $navCcId === $navActiveCcId;
+            ?>
+            <a href="/teacher/courses/<?= $navCourseId ?>/cc/<?= $navCcId ?>"
+               class="list-group-item list-group-item-action ps-3<?= $navCcActive && $navActiveCuId === 0 ? ' active' : '' ?>">
+                <?= e((string) $navCc['name']) ?>
             </a>
-            <?php if ($ccActive && !empty($cc['cus'])): ?>
-                <?php foreach ($cc['cus'] as $cu): ?>
-                    <?php $cuActive = (int) $cu['id'] === ($activeCuId ?? 0); ?>
-                    <span class="list-group-item ps-5 text-muted<?= $cuActive ? ' active text-white' : '' ?>">
-                        · <?= e((string) $cu['name']) ?>
+            <?php if ($navCcActive && !empty($navCc['cus'])): ?>
+                <?php foreach ($navCc['cus'] as $navCu): ?>
+                    <?php $navCuActive = (int) $navCu['id'] === $navActiveCuId; ?>
+                    <span class="list-group-item ps-5 text-muted<?= $navCuActive ? ' active text-white' : '' ?>">
+                        · <?= e((string) $navCu['name']) ?>
                     </span>
                 <?php endforeach; ?>
             <?php endif; ?>
