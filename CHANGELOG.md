@@ -4,6 +4,47 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.4.0] — 2026-04-23
+
+Quarta release. Escopo: **conteúdo da CU** — Épico E5 inteiro, do editor TinyMCE até a visão do aluno. Primeira entrega que o aluno consome ativamente. Entra também o dashboard funcional do aluno.
+
+### Novas funcionalidades
+
+#### Conteúdo e editor (Épico E5)
+- Editor TinyMCE 6 community via CDN com toolbar completa (texto, títulos H2/H3/H4, listas, links, tabelas, code blocks com syntax highlight para Python/C#/JS/HTML/CSS), sanitização server-side via HTML Purifier com allowlist estrita, checkbox "Publicar" que controla visibilidade do conteúdo pro aluno (E5-01).
+- Embeds de YouTube e Vimeo via plugin `media`: resolver custom aceita apenas esses dois provedores em qualquer formato (watch, youtu.be, shorts, vimeo.com) e normaliza para iframe canônico. Allowlist espelhada no backend via `URI.SafeIframeRegexp` — defense-in-depth (E5-02).
+- Upload de anexos (PDF/ZIP/TXT + PNG/JPG/GIF/WEBP) com validação de mime real via `finfo_file`, limite 3 MB, arquivos renomeados para UUID e salvos fora do document root em `storage/uploads/tenant_<tid>/content/<cu_id>/`. Imagens viram dropdown "Image list" do plugin `image` do TinyMCE — professor escolhe e a imagem entra inline no conteúdo (E5-03).
+- Download autenticado de anexos com 4 rotas (`/view` inline e `/` download para professor e para aluno matriculado). `ContentAttachment::findForStudent` faz JOIN compound com `enrollments` — 404 amigável quando aluno não tem matrícula. `AttachmentStorage::stream` consolida a emissão de headers + defesa contra path traversal (E5-04).
+- Visão do aluno sobre a CU em `/student/cu/{id}` com HTML sanitizado, vídeo 16:9 responsivo, imagens inline servidas pela rota autenticada do aluno (URL reescrita do `/teacher/...` para `/student/...` no render). Dashboard do aluno passou de stub para listagem navegável dos cursos matriculados → CC → CU. Nova tela `/student/course/{id}` (E5-05).
+- Stub de notification ao publicar conteúdo: uma linha por aluno matriculado em `notifications` (type=`content_published`), pronta para o E10 consumir; zero email, zero UI (E5-06).
+
+### Mudanças de schema
+- `contents.published TINYINT(1) NOT NULL DEFAULT 0` — controla visibilidade do conteúdo pro aluno. Aplicada em prod via seção "Migrações incrementais" do `install/schema.sql` (idempotente).
+
+### Correções
+
+- **Colisão case-insensitive de classe:** o wrapper inicial `HtmlPurifier` ocupava o mesmo slot da classe `HTMLPurifier` da lib `ezyang/htmlpurifier` (PHP trata nomes de classe como case-insensitive, e o Composer autoload carrega a lib antes). Chamada estática a `HtmlPurifier::purify()` era resolvida pro método de instância da lib. Renomeado para `ContentSanitizer`; comentário no topo documenta a armadilha.
+- **TinyMCE reescrevia URLs de anexos:** `convert_urls: true` + `relative_urls: true` (defaults) transformavam `/teacher/cu/.../attachment/.../view` em caminho relativo à página de edição, quebrando links quando o HTML era renderizado em outra rota. Setados ambos para `false` — URLs sobrevivem purify + save + render em qualquer rota.
+- **Polish do smoke E5-05:** (a) imagens inseridas pelo professor quebravam pro aluno porque o `src` apontava para `/teacher/cu/...` (rota protegida por role=teacher) — fix via reescrita `/teacher/cu/` → `/student/cu/` no render do aluno; (b) breadcrumb do aluno em `/student/cu/{id}` não tinha links navegáveis — adicionado "Meus cursos" e nome do curso clicáveis; (c) tela `/teacher/cu/{id}` não listava anexos com link de download — seção adicionada reusando a rota autenticada de download do E5-04.
+
+### Convenções consolidadas nesta janela
+- **Wrapper de lib Composer** — nunca usar nome que difira só em case do nome da classe da lib; escolher nome semanticamente distinto (`ContentSanitizer`, `LmsMailer`, `JudgeClient`).
+- **URL de anexo role-agnóstica por reescrita** — conteúdo salvo tem URLs `/teacher/cu/...`; tela do aluno faz `str_replace('"/teacher/cu/', '"/student/cu/', ...)`. Authorization real continua no handler da rota (`findForStudent` valida matrícula).
+- **Fanout de notifications** — uma linha por destinatário em vez de event log global. Simples, alinha com schema existente (`notifications.user_id` + FK CASCADE).
+
+### Tooling
+- `public/_diag_*.php` e `public/_debug_*.php` gitignorados — scripts temporários de diagnóstico ficam só em prod via FTP manual.
+- `ezyang/htmlpurifier ^4.19` adicionado via composer (`vendor/` sobe no deploy FTPS).
+- `package.json` bumpado para 0.4.0.
+
+### Pendências
+- Remover `src/lib/HtmlPurifier.php` (arquivo renomeado, ficou órfão no servidor — o deploy FTPS não apaga remotamente). Apagar via cPanel File Manager quando conveniente.
+- Remover `public/_diag_students.php` e `public/_diag_purify.php` do servidor via cPanel (já neutralizados como stubs 410 por algumas iterações).
+- Cross-tenant smoke ainda não executado em prod — só 1 tenant configurado (`Marcos Ortolani`). Mantém pendência desde v0.3.0.
+- Storage de anexos (ezyang htmlpurifier + uploads) consome subiu ~384 arquivos novos no FTP — deploy futuro em massa pode falhar de novo por ECONNRESET. Padrão consolidado: zip + extract via cPanel é o workaround pra rajadas.
+
+[0.4.0]: https://github.com/markimpdl/lms/releases/tag/v0.4.0
+
 ## [0.3.0] — 2026-04-23
 
 Terceira release. Escopo: **gestão de alunos pelo professor** — Épico E4 inteiro, do cadastro individual até o reset de senha. Primeira release deployada por story (FTPS incremental) com smoke test consolidado no fim do épico.
