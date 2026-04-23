@@ -73,4 +73,41 @@ final class Content
 
         return 'ok';
     }
+
+    /**
+     * Garante a existência de um `contents` para a CU (cria vazio se não
+     * existir ainda). Valida que a CU pertence ao tenant. Usado pelo fluxo
+     * de anexos (E5-03) pra ter um `content_id` válido mesmo antes do
+     * professor salvar HTML pela primeira vez.
+     *
+     * @return int|string content_id em sucesso; 'not_found' se CU alheia.
+     */
+    public static function ensureForCu(int $cuId, int $tenantId): int|string
+    {
+        $pdo = Database::pdo();
+
+        $stmt = $pdo->prepare(
+            'SELECT cu.id
+               FROM competence_units cu
+               JOIN core_competencies cc ON cc.id = cu.core_competency_id
+               JOIN courses c ON c.id = cc.course_id AND c.tenant_id = ?
+              WHERE cu.id = ?
+              LIMIT 1'
+        );
+        $stmt->execute([$tenantId, $cuId]);
+        if ($stmt->fetchColumn() === false) {
+            return 'not_found';
+        }
+
+        // INSERT IGNORE aproveita UK em competence_unit_id: se já existir,
+        // não cria duplicado; se não, cria com html='' + published=0.
+        $pdo->prepare(
+            'INSERT IGNORE INTO contents (competence_unit_id, html, published)
+                  VALUES (?, \'\', 0)'
+        )->execute([$cuId]);
+
+        $stmt = $pdo->prepare('SELECT id FROM contents WHERE competence_unit_id = ? LIMIT 1');
+        $stmt->execute([$cuId]);
+        return (int) $stmt->fetchColumn();
+    }
 }

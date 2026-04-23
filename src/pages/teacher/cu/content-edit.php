@@ -38,6 +38,22 @@ $existing  = Content::findForCu($cuId, $tenantId);
 $dirtyHtml = (string) ($existing['html'] ?? '');
 $published = $existing !== null ? (int) $existing['published'] === 1 : false;
 
+$attachments = ContentAttachment::listByCu($cuId, $tenantId);
+
+// Imagens disponíveis para o picker do TinyMCE (image plugin). Só MIME de
+// imagem; URL vai pela rota autenticada que E5-04 vai implementar
+// (`/teacher/cu/{id}/attachment/{aid}/view` ainda não existe — por enquanto
+// essa URL é placeholder. O usuário pode escolher entre imagens já subidas).
+$imagePickerOptions = [];
+foreach ($attachments as $att) {
+    if (str_starts_with((string) $att['mime'], 'image/')) {
+        $imagePickerOptions[] = [
+            'title' => (string) $att['filename'],
+            'value' => '/teacher/cu/' . $cuId . '/attachment/' . (int) $att['id'] . '/view',
+        ];
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         csrf_verify();
@@ -91,7 +107,7 @@ ob_start();
             </a>
         </div>
 
-        <form method="POST" action="/teacher/cu/<?= $cuId ?>/content/edit" class="card card-body shadow-sm" novalidate>
+        <form method="POST" action="/teacher/cu/<?= $cuId ?>/content/edit" class="card card-body shadow-sm mb-3" novalidate>
             <?= csrf_field() ?>
 
             <label for="contentHtml" class="form-label">
@@ -120,6 +136,61 @@ ob_start();
                 </a>
             </div>
         </form>
+
+        <!-- Seção Anexos (E5-03) -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">
+                <h2 class="h6 mb-0"><?= e(__t('attachments.section')) ?></h2>
+                <small class="text-muted"><?= e(__t('attachments.section_hint')) ?></small>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/teacher/cu/<?= $cuId ?>/attachment"
+                      enctype="multipart/form-data" class="mb-3 d-flex gap-2 flex-wrap align-items-end" novalidate>
+                    <?= csrf_field() ?>
+                    <div class="flex-grow-1">
+                        <label for="fAttachment" class="form-label"><?= e(__t('attachments.upload_label')) ?></label>
+                        <input type="file" name="attachment" id="fAttachment" class="form-control"
+                               accept=".pdf,.zip,.txt,.png,.jpg,.jpeg,.gif,.webp" required>
+                        <div class="form-text"><?= e(__t('attachments.upload_hint')) ?></div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <?= e(__t('attachments.upload_button')) ?>
+                    </button>
+                </form>
+
+                <?php if ($attachments === []): ?>
+                    <p class="text-muted small mb-0"><?= e(__t('attachments.none')) ?></p>
+                <?php else: ?>
+                    <ul class="list-group list-group-flush">
+                        <?php foreach ($attachments as $att): ?>
+                            <?php $aid = (int) $att['id']; $isImg = str_starts_with((string) $att['mime'], 'image/'); ?>
+                            <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold"><?= e((string) $att['filename']) ?></div>
+                                    <small class="text-muted">
+                                        <?= e((string) $att['mime']) ?> ·
+                                        <?= e(number_format((int) $att['size_bytes'] / 1024, 1, ',', '.')) ?> KB ·
+                                        <?= e(substr((string) $att['created_at'], 0, 16)) ?>
+                                        <?php if ($isImg): ?>
+                                            · <span class="badge text-bg-info"><?= e(__t('attachments.image_available_in_editor')) ?></span>
+                                        <?php endif; ?>
+                                    </small>
+                                </div>
+                                <form method="POST"
+                                      action="/teacher/cu/<?= $cuId ?>/attachment/<?= $aid ?>/delete"
+                                      class="m-0 js-att-delete-form"
+                                      data-confirm="<?= e(__t('attachments.delete_confirm', ['name' => (string) $att['filename']])) ?>">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <?= e(__t('attachments.delete_button')) ?>
+                                    </button>
+                                </form>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -151,13 +222,17 @@ function resolveVideoUrl(url) {
     return '';
 }
 
+// Imagens disponíveis pro picker do plugin `image` (E5-03) — injetadas
+// do PHP no formato {title, value}. value = URL protegida da view.
+var availableImages = <?= json_encode($imagePickerOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+
 tinymce.init({
     selector: '#contentHtml',
     height: 500,
     menubar: false,
-    plugins: 'lists link table code codesample autolink media',
+    plugins: 'lists link table code codesample autolink media image',
     toolbar: 'undo redo | blocks | bold italic underline strikethrough forecolor | ' +
-             'alignleft aligncenter alignright | bullist numlist | link table media | ' +
+             'alignleft aligncenter alignright | bullist numlist | link table image media | ' +
              'codesample code removeformat',
     block_formats: 'Parágrafo=p; Título 2=h2; Título 3=h3; Título 4=h4',
     codesample_languages: [
@@ -167,6 +242,15 @@ tinymce.init({
         { text: 'HTML/XML',   value: 'markup' },
         { text: 'CSS',        value: 'css' }
     ],
+    // Plugin `image` — picker com lista das imagens já anexadas (E5-03).
+    // `image_list` é nativamente aceito pelo plugin e vira dropdown
+    // "Image list" no dialog de inserir imagem. URL dos itens passa pelo
+    // nosso endpoint autenticado de view.
+    image_list: availableImages,
+    image_caption: false,
+    image_description: true,
+    image_dimensions: true,
+
     // Plugin `media` — restringe aos provedores YouTube e Vimeo.
     media_live_embeds: false,
     media_alt_source: false,
@@ -184,6 +268,15 @@ tinymce.init({
                    'table td,table th{border:1px solid #dee2e6;padding:.4rem}' +
                    'iframe.content-video{width:100%;aspect-ratio:16/9;border:0}',
     mobile: { toolbar_mode: 'floating' }
+});
+
+// Confirmação do botão "Remover" de anexos (E5-03).
+document.querySelectorAll('form.js-att-delete-form[data-confirm]').forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+        if (!window.confirm(form.dataset.confirm)) {
+            event.preventDefault();
+        }
+    });
 });
 </script>
 <?php
