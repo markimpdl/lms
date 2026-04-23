@@ -408,6 +408,9 @@ return [
     'activities.submission_opened'     => 'Submissions opened for ":name".',
     'activities.submission_closed'     => 'Submissions closed for ":name".',
     'activities.err.move'              => 'Could not move the activity (already at the edge or data changed).',
+    'activities.deleted'               => 'Activity ":name" deleted.',
+    'activities.delete.zone'           => 'Delete activity',
+    'activities.delete.warning'        => 'This permanently removes the activity, all student submissions (files + records) and the credited XP. Cannot be undone.',
 
     // Submissions (student view, E6-03)
     'submissions.section.title'         => 'Your submission',
@@ -480,6 +483,8 @@ return [
     'delete.label.evaluations'       => 'evaluations',
     'delete.label.enrollments'       => 'enrollments',
     'delete.label.groups'            => 'group memberships',
+    'delete.label.submissions'       => 'student submissions',
+    'delete.label.xp_events'         => 'XP records',
     'courses.deleted'                => 'Course ":name" deleted.',
     'cc.deleted'                     => 'CC ":name" deleted.',
     'cu.deleted'                     => 'CU ":name" deleted.',

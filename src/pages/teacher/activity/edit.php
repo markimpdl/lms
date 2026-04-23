@@ -98,13 +98,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$mode        = 'edit';
-$formAction  = '/teacher/activity/' . $activityId . '/edit';
-$submissions = Activity::countSubmissions($activityId);
+$mode         = 'edit';
+$formAction   = '/teacher/activity/' . $activityId . '/edit';
+$submissions  = Activity::countSubmissions($activityId);
 $activityName = (string) $activity['title'];
+
+// E6-05: contagens e counts formatados pra o modal de exclusão.
+$deleteCounts = Activity::countForDelete($activityId);
+$deleteCountsFormatted = format_delete_counts([
+    'submissions' => $deleteCounts['submissions'],
+    'xp_events'   => $deleteCounts['xp_events'],
+]);
 
 $page_title = __t('activities.edit.title', ['name' => $activityName]);
 ob_start();
 require LMS_ROOT . '/src/pages/teacher/activity/_form.php';
+?>
+
+<?php if (!$isArchived): ?>
+<!-- Ações destrutivas (E6-05) -->
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+        <div class="card card-body shadow-sm mt-3 border-danger-subtle">
+            <h2 class="h6 mb-2 text-danger"><?= e(__t('activities.delete.zone')) ?></h2>
+            <p class="small text-muted mb-3">
+                <?= e(__t('activities.delete.warning')) ?>
+            </p>
+            <div>
+                <button type="button" class="btn btn-outline-danger"
+                        data-bs-toggle="modal" data-bs-target="#deleteConfirmModal"
+                        data-item-name="<?= e($activityName) ?>"
+                        data-action-url="/teacher/activity/<?= $activityId ?>/delete"
+                        data-counts="<?= e(json_encode($deleteCountsFormatted, JSON_UNESCAPED_UNICODE)) ?>">
+                    <?= e(__t('delete.action')) ?>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php require LMS_ROOT . '/src/templates/partials/delete_confirm_modal.php'; ?>
+<?php endif; ?>
+
+<?php
 $page_content = ob_get_clean();
 require LMS_ROOT . '/src/templates/layout.php';

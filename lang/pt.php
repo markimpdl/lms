@@ -408,6 +408,9 @@ return [
     'activities.submission_opened'     => 'Entrega de ":name" aberta.',
     'activities.submission_closed'     => 'Entrega de ":name" fechada.',
     'activities.err.move'              => 'Não foi possível mover a atividade (já está na ponta ou dados mudaram).',
+    'activities.deleted'               => 'Atividade ":name" excluída.',
+    'activities.delete.zone'           => 'Excluir atividade',
+    'activities.delete.warning'        => 'Esta ação remove a atividade, todas as entregas dos alunos (arquivos + registros) e o XP creditado. Não pode ser desfeita.',
 
     // Submissões (visão do aluno, E6-03)
     'submissions.section.title'         => 'Sua entrega',
@@ -480,6 +483,8 @@ return [
     'delete.label.evaluations'       => 'avaliações',
     'delete.label.enrollments'       => 'matrículas',
     'delete.label.groups'            => 'vínculos a grupos',
+    'delete.label.submissions'       => 'entregas de alunos',
+    'delete.label.xp_events'         => 'registros de XP',
     'courses.deleted'                => 'Curso ":name" excluído.',
     'cc.deleted'                     => 'CC ":name" excluída.',
     'cu.deleted'                     => 'CU ":name" excluída.',
