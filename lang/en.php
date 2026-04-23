@@ -388,9 +388,6 @@ return [
     'activities.form.err.type'         => 'Invalid type.',
     'activities.form.err.xp'           => 'XP must be an integer between 0 and 9999.',
     'activities.form.warning_submissions' => ':count student(s) have already submitted. Existing submissions remain and students cannot resubmit — your edit only affects students who have not submitted yet.',
-    'activities.type.quiz'             => 'Quiz',
-    'activities.type.pesquisa'         => 'Survey',
-    'activities.type.formulario'       => 'Form',
     'activities.type.projeto'          => 'Project',
     'activities.type.codigo'           => 'Code',
 
