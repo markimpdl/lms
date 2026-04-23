@@ -79,7 +79,7 @@ Página HTML da CU (uma por CU).
 | competence_unit_id | FK | |
 | title | VARCHAR(200) | |
 | instruction | MEDIUMTEXT | HTML sanitizado |
-| type | ENUM('quiz','pesquisa','formulario','projeto','codigo') | |
+| type | ENUM('projeto','codigo') | |
 | xp_value | INT | |
 | submission_open | BOOLEAN | |
 | allow_online_code_run | BOOLEAN | só para type='codigo' |
