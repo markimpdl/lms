@@ -176,7 +176,7 @@ CREATE TABLE IF NOT EXISTS activities (
     competence_unit_id    BIGINT UNSIGNED NOT NULL,
     title                 VARCHAR(200) NOT NULL,
     instruction           MEDIUMTEXT NOT NULL,
-    type                  ENUM('quiz','pesquisa','formulario','projeto','codigo') NOT NULL,
+    type                  ENUM('projeto','codigo') NOT NULL,
     xp_value              INT UNSIGNED NOT NULL DEFAULT 0,
     submission_open       TINYINT(1) NOT NULL DEFAULT 1,
     allow_online_code_run TINYINT(1) NOT NULL DEFAULT 0,
@@ -446,6 +446,35 @@ SET @col_exists := (
 );
 SET @sql := IF(@col_exists = 0,
     'ALTER TABLE activities ADD COLUMN position INT UNSIGNED NOT NULL DEFAULT 0 AFTER allow_online_code_run',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [Post-E6-05] Reduzir ENUM de activities.type para só `projeto` e `codigo`.
+-- Tipos `quiz`, `pesquisa`, `formulario` foram retirados até a modelagem
+-- correta ser definida. Antes do ALTER ENUM, rows com valores antigos são
+-- migradas pra `projeto` (valor seguro por default). As duas statements
+-- são idempotentes: a UPDATE filtra pelos tipos antigos (zero linhas após
+-- primeira execução) e o MODIFY reaplica a mesma definição em runs
+-- seguintes sem efeito visível. Guarda por INFORMATION_SCHEMA pra pular
+-- quando a ENUM já tem só os dois valores.
+SET @has_old_types := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'activities'
+       AND COLUMN_NAME  = 'type'
+       AND (COLUMN_TYPE LIKE '%quiz%' OR COLUMN_TYPE LIKE '%pesquisa%' OR COLUMN_TYPE LIKE '%formulario%')
+);
+SET @sql := IF(@has_old_types > 0,
+    "UPDATE activities SET type = 'projeto' WHERE type IN ('quiz','pesquisa','formulario')",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(@has_old_types > 0,
+    "ALTER TABLE activities MODIFY COLUMN type ENUM('projeto','codigo') NOT NULL",
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;

@@ -11,7 +11,7 @@ declare(strict_types=1);
  */
 final class Activity
 {
-    public const TYPES = ['quiz', 'pesquisa', 'formulario', 'projeto', 'codigo'];
+    public const TYPES = ['projeto', 'codigo'];
 
     /**
      * Retorna atividade + contexto (cu_id, course_id, course_archived) se

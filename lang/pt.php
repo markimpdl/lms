@@ -388,9 +388,6 @@ return [
     'activities.form.err.type'         => 'Tipo inválido.',
     'activities.form.err.xp'           => 'XP deve ser um inteiro entre 0 e 9999.',
     'activities.form.warning_submissions' => ':count aluno(s) já enviaram esta atividade. As entregas existentes permanecem e os alunos não podem reenviar — sua edição só afeta alunos que ainda não entregaram.',
-    'activities.type.quiz'             => 'Quiz',
-    'activities.type.pesquisa'         => 'Pesquisa',
-    'activities.type.formulario'       => 'Formulário',
     'activities.type.projeto'          => 'Projeto',
     'activities.type.codigo'           => 'Código',
 
