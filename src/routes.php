@@ -145,6 +145,11 @@ return [
             'role'   => 'teacher',
             'params' => ['id', 'course_id'],
         ],
+        '#^/teacher/groups/(\d+)$#' => [
+            'file'   => '/src/pages/teacher/groups/show.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
         '#^/teacher/groups/(\d+)/rename$#' => [
             'file'   => '/src/pages/teacher/groups/rename.php',
             'role'   => 'teacher',
@@ -154,6 +159,26 @@ return [
             'file'   => '/src/pages/teacher/groups/delete.php',
             'role'   => 'teacher',
             'params' => ['id'],
+        ],
+        '#^/teacher/groups/(\d+)/add-member$#' => [
+            'file'   => '/src/pages/teacher/groups/add-member.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/groups/(\d+)/remove-member/(\d+)$#' => [
+            'file'   => '/src/pages/teacher/groups/remove-member.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'student_id'],
+        ],
+        '#^/teacher/students/(\d+)/assign-groups$#' => [
+            'file'   => '/src/pages/teacher/students/assign-groups.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/students/(\d+)/unassign-group/(\d+)$#' => [
+            'file'   => '/src/pages/teacher/students/unassign-group.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'group_id'],
         ],
     ],
 ];

@@ -110,6 +110,29 @@ final class Group
     }
 
     /**
+     * Lista enxuta de grupos do tenant — apenas id + name — para popular
+     * multi-selects (ex.: atribuir aluno a grupos, E4-04). Ordenada por
+     * nome asc.
+     *
+     * @return list<array{id:int,name:string}>
+     */
+    public static function listForSelect(int $tenantId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT id, name
+               FROM `groups`
+              WHERE tenant_id = ?
+              ORDER BY name ASC, id ASC'
+        );
+        $stmt->execute([$tenantId]);
+        $rows = $stmt->fetchAll();
+        return array_map(static fn(array $r): array => [
+            'id'   => (int) $r['id'],
+            'name' => (string) $r['name'],
+        ], $rows);
+    }
+
+    /**
      * Cria grupo. Retorna o id do grupo novo, ou string 'duplicate' se já
      * existe grupo com esse nome no tenant (UK `uk_groups_tenant_name`).
      * Pré-check SELECT para dar erro amigável mesmo antes do INSERT; o

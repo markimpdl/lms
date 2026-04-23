@@ -131,6 +131,30 @@ final class Student
     }
 
     /**
+     * Lista enxuta de alunos ATIVOS do tenant — id + name + email — para
+     * popular multi-selects (ex.: atribuir a grupo, E4-04). Ordenada por
+     * nome asc.
+     *
+     * @return list<array{id:int,name:string,email:string}>
+     */
+    public static function listActiveForSelect(int $tenantId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT id, name, email
+               FROM users
+              WHERE tenant_id = ? AND role = "student" AND active = 1
+              ORDER BY name ASC, id ASC'
+        );
+        $stmt->execute([$tenantId]);
+        $rows = $stmt->fetchAll();
+        return array_map(static fn(array $r): array => [
+            'id'    => (int) $r['id'],
+            'name'  => (string) $r['name'],
+            'email' => (string) $r['email'],
+        ], $rows);
+    }
+
+    /**
      * Insere aluno já com hash pronto. Retorna o id. Caller (service) garante
      * validações de input e colisão de email com teacher/super_admin (ADR-026).
      *
