@@ -387,6 +387,21 @@ return [
     'activities.type.projeto'          => 'Project',
     'activities.type.codigo'           => 'Code',
 
+    // Activity listing + controls (E6-02)
+    'activities.section.title'         => 'Activities',
+    'activities.section.subtitle'      => ':count activity/activities in this CU',
+    'activities.empty'                 => 'No activities yet. Click "New activity" to create the first one.',
+    'activities.submissions_label'     => 'submissions',
+    'activities.status.open'           => 'Open',
+    'activities.status.closed'         => 'Closed',
+    'activities.action.move_up'        => 'Move up',
+    'activities.action.move_down'      => 'Move down',
+    'activities.action.open'           => 'Open submissions',
+    'activities.action.close'          => 'Close submissions',
+    'activities.submission_opened'     => 'Submissions opened for ":name".',
+    'activities.submission_closed'     => 'Submissions closed for ":name".',
+    'activities.err.move'              => 'Could not move the activity (already at the edge or data changed).',
+
     'common.soon'                      => 'soon',
 
     // Deletion (E3-05)

@@ -139,4 +139,108 @@ final class Activity
         $stmt->execute([$activityId]);
         return (int) $stmt->fetchColumn();
     }
+
+    /**
+     * Lista atividades da CU ordenadas por `position ASC, id ASC` com
+     * contagem de submissões. Valida que a CU pertence ao tenant via
+     * JOIN em courses.
+     *
+     * @return list<array<string,mixed>>
+     */
+    public static function listByCu(int $cuId, int $tenantId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT a.id, a.title, a.type, a.xp_value,
+                    a.submission_open, a.allow_online_code_run, a.position,
+                    (SELECT COUNT(*) FROM activity_submissions s
+                      WHERE s.activity_id = a.id) AS submission_count
+               FROM activities a
+               JOIN competence_units cu   ON cu.id = a.competence_unit_id
+               JOIN core_competencies cc  ON cc.id = cu.core_competency_id
+               JOIN courses c             ON c.id  = cc.course_id AND c.tenant_id = ?
+              WHERE a.competence_unit_id = ?
+              ORDER BY a.position ASC, a.id ASC'
+        );
+        $stmt->execute([$tenantId, $cuId]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Alterna `submission_open`. Retorna novo valor (0|1) ou null se
+     * atividade não pertence ao tenant / curso arquivado.
+     */
+    public static function toggleSubmissionOpen(int $id, int $tenantId): ?int
+    {
+        $activity = self::findForTenant($id, $tenantId);
+        if ($activity === null || (int) $activity['course_archived'] === 1) {
+            return null;
+        }
+        $next = (int) $activity['submission_open'] === 1 ? 0 : 1;
+        Database::pdo()
+            ->prepare('UPDATE activities SET submission_open = ? WHERE id = ?')
+            ->execute([$next, $id]);
+        return $next;
+    }
+
+    public static function moveUp(int $id, int $tenantId): bool
+    {
+        return self::move($id, $tenantId, -1);
+    }
+
+    public static function moveDown(int $id, int $tenantId): bool
+    {
+        return self::move($id, $tenantId, +1);
+    }
+
+    /**
+     * Swap + renormalização das positions em 0..N-1 (padrão E3-02).
+     * false se atividade não existe, não pertence ao tenant, curso
+     * arquivado, ou já está na ponta.
+     */
+    private static function move(int $id, int $tenantId, int $offset): bool
+    {
+        return Database::tx(static function (PDO $pdo) use ($id, $tenantId, $offset): bool {
+            $stmt = $pdo->prepare(
+                'SELECT a.competence_unit_id, c.archived
+                   FROM activities a
+                   JOIN competence_units cu   ON cu.id = a.competence_unit_id
+                   JOIN core_competencies cc  ON cc.id = cu.core_competency_id
+                   JOIN courses c             ON c.id  = cc.course_id AND c.tenant_id = ?
+                  WHERE a.id = ? LIMIT 1'
+            );
+            $stmt->execute([$tenantId, $id]);
+            $row = $stmt->fetch();
+            if ($row === false || (int) $row['archived'] === 1) {
+                return false;
+            }
+            $cuId = (int) $row['competence_unit_id'];
+
+            $stmt = $pdo->prepare(
+                'SELECT id FROM activities
+                  WHERE competence_unit_id = ?
+                  ORDER BY position ASC, id ASC'
+            );
+            $stmt->execute([$cuId]);
+            $ids = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+
+            $idx = array_search($id, $ids, true);
+            if ($idx === false) {
+                return false;
+            }
+            $newIdx = $idx + $offset;
+            if ($newIdx < 0 || $newIdx >= count($ids)) {
+                return false;
+            }
+
+            [$ids[$idx], $ids[$newIdx]] = [$ids[$newIdx], $ids[$idx]];
+
+            $upd = $pdo->prepare(
+                'UPDATE activities SET position = ? WHERE id = ? AND competence_unit_id = ?'
+            );
+            foreach ($ids as $pos => $aid) {
+                $upd->execute([$pos, $aid, $cuId]);
+            }
+            return true;
+        });
+    }
 }

@@ -387,6 +387,21 @@ return [
     'activities.type.projeto'          => 'Projeto',
     'activities.type.codigo'           => 'Código',
 
+    // Listagem + controles da atividade (E6-02)
+    'activities.section.title'         => 'Atividades',
+    'activities.section.subtitle'      => ':count atividade(s) na CU',
+    'activities.empty'                 => 'Nenhuma atividade ainda. Clique em "Nova atividade" para criar a primeira.',
+    'activities.submissions_label'     => 'entregas',
+    'activities.status.open'           => 'Entrega aberta',
+    'activities.status.closed'         => 'Entrega fechada',
+    'activities.action.move_up'        => 'Mover para cima',
+    'activities.action.move_down'      => 'Mover para baixo',
+    'activities.action.open'           => 'Abrir entrega',
+    'activities.action.close'          => 'Fechar entrega',
+    'activities.submission_opened'     => 'Entrega de ":name" aberta.',
+    'activities.submission_closed'     => 'Entrega de ":name" fechada.',
+    'activities.err.move'              => 'Não foi possível mover a atividade (já está na ponta ou dados mudaram).',
+
     'common.soon'                      => 'em breve',
 
     // Exclusão (E3-05)
