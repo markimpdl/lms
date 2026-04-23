@@ -185,6 +185,11 @@ return [
             'role'   => 'teacher',
             'params' => ['id'],
         ],
+        '#^/teacher/evaluation/(\d+)/submissions$#' => [
+            'file'   => '/src/pages/teacher/evaluation/submissions.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
         '#^/teacher/evaluation/(\d+)/submission/(\d+)/file$#' => [
             'file'   => '/src/pages/teacher/evaluation/file.php',
             'role'   => 'teacher',

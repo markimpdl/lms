@@ -101,11 +101,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$mode           = 'edit';
-$formAction     = '/teacher/evaluation/' . $evaluationId . '/edit';
-$submissions    = Evaluation::countSubmissions($evaluationId);
-$evaluationName = (string) $evaluation['title'];
-$currentPdfPath = $evaluation['pdf_path'] !== null ? (string) $evaluation['pdf_path'] : null;
+$mode            = 'edit';
+$formAction      = '/teacher/evaluation/' . $evaluationId . '/edit';
+$submissions     = Evaluation::countSubmissions($evaluationId);
+$pendingGrading  = EvaluationSubmission::countPendingForEvaluation($evaluationId);
+$evaluationName  = (string) $evaluation['title'];
+$currentPdfPath  = $evaluation['pdf_path'] !== null ? (string) $evaluation['pdf_path'] : null;
 
 $deleteCounts = Evaluation::countForDelete($evaluationId);
 $deleteCountsFormatted = format_delete_counts([
@@ -117,6 +118,20 @@ $page_title = __t('evaluations.edit.title', ['name' => $evaluationName]);
 ob_start();
 require LMS_ROOT . '/src/pages/teacher/evaluation/_form.php';
 ?>
+
+<?php if ($submissions > 0): ?>
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+        <a href="/teacher/evaluation/<?= $evaluationId ?>/submissions"
+           class="btn btn-outline-primary btn-lg w-100 mt-3">
+            <?= e(__t('evaluations.submissions.cta', [
+                'pending' => (string) $pendingGrading,
+                'total'   => (string) $submissions,
+            ])) ?>
+        </a>
+    </div>
+</div>
+<?php endif; ?>
 
 <?php if (!$isArchived): ?>
 <div class="row justify-content-center">
