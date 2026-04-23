@@ -43,8 +43,12 @@ return [
     // Dashboards (stubs in E1-01; replaced in later epics)
     'dashboard.teacher.title'   => 'Teacher dashboard',
     'dashboard.teacher.welcome' => 'Welcome, :name.',
-    'dashboard.student.title'   => 'Student dashboard',
-    'dashboard.student.welcome' => 'Welcome, :name.',
+    'dashboard.student.title'        => 'My courses',
+    'dashboard.student.welcome'      => 'Welcome, :name.',
+    'dashboard.student.no_courses'   => 'You are not enrolled in any course yet.',
+    'dashboard.student.no_courses_hint' => 'Ask your teacher to enroll you.',
+    'dashboard.student.course_empty' => 'This course has no competencies yet.',
+    'dashboard.student.cc_empty'     => 'This competency has no units yet.',
     'dashboard.admin.title'     => 'Super-admin dashboard',
     'dashboard.admin.welcome'   => 'Welcome, :name.',
     'dashboard.stub_notice'     => 'This screen is a placeholder — real content lands in later epics.',
@@ -338,6 +342,12 @@ return [
     'attachments.err.cu_unavailable'        => 'This CU is not available to you.',
     'attachments.err.not_found'             => 'Attachment not found.',
     'attachments.err.generic'               => 'Could not upload the file. Try again.',
+
+    // Student's view of CU content (E5-05)
+    'student.content.not_available'      => 'Content not available yet.',
+    'student.content.not_available_hint' => 'When your teacher publishes the material, it will show here.',
+    'student.content.attachments_title'  => 'Attached materials',
+    'student.content.download'           => 'Download',
 
     // Deletion (E3-05)
     'delete.modal.title'             => 'Delete',
