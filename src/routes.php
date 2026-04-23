@@ -150,6 +150,21 @@ return [
             'role'   => 'teacher',
             'params' => ['id'],
         ],
+        '#^/teacher/activity/(\d+)/submissions$#' => [
+            'file'   => '/src/pages/teacher/activity/submissions.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/activity/(\d+)/submission/(\d+)$#' => [
+            'file'   => '/src/pages/teacher/activity/submission-review.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'student_id'],
+        ],
+        '#^/teacher/activity/(\d+)/submission/(\d+)/file$#' => [
+            'file'   => '/src/pages/teacher/activity/submission-file.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'student_id'],
+        ],
         '#^/teacher/cu/(\d+)/attachment/(\d+)$#' => [
             'file'   => '/src/pages/teacher/cu/attachment-download.php',
             'role'   => 'teacher',

@@ -129,6 +129,103 @@ final class ActivitySubmission
     }
 
     /**
+     * Lista submissões de uma atividade para o professor avaliar (E6-04).
+     * JOIN com users traz nome/email do aluno. Valida tenant via cadeia
+     * activity → cu → cc → course. Pendentes de feedback aparecem primeiro.
+     *
+     * @return list<array<string,mixed>>
+     */
+    public static function listForActivity(int $activityId, int $tenantId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT s.id, s.student_user_id, s.filename, s.stored_path,
+                    s.code_text, s.feedback, s.feedback_at,
+                    s.created_at, s.updated_at,
+                    u.name AS student_name, u.email AS student_email
+               FROM activity_submissions s
+               JOIN activities a          ON a.id = s.activity_id
+               JOIN competence_units cu   ON cu.id = a.competence_unit_id
+               JOIN core_competencies cc  ON cc.id = cu.core_competency_id
+               JOIN courses c             ON c.id  = cc.course_id AND c.tenant_id = ?
+               JOIN users u               ON u.id  = s.student_user_id
+              WHERE s.activity_id = ?
+              ORDER BY (s.feedback_at IS NULL) DESC, s.updated_at DESC, s.id DESC'
+        );
+        $stmt->execute([$tenantId, $activityId]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Retorna submissão específica (activity + student) com contexto
+     * completo se a atividade pertence ao tenant do professor. Usado na
+     * tela de correção/feedback (E6-04).
+     *
+     * @return array{
+     *   activity: array<string,mixed>,
+     *   submission: array<string,mixed>,
+     *   student: array<string,mixed>
+     * }|null
+     */
+    public static function findForTeacher(int $activityId, int $studentId, int $tenantId): ?array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT s.id, s.filename, s.stored_path, s.code_text,
+                    s.feedback, s.feedback_at, s.created_at, s.updated_at,
+                    a.id AS activity_id, a.title AS activity_title,
+                    a.type AS activity_type, a.instruction,
+                    a.xp_value, cu.id AS cu_id, cu.name AS cu_name,
+                    u.id AS student_id, u.name AS student_name, u.email AS student_email
+               FROM activity_submissions s
+               JOIN activities a          ON a.id = s.activity_id
+               JOIN competence_units cu   ON cu.id = a.competence_unit_id
+               JOIN core_competencies cc  ON cc.id = cu.core_competency_id
+               JOIN courses c             ON c.id  = cc.course_id AND c.tenant_id = ?
+               JOIN users u               ON u.id  = s.student_user_id
+              WHERE s.activity_id = ? AND s.student_user_id = ?
+              LIMIT 1'
+        );
+        $stmt->execute([$tenantId, $activityId, $studentId]);
+        $row = $stmt->fetch();
+        if ($row === false) {
+            return null;
+        }
+        return [
+            'activity' => [
+                'id' => (int) $row['activity_id'], 'title' => (string) $row['activity_title'],
+                'type' => (string) $row['activity_type'], 'instruction' => (string) $row['instruction'],
+                'xp_value' => (int) $row['xp_value'], 'cu_id' => (int) $row['cu_id'],
+                'cu_name' => (string) $row['cu_name'],
+            ],
+            'submission' => [
+                'id' => (int) $row['id'], 'filename' => $row['filename'],
+                'stored_path' => $row['stored_path'], 'code_text' => $row['code_text'],
+                'feedback' => $row['feedback'], 'feedback_at' => $row['feedback_at'],
+                'created_at' => $row['created_at'], 'updated_at' => $row['updated_at'],
+            ],
+            'student' => [
+                'id' => (int) $row['student_id'], 'name' => (string) $row['student_name'],
+                'email' => (string) $row['student_email'],
+            ],
+        ];
+    }
+
+    /**
+     * Grava feedback + feedback_at=NOW() no momento em que o professor salva.
+     * Não altera XP nem arquivos da submissão. Após este save, aluno perde
+     * capacidade de editar/remover (ADR-027 — `isMutable` vira false).
+     */
+    public static function saveFeedback(int $activityId, int $studentId, string $feedback): void
+    {
+        Database::pdo()
+            ->prepare(
+                'UPDATE activity_submissions
+                    SET feedback = ?, feedback_at = NOW()
+                  WHERE activity_id = ? AND student_user_id = ?'
+            )
+            ->execute([$feedback, $activityId, $studentId]);
+    }
+
+    /**
      * Lista atividades de uma CU com status da entrega do aluno (E6-06).
      * LEFT JOIN em activity_submissions: null quando não há entrega.
      * Só retorna se o aluno tem matrícula ativa no curso.

@@ -154,7 +154,13 @@ ob_start();
                                 <small class="text-muted ms-2">
                                     <?= e(__t('activities.type.' . $act['type'])) ?> ·
                                     <?= (int) $act['xp_value'] ?> XP ·
-                                    <?= $subs ?> <?= e(__t('activities.submissions_label')) ?>
+                                    <?php if ($subs > 0): ?>
+                                        <a href="/teacher/activity/<?= $aid ?>/submissions" class="text-decoration-none">
+                                            <?= $subs ?> <?= e(__t('activities.submissions_label')) ?>
+                                        </a>
+                                    <?php else: ?>
+                                        <?= $subs ?> <?= e(__t('activities.submissions_label')) ?>
+                                    <?php endif; ?>
                                 </small>
                             </div>
 
