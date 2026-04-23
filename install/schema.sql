@@ -309,6 +309,7 @@ CREATE TABLE IF NOT EXISTS xp_events (
     value           INT NOT NULL,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
+    UNIQUE KEY uk_xp_student_source (student_user_id, source_type, source_id),
     KEY idx_xp_student_created (student_user_id, created_at),
     KEY idx_xp_tenant_created (tenant_id, created_at),
     KEY idx_xp_source (source_type, source_id),
@@ -445,6 +446,24 @@ SET @col_exists := (
 );
 SET @sql := IF(@col_exists = 0,
     'ALTER TABLE activities ADD COLUMN position INT UNSIGNED NOT NULL DEFAULT 0 AFTER allow_online_code_run',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E6-03] UK composite em xp_events — garante 1 evento de XP por
+-- (aluno, source_type, source_id). Permite `INSERT IGNORE` idempotente
+-- quando o aluno re-salva a submissão (XP é concedido só na primeira
+-- entrega, ADR-002). Se o aluno remove a submissão antes do feedback,
+-- o DELETE do xp_event cuida disso (revocação explícita em código).
+SET @idx_exists := (
+    SELECT COUNT(*) FROM information_schema.STATISTICS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'xp_events'
+       AND INDEX_NAME   = 'uk_xp_student_source'
+);
+SET @sql := IF(@idx_exists = 0,
+    'ALTER TABLE xp_events ADD UNIQUE KEY uk_xp_student_source (student_user_id, source_type, source_id)',
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
