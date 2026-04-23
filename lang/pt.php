@@ -43,8 +43,12 @@ return [
     // Dashboards (stubs em E1-01; substituídos em épicos dedicados)
     'dashboard.teacher.title'   => 'Painel do professor',
     'dashboard.teacher.welcome' => 'Bem-vindo(a), :name.',
-    'dashboard.student.title'   => 'Painel do aluno',
-    'dashboard.student.welcome' => 'Bem-vindo(a), :name.',
+    'dashboard.student.title'        => 'Meus cursos',
+    'dashboard.student.welcome'      => 'Bem-vindo(a), :name.',
+    'dashboard.student.no_courses'   => 'Você ainda não está matriculado em nenhum curso.',
+    'dashboard.student.no_courses_hint' => 'Peça ao seu professor para matriculá-lo.',
+    'dashboard.student.course_empty' => 'Este curso ainda não tem competências cadastradas.',
+    'dashboard.student.cc_empty'     => 'Esta competência ainda não tem unidades.',
     'dashboard.admin.title'     => 'Painel do super-admin',
     'dashboard.admin.welcome'   => 'Bem-vindo(a), :name.',
     'dashboard.stub_notice'     => 'Esta tela é um placeholder — o conteúdo real é implementado em épicos posteriores.',
@@ -338,6 +342,12 @@ return [
     'attachments.err.cu_unavailable'        => 'Esta CU não está disponível para você.',
     'attachments.err.not_found'             => 'Anexo não encontrado.',
     'attachments.err.generic'               => 'Não foi possível enviar o arquivo. Tente novamente.',
+
+    // Visão do aluno sobre o conteúdo da CU (E5-05)
+    'student.content.not_available'      => 'Conteúdo ainda não disponível.',
+    'student.content.not_available_hint' => 'Quando seu professor publicar o material, ele aparece aqui.',
+    'student.content.attachments_title'  => 'Materiais anexos',
+    'student.content.download'           => 'Baixar',
 
     // Exclusão (E3-05)
     'delete.modal.title'             => 'Excluir',

@@ -126,6 +126,33 @@ final class CompetenceUnit
     }
 
     /**
+     * Retorna CU + nomes de contexto (cu.name, cc.name, course.name, course.id)
+     * se o aluno tem matrícula ativa no curso que contém a CU (E5-05).
+     * null em qualquer elo que não bate (CU inexistente, aluno não matriculado).
+     * Curso arquivado não bloqueia: aluno preserva acesso ao material.
+     *
+     * @return array<string,mixed>|null
+     */
+    public static function findForStudent(int $cuId, int $studentId): ?array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT cu.id, cu.name,
+                    cc.id AS cc_id, cc.name AS cc_name,
+                    c.id AS course_id, c.name AS course_name
+               FROM competence_units cu
+               JOIN core_competencies cc ON cc.id = cu.core_competency_id
+               JOIN courses c            ON c.id  = cc.course_id
+               JOIN enrollments e        ON e.course_id = c.id
+                                        AND e.student_user_id = ?
+              WHERE cu.id = ?
+              LIMIT 1'
+        );
+        $stmt->execute([$studentId, $cuId]);
+        $row = $stmt->fetch();
+        return $row === false ? null : $row;
+    }
+
+    /**
      * Cria CU com position = MAX+1. Retorna id ou null se a CC não pertence
      * ao tenant ou o curso está arquivado.
      */
