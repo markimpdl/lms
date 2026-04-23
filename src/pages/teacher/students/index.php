@@ -42,7 +42,7 @@ $sortLink = static function (string $col, string $label) use ($filters, $qsBase)
     return '<a href="' . e($url) . '" class="text-decoration-none text-reset">' . e($label) . $arrow . '</a>';
 };
 
-$toggleButton = static function (array $row) use (): string {
+$toggleButton = static function (array $row): string {
     $id = (int) $row['id'];
     if ((int) $row['active'] === 1) {
         return '<button type="button" class="btn btn-sm btn-outline-secondary"'
