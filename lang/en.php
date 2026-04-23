@@ -305,6 +305,21 @@ return [
     'nav.curriculum.title' => 'Course structure',
     'nav.curriculum.open'  => 'Course structure',
 
+    // CU content (E5-01)
+    'content.status.published'   => 'Published',
+    'content.status.unpublished' => 'Draft',
+    'content.status.empty'       => 'No content',
+    'content.none_yet'           => 'This CU has no content yet. Click "Create content" to write the study material.',
+    'content.create_button'      => 'Create content',
+    'content.edit_button'        => 'Edit content',
+    'content.edit.title'         => 'Content for :name',
+    'content.edit.breadcrumb'    => 'Edit content',
+    'content.form.body'          => 'Study material',
+    'content.form.body_hint'     => 'Use headings, lists, tables and code blocks. Tags outside the allowlist are removed automatically on save.',
+    'content.form.publish'       => 'Publish to students',
+    'content.form.publish_hint'  => 'When checked, enrolled students of this course will see the content in the CU. Uncheck to keep drafting without exposing.',
+    'content.saved'              => 'Content saved.',
+
     // Deletion (E3-05)
     'delete.modal.title'             => 'Delete',
     'delete.modal.about_to_delete'   => 'You are about to delete',

@@ -43,9 +43,10 @@ $navCourseActive = !$navHasActiveCc && $navActiveCuId === 0;
             <?php if ($navCcActive && !empty($navCc['cus'])): ?>
                 <?php foreach ($navCc['cus'] as $navCu): ?>
                     <?php $navCuActive = (int) $navCu['id'] === $navActiveCuId; ?>
-                    <span class="list-group-item ps-5 text-muted<?= $navCuActive ? ' active text-white' : '' ?>">
+                    <a href="/teacher/cu/<?= (int) $navCu['id'] ?>"
+                       class="list-group-item list-group-item-action ps-5<?= $navCuActive ? ' active' : ' text-muted' ?>">
                         · <?= e((string) $navCu['name']) ?>
-                    </span>
+                    </a>
                 <?php endforeach; ?>
             <?php endif; ?>
         <?php endforeach; ?>
