@@ -105,6 +105,16 @@ return [
             'role'   => 'teacher',
             'params' => ['course_id', 'cc_id'],
         ],
+        '#^/teacher/cu/(\d+)$#' => [
+            'file'   => '/src/pages/teacher/cu/show.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/cu/(\d+)/content/edit$#' => [
+            'file'   => '/src/pages/teacher/cu/content-edit.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
         '#^/teacher/cu/(\d+)/rename$#' => [
             'file'   => '/src/pages/teacher/cu/rename.php',
             'role'   => 'teacher',

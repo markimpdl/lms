@@ -5,6 +5,7 @@
     "license": "proprietary",
     "require": {
         "php": "^8.2",
+        "ezyang/htmlpurifier": "^4.19",
         "phpmailer/phpmailer": "^6.9"
     },
     "config": {

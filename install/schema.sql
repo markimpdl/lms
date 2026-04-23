@@ -144,6 +144,7 @@ CREATE TABLE IF NOT EXISTS contents (
     id                  BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     competence_unit_id  BIGINT UNSIGNED NOT NULL,
     html                MEDIUMTEXT NOT NULL,
+    published           TINYINT(1) NOT NULL DEFAULT 0,
     created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
@@ -409,6 +410,23 @@ SET @idx_exists := (
 );
 SET @sql := IF(@idx_exists = 0,
     'ALTER TABLE courses ADD KEY idx_courses_tenant_archived (tenant_id, archived)',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E5-01] contents.published — flag de publicação do conteúdo da CU.
+-- Default 0: conteúdo só fica visível ao aluno quando o professor publica
+-- explicitamente. Edição existente = conteúdo permanece publicado entre saves
+-- se o checkbox "Publicar" continuar marcado.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'contents'
+       AND COLUMN_NAME  = 'published'
+);
+SET @sql := IF(@col_exists = 0,
+    'ALTER TABLE contents ADD COLUMN published TINYINT(1) NOT NULL DEFAULT 0 AFTER html',
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;

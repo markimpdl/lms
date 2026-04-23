@@ -305,6 +305,21 @@ return [
     'nav.curriculum.title' => 'Estrutura do curso',
     'nav.curriculum.open'  => 'Estrutura do curso',
 
+    // Conteúdo da CU (E5-01)
+    'content.status.published'   => 'Publicado',
+    'content.status.unpublished' => 'Rascunho',
+    'content.status.empty'       => 'Sem conteúdo',
+    'content.none_yet'           => 'Esta CU ainda não tem conteúdo. Clique em "Criar conteúdo" para escrever o material de estudo.',
+    'content.create_button'      => 'Criar conteúdo',
+    'content.edit_button'        => 'Editar conteúdo',
+    'content.edit.title'         => 'Conteúdo de :name',
+    'content.edit.breadcrumb'    => 'Editar conteúdo',
+    'content.form.body'          => 'Material de estudo',
+    'content.form.body_hint'     => 'Use títulos, listas, tabelas e blocos de código. Tags fora da lista permitida são removidas automaticamente ao salvar.',
+    'content.form.publish'       => 'Publicar para os alunos',
+    'content.form.publish_hint'  => 'Quando marcado, os alunos matriculados neste curso verão o conteúdo na CU. Desmarque para continuar rascunhando sem expor.',
+    'content.saved'              => 'Conteúdo salvo.',
+
     // Exclusão (E3-05)
     'delete.modal.title'             => 'Excluir',
     'delete.modal.about_to_delete'   => 'Você está prestes a excluir',
