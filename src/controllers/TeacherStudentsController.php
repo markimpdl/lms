@@ -15,8 +15,14 @@ declare(strict_types=1);
  */
 final class TeacherStudentsController
 {
-    /** Input validado pelo service — caller re-renderiza o form em erro. */
-    public static function create(array $input, bool $sendByEmail): array
+    /**
+     * Input validado pelo service — caller re-renderiza o form em erro.
+     *
+     * Se `$courseIds` vier com ids, dispara matrícula em lote logo após o
+     * cadastro (E4-02). Retorna só os erros de validação do cadastro; erros
+     * parciais de matrícula viram flash no próprio redirect.
+     */
+    public static function create(array $input, bool $sendByEmail, array $courseIds = []): array
     {
         $tenantId = current_tenant_id();
         if ($tenantId === null) {
@@ -56,6 +62,20 @@ final class TeacherStudentsController
         }
 
         flash('success', __t('students.created', ['name' => $input['name'] ?? '']));
+
+        if ($courseIds !== []) {
+            $stats = TeacherEnrollmentsController::enrollBulk($student['id'], $courseIds, $tenantId);
+            if ($stats['ok'] > 0) {
+                flash('success', __t('enrollments.created_count', ['count' => $stats['ok']]));
+            }
+            if ($stats['course_archived'] > 0) {
+                flash('warning', __t('enrollments.skipped_archived', ['count' => $stats['course_archived']]));
+            }
+            if ($stats['wrong_tenant'] > 0) {
+                flash('warning', __t('enrollments.skipped_wrong_tenant', ['count' => $stats['wrong_tenant']]));
+            }
+        }
+
         header('Location: /teacher/students/' . $student['id'], true, 303);
         exit;
     }

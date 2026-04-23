@@ -30,6 +30,9 @@ $activeCcId = 0;
 $activeCuId = 0;
 $courseCountsFormatted = format_delete_counts(Course::countDescendants($courseId, $tenantId));
 
+$enrolledPage = max(1, (int) ($_GET['students_page'] ?? 1));
+$enrolled = Enrollment::listByCourse($courseId, $tenantId, $enrolledPage);
+
 $page_title = (string) $course['name'];
 
 ob_start();
@@ -164,6 +167,52 @@ ob_start();
                         </li>
                     <?php endforeach; ?>
                 </ul>
+            <?php endif; ?>
+        </div>
+
+        <!-- Alunos matriculados (E4-02) -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">
+                <h2 class="h6 mb-0"><?= e(__t('enrollments.course_students.title')) ?></h2>
+                <small class="text-muted">
+                    <?= e(__t('enrollments.course_students.subtitle', ['count' => (string) $enrolled['total']])) ?>
+                </small>
+            </div>
+            <?php if ($enrolled['total'] === 0): ?>
+                <div class="card-body text-center text-muted py-4">
+                    <p class="mb-0"><?= e(__t('enrollments.course_students.empty')) ?></p>
+                </div>
+            <?php else: ?>
+                <ul class="list-group list-group-flush">
+                    <?php foreach ($enrolled['rows'] as $row): ?>
+                        <li class="list-group-item d-flex align-items-center gap-2">
+                            <div class="flex-grow-1">
+                                <a href="/teacher/students/<?= (int) $row['student_id'] ?>" class="fw-semibold text-decoration-none">
+                                    <?= e((string) $row['name']) ?>
+                                </a>
+                                <small class="text-muted ms-2 text-break"><?= e((string) $row['email']) ?></small>
+                                <?php if ((int) $row['active'] === 0): ?>
+                                    <span class="badge text-bg-secondary ms-2"><?= e(__t('students.status.inactive')) ?></span>
+                                <?php endif; ?>
+                                <div class="small text-muted">
+                                    <?= e(__t('enrollments.enrolled_at', ['date' => substr((string) $row['enrolled_at'], 0, 10)])) ?>
+                                </div>
+                            </div>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+
+                <?php if ($enrolled['total_pages'] > 1): ?>
+                    <nav aria-label="pagination" class="p-2">
+                        <ul class="pagination pagination-sm justify-content-center mb-0">
+                            <?php for ($p = 1; $p <= $enrolled['total_pages']; $p++): ?>
+                                <li class="page-item <?= $p === $enrolled['page'] ? 'active' : '' ?>">
+                                    <a class="page-link" href="/teacher/courses/<?= (int) $course['id'] ?>?students_page=<?= $p ?>#enrolled"><?= $p ?></a>
+                                </li>
+                            <?php endfor; ?>
+                        </ul>
+                    </nav>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>

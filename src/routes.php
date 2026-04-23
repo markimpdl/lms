@@ -133,5 +133,15 @@ return [
             'role'   => 'teacher',
             'params' => ['id'],
         ],
+        '#^/teacher/students/(\d+)/enroll$#' => [
+            'file'   => '/src/pages/teacher/students/enroll.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/students/(\d+)/unenroll/(\d+)$#' => [
+            'file'   => '/src/pages/teacher/students/unenroll.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'course_id'],
+        ],
     ],
 ];

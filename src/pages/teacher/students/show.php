@@ -56,6 +56,13 @@ if ($justCreated !== null && (int) ($justCreated['student_id'] ?? 0) === $studen
 
 $isActive = (int) $student['active'] === 1;
 
+$enrollments = Enrollment::listByStudent($studentId, $tenantId);
+$enrolledIds = array_map(static fn(array $e): int => (int) $e['course_id'], $enrollments);
+$availableCourses = array_values(array_filter(
+    Course::listActiveForSelect($tenantId),
+    static fn(array $c): bool => !in_array($c['id'], $enrolledIds, true)
+));
+
 $deleteCountsFormatted = format_delete_counts([
     'enrollments' => (int) $student['enrollments_count'],
     'groups'      => (int) $student['groups_count'],
@@ -144,6 +151,56 @@ ob_start();
             </div>
         </form>
 
+        <div class="card shadow-sm mb-3">
+            <div class="card-header d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                <div>
+                    <h2 class="h6 mb-0"><?= e(__t('enrollments.section.title')) ?></h2>
+                    <small class="text-muted">
+                        <?= e(__t('enrollments.section.subtitle', ['count' => (string) count($enrollments)])) ?>
+                    </small>
+                </div>
+                <?php if ($isActive && $availableCourses !== []): ?>
+                    <button type="button" class="btn btn-sm btn-primary"
+                            data-bs-toggle="modal" data-bs-target="#enrollModal">
+                        + <?= e(__t('enrollments.add_button')) ?>
+                    </button>
+                <?php endif; ?>
+            </div>
+
+            <?php if ($enrollments === []): ?>
+                <div class="card-body text-center text-muted py-4">
+                    <p class="mb-0"><?= e(__t('enrollments.empty')) ?></p>
+                </div>
+            <?php else: ?>
+                <ul class="list-group list-group-flush">
+                    <?php foreach ($enrollments as $enr): ?>
+                        <?php $archived = (int) $enr['archived'] === 1; ?>
+                        <li class="list-group-item d-flex align-items-center gap-2">
+                            <div class="flex-grow-1">
+                                <a href="/teacher/courses/<?= (int) $enr['course_id'] ?>" class="fw-semibold text-decoration-none">
+                                    <?= e((string) $enr['name']) ?>
+                                </a>
+                                <small class="text-muted ms-2"><?= (int) $enr['year'] ?> · <?= e(strtoupper((string) $enr['language'])) ?></small>
+                                <?php if ($archived): ?>
+                                    <span class="badge text-bg-warning ms-2"><?= e(__t('courses.status.archived')) ?></span>
+                                <?php endif; ?>
+                                <div class="small text-muted">
+                                    <?= e(__t('enrollments.enrolled_at', ['date' => substr((string) $enr['enrolled_at'], 0, 10)])) ?>
+                                </div>
+                            </div>
+                            <form method="POST" action="/teacher/students/<?= (int) $studentId ?>/unenroll/<?= (int) $enr['course_id'] ?>" class="m-0 js-unenroll-form"
+                                  data-confirm="<?= e(__t('enrollments.unenroll_confirm', ['name' => (string) $enr['name']])) ?>">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="<?= e(__t('enrollments.action.unenroll')) ?>">
+                                    <?= e(__t('enrollments.action.unenroll')) ?>
+                                </button>
+                            </form>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        </div>
+
         <div class="card card-body shadow-sm">
             <h2 class="h6 mb-3"><?= e(__t('students.metadata')) ?></h2>
             <dl class="row mb-0 small">
@@ -206,6 +263,36 @@ ob_start();
 
 <?php require LMS_ROOT . '/src/templates/partials/delete_confirm_modal.php'; ?>
 
+<?php if ($isActive && $availableCourses !== []): ?>
+<!-- Modal: matricular em mais cursos -->
+<div class="modal fade" id="enrollModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <form method="POST" action="/teacher/students/<?= (int) $studentId ?>/enroll" class="modal-content" novalidate>
+            <?= csrf_field() ?>
+            <div class="modal-header">
+                <h5 class="modal-title"><?= e(__t('enrollments.add.title')) ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= e(__t('common.cancel')) ?>"></button>
+            </div>
+            <div class="modal-body">
+                <label for="enrollCourseIds" class="form-label"><?= e(__t('enrollments.form.pick_courses')) ?></label>
+                <select name="course_ids[]" id="enrollCourseIds" class="form-select" multiple size="8" required>
+                    <?php foreach ($availableCourses as $c): ?>
+                        <option value="<?= (int) $c['id'] ?>">
+                            <?= e($c['name']) ?> (<?= (int) $c['year'] ?>)
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <div class="form-text"><?= e(__t('enrollments.form.pick_courses_hint')) ?></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= e(__t('common.cancel')) ?></button>
+                <button type="submit" class="btn btn-primary"><?= e(__t('enrollments.add.confirm')) ?></button>
+            </div>
+        </form>
+    </div>
+</div>
+<?php endif; ?>
+
 <script>
 window.addEventListener('load', function () {
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
@@ -213,7 +300,7 @@ window.addEventListener('load', function () {
     });
 });
 
-document.querySelectorAll('form.js-toggle-form[data-confirm]').forEach(function (form) {
+document.querySelectorAll('form.js-toggle-form[data-confirm], form.js-unenroll-form[data-confirm]').forEach(function (form) {
     form.addEventListener('submit', function (event) {
         if (!window.confirm(form.dataset.confirm)) {
             event.preventDefault();
