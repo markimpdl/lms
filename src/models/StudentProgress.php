@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * Cálculo de progresso do aluno (E6-06).
+ * Cálculo de progresso do aluno (E6-06 + E7-03).
  *
  * Implementação real do que os helpers `student_cu_status` / `student_course_status`
  * só faziam como placeholder até agora.
@@ -10,8 +10,9 @@ declare(strict_types=1);
  * Fórmula da CU (doc/10):
  *   percent = (entregues + avaliacao_aprovada) / (N_atividades + tem_avaliacao) × 100
  *
- * Avaliações chegam no Epic E7 — até lá, `avaliacao_aprovada = 0` e
- * `tem_avaliacao = 0`, reduzindo a fórmula a `entregues / N_atividades`.
+ * "Avaliação aprovada" = existe submissão corrente (is_current=1) com
+ * `grade >= 6` (nota que aprova a CU — E7-03). `tem_avaliacao` = existe
+ * linha em `evaluations` para a CU (ADR-007 garante no máximo 1).
  *
  * Uma CU sem atividades e sem avaliação é "não avaliável" e conta 0% mas
  * também NÃO é incluída na média do curso (ver `coursePercent`).
@@ -28,17 +29,24 @@ final class StudentProgress
     {
         $stmt = Database::pdo()->prepare(
             'SELECT
-                (SELECT COUNT(*) FROM activities WHERE competence_unit_id = ?) AS total,
+                (SELECT COUNT(*) FROM activities WHERE competence_unit_id = ?) AS activities_total,
                 (SELECT COUNT(*) FROM activity_submissions s
                    JOIN activities a ON a.id = s.activity_id
-                  WHERE a.competence_unit_id = ? AND s.student_user_id = ?) AS done'
+                  WHERE a.competence_unit_id = ? AND s.student_user_id = ?) AS activities_done,
+                (SELECT COUNT(*) FROM evaluations WHERE competence_unit_id = ?) AS has_evaluation,
+                (SELECT COUNT(*) FROM evaluation_submissions es
+                   JOIN evaluations e ON e.id = es.evaluation_id
+                  WHERE e.competence_unit_id = ?
+                    AND es.student_user_id = ?
+                    AND es.is_current = 1
+                    AND es.grade IS NOT NULL
+                    AND es.grade >= 6.0) AS evaluation_approved'
         );
-        $stmt->execute([$cuId, $cuId, $studentId]);
+        $stmt->execute([$cuId, $cuId, $studentId, $cuId, $cuId, $studentId]);
         $row = $stmt->fetch();
 
-        $total = (int) ($row['total'] ?? 0);
-        $done  = (int) ($row['done']  ?? 0);
-        // TODO [E7]: somar `tem_avaliacao` em $total e `avaliacao_aprovada` em $done.
+        $total = (int) ($row['activities_total']    ?? 0) + (int) ($row['has_evaluation']      ?? 0);
+        $done  = (int) ($row['activities_done']     ?? 0) + (int) ($row['evaluation_approved'] ?? 0);
 
         if ($total === 0) {
             return 0;
@@ -69,7 +77,10 @@ final class StudentProgress
 
         $stmt = $pdo->prepare(
             'SELECT cu.id AS cu_id,
-                    (SELECT COUNT(*) FROM activities a WHERE a.competence_unit_id = cu.id) AS total
+                    (SELECT COUNT(*) FROM activities a
+                      WHERE a.competence_unit_id = cu.id) AS activities_total,
+                    (SELECT COUNT(*) FROM evaluations ev
+                      WHERE ev.competence_unit_id = cu.id) AS has_evaluation
                FROM competence_units cu
                JOIN core_competencies cc ON cc.id = cu.core_competency_id
               WHERE cc.course_id = ?'
@@ -79,8 +90,7 @@ final class StudentProgress
         $sum       = 0;
         $evaluable = 0;
         foreach ($stmt->fetchAll() as $row) {
-            // TODO [E7]: considerar também `tem_avaliacao` como critério de avaliável.
-            if ((int) $row['total'] === 0) {
+            if ((int) $row['activities_total'] === 0 && (int) $row['has_evaluation'] === 0) {
                 continue;
             }
             $sum += self::cuPercent((int) $row['cu_id'], $studentId);

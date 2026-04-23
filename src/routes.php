@@ -185,6 +185,16 @@ return [
             'role'   => 'teacher',
             'params' => ['id'],
         ],
+        '#^/teacher/evaluation/(\d+)/submission/(\d+)/file$#' => [
+            'file'   => '/src/pages/teacher/evaluation/file.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'sid'],
+        ],
+        '#^/teacher/evaluation/(\d+)/submission/(\d+)$#' => [
+            'file'   => '/src/pages/teacher/evaluation/submission.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'student_id'],
+        ],
         '#^/student/evaluation/(\d+)$#' => [
             'file'   => '/src/pages/student/evaluation/show.php',
             'role'   => 'student',
