@@ -439,6 +439,30 @@ return [
     'submissions.err.after_feedback'    => 'The teacher has already given feedback. The submission can no longer be changed.',
     'submissions.err.generic'           => 'Could not save the submission. Try again.',
 
+    // Teacher view: submission list + review (E6-04)
+    'submissions.teacher.title'             => 'Submissions — :name',
+    'submissions.teacher.empty'             => 'No student has submitted this activity yet.',
+    'submissions.teacher.submitted_at'      => 'Submitted on :date',
+    'submissions.teacher.pending'           => 'Pending',
+    'submissions.teacher.reviewed'          => 'Feedback given',
+    'submissions.teacher.review'            => 'Give feedback',
+    'submissions.teacher.view'              => 'View',
+    'submissions.teacher.has_code'          => 'Includes code',
+    'submissions.teacher.review_title'      => 'Review — :name',
+    'submissions.teacher.instruction'       => 'Activity instruction',
+    'submissions.teacher.submission_title'  => "Student's submission",
+    'submissions.teacher.empty_submission'  => 'The student submitted without file or code.',
+    'submissions.teacher.feedback_new'      => 'Feedback to the student',
+    'submissions.teacher.feedback_edit'     => 'Edit feedback',
+    'submissions.teacher.feedback_hint'     => 'Free text up to 4000 characters. The student receives a notification on save.',
+    'submissions.teacher.feedback_at'       => 'Saved on :date',
+    'submissions.teacher.feedback_saved'    => 'Feedback sent to :name.',
+    'submissions.teacher.notification_body' => 'You have received feedback on an activity.',
+    'submissions.teacher.err.empty'         => 'Write a feedback before saving.',
+    'submissions.teacher.err.too_long'      => 'Feedback exceeds 4000 characters.',
+
+    'common.edit'                       => 'Edit',
+
     'common.soon'                      => 'soon',
 
     // Deletion (E3-05)

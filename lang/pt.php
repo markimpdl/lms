@@ -439,6 +439,30 @@ return [
     'submissions.err.after_feedback'    => 'O professor já deu feedback. A entrega não pode mais ser alterada.',
     'submissions.err.generic'           => 'Não foi possível salvar a entrega. Tente novamente.',
 
+    // Tela do professor: lista de submissões + correção (E6-04)
+    'submissions.teacher.title'             => 'Submissões — :name',
+    'submissions.teacher.empty'             => 'Nenhum aluno entregou esta atividade ainda.',
+    'submissions.teacher.submitted_at'      => 'Enviado em :date',
+    'submissions.teacher.pending'           => 'Pendente',
+    'submissions.teacher.reviewed'          => 'Feedback dado',
+    'submissions.teacher.review'            => 'Dar feedback',
+    'submissions.teacher.view'              => 'Ver',
+    'submissions.teacher.has_code'          => 'Inclui código',
+    'submissions.teacher.review_title'      => 'Correção — :name',
+    'submissions.teacher.instruction'       => 'Instrução da atividade',
+    'submissions.teacher.submission_title'  => 'Entrega do aluno',
+    'submissions.teacher.empty_submission'  => 'O aluno submeteu sem arquivo e sem código.',
+    'submissions.teacher.feedback_new'      => 'Feedback para o aluno',
+    'submissions.teacher.feedback_edit'     => 'Editar feedback',
+    'submissions.teacher.feedback_hint'     => 'Texto livre até 4000 caracteres. O aluno recebe notificação ao salvar.',
+    'submissions.teacher.feedback_at'       => 'Salvo em :date',
+    'submissions.teacher.feedback_saved'    => 'Feedback enviado para :name.',
+    'submissions.teacher.notification_body' => 'Você recebeu feedback em uma atividade.',
+    'submissions.teacher.err.empty'         => 'Escreva um feedback antes de salvar.',
+    'submissions.teacher.err.too_long'      => 'Feedback ultrapassa 4000 caracteres.',
+
+    'common.edit'                       => 'Editar',
+
     'common.soon'                      => 'em breve',
 
     // Exclusão (E3-05)
