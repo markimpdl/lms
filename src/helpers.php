@@ -40,7 +40,7 @@ function current_lang(): string
     }
 
     $candidate = $_SESSION['lang']
-        ?? (current_user()['lang'] ?? null)
+        ?? (current_user()['language'] ?? null)
         ?? 'pt';
 
     $resolved = in_array($candidate, $supported, true) ? $candidate : 'pt';
