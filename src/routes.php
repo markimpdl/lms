@@ -135,6 +135,11 @@ return [
             'role'   => 'teacher',
             'params' => ['id', 'aid'],
         ],
+        '#^/student/course/(\d+)$#' => [
+            'file'   => '/src/pages/student/course/show.php',
+            'role'   => 'student',
+            'params' => ['id'],
+        ],
         '#^/student/cu/(\d+)$#' => [
             'file'   => '/src/pages/student/cu/show.php',
             'role'   => 'student',

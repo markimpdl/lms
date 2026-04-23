@@ -43,6 +43,15 @@ $content = $stmt->fetch();
 $hasPublishedContent = $content !== false && (int) $content['published'] === 1;
 $html                = $hasPublishedContent ? (string) $content['html'] : '';
 
+// Anexos (imagens inline, iframes) foram gravados pelo professor com URLs
+// apontando pra `/teacher/cu/{id}/attachment/.../view` — rotas só do
+// teacher, role=teacher. Pro aluno, reescrevemos o prefixo. O authorization
+// real continua no handler da rota (`ContentAttachment::findForStudent`
+// valida matrícula).
+if ($html !== '') {
+    $html = str_replace('"/teacher/cu/', '"/student/cu/', $html);
+}
+
 // Anexos: só se o aluno tem matrícula (já validado). Listamos via o
 // contentId pra evitar nova validação N vezes. Se não há content, não há
 // anexos mesmo assim.
@@ -63,7 +72,8 @@ $page_title = (string) $cu['name'];
 ob_start();
 ?>
 <?= breadcrumbs([
-    ['label' => (string) $cu['course_name']],
+    ['label' => __t('dashboard.student.title'), 'url' => '/student'],
+    ['label' => (string) $cu['course_name'],    'url' => '/student/course/' . (int) $cu['course_id']],
     ['label' => (string) $cu['cc_name']],
     ['label' => (string) $cu['name']],
 ]) ?>

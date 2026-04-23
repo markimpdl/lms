@@ -24,7 +24,9 @@ ob_start();
             <div class="card shadow-sm mb-3">
                 <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
                     <h2 class="h6 mb-0">
-                        <?= e((string) $course['course_name']) ?>
+                        <a href="/student/course/<?= (int) $course['course_id'] ?>" class="text-decoration-none">
+                            <?= e((string) $course['course_name']) ?>
+                        </a>
                         <?php if ($archived): ?>
                             <span class="badge text-bg-warning ms-2"><?= e(__t('courses.status.archived')) ?></span>
                         <?php endif; ?>

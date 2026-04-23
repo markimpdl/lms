@@ -14,6 +14,24 @@ declare(strict_types=1);
 final class StudentCurriculum
 {
     /**
+     * Visão de UM curso específico do aluno. Retorna null se o aluno não
+     * está matriculado nesse curso. Usado por `/student/course/{id}` (tela
+     * nova de E5-05).
+     *
+     * @return array{course_id:int, course_name:string, course_archived:int, ccs:list<array{id:int, name:string, cus:list<array{id:int, name:string}>}>}|null
+     */
+    public static function forStudentCourse(int $studentId, int $courseId): ?array
+    {
+        $all = self::forStudent($studentId);
+        foreach ($all as $course) {
+            if ($course['course_id'] === $courseId) {
+                return $course;
+            }
+        }
+        return null;
+    }
+
+    /**
      * @return list<array{
      *   course_id: int,
      *   course_name: string,
