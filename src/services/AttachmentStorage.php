@@ -21,6 +21,7 @@ declare(strict_types=1);
 final class AttachmentStorage
 {
     public const MAX_BYTES = 3 * 1024 * 1024; // 3 MB
+    public const MAX_ATTACHMENTS_PER_CU = 50; // Previne DDoS via criação em massa
 
     /** Mapa de mime canônico → extensão a gravar. */
     private const ALLOWED = [
@@ -57,6 +58,18 @@ final class AttachmentStorage
             return ['status' => 'error', 'error_key' => 'attachments.err.generic'];
         }
 
+        // Validação: previne DDoS via criação em massa
+        $countStmt = Database::pdo()->prepare(
+            'SELECT COUNT(*) as cnt FROM content_attachments a
+             JOIN contents c ON c.id = a.content_id
+             WHERE c.competence_unit_id = ?'
+        );
+        $countStmt->execute([$cuId]);
+        $count = (int) $countStmt->fetchColumn();
+        if ($count >= self::MAX_ATTACHMENTS_PER_CU) {
+            return ['status' => 'error', 'error_key' => 'attachments.err.limit'];
+        }
+
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mime  = (string) $finfo->file($tmp);
         if (!isset(self::ALLOWED[$mime])) {
@@ -71,7 +84,7 @@ final class AttachmentStorage
         $ext       = self::ALLOWED[$mime];
         $uuid      = self::uuid4();
         $baseDir   = LMS_ROOT . '/storage/uploads/tenant_' . $tenantId . '/content/' . $cuId;
-        if (!is_dir($baseDir) && !@mkdir($baseDir, 0775, true)) {
+        if (!is_dir($baseDir) && !@mkdir($baseDir, 0755, true)) {
             return ['status' => 'error', 'error_key' => 'attachments.err.generic'];
         }
 
@@ -95,6 +108,42 @@ final class AttachmentStorage
         );
 
         return ['status' => 'ok', 'attachment_id' => $aid];
+    }
+
+    /**
+     * Serve o arquivo do anexo ao cliente com headers apropriados.
+     * Caller é responsável por já ter validado acesso (via
+     * `ContentAttachment::findForTenant` ou `findForStudent`) e passar o
+     * registro resolvido. Emite headers, faz `readfile` e `exit` — nunca
+     * retorna.
+     *
+     * @param array<string,mixed> $attachment registro de content_attachments
+     * @param 'inline'|'attachment' $disposition
+     */
+    public static function stream(array $attachment, string $disposition): never
+    {
+        $fullPath = LMS_ROOT . '/' . $attachment['stored_path'];
+        $realBase = realpath(LMS_ROOT . '/storage/uploads');
+        $realFile = @realpath($fullPath);
+
+        // Defesa contra path traversal: stored_path vem do DB (nosso controle),
+        // mas validamos contra diretório esperado antes de servir.
+        if ($realBase === false || $realFile === false || !str_starts_with($realFile, $realBase)) {
+            http_response_code(404);
+            require LMS_ROOT . '/src/templates/errors/404.php';
+            exit;
+        }
+
+        // Sanitização do filename pro header: remove quebras de linha e aspas
+        // que poderiam injetar cabeçalhos falsos (CRLF injection).
+        $safeName = str_replace(['"', "\n", "\r"], '_', (string) $attachment['filename']);
+
+        header('Content-Type: ' . $attachment['mime']);
+        header('Content-Length: ' . filesize($realFile));
+        header('Content-Disposition: ' . $disposition . '; filename="' . $safeName . '"');
+        header('X-Content-Type-Options: nosniff');
+        readfile($realFile);
+        exit;
     }
 
     /**

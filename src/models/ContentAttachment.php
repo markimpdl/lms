@@ -93,4 +93,34 @@ final class ContentAttachment
             ->prepare('DELETE FROM content_attachments WHERE id = ?')
             ->execute([$aid]);
     }
+
+    /**
+     * Retorna o anexo (mesmas colunas de findForTenant) se o aluno tiver
+     * matrícula ativa no curso que contém a CU do anexo. Valida tudo numa
+     * query composta: enrollments → course → cc → cu → content → attachment.
+     * null em qualquer elo que não bate (inclui curso arquivado? — não,
+     * curso arquivado preserva matrícula e o aluno ainda lê o conteúdo que
+     * foi publicado antes).
+     *
+     * @return array<string,mixed>|null
+     */
+    public static function findForStudent(int $aid, int $studentId): ?array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT a.id, a.content_id, a.filename, a.stored_path,
+                    a.mime, a.size_bytes, co.competence_unit_id
+               FROM content_attachments a
+               JOIN contents co           ON co.id = a.content_id
+               JOIN competence_units cu   ON cu.id = co.competence_unit_id
+               JOIN core_competencies cc  ON cc.id = cu.core_competency_id
+               JOIN courses c             ON c.id  = cc.course_id
+               JOIN enrollments e         ON e.course_id = c.id
+                                         AND e.student_user_id = ?
+              WHERE a.id = ?
+              LIMIT 1'
+        );
+        $stmt->execute([$studentId, $aid]);
+        $row = $stmt->fetch();
+        return $row === false ? null : $row;
+    }
 }
