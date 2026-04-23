@@ -160,6 +160,21 @@ return [
             'role'   => 'student',
             'params' => ['id'],
         ],
+        '#^/student/activity/(\d+)$#' => [
+            'file'   => '/src/pages/student/activity/show.php',
+            'role'   => 'student',
+            'params' => ['id'],
+        ],
+        '#^/student/activity/(\d+)/delete$#' => [
+            'file'   => '/src/pages/student/activity/delete.php',
+            'role'   => 'student',
+            'params' => ['id'],
+        ],
+        '#^/student/activity/(\d+)/file$#' => [
+            'file'   => '/src/pages/student/activity/file.php',
+            'role'   => 'student',
+            'params' => ['id'],
+        ],
         '#^/student/cu/(\d+)$#' => [
             'file'   => '/src/pages/student/cu/show.php',
             'role'   => 'student',
