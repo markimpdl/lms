@@ -5,7 +5,7 @@ declare(strict_types=1);
  * /teacher/cu/{id}/content/edit — editor de conteúdo da CU (E5-01).
  *
  * GET: renderiza TinyMCE 6 community via CDN com allowlist alinhada ao
- * HtmlPurifier do backend. POST: sanitiza via HtmlPurifier e faz UPSERT em
+ * ContentSanitizer do backend. POST: sanitiza via ContentSanitizer e faz UPSERT em
  * `contents` via Content::upsertForCu. Checkbox "Publicar" controla
  * `contents.published`.
  *
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $dirtyHtml = (string) ($_POST['html']      ?? '');
     $published = isset($_POST['published']);
 
-    $clean = HtmlPurifier::purify($dirtyHtml);
+    $clean = ContentSanitizer::purify($dirtyHtml);
 
     $result = Content::upsertForCu($cuId, $tenantId, $clean, $published);
     if ($result === 'ok') {
@@ -200,7 +200,7 @@ ob_start();
 // converte qualquer forma (watch, youtu.be, shorts, vimeo.com) no iframe
 // canônico `/embed/` ou `player.vimeo.com/video/`. Qualquer outro provedor
 // retorna string vazia → o plugin não insere iframe algum. Mesmo que passasse,
-// o HtmlPurifier no backend (URI.SafeIframeRegexp) remove iframes fora dessa
+// o ContentSanitizer no backend (URI.SafeIframeRegexp) remove iframes fora dessa
 // allowlist — mas aqui a UX já bloqueia na hora do paste.
 function resolveVideoUrl(url) {
     var m;

@@ -39,7 +39,7 @@ final class Content
      * UPSERT idempotente de conteúdo por CU. Valida que a CU pertence ao
      * tenant e que o curso não está arquivado antes de gravar.
      *
-     * @param string $html HTML já sanitizado pelo caller (HtmlPurifier::purify).
+     * @param string $html HTML já sanitizado pelo caller (ContentSanitizer::purify).
      * @return string 'ok' | 'not_found' | 'course_archived'
      */
     public static function upsertForCu(int $cuId, int $tenantId, string $html, bool $published): string
