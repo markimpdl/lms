@@ -130,6 +130,21 @@ return [
             'role'   => 'teacher',
             'params' => ['id', 'aid'],
         ],
+        '#^/teacher/cu/(\d+)/attachment/(\d+)$#' => [
+            'file'   => '/src/pages/teacher/cu/attachment-download.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'aid'],
+        ],
+        '#^/student/cu/(\d+)/attachment/(\d+)/view$#' => [
+            'file'   => '/src/pages/student/cu/attachment-view.php',
+            'role'   => 'student',
+            'params' => ['id', 'aid'],
+        ],
+        '#^/student/cu/(\d+)/attachment/(\d+)$#' => [
+            'file'   => '/src/pages/student/cu/attachment-download.php',
+            'role'   => 'student',
+            'params' => ['id', 'aid'],
+        ],
         '#^/teacher/cu/(\d+)/rename$#' => [
             'file'   => '/src/pages/teacher/cu/rename.php',
             'role'   => 'teacher',
