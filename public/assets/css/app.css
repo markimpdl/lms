@@ -25,3 +25,80 @@ main { flex: 1 0 auto; }
 @media (max-width: 575.98px) {
     .navbar .user-label { max-width: 10rem; }
 }
+
+/* ============================================================
+   Cards de disciplina/CU no painel do aluno (#99)
+   ------------------------------------------------------------
+   Borda lateral pinta por status: cinza=não iniciada, laranja=
+   em andamento, verde=concluída. Anel de progresso via
+   conic-gradient (zero JS). Link envolve o card inteiro.
+   ============================================================ */
+
+.lms-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: #fff;
+    border-radius: .5rem;
+    border-left: 4px solid #adb5bd; /* não iniciada */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
+    color: inherit;
+    text-decoration: none;
+    transition: box-shadow .15s ease;
+}
+.lms-card:hover {
+    box-shadow: 0 3px 8px rgba(0, 0, 0, .1);
+    color: inherit;
+}
+.lms-card--in-progress { border-left-color: #fd7e14; }
+.lms-card--completed   { border-left-color: #198754; }
+
+.lms-card__body { flex: 1 1 auto; min-width: 0; }
+.lms-card__title {
+    font-weight: 600;
+    font-size: 1rem;
+    margin: 0 0 .25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.lms-card__meta {
+    color: #6c757d;
+    font-size: .875rem;
+}
+
+.lms-progress-ring {
+    --pct: 0;
+    --ring-color: #adb5bd;
+    flex: 0 0 auto;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: conic-gradient(var(--ring-color) calc(var(--pct) * 1%), #e9ecef 0);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.lms-progress-ring::before {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    background: #fff;
+    border-radius: 50%;
+}
+.lms-progress-ring__label {
+    position: relative;
+    font-weight: 600;
+    font-size: .8rem;
+    color: #495057;
+}
+.lms-progress-ring--in-progress { --ring-color: #fd7e14; }
+.lms-progress-ring--completed   { --ring-color: #198754; }
+
+@media (max-width: 575.98px) {
+    .lms-card { padding: .75rem .9rem; gap: .75rem; }
+    .lms-progress-ring { width: 48px; height: 48px; }
+    .lms-progress-ring__label { font-size: .75rem; }
+}

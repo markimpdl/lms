@@ -52,6 +52,9 @@ if ($html !== '') {
     $html = str_replace('"/teacher/cu/', '"/student/cu/', $html);
 }
 
+// Atividades da CU com status da entrega do aluno (E6-06).
+$activities = ActivitySubmission::listForStudentInCu($cuId, $studentId);
+
 // Anexos: só se o aluno tem matrícula (já validado). Listamos via o
 // contentId pra evitar nova validação N vezes. Se não há content, não há
 // anexos mesmo assim.
@@ -93,6 +96,53 @@ ob_start();
                 <p class="lead mb-0"><?= e(__t('student.content.not_available')) ?></p>
                 <p class="small mb-0"><?= e(__t('student.content.not_available_hint')) ?></p>
             </div>
+        <?php endif; ?>
+
+        <?php if ($activities !== []): ?>
+            <section class="mb-3">
+                <h2 class="h6 mb-2"><?= e(__t('student.activities.section_title')) ?></h2>
+                <div class="d-flex flex-column gap-2">
+                    <?php foreach ($activities as $act): ?>
+                        <?php
+                            $aid      = (int) $act['id'];
+                            $open     = (int) $act['submission_open'] === 1;
+                            $hasSub   = $act['submission_id'] !== null;
+                            $hasFb    = $hasSub && $act['feedback_at'] !== null;
+                            if ($hasFb) {
+                                $status = 'completed';
+                                $percent = 100;
+                            } elseif ($hasSub) {
+                                $status = 'in_progress';
+                                $percent = 50;
+                            } else {
+                                $status = 'not_started';
+                                $percent = 0;
+                            }
+                            $statusKey = 'student.activities.status.' . ($hasFb ? 'with_feedback' : ($hasSub ? 'submitted' : ($open ? 'not_submitted' : 'closed')));
+                        ?>
+                        <a href="/student/activity/<?= $aid ?>"
+                           class="lms-card lms-card--<?= e(str_replace('_', '-', $status)) ?>">
+                            <div class="lms-card__body">
+                                <div class="lms-card__title"><?= e((string) $act['title']) ?></div>
+                                <div class="lms-card__meta">
+                                    <?= e(__t('activities.type.' . $act['type'])) ?> ·
+                                    <?= (int) $act['xp_value'] ?> XP
+                                </div>
+                            </div>
+                            <span class="badge text-bg-<?= $hasFb ? 'success' : ($hasSub ? 'warning' : ($open ? 'secondary' : 'dark')) ?>">
+                                <?= e(__t($statusKey)) ?>
+                            </span>
+                            <div class="lms-progress-ring lms-progress-ring--<?= e(str_replace('_', '-', $status)) ?>"
+                                 style="--pct: <?= $percent ?>;"
+                                 role="progressbar"
+                                 aria-label="<?= e(__t('student.course.progress_aria', ['percent' => (string) $percent])) ?>"
+                                 aria-valuenow="<?= $percent ?>" aria-valuemin="0" aria-valuemax="100">
+                                <span class="lms-progress-ring__label"><?= $percent ?>%</span>
+                            </div>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            </section>
         <?php endif; ?>
 
         <?php if ($attachments !== []): ?>

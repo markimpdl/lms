@@ -35,6 +35,8 @@ $hasContent   = $content !== null;
 $isPublished  = $hasContent && (int) $content['published'] === 1;
 
 $attachments = ContentAttachment::listByCu($cuId, $tenantId);
+$activities  = Activity::listByCu($cuId, $tenantId);
+$activityCount = count($activities);
 
 $tree       = curriculum_tree($courseId, $tenantId);
 $activeCcId = $ccId;
@@ -114,6 +116,86 @@ ob_start();
                     </p>
                 <?php endif; ?>
             </div>
+        </div>
+
+        <!-- Atividades (E6-02) -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                <div>
+                    <h2 class="h6 mb-0"><?= e(__t('activities.section.title')) ?></h2>
+                    <small class="text-muted">
+                        <?= e(__t('activities.section.subtitle', ['count' => (string) $activityCount])) ?>
+                    </small>
+                </div>
+                <?php if (!$isArchived): ?>
+                    <a href="/teacher/cu/<?= $cuId ?>/activity/new" class="btn btn-sm btn-primary">
+                        + <?= e(__t('activities.new_button')) ?>
+                    </a>
+                <?php endif; ?>
+            </div>
+            <?php if ($activityCount === 0): ?>
+                <div class="card-body text-center text-muted py-4">
+                    <p class="mb-0"><?= e(__t('activities.empty')) ?></p>
+                </div>
+            <?php else: ?>
+                <ul class="list-group list-group-flush">
+                    <?php foreach ($activities as $i => $act): ?>
+                        <?php
+                            $aid  = (int) $act['id'];
+                            $open = (int) $act['submission_open'] === 1;
+                            $subs = (int) $act['submission_count'];
+                        ?>
+                        <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
+                            <span class="text-muted small" style="min-width: 1.5rem;"><?= $i + 1 ?>.</span>
+                            <div class="flex-grow-1">
+                                <a href="/teacher/activity/<?= $aid ?>/edit" class="fw-semibold text-decoration-none">
+                                    <?= e((string) $act['title']) ?>
+                                </a>
+                                <small class="text-muted ms-2">
+                                    <?= e(__t('activities.type.' . $act['type'])) ?> ·
+                                    <?= (int) $act['xp_value'] ?> XP ·
+                                    <?php if ($subs > 0): ?>
+                                        <a href="/teacher/activity/<?= $aid ?>/submissions" class="text-decoration-none">
+                                            <?= $subs ?> <?= e(__t('activities.submissions_label')) ?>
+                                        </a>
+                                    <?php else: ?>
+                                        <?= $subs ?> <?= e(__t('activities.submissions_label')) ?>
+                                    <?php endif; ?>
+                                </small>
+                            </div>
+
+                            <?php if ($open): ?>
+                                <span class="badge text-bg-success"><?= e(__t('activities.status.open')) ?></span>
+                            <?php else: ?>
+                                <span class="badge text-bg-secondary"><?= e(__t('activities.status.closed')) ?></span>
+                            <?php endif; ?>
+
+                            <?php if (!$isArchived): ?>
+                                <div class="d-flex gap-1">
+                                    <form method="POST" action="/teacher/activity/<?= $aid ?>/move-up" class="d-inline">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                                <?= $i === 0 ? 'disabled' : '' ?>
+                                                aria-label="<?= e(__t('activities.action.move_up')) ?>">↑</button>
+                                    </form>
+                                    <form method="POST" action="/teacher/activity/<?= $aid ?>/move-down" class="d-inline">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                                <?= $i === $activityCount - 1 ? 'disabled' : '' ?>
+                                                aria-label="<?= e(__t('activities.action.move_down')) ?>">↓</button>
+                                    </form>
+                                    <form method="POST" action="/teacher/activity/<?= $aid ?>/toggle" class="d-inline">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="btn btn-sm btn-outline-<?= $open ? 'warning' : 'success' ?>">
+                                            <?= e(__t($open ? 'activities.action.close' : 'activities.action.open')) ?>
+                                        </button>
+                                    </form>
+                                </div>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
         </div>
 
         <?php if ($attachments !== []): ?>

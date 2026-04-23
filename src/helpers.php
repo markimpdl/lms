@@ -26,6 +26,31 @@ function e(mixed $v): string
  * Resolve o idioma corrente uma vez por request.
  * Ordem: ?lang= (persistido em sessão) → sessão → preferência do user → 'pt'.
  */
+/**
+ * Status de progresso do aluno em uma CU. Retorna struct
+ * `['status' => 'not_started'|'in_progress'|'completed', 'percent' => 0-100]`.
+ *
+ * Delega pra `StudentProgress::cuStatus` — a fórmula real vive lá.
+ * Fórmula documentada em `doc/10-progresso-e-dashboards.md`.
+ *
+ * @return array{status:string, percent:int}
+ */
+function student_cu_status(int $cuId, int $studentId): array
+{
+    return StudentProgress::cuStatus($cuId, $studentId);
+}
+
+/**
+ * Status agregado de um curso pro aluno: percent = média das CUs avaliáveis
+ * (ver doc/10).
+ *
+ * @return array{status:string, percent:int}
+ */
+function student_course_status(int $courseId, int $studentId): array
+{
+    return StudentProgress::courseStatus($courseId, $studentId);
+}
+
 function current_lang(): string
 {
     static $resolved = null;

@@ -130,6 +130,46 @@ return [
             'role'   => 'teacher',
             'params' => ['id', 'aid'],
         ],
+        '#^/teacher/cu/(\d+)/activity/new$#' => [
+            'file'   => '/src/pages/teacher/activity/new.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/activity/(\d+)/edit$#' => [
+            'file'   => '/src/pages/teacher/activity/edit.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/activity/(\d+)/move-(up|down)$#' => [
+            'file'   => '/src/pages/teacher/activity/move.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'direction'],
+        ],
+        '#^/teacher/activity/(\d+)/toggle$#' => [
+            'file'   => '/src/pages/teacher/activity/toggle.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/activity/(\d+)/submissions$#' => [
+            'file'   => '/src/pages/teacher/activity/submissions.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/activity/(\d+)/delete$#' => [
+            'file'   => '/src/pages/teacher/activity/delete.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/activity/(\d+)/submission/(\d+)$#' => [
+            'file'   => '/src/pages/teacher/activity/submission-review.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'student_id'],
+        ],
+        '#^/teacher/activity/(\d+)/submission/(\d+)/file$#' => [
+            'file'   => '/src/pages/teacher/activity/submission-file.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'student_id'],
+        ],
         '#^/teacher/cu/(\d+)/attachment/(\d+)$#' => [
             'file'   => '/src/pages/teacher/cu/attachment-download.php',
             'role'   => 'teacher',
@@ -137,6 +177,21 @@ return [
         ],
         '#^/student/course/(\d+)$#' => [
             'file'   => '/src/pages/student/course/show.php',
+            'role'   => 'student',
+            'params' => ['id'],
+        ],
+        '#^/student/activity/(\d+)$#' => [
+            'file'   => '/src/pages/student/activity/show.php',
+            'role'   => 'student',
+            'params' => ['id'],
+        ],
+        '#^/student/activity/(\d+)/delete$#' => [
+            'file'   => '/src/pages/student/activity/delete.php',
+            'role'   => 'student',
+            'params' => ['id'],
+        ],
+        '#^/student/activity/(\d+)/file$#' => [
+            'file'   => '/src/pages/student/activity/file.php',
             'role'   => 'student',
             'params' => ['id'],
         ],
