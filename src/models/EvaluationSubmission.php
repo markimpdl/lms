@@ -156,6 +156,60 @@ final class EvaluationSubmission
     }
 
     /**
+     * Listagem pro professor (E7-04): todos os alunos matriculados no curso
+     * da CU + LEFT JOIN com a tentativa corrente (is_current=1). Alunos sem
+     * submissão aparecem com `attempt/filename/grade/...` NULL.
+     *
+     * Valida tenant via JOIN em courses. Ordena por nome do aluno (asc).
+     *
+     * @return list<array<string,mixed>>
+     */
+    public static function listForEvaluation(int $evaluationId, int $tenantId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT u.id AS student_id, u.name AS student_name, u.email AS student_email,
+                    s.id AS submission_id, s.attempt, s.filename, s.grade,
+                    s.feedback_at, s.retry_allowed, s.created_at AS submitted_at,
+                    (SELECT COUNT(*) FROM evaluation_submissions s2
+                      WHERE s2.evaluation_id = e.id
+                        AND s2.student_user_id = u.id) AS attempts_count
+               FROM evaluations e
+               JOIN competence_units cu   ON cu.id = e.competence_unit_id
+               JOIN core_competencies cc  ON cc.id = cu.core_competency_id
+               JOIN courses c             ON c.id  = cc.course_id AND c.tenant_id = ?
+               JOIN enrollments enr       ON enr.course_id = c.id
+               JOIN users u               ON u.id  = enr.student_user_id
+                                         AND u.role = \'student\'
+                                         AND u.active = 1
+               LEFT JOIN evaluation_submissions s
+                      ON s.evaluation_id = e.id
+                     AND s.student_user_id = u.id
+                     AND s.is_current = 1
+              WHERE e.id = ?
+              ORDER BY u.name ASC, u.id ASC'
+        );
+        $stmt->execute([$tenantId, $evaluationId]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Conta submissões correntes (is_current=1) da avaliação ainda sem
+     * feedback. Usado no CTA do edit.php pra indicar quantas correções
+     * estão pendentes. Não conta tentativas arquivadas.
+     */
+    public static function countPendingForEvaluation(int $evaluationId): int
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT COUNT(*) FROM evaluation_submissions
+              WHERE evaluation_id = ?
+                AND is_current = 1
+                AND feedback_at IS NULL'
+        );
+        $stmt->execute([$evaluationId]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
      * Busca 1 submissão específica pro professor baixar o arquivo. Valida
      * que a avaliação pertence ao tenant. null se alheia.
      *

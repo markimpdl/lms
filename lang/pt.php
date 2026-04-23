@@ -475,6 +475,23 @@ return [
     'evaluations.grade.err.feedback_too_long' => 'Feedback tem mais de 4000 caracteres.',
     'evaluations.grade.err.not_current' => 'Só a tentativa atual pode ser corrigida.',
 
+    // Listagem de submissões (E7-04)
+    'evaluations.submissions.page_title'   => 'Entregas — :name',
+    'evaluations.submissions.summary'      => ':total aluno(s) · :pending aguardando correção · :approved aprovado(s)',
+    'evaluations.submissions.empty'        => 'Nenhum aluno matriculado no curso desta avaliação ainda.',
+    'evaluations.submissions.cta'          => 'Ver entregas · :pending pendentes de :total',
+    'evaluations.submissions.col_student'  => 'Aluno',
+    'evaluations.submissions.col_status'   => 'Status',
+    'evaluations.submissions.col_attempts' => 'Tentativas',
+    'evaluations.submissions.col_sent_at'  => 'Última entrega',
+    'evaluations.submissions.action_grade'  => 'Corrigir',
+    'evaluations.submissions.action_review' => 'Abrir',
+    'evaluations.submissions.status.none'     => 'Não entregou',
+    'evaluations.submissions.status.awaiting' => 'Aguardando correção',
+    'evaluations.submissions.status.approved' => 'Aprovado :grade',
+    'evaluations.submissions.status.retry'    => 'Reenvio liberado :grade',
+    'evaluations.submissions.status.failed'   => 'Reprovado :grade',
+
     // Avaliações — visão do aluno (E7-02)
     'evaluations.student.card_section'   => 'Avaliação final',
     'evaluations.student.has_pdf'        => 'com enunciado em PDF',

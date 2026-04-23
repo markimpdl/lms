@@ -475,6 +475,23 @@ return [
     'evaluations.grade.err.feedback_too_long' => 'Feedback is longer than 4000 characters.',
     'evaluations.grade.err.not_current' => 'Only the current attempt can be graded.',
 
+    // Submissions list (E7-04)
+    'evaluations.submissions.page_title'   => 'Submissions — :name',
+    'evaluations.submissions.summary'      => ':total student(s) · :pending awaiting grading · :approved approved',
+    'evaluations.submissions.empty'        => 'No student is enrolled in the course for this evaluation yet.',
+    'evaluations.submissions.cta'          => 'View submissions · :pending pending of :total',
+    'evaluations.submissions.col_student'  => 'Student',
+    'evaluations.submissions.col_status'   => 'Status',
+    'evaluations.submissions.col_attempts' => 'Attempts',
+    'evaluations.submissions.col_sent_at'  => 'Last submission',
+    'evaluations.submissions.action_grade'  => 'Grade',
+    'evaluations.submissions.action_review' => 'Open',
+    'evaluations.submissions.status.none'     => 'Not submitted',
+    'evaluations.submissions.status.awaiting' => 'Awaiting grading',
+    'evaluations.submissions.status.approved' => 'Approved :grade',
+    'evaluations.submissions.status.retry'    => 'Resubmission allowed :grade',
+    'evaluations.submissions.status.failed'   => 'Failed :grade',
+
     // Evaluations — student view (E7-02)
     'evaluations.student.card_section'   => 'Final evaluation',
     'evaluations.student.has_pdf'        => 'with PDF instructions',
