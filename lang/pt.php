@@ -492,7 +492,7 @@ return [
     'evaluations.submissions.status.retry'    => 'Reenvio liberado :grade',
     'evaluations.submissions.status.failed'   => 'Reprovado :grade',
 
-    // Avaliações — visão do aluno (E7-02)
+    // Avaliações — visão do aluno (E7-02 + E7-05)
     'evaluations.student.card_section'   => 'Avaliação final',
     'evaluations.student.has_pdf'        => 'com enunciado em PDF',
     'evaluations.student.status.open'    => 'Entrega aberta',
@@ -500,6 +500,11 @@ return [
     'evaluations.student.status.not_submitted' => 'Não entregue',
     'evaluations.student.status.submitted'     => 'Entregue',
     'evaluations.student.status.graded'        => 'Nota recebida',
+    'evaluations.student.state.none'     => 'Não entregue',
+    'evaluations.student.state.awaiting' => 'Aguardando correção',
+    'evaluations.student.state.approved' => 'Aprovado :grade',
+    'evaluations.student.state.retry'    => 'Reenvio liberado :grade',
+    'evaluations.student.state.failed'   => 'Reprovado :grade',
     'evaluations.student.xp_note'        => '· XP liberado se nota ≥ 8,0',
     'evaluations.student.brief_title'    => 'Enunciado da avaliação',
     'evaluations.student.brief_hint'     => 'Baixe o PDF para ver todas as instruções da prova.',
