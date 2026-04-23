@@ -30,32 +30,25 @@ function e(mixed $v): string
  * Status de progresso do aluno em uma CU. Retorna struct
  * `['status' => 'not_started'|'in_progress'|'completed', 'percent' => 0-100]`.
  *
- * Placeholder até E6 (atividades) e E7 (avaliações) entregarem a lógica real.
- * Fórmula documentada em `doc/10-progresso-e-dashboards.md` — porcentagem
- * agrega entregas de atividades + aprovação na avaliação final (≥ 6).
+ * Delega pra `StudentProgress::cuStatus` — a fórmula real vive lá.
+ * Fórmula documentada em `doc/10-progresso-e-dashboards.md`.
  *
  * @return array{status:string, percent:int}
  */
 function student_cu_status(int $cuId, int $studentId): array
 {
-    // TODO [E6/E7]: substituir pelo cálculo real:
-    //   entregues   = COUNT activity_submissions WHERE activity.cu_id=? AND student=?
-    //   avaliada_ok = evaluation_submissions WHERE eval.cu_id=? AND student=? AND grade>=6
-    //   total_pesos = N_activities(cu) + (has_evaluation(cu) ? 1 : 0)
-    //   percent     = round((entregues + avaliada_ok) / total_pesos * 100)
-    return ['status' => 'not_started', 'percent' => 0];
+    return StudentProgress::cuStatus($cuId, $studentId);
 }
 
 /**
- * Status agregado de um curso pro aluno: percent = média das CUs (ver doc/10).
- * Placeholder idem.
+ * Status agregado de um curso pro aluno: percent = média das CUs avaliáveis
+ * (ver doc/10).
  *
  * @return array{status:string, percent:int}
  */
 function student_course_status(int $courseId, int $studentId): array
 {
-    // TODO [E6/E7]: percent = (CUs concluídas / total CUs avaliáveis) × 100
-    return ['status' => 'not_started', 'percent' => 0];
+    return StudentProgress::courseStatus($courseId, $studentId);
 }
 
 function current_lang(): string

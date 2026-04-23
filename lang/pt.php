@@ -349,6 +349,13 @@ return [
     'student.content.attachments_title'  => 'Materiais anexos',
     'student.content.download'           => 'Baixar',
 
+    // Seção de atividades na visão do aluno (E6-06)
+    'student.activities.section_title'           => 'Atividades',
+    'student.activities.status.not_submitted'    => 'Não entregue',
+    'student.activities.status.submitted'        => 'Entregue',
+    'student.activities.status.with_feedback'    => 'Com feedback',
+    'student.activities.status.closed'           => 'Entrega fechada',
+
     // Status de progresso (placeholders; cálculo real em E6/E7)
     'status.course.not_started' => 'Não iniciada',
     'status.course.in_progress' => 'Em andamento',

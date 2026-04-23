@@ -127,4 +127,33 @@ final class ActivitySubmission
         }
         return $submission['feedback_at'] === null;
     }
+
+    /**
+     * Lista atividades de uma CU com status da entrega do aluno (E6-06).
+     * LEFT JOIN em activity_submissions: null quando não há entrega.
+     * Só retorna se o aluno tem matrícula ativa no curso.
+     *
+     * @return list<array<string,mixed>>
+     */
+    public static function listForStudentInCu(int $cuId, int $studentId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT a.id, a.title, a.type, a.xp_value, a.submission_open,
+                    a.position,
+                    s.id AS submission_id, s.feedback_at
+               FROM activities a
+               JOIN competence_units cu   ON cu.id = a.competence_unit_id
+               JOIN core_competencies cc  ON cc.id = cu.core_competency_id
+               JOIN courses c             ON c.id  = cc.course_id
+               JOIN enrollments e         ON e.course_id = c.id
+                                         AND e.student_user_id = ?
+               LEFT JOIN activity_submissions s
+                                         ON s.activity_id = a.id
+                                        AND s.student_user_id = ?
+              WHERE a.competence_unit_id = ?
+              ORDER BY a.position ASC, a.id ASC'
+        );
+        $stmt->execute([$studentId, $studentId, $cuId]);
+        return $stmt->fetchAll();
+    }
 }

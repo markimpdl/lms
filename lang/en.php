@@ -349,6 +349,13 @@ return [
     'student.content.attachments_title'  => 'Attached materials',
     'student.content.download'           => 'Download',
 
+    // Activities section on student view (E6-06)
+    'student.activities.section_title'           => 'Activities',
+    'student.activities.status.not_submitted'    => 'Not submitted',
+    'student.activities.status.submitted'        => 'Submitted',
+    'student.activities.status.with_feedback'    => 'With feedback',
+    'student.activities.status.closed'           => 'Closed',
+
     // Progress status (placeholders; real calc in E6/E7)
     'status.course.not_started' => 'Not started',
     'status.course.in_progress' => 'In progress',
