@@ -260,6 +260,13 @@ tinymce.init({
         var html = resolveVideoUrl(data.source);
         resolve({ html: html });
     },
+    // URLs no HTML salvo são preservadas como foram inseridas — sem isso o
+    // TinyMCE converte `/teacher/cu/.../attachment/.../view` em path relativo
+    // à página de edição, que resolve errado quando o HTML é renderizado
+    // na página `/teacher/cu/{id}` (show) ou pelo aluno em `/student/...`.
+    convert_urls: false,
+    relative_urls: false,
+
     branding: false,
     promotion: false,
     skin: 'oxide',
