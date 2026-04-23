@@ -135,6 +135,11 @@ return [
             'role'   => 'teacher',
             'params' => ['id'],
         ],
+        '#^/teacher/students/(\d+)/reset-password$#' => [
+            'file'   => '/src/pages/teacher/students/reset-password.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
         '#^/teacher/students/(\d+)/enroll$#' => [
             'file'   => '/src/pages/teacher/students/enroll.php',
             'role'   => 'teacher',

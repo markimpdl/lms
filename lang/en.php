@@ -391,6 +391,18 @@ return [
     'students.creds_smtp_off'        => 'Copy the credentials below and share with the student — this panel disappears on reload.',
     'students.creds_opted_out'       => 'You opted out of email. Copy the credentials before leaving this screen.',
 
+    'students.password_reset.button'            => 'Reset password',
+    'students.password_reset.title'             => 'Reset password for :name',
+    'students.password_reset.new_password'      => 'New password',
+    'students.password_reset.send_email'        => 'Send new password by email',
+    'students.password_reset.confirm'           => 'Reset password',
+    'students.password_reset.smtp_off_notice'   => 'Email delivery is not configured yet — the new password will be shown on this screen after the reset.',
+    'students.password_reset.note'              => "Any active session of this student on any device will end at the next click.",
+    'students.password_reset.done'              => "Password for :name has been reset.",
+    'students.password_reset.creds_title'       => 'New password for :name',
+    'students.password_reset.creds_smtp_off'    => 'Copy the password below and hand it to the student — this panel disappears on refresh.',
+    'students.password_reset.creds_opted_out'   => 'You opted not to send an email. Copy the password before leaving this page.',
+
     'students.deactivate.title'         => 'Deactivate student',
     'students.deactivate.intro_prefix'  => 'You are about to deactivate ',
     'students.deactivate.intro_suffix'  => '. The student will not be able to sign in until reactivated.',

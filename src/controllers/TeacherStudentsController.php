@@ -10,6 +10,7 @@ declare(strict_types=1);
  *
  * Transients de sessão:
  *   $_SESSION['student_creds_once']           — credenciais pós-cadastro
+ *   $_SESSION['student_password_reset_once']  — senha pós-reset (E4-05)
  *
  * Validados por `student_id` antes de exibir para não vazarem entre telas.
  */
@@ -194,6 +195,71 @@ final class TeacherStudentsController
     }
 
     /**
+     * POST /teacher/students/{id}/reset-password — força nova senha do aluno
+     * (E4-05). Replica o padrão de `AdminTeachersController::resetPassword`
+     * de E2-07: timestamp gerado em PHP (literal no UPDATE, evita drift de
+     * relógio com o middleware de E1-05) + transient de sessão quando o
+     * email não é entregue.
+     *
+     * Sessão ativa do aluno é invalidada no próximo request pelo mesmo
+     * middleware — nada a fazer aqui.
+     *
+     * @return array<string,string> erros por campo; vazio em sucesso.
+     */
+    public static function resetPassword(int $studentId, string $newPassword, bool $sendByEmail): array
+    {
+        $tenantId = current_tenant_id();
+        if ($tenantId === null) {
+            http_response_code(403);
+            require LMS_ROOT . '/src/templates/errors/403.php';
+            exit;
+        }
+
+        if (strlen($newPassword) < 8) {
+            return ['new_password' => 'students.form.err.password_min'];
+        }
+
+        $student = Student::findForTenant($studentId, $tenantId);
+        if ($student === null) {
+            http_response_code(404);
+            require LMS_ROOT . '/src/templates/errors/404.php';
+            exit;
+        }
+
+        $now  = date('Y-m-d H:i:s');
+        $hash = password_hash($newPassword, PASSWORD_BCRYPT, ['cost' => 12]);
+
+        Database::pdo()->prepare(
+            'UPDATE users SET password_hash = ?, password_changed_at = ?
+              WHERE id = ? AND tenant_id = ?'
+        )->execute([$hash, $now, $studentId, $tenantId]);
+
+        $mailDelivered = false;
+        if ($sendByEmail && Mailer::isConfigured()) {
+            self::sendPasswordResetEmail([
+                'email'    => (string) $student['email'],
+                'password' => $newPassword,
+                'language' => (string) $student['language'],
+            ]);
+            $mailDelivered = true;
+        }
+
+        if (!$mailDelivered) {
+            $_SESSION['student_password_reset_once'] = [
+                'student_id' => $studentId,
+                'name'       => (string) $student['name'],
+                'email'      => (string) $student['email'],
+                'password'   => $newPassword,
+                'reason'     => $sendByEmail ? 'smtp_unavailable' : 'teacher_opted_out',
+            ];
+        }
+
+        flash('success', __t('students.password_reset.done', ['name' => (string) $student['name']]));
+        header('Location: /teacher/students/' . $studentId, true, 303);
+        exit;
+    }
+
+    /**
      * Monta e entrega o email de boas-vindas no idioma do aluno.
      *
      * @param array{name:string, email:string, password:string, language:string} $student
@@ -206,6 +272,32 @@ final class TeacherStudentsController
         $base = rtrim((string) ($GLOBALS['__ENV']['APP_BASE_URL'] ?? ''), '/');
         $data = [
             'name'      => $student['name'],
+            'email'     => $student['email'],
+            'password'  => $student['password'],
+            'login_url' => $base . '/login',
+        ];
+
+        /** @var array{subject:string, html:string, text:string} $tpl */
+        $tpl = (static function (string $tplPath, array $data): array {
+            return require $tplPath;
+        })($path, $data);
+
+        Mailer::send($student['email'], $tpl['subject'], $tpl['html'], $tpl['text']);
+    }
+
+    /**
+     * Variante pós-reset de senha (E4-05) — template separado porque o
+     * corpo muda (aviso de reset, não cadastro).
+     *
+     * @param array{email:string, password:string, language:string} $student
+     */
+    private static function sendPasswordResetEmail(array $student): void
+    {
+        $lang = in_array($student['language'], ['pt', 'en'], true) ? $student['language'] : 'pt';
+        $path = LMS_ROOT . '/src/templates/email/student_password_reset.' . $lang . '.php';
+
+        $base = rtrim((string) ($GLOBALS['__ENV']['APP_BASE_URL'] ?? ''), '/');
+        $data = [
             'email'     => $student['email'],
             'password'  => $student['password'],
             'login_url' => $base . '/login',
