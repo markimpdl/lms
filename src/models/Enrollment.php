@@ -76,6 +76,9 @@ final class Enrollment
         $page       = max(1, min($page, $totalPages));
         $offset     = ($page - 1) * self::PER_PAGE;
 
+        // Placeholders posicionais em tudo: PDO (com emulação off) não aceita
+        // mistura de `?` e `:nome` no mesmo statement. Mantemos o mesmo estilo
+        // da query de COUNT acima, repetindo $tenantId nas duas posições.
         $sql = <<<SQL
             SELECT u.id AS student_id, u.name, u.email, u.language, u.active,
                    e.enrolled_at
@@ -87,15 +90,15 @@ final class Enrollment
                AND u.tenant_id = ?
                AND u.role = "student"
              ORDER BY u.name ASC, u.id ASC
-             LIMIT :limit OFFSET :offset
+             LIMIT ? OFFSET ?
             SQL;
 
         $stmt = $pdo->prepare($sql);
-        $stmt->bindValue(1, $courseId, PDO::PARAM_INT);
-        $stmt->bindValue(2, $tenantId, PDO::PARAM_INT);
-        $stmt->bindValue(3, $tenantId, PDO::PARAM_INT);
-        $stmt->bindValue(':limit',  self::PER_PAGE, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset,        PDO::PARAM_INT);
+        $stmt->bindValue(1, $courseId,      PDO::PARAM_INT);
+        $stmt->bindValue(2, $tenantId,      PDO::PARAM_INT);
+        $stmt->bindValue(3, $tenantId,      PDO::PARAM_INT);
+        $stmt->bindValue(4, self::PER_PAGE, PDO::PARAM_INT);
+        $stmt->bindValue(5, $offset,        PDO::PARAM_INT);
         $stmt->execute();
 
         return [
