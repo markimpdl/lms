@@ -130,6 +130,16 @@ return [
             'role'   => 'teacher',
             'params' => ['id', 'aid'],
         ],
+        '#^/teacher/cu/(\d+)/activity/new$#' => [
+            'file'   => '/src/pages/teacher/activity/new.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/activity/(\d+)/edit$#' => [
+            'file'   => '/src/pages/teacher/activity/edit.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
         '#^/teacher/cu/(\d+)/attachment/(\d+)$#' => [
             'file'   => '/src/pages/teacher/cu/attachment-download.php',
             'role'   => 'teacher',
