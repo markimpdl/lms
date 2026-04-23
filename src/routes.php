@@ -170,6 +170,21 @@ return [
             'role'   => 'teacher',
             'params' => ['id', 'student_id'],
         ],
+        '#^/teacher/cu/(\d+)/evaluation/new$#' => [
+            'file'   => '/src/pages/teacher/evaluation/new.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/evaluation/(\d+)/edit$#' => [
+            'file'   => '/src/pages/teacher/evaluation/edit.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/evaluation/(\d+)/delete$#' => [
+            'file'   => '/src/pages/teacher/evaluation/delete.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
         '#^/teacher/cu/(\d+)/attachment/(\d+)$#' => [
             'file'   => '/src/pages/teacher/cu/attachment-download.php',
             'role'   => 'teacher',
