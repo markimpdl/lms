@@ -55,6 +55,10 @@ if ($html !== '') {
 // Atividades da CU com status da entrega do aluno (E6-06).
 $activities = ActivitySubmission::listForStudentInCu($cuId, $studentId);
 
+// Avaliação da CU (E7-02). Aluno já passou pelo findForStudent acima
+// (matrícula validada). tenant_id do aluno = tenant do curso (ADR-026).
+$evaluation = Evaluation::findByCu($cuId, (int) ($user['tenant_id'] ?? 0));
+
 // Anexos: só se o aluno tem matrícula (já validado). Listamos via o
 // contentId pra evitar nova validação N vezes. Se não há content, não há
 // anexos mesmo assim.
@@ -142,6 +146,30 @@ ob_start();
                         </a>
                     <?php endforeach; ?>
                 </div>
+            </section>
+        <?php endif; ?>
+
+        <?php if ($evaluation !== null): ?>
+            <?php
+                $evOpen = (int) $evaluation['submission_open'] === 1;
+            ?>
+            <section class="mb-3">
+                <h2 class="h6 mb-2"><?= e(__t('evaluations.student.card_section')) ?></h2>
+                <a href="/student/evaluation/<?= (int) $evaluation['id'] ?>"
+                   class="lms-card lms-card--in-progress">
+                    <div class="lms-card__body">
+                        <div class="lms-card__title"><?= e((string) $evaluation['title']) ?></div>
+                        <div class="lms-card__meta">
+                            <?= (int) $evaluation['xp_value'] ?> XP
+                            <?php if ($evaluation['pdf_path'] !== null): ?>
+                                · <?= e(__t('evaluations.student.has_pdf')) ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <span class="badge text-bg-<?= $evOpen ? 'secondary' : 'dark' ?>">
+                        <?= e(__t($evOpen ? 'evaluations.student.status.open' : 'evaluations.student.status.closed')) ?>
+                    </span>
+                </a>
             </section>
         <?php endif; ?>
 
