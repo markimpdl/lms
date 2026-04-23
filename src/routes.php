@@ -38,10 +38,12 @@ return [
         '/admin/teachers'      => ['file' => '/src/pages/admin/teachers/index.php',  'role' => 'super_admin'],
         '/admin/teachers/new'  => ['file' => '/src/pages/admin/teachers/new.php',    'role' => 'super_admin'],
         '/teacher'             => ['file' => '/src/pages/dashboard/teacher.php',     'role' => 'teacher'],
-        '/teacher/courses'     => ['file' => '/src/pages/teacher/courses/index.php', 'role' => 'teacher'],
-        '/teacher/courses/new' => ['file' => '/src/pages/teacher/courses/new.php',   'role' => 'teacher'],
-        '/teacher/cc/new'      => ['file' => '/src/pages/teacher/cc/new.php',        'role' => 'teacher'],
-        '/teacher/cu/new'      => ['file' => '/src/pages/teacher/cu/new.php',        'role' => 'teacher'],
+        '/teacher/courses'      => ['file' => '/src/pages/teacher/courses/index.php',  'role' => 'teacher'],
+        '/teacher/courses/new'  => ['file' => '/src/pages/teacher/courses/new.php',    'role' => 'teacher'],
+        '/teacher/cc/new'       => ['file' => '/src/pages/teacher/cc/new.php',         'role' => 'teacher'],
+        '/teacher/cu/new'       => ['file' => '/src/pages/teacher/cu/new.php',         'role' => 'teacher'],
+        '/teacher/students'     => ['file' => '/src/pages/teacher/students/index.php', 'role' => 'teacher'],
+        '/teacher/students/new' => ['file' => '/src/pages/teacher/students/new.php',   'role' => 'teacher'],
         '/student'             => ['file' => '/src/pages/dashboard/student.php',     'role' => 'student'],
     ],
 
@@ -113,6 +115,21 @@ return [
         ],
         '#^/teacher/cu/(\d+)/delete$#' => [
             'file'   => '/src/pages/teacher/cu/delete.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/students/(\d+)$#' => [
+            'file'   => '/src/pages/teacher/students/show.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/students/(\d+)/toggle$#' => [
+            'file'   => '/src/pages/teacher/students/toggle.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/students/(\d+)/delete$#' => [
+            'file'   => '/src/pages/teacher/students/delete.php',
             'role'   => 'teacher',
             'params' => ['id'],
         ],
