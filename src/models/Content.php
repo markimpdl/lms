@@ -71,7 +71,42 @@ final class Content
                  published = VALUES(published)'
         )->execute([$cuId, $html, $published ? 1 : 0]);
 
+        // E5-06: fanout de notifications quando o conteúdo está publicado.
+        // Uma linha por aluno matriculado no curso que contém a CU. E10
+        // (entrega real por email + inbox na UI) normaliza/deduplica — aqui
+        // o contrato é só "infra registrada". Saves com published=0 não
+        // disparam nada.
+        if ($published) {
+            self::fanoutPublishedNotifications($cuId);
+        }
+
         return 'ok';
+    }
+
+    /**
+     * Insere uma linha em `notifications` por aluno matriculado no curso que
+     * contém a CU, com type='content_published'. `title` = nome da CU,
+     * `body` = nome do curso, `link` = rota do aluno (E5-05).
+     *
+     * Caller deve ter validado acesso antes — esta função não verifica
+     * tenant novamente (é chamada pelo upsertForCu que já passou pela
+     * validação de tenant).
+     */
+    private static function fanoutPublishedNotifications(int $cuId): void
+    {
+        Database::pdo()->prepare(
+            "INSERT INTO notifications (user_id, type, title, body, link)
+             SELECT e.student_user_id,
+                    'content_published',
+                    cu.name,
+                    c.name,
+                    CONCAT('/student/cu/', cu.id)
+               FROM enrollments e
+               JOIN courses c            ON c.id  = e.course_id
+               JOIN core_competencies cc ON cc.course_id = c.id
+               JOIN competence_units cu  ON cu.core_competency_id = cc.id
+              WHERE cu.id = ?"
+        )->execute([$cuId]);
     }
 
     /**
