@@ -4,6 +4,49 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.5.0] — 2026-04-23
+
+Quinta release. Escopo: **atividades — ciclo aluno produz, professor corrige** — Épico E6 inteiro + redesign visual do painel do aluno em cards com anel de progresso. É a primeira release onde o fluxo pedagógico fecha de ponta a ponta: aluno lê conteúdo (E5), entrega atividade, ganha XP, recebe feedback.
+
+### Novas funcionalidades
+
+#### Atividades (Épico E6)
+- CRUD de atividade pelo professor com instrução em HTML rico (TinyMCE + ContentSanitizer, padrão E5), seletor de tipo, XP ao entregar, toggle de entrega aberta/fechada, checkbox "execução online de código" com badge "em breve" (Judge0 virá em E8). Alert amarelo no form de edição quando há submissões: "N aluno(s) já enviaram… as entregas existentes permanecem e os alunos não podem reenviar" (E6-01).
+- Listagem de atividades na tela da CU com reordenação por swap + renormalização de positions (padrão E3-02), toggle instantâneo de abertura de entrega, contador de submissões clicável (link pra lista de correção) (E6-02).
+- Entrega do aluno em `/student/activity/{id}` com upload (PDF/ZIP/TXT ≤ 3 MB, mime real via `finfo_file`) e/ou `code_text` pra atividades do tipo Código. XP creditado automaticamente na primeira entrega via `XpEvents::awardActivity` (ADR-002) — idempotente por UK composite. ADR-027: aluno edita/remove enquanto `feedback_at IS NULL`; após feedback, tela fica readonly. Nome de arquivo determinístico `<student_id>.<ext>` substitui a versão anterior ao reenviar (E6-03).
+- Feedback do professor em `/teacher/activity/{id}/submissions` com lista ordenada por pendentes no topo (`feedback_at IS NULL DESC`). Tela de correção individual tem a instrução (readonly), download do arquivo, preview do code_text e textarea de feedback (≤ 4000 chars). Ao salvar dispara fanout stub em `notifications` (padrão E5-06) pronto pra o E10 consumir (E6-04).
+- Exclusão permanente de atividade com confirmação por digitação do título (padrão E3-05). Cascade FK apaga `activity_submissions`; `xp_events` é polimórfico e recebe DELETE manual em transação; arquivos físicos e diretório da atividade são removidos pós-commit com validação anti path traversal (E6-05).
+- Cards de atividade no painel do aluno em `/student/cu/{id}` com 4 estados (não entregue / entregue / com feedback / entrega fechada). Helpers `student_cu_status` e `student_course_status` deixam de ser placeholders e delegam pro novo model `StudentProgress` — anéis de progresso do dashboard e da tela do curso passam a refletir o estado real automaticamente (E6-06).
+
+#### UX do painel do aluno (antecipação de E6/E7)
+- Cards com borda lateral colorida por status (cinza / laranja / verde) e anel circular de % via `conic-gradient` (zero JS). Aplicado no dashboard (cursos) e em `/student/course/{id}` (CUs dentro do curso). Navegação em árvore "curso → CCs → CUs" consolidada (#99).
+
+### Mudanças de schema
+- `activities.position INT UNSIGNED NOT NULL DEFAULT 0` — alimenta a reordenação de E6-02.
+- `xp_events.uk_xp_student_source (student_user_id, source_type, source_id)` UNIQUE — garante idempotência de `XpEvents::awardActivity` (múltiplos saves da mesma submissão não duplicam XP).
+- `activities.type` reduzido de `ENUM('quiz','pesquisa','formulario','projeto','codigo')` para `ENUM('projeto','codigo')` — os tipos estruturados (quiz/survey/form) voltam em um épico futuro com modelagem própria; rows existentes com tipos antigos foram migradas pra `projeto` via guard idempotente em `INFORMATION_SCHEMA.COLUMN_TYPE`.
+
+Todas aplicadas em prod via seção "Migrações incrementais" do `install/schema.sql` (ADR-017).
+
+### Convenções consolidadas nesta janela
+- **Cálculo de progresso centralizado** — model `StudentProgress` concentra a fórmula documentada em `doc/10` (entregues + avaliação aprovada) / (total atividades + tem avaliação). Helpers globais são thin wrappers. Quando E7 chegar, basta alterar o cálculo em um lugar.
+- **Fanout de notification por evento de aluno** — stubs (E5-06 publicar conteúdo + E6-04 feedback) seguem o mesmo formato `type + title + body + link`. E10 deduplica/entrega.
+- **Cascade polimórfico em aplicação** — quando uma FK não cobre (ex.: `xp_events.source_id` polimórfico), o controller faz o DELETE manual em transação antes do DELETE da origem.
+- **Upload com nome determinístico** — submissões usam `<student_id>.<ext>` em vez de UUID porque a semântica é "1 entrega por aluno por atividade"; substituir a versão anterior vira o comportamento natural.
+- **Guard de migração ENUM via COLUMN_TYPE** — pra reduzir ENUMs sem quebrar em runs repetidos, consultar `INFORMATION_SCHEMA.COLUMNS.COLUMN_TYPE` pra detectar valores antigos antes de `UPDATE + ALTER MODIFY`.
+
+### Tooling
+- `package.json` bumpado para 0.5.0.
+
+### Pendências
+- Tipos de atividade estruturados (quiz, survey, form) voltam com modelagem própria em épico futuro.
+- Execução online de código (Judge0) — toggle já persiste em `activities.allow_online_code_run`, integração real é o Epic E8.
+- Notificações reais (email, sino) — infra em `notifications` recebe inserts stub desde E5-06 e E6-04; entrega efetiva é o Epic E10.
+- Remover arquivos órfãos em prod (pendências herdadas de v0.4.0): `src/lib/HtmlPurifier.php` e `public/_diag_*.php` (stubs 410).
+- Cross-tenant smoke ainda pendente — 1 tenant em prod (Marcos Ortolani).
+
+[0.5.0]: https://github.com/markimpdl/lms/releases/tag/v0.5.0
+
 ## [0.4.0] — 2026-04-23
 
 Quarta release. Escopo: **conteúdo da CU** — Épico E5 inteiro, do editor TinyMCE até a visão do aluno. Primeira entrega que o aluno consome ativamente. Entra também o dashboard funcional do aluno.
