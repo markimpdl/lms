@@ -140,6 +140,16 @@ return [
             'role'   => 'teacher',
             'params' => ['id'],
         ],
+        '#^/teacher/activity/(\d+)/move-(up|down)$#' => [
+            'file'   => '/src/pages/teacher/activity/move.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'direction'],
+        ],
+        '#^/teacher/activity/(\d+)/toggle$#' => [
+            'file'   => '/src/pages/teacher/activity/toggle.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
         '#^/teacher/cu/(\d+)/attachment/(\d+)$#' => [
             'file'   => '/src/pages/teacher/cu/attachment-download.php',
             'role'   => 'teacher',
