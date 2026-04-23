@@ -125,6 +125,30 @@ final class Course
     }
 
     /**
+     * Lista enxuta de cursos ativos do tenant — apenas id, name e year —
+     * para popular multi-selects (ex.: matricular aluno, E4-02). Ordenada
+     * por ano desc + nome asc para o curso "mais recente" aparecer primeiro.
+     *
+     * @return list<array{id:int,name:string,year:int}>
+     */
+    public static function listActiveForSelect(int $tenantId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT id, name, year
+               FROM courses
+              WHERE tenant_id = ? AND archived = 0
+              ORDER BY year DESC, name ASC'
+        );
+        $stmt->execute([$tenantId]);
+        $rows = $stmt->fetchAll();
+        return array_map(static fn(array $r): array => [
+            'id'   => (int) $r['id'],
+            'name' => (string) $r['name'],
+            'year' => (int) $r['year'],
+        ], $rows);
+    }
+
+    /**
      * @param array{name:string, description:?string, year:int, language:string} $data
      */
     public static function create(int $tenantId, array $data): int

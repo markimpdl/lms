@@ -7,12 +7,16 @@ declare(strict_types=1);
  * Em erro, re-renderiza o form com os valores antigos preservados.
  */
 
+$tenantId     = current_tenant_id();
+$activeCourses = $tenantId !== null ? Course::listActiveForSelect($tenantId) : [];
+
 $errors = [];
 $old = [
     'name'       => '',
     'email'      => '',
     'language'   => current_user()['language'] ?? 'pt',
     'send_email' => '1',
+    'course_ids' => [],
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -29,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'email'      => (string) ($_POST['email']    ?? ''),
         'language'   => (string) ($_POST['language'] ?? 'pt'),
         'send_email' => isset($_POST['send_email']) ? '1' : '0',
+        'course_ids' => array_map('intval', (array) ($_POST['course_ids'] ?? [])),
     ];
 
     $errors = TeacherStudentsController::create(
@@ -38,7 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'password' => (string) ($_POST['password'] ?? ''),
             'language' => $old['language'],
         ],
-        $old['send_email'] === '1'
+        $old['send_email'] === '1',
+        $old['course_ids']
     );
 }
 
@@ -122,6 +128,21 @@ ob_start();
                     <?= e(__t('students.form.send_email')) ?>
                 </label>
             </div>
+
+            <?php if ($activeCourses !== []): ?>
+                <div class="mb-3">
+                    <label for="f-courses" class="form-label"><?= e(__t('enrollments.form.enroll_in')) ?></label>
+                    <select name="course_ids[]" id="f-courses" class="form-select" multiple size="6">
+                        <?php foreach ($activeCourses as $c): ?>
+                            <option value="<?= (int) $c['id'] ?>"
+                                    <?= in_array((int) $c['id'], $old['course_ids'], true) ? 'selected' : '' ?>>
+                                <?= e($c['name']) ?> (<?= (int) $c['year'] ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div class="form-text"><?= e(__t('enrollments.form.enroll_in_hint')) ?></div>
+                </div>
+            <?php endif; ?>
 
             <div class="d-flex flex-wrap gap-2">
                 <button type="submit" class="btn btn-primary btn-lg">
