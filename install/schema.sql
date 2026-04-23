@@ -210,12 +210,15 @@ CREATE TABLE IF NOT EXISTS activity_submissions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 11. evaluations — 1 por CU (ADR-007)
+-- 11. evaluations — 1 por CU (ADR-007). tenant_id redundante por design:
+-- simplifica toda query do professor (filtra sem JOIN até core_competencies).
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS evaluations (
     id                  BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tenant_id           BIGINT UNSIGNED NOT NULL,
     competence_unit_id  BIGINT UNSIGNED NOT NULL,
     title               VARCHAR(200) NOT NULL,
+    instructions        TEXT NULL,
     pdf_path            VARCHAR(500) NULL,
     xp_value            INT UNSIGNED NOT NULL DEFAULT 0,
     submission_open     TINYINT(1) NOT NULL DEFAULT 1,
@@ -223,14 +226,18 @@ CREATE TABLE IF NOT EXISTS evaluations (
     updated_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_evaluations_cu (competence_unit_id),
-    CONSTRAINT fk_evaluations_cu FOREIGN KEY (competence_unit_id) REFERENCES competence_units(id) ON DELETE CASCADE
+    KEY idx_evaluations_tenant (tenant_id),
+    CONSTRAINT fk_evaluations_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+    CONSTRAINT fk_evaluations_cu     FOREIGN KEY (competence_unit_id) REFERENCES competence_units(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 12. evaluation_submissions — múltiplas tentativas (attempt)
+-- 12. evaluation_submissions — múltiplas tentativas (attempt). idx_es_eval_current
+-- acelera listagem do professor (E7-04: WHERE evaluation_id = ? AND is_current = 1).
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS evaluation_submissions (
     id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tenant_id       BIGINT UNSIGNED NOT NULL,
     evaluation_id   BIGINT UNSIGNED NOT NULL,
     student_user_id BIGINT UNSIGNED NOT NULL,
     attempt         INT UNSIGNED NOT NULL DEFAULT 1,
@@ -246,6 +253,9 @@ CREATE TABLE IF NOT EXISTS evaluation_submissions (
     PRIMARY KEY (id),
     UNIQUE KEY uk_es_eval_student_attempt (evaluation_id, student_user_id, attempt),
     KEY idx_es_student (student_user_id),
+    KEY idx_es_tenant (tenant_id),
+    KEY idx_es_eval_current (evaluation_id, is_current),
+    CONSTRAINT fk_es_tenant     FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
     CONSTRAINT fk_es_evaluation FOREIGN KEY (evaluation_id) REFERENCES evaluations(id) ON DELETE CASCADE,
     CONSTRAINT fk_es_student    FOREIGN KEY (student_user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT chk_es_grade     CHECK (grade IS NULL OR (grade >= 0.0 AND grade <= 10.0))
@@ -493,6 +503,167 @@ SET @idx_exists := (
 );
 SET @sql := IF(@idx_exists = 0,
     'ALTER TABLE xp_events ADD UNIQUE KEY uk_xp_student_source (student_user_id, source_type, source_id)',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E7-00] evaluations.instructions — texto opcional do enunciado,
+-- complementar ao PDF (que é o anexo principal).
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'evaluations'
+       AND COLUMN_NAME  = 'instructions'
+);
+SET @sql := IF(@col_exists = 0,
+    'ALTER TABLE evaluations ADD COLUMN instructions TEXT NULL AFTER title',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E7-00] evaluations.tenant_id — redundância por design pra simplificar
+-- filtro de multi-tenancy sem JOIN. Sequência: (1) ADD COLUMN nullable,
+-- (2) backfill via JOIN cu→cc→courses, (3) MODIFY NOT NULL, (4) FK + KEY.
+-- Em prod v0.5.0 a tabela está vazia (E7 não executado ainda), mas o
+-- backfill é defensivo caso alguma base tenha dados herdados.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'evaluations'
+       AND COLUMN_NAME  = 'tenant_id'
+);
+SET @sql := IF(@col_exists = 0,
+    'ALTER TABLE evaluations ADD COLUMN tenant_id BIGINT UNSIGNED NULL AFTER id',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Backfill (no-op após primeira execução — WHERE tenant_id IS NULL zera).
+UPDATE evaluations ev
+  JOIN competence_units cu  ON cu.id  = ev.competence_unit_id
+  JOIN core_competencies cc ON cc.id  = cu.core_competency_id
+  JOIN courses c            ON c.id   = cc.course_id
+   SET ev.tenant_id = c.tenant_id
+ WHERE ev.tenant_id IS NULL;
+
+SET @is_nullable := (
+    SELECT IS_NULLABLE FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'evaluations'
+       AND COLUMN_NAME  = 'tenant_id'
+);
+SET @sql := IF(@is_nullable = 'YES',
+    'ALTER TABLE evaluations MODIFY COLUMN tenant_id BIGINT UNSIGNED NOT NULL',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @fk_exists := (
+    SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+     WHERE TABLE_SCHEMA    = DATABASE()
+       AND TABLE_NAME      = 'evaluations'
+       AND CONSTRAINT_NAME = 'fk_evaluations_tenant'
+       AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+);
+SET @sql := IF(@fk_exists = 0,
+    'ALTER TABLE evaluations ADD CONSTRAINT fk_evaluations_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @idx_exists := (
+    SELECT COUNT(*) FROM information_schema.STATISTICS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'evaluations'
+       AND INDEX_NAME   = 'idx_evaluations_tenant'
+);
+SET @sql := IF(@idx_exists = 0,
+    'ALTER TABLE evaluations ADD KEY idx_evaluations_tenant (tenant_id)',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E7-00] evaluation_submissions.tenant_id — mesma lógica de evaluations:
+-- redundância por design pra simplificar queries do professor. Backfill
+-- via JOIN evaluations→cu→cc→courses.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'evaluation_submissions'
+       AND COLUMN_NAME  = 'tenant_id'
+);
+SET @sql := IF(@col_exists = 0,
+    'ALTER TABLE evaluation_submissions ADD COLUMN tenant_id BIGINT UNSIGNED NULL AFTER id',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+UPDATE evaluation_submissions es
+  JOIN evaluations ev        ON ev.id  = es.evaluation_id
+  JOIN competence_units cu   ON cu.id  = ev.competence_unit_id
+  JOIN core_competencies cc  ON cc.id  = cu.core_competency_id
+  JOIN courses c             ON c.id   = cc.course_id
+   SET es.tenant_id = c.tenant_id
+ WHERE es.tenant_id IS NULL;
+
+SET @is_nullable := (
+    SELECT IS_NULLABLE FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'evaluation_submissions'
+       AND COLUMN_NAME  = 'tenant_id'
+);
+SET @sql := IF(@is_nullable = 'YES',
+    'ALTER TABLE evaluation_submissions MODIFY COLUMN tenant_id BIGINT UNSIGNED NOT NULL',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @fk_exists := (
+    SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+     WHERE TABLE_SCHEMA    = DATABASE()
+       AND TABLE_NAME      = 'evaluation_submissions'
+       AND CONSTRAINT_NAME = 'fk_es_tenant'
+       AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+);
+SET @sql := IF(@fk_exists = 0,
+    'ALTER TABLE evaluation_submissions ADD CONSTRAINT fk_es_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @idx_exists := (
+    SELECT COUNT(*) FROM information_schema.STATISTICS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'evaluation_submissions'
+       AND INDEX_NAME   = 'idx_es_tenant'
+);
+SET @sql := IF(@idx_exists = 0,
+    'ALTER TABLE evaluation_submissions ADD KEY idx_es_tenant (tenant_id)',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E7-00] idx_es_eval_current — acelera listagem do professor (E7-04)
+-- filtrando por (evaluation_id, is_current = 1). Composto cobre o caminho
+-- quente sem depender do PRIMARY ou de uk_es_eval_student_attempt.
+SET @idx_exists := (
+    SELECT COUNT(*) FROM information_schema.STATISTICS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'evaluation_submissions'
+       AND INDEX_NAME   = 'idx_es_eval_current'
+);
+SET @sql := IF(@idx_exists = 0,
+    'ALTER TABLE evaluation_submissions ADD KEY idx_es_eval_current (evaluation_id, is_current)',
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
