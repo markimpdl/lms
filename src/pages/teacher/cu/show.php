@@ -34,6 +34,8 @@ $content = Content::findForCu($cuId, $tenantId);
 $hasContent   = $content !== null;
 $isPublished  = $hasContent && (int) $content['published'] === 1;
 
+$attachments = ContentAttachment::listByCu($cuId, $tenantId);
+
 $tree       = curriculum_tree($courseId, $tenantId);
 $activeCcId = $ccId;
 $activeCuId = $cuId;
@@ -102,7 +104,7 @@ ob_start();
             </div>
         <?php endif; ?>
 
-        <div class="card shadow-sm">
+        <div class="card shadow-sm mb-3">
             <div class="card-body content-render">
                 <?php if ($hasContent): ?>
                     <?= (string) $content['html'] ?>
@@ -113,6 +115,35 @@ ob_start();
                 <?php endif; ?>
             </div>
         </div>
+
+        <?php if ($attachments !== []): ?>
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h2 class="h6 mb-0"><?= e(__t('student.content.attachments_title')) ?></h2>
+                </div>
+                <ul class="list-group list-group-flush">
+                    <?php foreach ($attachments as $att): ?>
+                        <?php $aid = (int) $att['id']; ?>
+                        <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
+                            <div class="flex-grow-1">
+                                <a href="/teacher/cu/<?= $cuId ?>/attachment/<?= $aid ?>"
+                                   class="fw-semibold text-decoration-none">
+                                    <?= e((string) $att['filename']) ?>
+                                </a>
+                                <small class="text-muted ms-2">
+                                    <?= e((string) $att['mime']) ?> ·
+                                    <?= e(number_format((int) $att['size_bytes'] / 1024, 1, ',', '.')) ?> KB
+                                </small>
+                            </div>
+                            <a href="/teacher/cu/<?= $cuId ?>/attachment/<?= $aid ?>"
+                               class="btn btn-sm btn-outline-primary">
+                                <?= e(__t('student.content.download')) ?>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 
