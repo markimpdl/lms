@@ -180,6 +180,7 @@ CREATE TABLE IF NOT EXISTS activities (
     xp_value              INT UNSIGNED NOT NULL DEFAULT 0,
     submission_open       TINYINT(1) NOT NULL DEFAULT 1,
     allow_online_code_run TINYINT(1) NOT NULL DEFAULT 0,
+    position              INT UNSIGNED NOT NULL DEFAULT 0,
     created_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
@@ -427,6 +428,23 @@ SET @col_exists := (
 );
 SET @sql := IF(@col_exists = 0,
     'ALTER TABLE contents ADD COLUMN published TINYINT(1) NOT NULL DEFAULT 0 AFTER html',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E6-01] activities.position — usada em E6-02 para reordenação (swap +
+-- renormalização, mesmo padrão de CC/CU). Default 0 não conflita porque a
+-- tela de listagem ordena por (position ASC, id ASC) e todas as atividades
+-- existentes vão começar com 0 e são reordenadas na primeira interação.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'activities'
+       AND COLUMN_NAME  = 'position'
+);
+SET @sql := IF(@col_exists = 0,
+    'ALTER TABLE activities ADD COLUMN position INT UNSIGNED NOT NULL DEFAULT 0 AFTER allow_online_code_run',
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;

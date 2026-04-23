@@ -91,10 +91,16 @@ ob_start();
                 <?php endif; ?>
             </div>
             <?php if (!$isArchived): ?>
-                <a href="/teacher/cu/<?= $cuId ?>/content/edit"
-                   class="btn btn-sm btn-primary">
-                    <?= e(__t($hasContent ? 'content.edit_button' : 'content.create_button')) ?>
-                </a>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="/teacher/cu/<?= $cuId ?>/content/edit"
+                       class="btn btn-sm btn-primary">
+                        <?= e(__t($hasContent ? 'content.edit_button' : 'content.create_button')) ?>
+                    </a>
+                    <a href="/teacher/cu/<?= $cuId ?>/activity/new"
+                       class="btn btn-sm btn-outline-primary">
+                        + <?= e(__t('activities.new_button')) ?>
+                    </a>
+                </div>
             <?php endif; ?>
         </div>
 
