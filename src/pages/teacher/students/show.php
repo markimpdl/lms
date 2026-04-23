@@ -54,6 +54,15 @@ if ($justCreated !== null && (int) ($justCreated['student_id'] ?? 0) === $studen
     $justCreated = null;
 }
 
+// Senha recém-resetada (E4-05) — mostrada UMA vez e drenada da sessão.
+// Só considerada se refere ao aluno aberto agora.
+$resetOnce = $_SESSION['student_password_reset_once'] ?? null;
+if ($resetOnce !== null && (int) ($resetOnce['student_id'] ?? 0) === $studentId) {
+    unset($_SESSION['student_password_reset_once']);
+} else {
+    $resetOnce = null;
+}
+
 $isActive = (int) $student['active'] === 1;
 
 $enrollments = Enrollment::listByStudent($studentId, $tenantId);
@@ -109,6 +118,25 @@ ob_start();
                     <dd class="col-8 col-md-9"><code><?= e($justCreated['email']) ?></code></dd>
                     <dt class="col-4 col-md-3"><?= e(__t('students.form.password')) ?></dt>
                     <dd class="col-8 col-md-9"><code><?= e($justCreated['password']) ?></code></dd>
+                </dl>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($resetOnce !== null): ?>
+            <div class="alert alert-success" role="alert">
+                <h2 class="h6 mb-2"><?= e(__t('students.password_reset.creds_title', ['name' => $resetOnce['name']])) ?></h2>
+                <p class="small mb-2">
+                    <?= e(__t(
+                        $resetOnce['reason'] === 'smtp_unavailable'
+                            ? 'students.password_reset.creds_smtp_off'
+                            : 'students.password_reset.creds_opted_out'
+                    )) ?>
+                </p>
+                <dl class="row mb-0 small">
+                    <dt class="col-4 col-md-3"><?= e(__t('students.form.email')) ?></dt>
+                    <dd class="col-8 col-md-9"><code><?= e($resetOnce['email']) ?></code></dd>
+                    <dt class="col-4 col-md-3"><?= e(__t('students.password_reset.new_password')) ?></dt>
+                    <dd class="col-8 col-md-9"><code><?= e($resetOnce['password']) ?></code></dd>
                 </dl>
             </div>
         <?php endif; ?>
@@ -288,6 +316,11 @@ ob_start();
             <hr>
 
             <div class="d-flex flex-wrap gap-2 justify-content-end">
+                <button type="button" class="btn btn-sm btn-outline-warning"
+                        data-bs-toggle="modal" data-bs-target="#resetPasswordModal">
+                    <?= e(__t('students.password_reset.button')) ?>
+                </button>
+
                 <form method="POST" action="/teacher/students/<?= (int) $studentId ?>/toggle" class="m-0 js-toggle-form"
                       <?php if ($isActive): ?>
                           data-confirm="<?= e(__t('students.deactivate.confirm_short', ['name' => (string) $student['name']])) ?>"
@@ -378,6 +411,65 @@ ob_start();
 </div>
 <?php endif; ?>
 
+<!-- Modal de reset de senha (E4-05) -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-hidden="true" aria-labelledby="resetPasswordTitle">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <div class="modal-content">
+            <form method="POST" action="/teacher/students/<?= (int) $studentId ?>/reset-password" novalidate>
+                <?= csrf_field() ?>
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="resetPasswordTitle">
+                        <?= e(__t('students.password_reset.title', ['name' => (string) $student['name']])) ?>
+                    </h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= e(__t('common.cancel')) ?>"></button>
+                </div>
+                <div class="modal-body">
+                    <?php if (!Mailer::isConfigured()): ?>
+                        <div class="alert alert-info small" role="alert">
+                            <?= e(__t('students.password_reset.smtp_off_notice')) ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="mb-3">
+                        <label for="f-new-password" class="form-label">
+                            <?= e(__t('students.password_reset.new_password')) ?>
+                        </label>
+                        <div class="input-group">
+                            <input type="text" name="new_password" id="f-new-password"
+                                   class="form-control form-control-lg"
+                                   required minlength="8" autocomplete="new-password">
+                            <button type="button" class="btn btn-outline-secondary" id="btn-gen-pass-reset">
+                                <?= e(__t('students.form.password_generate')) ?>
+                            </button>
+                        </div>
+                        <div class="form-text"><?= e(__t('students.form.password_hint')) ?></div>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="f-send-email-reset"
+                               name="send_email" value="1" checked>
+                        <label class="form-check-label" for="f-send-email-reset">
+                            <?= e(__t('students.password_reset.send_email')) ?>
+                        </label>
+                    </div>
+
+                    <p class="small text-muted mt-3 mb-0">
+                        <?= e(__t('students.password_reset.note')) ?>
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <?= e(__t('common.cancel')) ?>
+                    </button>
+                    <button type="submit" class="btn btn-warning">
+                        <?= e(__t('students.password_reset.confirm')) ?>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 window.addEventListener('load', function () {
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
@@ -392,6 +484,30 @@ document.querySelectorAll('form.js-toggle-form[data-confirm], form.js-unenroll-f
         }
     });
 });
+
+// "Gerar senha forte" no modal de reset — mesma lógica de new.php.
+(function () {
+    var btn = document.getElementById('btn-gen-pass-reset');
+    var input = document.getElementById('f-new-password');
+    if (!btn || !input) return;
+
+    function pick(src) { return src.charAt(Math.floor(Math.random() * src.length)); }
+    function generate() {
+        var lower   = 'abcdefghijkmnpqrstuvwxyz';
+        var upper   = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+        var digits  = '23456789';
+        var symbols = '!@#$%&*?';
+        var all     = lower + upper + digits + symbols;
+        var out = pick(lower) + pick(upper) + pick(digits) + pick(symbols);
+        for (var i = 0; i < 8; i++) out += pick(all);
+        return out.split('').sort(function () { return Math.random() - 0.5; }).join('');
+    }
+    btn.addEventListener('click', function () {
+        input.value = generate();
+        input.focus();
+        input.select();
+    });
+})();
 </script>
 <?php
 $page_content = ob_get_clean();

@@ -391,6 +391,18 @@ return [
     'students.creds_smtp_off'        => 'Copie as credenciais abaixo e entregue ao aluno — este painel some ao recarregar.',
     'students.creds_opted_out'       => 'Você optou por não enviar email. Copie as credenciais antes de sair da tela.',
 
+    'students.password_reset.button'            => 'Resetar senha',
+    'students.password_reset.title'             => 'Resetar senha de :name',
+    'students.password_reset.new_password'      => 'Nova senha',
+    'students.password_reset.send_email'        => 'Enviar nova senha por email',
+    'students.password_reset.confirm'           => 'Redefinir senha',
+    'students.password_reset.smtp_off_notice'   => 'O envio de email ainda não está configurado — a nova senha aparecerá nesta tela após o reset.',
+    'students.password_reset.note'              => 'A sessão atual do aluno em qualquer dispositivo será encerrada no próximo clique.',
+    'students.password_reset.done'              => 'Senha de :name redefinida.',
+    'students.password_reset.creds_title'       => 'Nova senha de :name',
+    'students.password_reset.creds_smtp_off'    => 'Copie a senha abaixo e entregue ao aluno — este painel some ao recarregar.',
+    'students.password_reset.creds_opted_out'   => 'Você optou por não enviar email. Copie a senha antes de sair da tela.',
+
     'students.deactivate.title'         => 'Desativar aluno',
     'students.deactivate.intro_prefix'  => 'Você vai desativar ',
     'students.deactivate.intro_suffix'  => '. O aluno não conseguirá mais entrar até ser reativado.',
