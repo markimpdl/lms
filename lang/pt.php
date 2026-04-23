@@ -349,6 +349,16 @@ return [
     'student.content.attachments_title'  => 'Materiais anexos',
     'student.content.download'           => 'Baixar',
 
+    // Status de progresso (placeholders; cálculo real em E6/E7)
+    'status.course.not_started' => 'Não iniciada',
+    'status.course.in_progress' => 'Em andamento',
+    'status.course.completed'   => 'Concluída',
+    'status.cu.not_started'     => 'Não iniciada',
+    'status.cu.in_progress'     => 'Em andamento',
+    'status.cu.completed'       => 'Concluída',
+    'student.course.enrolled_at' => 'Início da disciplina :date',
+    'student.course.progress_aria' => 'Progresso :percent%',
+
     // Exclusão (E3-05)
     'delete.modal.title'             => 'Excluir',
     'delete.modal.about_to_delete'   => 'Você está prestes a excluir',

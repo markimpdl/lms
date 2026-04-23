@@ -3,17 +3,24 @@
 ## Definições de progresso
 
 ### Progresso de uma Competence Unit (CU)
-- **Concluída** quando o aluno tem avaliação aprovada (nota ≥ 6) na CU.
-- **Em andamento** quando há submissão de atividade ou avaliação, mas ainda não foi aprovado.
-- **Não iniciada** quando não há nenhuma submissão.
+
+Uma CU contém **N atividades** (E6) e, opcionalmente, **1 avaliação** (E7).
+
+- **Porcentagem** = `(entregues + aprovada_na_avaliacao) / (N + tem_avaliacao)` × 100
+  - `entregues` = nº de atividades com submissão pelo aluno
+  - `aprovada_na_avaliacao` = 1 se avaliação final tem nota ≥ 6, 0 caso contrário
+  - `tem_avaliacao` = 1 se a CU tem avaliação configurada, 0 caso contrário
+- **Concluída** quando % = 100 — todas as atividades entregues **e** (se houver avaliação) ela foi aprovada com nota ≥ 6.
+- **Em andamento** quando % > 0 mas < 100.
+- **Não iniciada** quando % = 0 (nenhuma submissão, nenhuma avaliação aprovada).
+
+CUs sem nenhuma atividade E sem avaliação configurada são "não avaliáveis" e são ignoradas no cálculo do progresso de CC/Curso.
 
 ### Progresso de uma Core Competence (CC)
 - Porcentagem = `(nº de CUs concluídas) / (nº total de CUs na CC) × 100`.
 
 ### Progresso de um Curso
 - Porcentagem = `(nº de CUs concluídas no curso) / (nº total de CUs no curso) × 100`.
-
-CUs sem avaliação configurada são consideradas "não avaliáveis" e são ignoradas no cálculo do progresso.
 
 ## Dashboard do aluno
 
