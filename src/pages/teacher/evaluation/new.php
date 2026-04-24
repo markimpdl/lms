@@ -113,6 +113,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ->prepare('UPDATE evaluations SET pdf_path = ? WHERE id = ?')
                 ->execute([$upload['stored_path'], $evaluationId]);
 
+            // Fanout `new_evaluation` (E10-04) — notifica alunos matriculados
+            // no curso. Idioma segue `courses.language` via courseId.
+            $courseId  = (int) $cu['course_id'];
+            $studentIds = Enrollment::activeStudentIdsForCourse($courseId, $tenantId);
+            if ($studentIds !== []) {
+                NotificationService::fanout(
+                    'new_evaluation',
+                    $studentIds,
+                    $old['title'],
+                    null,
+                    '/student/evaluation/' . $evaluationId,
+                    $courseId
+                );
+            }
+
             flash('success', __t('evaluations.created', ['name' => $old['title']]));
             header('Location: /teacher/evaluation/' . $evaluationId . '/edit', true, 303);
             return;
