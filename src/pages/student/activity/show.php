@@ -208,12 +208,22 @@ ob_start();
 
                         <?php if ($isCode): ?>
                             <div class="mb-3">
-                                <label for="f-code" class="form-label">
-                                    <?= e(__t('submissions.form.code')) ?>
+                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                                    <label for="f-code" class="form-label mb-0">
+                                        <?= e(__t('submissions.form.code')) ?>
+                                        <?php if ($useEditor): ?>
+                                            <span class="badge text-bg-primary ms-1"><?= e(__t('activities.code_language.' . $codeLang)) ?></span>
+                                        <?php endif; ?>
+                                    </label>
                                     <?php if ($useEditor): ?>
-                                        <span class="badge text-bg-primary ms-1"><?= e(__t('activities.code_language.' . $codeLang)) ?></span>
+                                        <button type="button" id="btn-run" class="btn btn-sm btn-outline-primary">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                            </svg>
+                                            <?= e(__t('submissions.form.run')) ?>
+                                        </button>
                                     <?php endif; ?>
-                                </label>
+                                </div>
                                 <?php if ($useEditor): ?>
                                     <div id="f-code-editor" class="lms-code-editor" data-code-language="<?= e((string) $codeLang) ?>"></div>
                                 <?php endif; ?>
@@ -221,6 +231,25 @@ ob_start();
                                           class="form-control font-monospace<?= $useEditor ? ' d-none' : '' ?>"
                                           placeholder="<?= e(__t('submissions.form.code_placeholder')) ?>"><?= e((string) ($submission['code_text'] ?? '')) ?></textarea>
                                 <div class="form-text"><?= e(__t('submissions.form.code_hint')) ?></div>
+
+                                <?php if ($useEditor): ?>
+                                    <div id="run-result-panel" class="lms-run-panel" hidden>
+                                        <div class="lms-run-panel__header">
+                                            <h3 class="lms-run-panel__title"><?= e(__t('submissions.run.result_title')) ?></h3>
+                                            <button type="button" id="btn-clear" class="lms-run-panel__close" aria-label="<?= e(__t('submissions.run.clear')) ?>">
+                                                <?= e(__t('submissions.run.clear')) ?>
+                                            </button>
+                                        </div>
+                                        <div id="run-placeholder" class="lms-run-panel__placeholder" hidden>
+                                            <p class="mb-0"><?= e(__t('submissions.run.placeholder_judge0')) ?></p>
+                                        </div>
+                                        <iframe id="run-iframe"
+                                                class="lms-run-panel__frame"
+                                                sandbox="allow-scripts"
+                                                title="<?= e(__t('submissions.run.sandbox_title')) ?>"
+                                                hidden></iframe>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         <?php endif; ?>
 
@@ -280,6 +309,42 @@ if (container && textarea) {
         form.addEventListener('submit', () => {
             textarea.value = view.state.doc.toString();
         });
+    }
+
+    // E8-03: botão "Executar" + painel de resultado.
+    // - HTML: renderiza o código no iframe sandbox local (sem backend)
+    // - Outras linguagens: placeholder até E8-01/E8-02 conectarem Judge0
+    const btnRun   = document.getElementById('btn-run');
+    const btnClear = document.getElementById('btn-clear');
+    const panel    = document.getElementById('run-result-panel');
+    const iframe   = document.getElementById('run-iframe');
+    const placeh   = document.getElementById('run-placeholder');
+
+    function clearPanel() {
+        panel.hidden = true;
+        iframe.hidden = true;
+        iframe.srcdoc = '';
+        placeh.hidden = true;
+    }
+
+    if (btnRun && panel && iframe && placeh) {
+        btnRun.addEventListener('click', () => {
+            const code = view.state.doc.toString();
+            panel.hidden = false;
+            if (lang === 'html') {
+                placeh.hidden = true;
+                iframe.hidden = false;
+                iframe.srcdoc = code;
+            } else {
+                iframe.hidden = true;
+                iframe.srcdoc = '';
+                placeh.hidden = false;
+            }
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+    }
+    if (btnClear) {
+        btnClear.addEventListener('click', clearPanel);
     }
 }
 </script>
