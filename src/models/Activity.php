@@ -13,6 +13,10 @@ final class Activity
 {
     public const TYPES = ['projeto', 'codigo'];
 
+    /** Linguagens suportadas pra atividades tipo `codigo` (E8-00). NULL em
+     *  atividades legacy ou quando o professor ainda não configurou. */
+    public const CODE_LANGUAGES = ['python', 'csharp', 'javascript', 'html'];
+
     /**
      * Retorna atividade + contexto (cu_id, course_id, course_archived) se
      * pertence ao tenant; null caso contrário.
@@ -23,7 +27,7 @@ final class Activity
     {
         $stmt = Database::pdo()->prepare(
             'SELECT a.id, a.competence_unit_id, a.title, a.instruction,
-                    a.type, a.xp_value, a.submission_open,
+                    a.type, a.code_language, a.xp_value, a.submission_open,
                     a.allow_online_code_run, a.position,
                     a.created_at, a.updated_at,
                     cc.id AS cc_id, c.id AS course_id, c.archived AS course_archived
@@ -44,7 +48,7 @@ final class Activity
      * tenant e que o curso não está arquivado. Retorna id novo, ou 'not_found'
      * / 'course_archived'.
      *
-     * @param array{title:string, instruction:string, type:string, xp_value:int, submission_open:bool, allow_online_code_run:bool} $data
+     * @param array{title:string, instruction:string, type:string, code_language?:?string, xp_value:int, submission_open:bool, allow_online_code_run:bool} $data
      * @return int|string
      */
     public static function create(int $cuId, int $tenantId, array $data): int|string
@@ -74,17 +78,28 @@ final class Activity
             $stmt->execute([$cuId]);
             $pos = (int) $stmt->fetchColumn();
 
+            // code_language só se aplica a type='codigo' e precisa estar no
+            // ENUM; pra qualquer outro cenário, grava NULL (defense-in-depth).
+            $lang = null;
+            if (($data['type'] ?? '') === 'codigo') {
+                $raw = $data['code_language'] ?? null;
+                if ($raw !== null && in_array($raw, self::CODE_LANGUAGES, true)) {
+                    $lang = $raw;
+                }
+            }
+
             $ins = $pdo->prepare(
                 'INSERT INTO activities
-                    (competence_unit_id, title, instruction, type, xp_value,
-                     submission_open, allow_online_code_run, position)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+                    (competence_unit_id, title, instruction, type, code_language,
+                     xp_value, submission_open, allow_online_code_run, position)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
             $ins->execute([
                 $cuId,
                 $data['title'],
                 $data['instruction'],
                 $data['type'],
+                $lang,
                 $data['xp_value'],
                 $data['submission_open'] ? 1 : 0,
                 $data['allow_online_code_run'] ? 1 : 0,
@@ -98,7 +113,7 @@ final class Activity
      * Atualiza campos editáveis. Retorna 'ok', 'not_found' ou 'course_archived'.
      * Curso arquivado bloqueia edição.
      *
-     * @param array{title:string, instruction:string, type:string, xp_value:int, submission_open:bool, allow_online_code_run:bool} $data
+     * @param array{title:string, instruction:string, type:string, code_language?:?string, xp_value:int, submission_open:bool, allow_online_code_run:bool} $data
      */
     public static function update(int $id, int $tenantId, array $data): string
     {
@@ -110,15 +125,24 @@ final class Activity
             return 'course_archived';
         }
 
+        $lang = null;
+        if (($data['type'] ?? '') === 'codigo') {
+            $raw = $data['code_language'] ?? null;
+            if ($raw !== null && in_array($raw, self::CODE_LANGUAGES, true)) {
+                $lang = $raw;
+            }
+        }
+
         Database::pdo()->prepare(
             'UPDATE activities
-                SET title = ?, instruction = ?, type = ?, xp_value = ?,
-                    submission_open = ?, allow_online_code_run = ?
+                SET title = ?, instruction = ?, type = ?, code_language = ?,
+                    xp_value = ?, submission_open = ?, allow_online_code_run = ?
               WHERE id = ?'
         )->execute([
             $data['title'],
             $data['instruction'],
             $data['type'],
+            $lang,
             $data['xp_value'],
             $data['submission_open'] ? 1 : 0,
             $data['allow_online_code_run'] ? 1 : 0,

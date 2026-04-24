@@ -79,6 +79,23 @@ declare(strict_types=1);
                 </div>
             </div>
 
+            <div class="mb-3" id="code-language-group" <?= $old['type'] !== 'codigo' ? 'style="display:none"' : '' ?>>
+                <label for="f-code-language" class="form-label"><?= e(__t('activities.form.code_language')) ?></label>
+                <select name="code_language" id="f-code-language"
+                        class="form-select<?= isset($errors['code_language']) ? ' is-invalid' : '' ?>">
+                    <option value=""><?= e(__t('activities.form.code_language_none')) ?></option>
+                    <?php foreach (Activity::CODE_LANGUAGES as $lang): ?>
+                        <option value="<?= e($lang) ?>" <?= ($old['code_language'] ?? null) === $lang ? 'selected' : '' ?>>
+                            <?= e(__t('activities.code_language.' . $lang)) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <div class="form-text"><?= e(__t('activities.form.code_language_hint')) ?></div>
+                <?php if (isset($errors['code_language'])): ?>
+                    <div class="invalid-feedback"><?= e(__t($errors['code_language'])) ?></div>
+                <?php endif; ?>
+            </div>
+
             <div class="mb-3">
                 <label for="f-instruction" class="form-label"><?= e(__t('activities.form.instruction')) ?></label>
                 <textarea id="f-instruction" name="instruction" rows="12" class="form-control"><?= e((string) $old['instruction']) ?></textarea>
@@ -143,15 +160,22 @@ tinymce.init({
     mobile: { toolbar_mode: 'floating' }
 });
 
-// Habilita/desabilita o toggle "executar código" conforme o tipo escolhido.
+// Habilita/desabilita o toggle "executar código" e mostra/esconde o select de
+// linguagem conforme o tipo escolhido.
 (function () {
-    var sel = document.getElementById('f-type');
-    var chk = document.getElementById('f-allow-code-run');
-    if (!sel || !chk) return;
+    var sel   = document.getElementById('f-type');
+    var chk   = document.getElementById('f-allow-code-run');
+    var group = document.getElementById('code-language-group');
+    var lang  = document.getElementById('f-code-language');
+    if (!sel) return;
     sel.addEventListener('change', function () {
         var enabled = sel.value === 'codigo';
-        chk.disabled = !enabled;
-        if (!enabled) chk.checked = false;
+        if (chk) {
+            chk.disabled = !enabled;
+            if (!enabled) chk.checked = false;
+        }
+        if (group) group.style.display = enabled ? '' : 'none';
+        if (lang && !enabled) lang.value = '';
     });
 })();
 </script>
