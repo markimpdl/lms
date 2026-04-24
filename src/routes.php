@@ -170,6 +170,51 @@ return [
             'role'   => 'teacher',
             'params' => ['id', 'student_id'],
         ],
+        '#^/teacher/cu/(\d+)/evaluation/new$#' => [
+            'file'   => '/src/pages/teacher/evaluation/new.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/evaluation/(\d+)/edit$#' => [
+            'file'   => '/src/pages/teacher/evaluation/edit.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/evaluation/(\d+)/delete$#' => [
+            'file'   => '/src/pages/teacher/evaluation/delete.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/evaluation/(\d+)/submissions$#' => [
+            'file'   => '/src/pages/teacher/evaluation/submissions.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/evaluation/(\d+)/submission/(\d+)/file$#' => [
+            'file'   => '/src/pages/teacher/evaluation/file.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'sid'],
+        ],
+        '#^/teacher/evaluation/(\d+)/submission/(\d+)$#' => [
+            'file'   => '/src/pages/teacher/evaluation/submission.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'student_id'],
+        ],
+        '#^/student/evaluation/(\d+)$#' => [
+            'file'   => '/src/pages/student/evaluation/show.php',
+            'role'   => 'student',
+            'params' => ['id'],
+        ],
+        '#^/student/evaluation/(\d+)/brief$#' => [
+            'file'   => '/src/pages/student/evaluation/brief.php',
+            'role'   => 'student',
+            'params' => ['id'],
+        ],
+        '#^/student/evaluation/(\d+)/submission/(\d+)/file$#' => [
+            'file'   => '/src/pages/student/evaluation/file.php',
+            'role'   => 'student',
+            'params' => ['id', 'sid'],
+        ],
         '#^/teacher/cu/(\d+)/attachment/(\d+)$#' => [
             'file'   => '/src/pages/teacher/cu/attachment-download.php',
             'role'   => 'teacher',

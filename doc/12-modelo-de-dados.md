@@ -103,27 +103,34 @@ Constraint: UNIQUE(activity_id, student_user_id) — entrega única.
 | coluna | tipo | notas |
 |--------|------|-------|
 | id | BIGINT PK | |
-| competence_unit_id | FK UNIQUE | uma por CU |
+| tenant_id | FK → tenants.id | redundante por design — simplifica filtro multi-tenant |
+| competence_unit_id | FK UNIQUE | uma por CU (ADR-007) |
 | title | VARCHAR(200) | |
-| pdf_path | VARCHAR(500) | enunciado |
-| xp_value | INT | |
+| instructions | TEXT NULL | texto opcional complementar ao PDF |
+| pdf_path | VARCHAR(500) NULL | enunciado (até 10 MB — ADR-028) |
+| xp_value | INT | liberado só quando nota ≥ 8 (ADR-002) |
 | submission_open | BOOLEAN | |
+
+Índices: UNIQUE(competence_unit_id), KEY(tenant_id).
 
 ### `evaluation_submissions`
 | coluna | tipo | notas |
 |--------|------|-------|
 | id | BIGINT PK | |
+| tenant_id | FK → tenants.id | redundante por design |
 | evaluation_id | FK | |
 | student_user_id | FK | |
 | attempt | INT | 1, 2, 3… |
-| filename | VARCHAR(255) | |
-| stored_path | VARCHAR(500) | |
-| grade | DECIMAL(3,1) NULL | 0.0–10.0 |
+| filename | VARCHAR(255) NULL | |
+| stored_path | VARCHAR(500) NULL | |
+| grade | DECIMAL(3,1) NULL | 0.0–10.0 (ADR-015) |
 | feedback | TEXT NULL | |
-| feedback_at | TIMESTAMP NULL | |
-| retry_allowed | BOOLEAN DEFAULT 0 | marcado ao dar feedback |
+| feedback_at | DATETIME NULL | |
+| retry_allowed | BOOLEAN DEFAULT 0 | forçado a 0 quando grade ≥ 6 |
 | is_current | BOOLEAN | última tentativa vira current |
-| created_at | TIMESTAMP | |
+| created_at | DATETIME | |
+
+Índices: UNIQUE(evaluation_id, student_user_id, attempt), KEY(student_user_id), KEY(tenant_id), KEY(evaluation_id, is_current).
 
 ### `enrollments`
 | coluna | tipo | notas |

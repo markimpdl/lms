@@ -53,4 +53,46 @@ final class XpEvents
             )
             ->execute([$studentId, $activityId]);
     }
+
+    /**
+     * Credita XP por avaliação aprovada com nota ≥ 8 (ADR-002). Idempotente
+     * via UK composite — re-correção da mesma avaliação não duplica XP.
+     * Retorna true se uma linha nova foi criada. Como `grade >= 6` impede
+     * reenvio (E7-03), não existe cenário de XP ser revogado retroativamente.
+     */
+    public static function awardEvaluation(int $studentId, int $evaluationId): bool
+    {
+        $stmt = Database::pdo()->prepare(
+            'INSERT IGNORE INTO xp_events
+                (student_user_id, tenant_id, course_id, source_type, source_id, value)
+             SELECT ?, u.tenant_id, c.id, ?, ?, e.xp_value
+               FROM evaluations e
+               JOIN competence_units cu  ON cu.id = e.competence_unit_id
+               JOIN core_competencies cc ON cc.id = cu.core_competency_id
+               JOIN courses c            ON c.id  = cc.course_id
+               JOIN users u              ON u.id  = ? AND u.tenant_id = c.tenant_id
+              WHERE e.id = ?
+              LIMIT 1'
+        );
+        $stmt->execute([$studentId, 'evaluation', $evaluationId, $studentId, $evaluationId]);
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Revoga XP de avaliação. Não usado no MVP (nota ≥ 6 impede reenvio, e
+     * a única forma de perder XP já creditado é o professor apagar a
+     * avaliação inteira, que já passa pelo cascade polimórfico). Fica aqui
+     * por simetria com `revokeActivity` caso um caminho futuro precise.
+     */
+    public static function revokeEvaluation(int $studentId, int $evaluationId): void
+    {
+        Database::pdo()
+            ->prepare(
+                'DELETE FROM xp_events
+                  WHERE student_user_id = ?
+                    AND source_type     = \'evaluation\'
+                    AND source_id       = ?'
+            )
+            ->execute([$studentId, $evaluationId]);
+    }
 }

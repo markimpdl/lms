@@ -38,4 +38,9 @@ return [
     // --- Judge0 (RapidAPI plano gratuito) ------------------------------
     'JUDGE0_HOST'   => 'judge0-ce.p.rapidapi.com',
     'JUDGE0_KEY'    => 'your-rapidapi-key',
+
+    // --- Uploads -------------------------------------------------------
+    // Teto em MB do PDF de enunciado da avaliação (ADR-028). Demais uploads
+    // permanecem com teto fixo de 3 MB no storage service correspondente.
+    'UPLOAD_MAX_MB_PDF_BRIEF' => 10,
 ];

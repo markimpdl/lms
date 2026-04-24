@@ -55,6 +55,20 @@ if ($html !== '') {
 // Atividades da CU com status da entrega do aluno (E6-06).
 $activities = ActivitySubmission::listForStudentInCu($cuId, $studentId);
 
+// Avaliação da CU (E7-02). Aluno já passou pelo findForStudent acima
+// (matrícula validada). tenant_id do aluno = tenant do curso (ADR-026).
+$evaluation = Evaluation::findByCu($cuId, (int) ($user['tenant_id'] ?? 0));
+
+// Submissão corrente do aluno pra essa avaliação (E7-05). null quando o
+// aluno ainda não entregou nada. Usado pra derivar o estado no card.
+$evaluationCurrent = null;
+if ($evaluation !== null) {
+    $ctx = EvaluationSubmission::findForStudentEvaluation((int) $evaluation['id'], $studentId);
+    if ($ctx !== null) {
+        $evaluationCurrent = $ctx['current'];
+    }
+}
+
 // Anexos: só se o aluno tem matrícula (já validado). Listamos via o
 // contentId pra evitar nova validação N vezes. Se não há content, não há
 // anexos mesmo assim.
@@ -88,6 +102,7 @@ ob_start();
         <?php if ($hasPublishedContent): ?>
             <article class="card shadow-sm mb-3">
                 <div class="card-body content-render">
+                    <?php /* HTML já sanitizado pelo professor via HTML Purifier em E5-01 */ ?>
                     <?= $html ?>
                 </div>
             </article>
@@ -142,6 +157,59 @@ ob_start();
                         </a>
                     <?php endforeach; ?>
                 </div>
+            </section>
+        <?php endif; ?>
+
+        <?php if ($evaluation !== null): ?>
+            <?php
+                // Deriva um dos 5 estados (E7-05) a partir da submissão corrente.
+                $evCurrent = $evaluationCurrent;
+                if ($evCurrent === null) {
+                    $evState = 'none';
+                    $evBadge = 'secondary';
+                    $evCardMod = 'not-started';
+                } elseif ($evCurrent['feedback_at'] === null) {
+                    $evState = 'awaiting';
+                    $evBadge = 'warning';
+                    $evCardMod = 'in-progress';
+                } elseif ($evCurrent['grade'] !== null && (float) $evCurrent['grade'] >= 6.0) {
+                    $evState = 'approved';
+                    $evBadge = 'success';
+                    $evCardMod = 'completed';
+                } elseif ((int) ($evCurrent['retry_allowed'] ?? 0) === 1) {
+                    $evState = 'retry';
+                    $evBadge = 'info';
+                    $evCardMod = 'in-progress';
+                } else {
+                    $evState = 'failed';
+                    $evBadge = 'danger';
+                    $evCardMod = 'in-progress';
+                }
+                $evGradeStr = ($evCurrent !== null && $evCurrent['grade'] !== null)
+                    ? number_format((float) $evCurrent['grade'], 1, ',', '')
+                    : '';
+            ?>
+            <section class="mb-3">
+                <h2 class="h6 mb-2"><?= e(__t('evaluations.student.card_section')) ?></h2>
+                <a href="/student/evaluation/<?= (int) $evaluation['id'] ?>"
+                   class="lms-card lms-card--<?= e($evCardMod) ?>">
+                    <div class="lms-card__body">
+                        <div class="lms-card__title"><?= e((string) $evaluation['title']) ?></div>
+                        <div class="lms-card__meta">
+                            <?= (int) $evaluation['xp_value'] ?> XP
+                            <?php if ($evaluation['pdf_path'] !== null): ?>
+                                · <?= e(__t('evaluations.student.has_pdf')) ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <span class="badge text-bg-<?= e($evBadge) ?>">
+                        <?php if (in_array($evState, ['approved', 'retry', 'failed'], true)): ?>
+                            <?= e(__t('evaluations.student.state.' . $evState, ['grade' => $evGradeStr])) ?>
+                        <?php else: ?>
+                            <?= e(__t('evaluations.student.state.' . $evState)) ?>
+                        <?php endif; ?>
+                    </span>
+                </a>
             </section>
         <?php endif; ?>
 

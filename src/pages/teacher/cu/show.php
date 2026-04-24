@@ -37,6 +37,7 @@ $isPublished  = $hasContent && (int) $content['published'] === 1;
 $attachments = ContentAttachment::listByCu($cuId, $tenantId);
 $activities  = Activity::listByCu($cuId, $tenantId);
 $activityCount = count($activities);
+$evaluation    = Evaluation::findByCu($cuId, $tenantId);
 
 $tree       = curriculum_tree($courseId, $tenantId);
 $activeCcId = $ccId;
@@ -195,6 +196,53 @@ ob_start();
                         </li>
                     <?php endforeach; ?>
                 </ul>
+            <?php endif; ?>
+        </div>
+
+        <!-- Avaliação (E7-01) — 1 por CU (ADR-007) -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                <h2 class="h6 mb-0"><?= e(__t('evaluations.section.title')) ?></h2>
+                <?php if ($evaluation === null && !$isArchived): ?>
+                    <a href="/teacher/cu/<?= $cuId ?>/evaluation/new" class="btn btn-sm btn-primary">
+                        + <?= e(__t('evaluations.new_button')) ?>
+                    </a>
+                <?php endif; ?>
+            </div>
+            <?php if ($evaluation === null): ?>
+                <div class="card-body text-center text-muted py-4">
+                    <p class="mb-0"><?= e(__t('evaluations.empty')) ?></p>
+                </div>
+            <?php else: ?>
+                <?php
+                    $evId   = (int) $evaluation['id'];
+                    $evOpen = (int) $evaluation['submission_open'] === 1;
+                ?>
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="flex-grow-1">
+                            <a href="/teacher/evaluation/<?= $evId ?>/edit" class="fw-semibold text-decoration-none">
+                                <?= e((string) $evaluation['title']) ?>
+                            </a>
+                            <small class="text-muted ms-2">
+                                <?= (int) $evaluation['xp_value'] ?> XP
+                                <?php if ($evaluation['pdf_path'] !== null): ?>
+                                    · <?= e(__t('evaluations.badge.has_pdf')) ?>
+                                <?php endif; ?>
+                            </small>
+                        </div>
+                        <?php if ($evOpen): ?>
+                            <span class="badge text-bg-success"><?= e(__t('evaluations.status.open')) ?></span>
+                        <?php else: ?>
+                            <span class="badge text-bg-secondary"><?= e(__t('evaluations.status.closed')) ?></span>
+                        <?php endif; ?>
+                        <?php if (!$isArchived): ?>
+                            <a href="/teacher/evaluation/<?= $evId ?>/edit" class="btn btn-sm btn-outline-secondary">
+                                <?= e(__t('common.edit')) ?>
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
             <?php endif; ?>
         </div>
 
