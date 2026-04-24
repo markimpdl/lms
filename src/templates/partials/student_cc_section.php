@@ -20,12 +20,11 @@ declare(strict_types=1);
  */
 
 $gradient = sprintf('linear-gradient(135deg, %s, %s)', $gradStart, $gradEnd);
-$initial = mb_strtoupper(mb_substr((string) ($cc['name'] ?? '?'), 0, 1));
 ?>
 <section class="lms-cc-section">
     <header class="lms-cc-header">
         <div class="lms-cc-header__icon" style="background: <?= e($gradient) ?>;" aria-hidden="true">
-            <?= e($initial) ?>
+            <?= (int) $ccIndex ?>
         </div>
         <div class="lms-cc-header__body">
             <span class="lms-cc-header__eyebrow" style="color: <?= e($gradStart) ?>;">

@@ -16,7 +16,6 @@ $cuId    = (int) ($unit['id'] ?? 0);
 $cuName  = (string) ($unit['name'] ?? '');
 $hours   = (int) ($unit['workload_hours'] ?? 0);
 $xpTotal = (int) ($unit['xp_total'] ?? 0);
-$initial = mb_strtoupper(mb_substr($cuName, 0, 1));
 
 $s = student_cu_status($cuId, $studentId);
 $status  = (string) $s['status'];
@@ -28,7 +27,7 @@ $iconGradient = sprintf('linear-gradient(135deg, %s, %s)', $gradStart, $gradEnd)
 <a class="lms-unit-card lms-unit-card--<?= e($statusClass) ?>" href="/student/cu/<?= (int) $cuId ?>">
     <div class="lms-unit-card__top">
         <div class="lms-unit-card__icon" style="background: <?= e($iconGradient) ?>;" aria-hidden="true">
-            <?= e($initial) ?>
+            <?= (int) $unitIndex ?>
         </div>
         <div class="lms-progress-ring lms-progress-ring--<?= e($statusClass) ?> lms-unit-card__ring"
              style="--pct: <?= (int) $percent ?>;"
