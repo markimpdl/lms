@@ -143,6 +143,31 @@ function app_url(string $path): string
  * Fallback pra string vazia em entrada inválida. Usado no CourseCard
  * (E14-02) pra "Último acesso: {date}".
  */
+/**
+ * Formata duração em minutos como label humana pra métricas do professor
+ * (E11-04). Adapta unidade:
+ *   - null  → "—"
+ *   - < 60  → "X min"
+ *   - < 1440 (24h) → "Xh Ymin" (omite "Ymin" se 0)
+ *   - >= 1440 → "X dias" (arredonda)
+ */
+function format_duration_minutes(?int $minutes): string
+{
+    if ($minutes === null) {
+        return '—';
+    }
+    if ($minutes < 60) {
+        return $minutes . ' min';
+    }
+    if ($minutes < 1440) {
+        $h = intdiv($minutes, 60);
+        $m = $minutes % 60;
+        return $m > 0 ? ($h . 'h ' . $m . 'min') : ($h . 'h');
+    }
+    $days = (int) round($minutes / 1440);
+    return $days . ' ' . ($days === 1 ? __t('common.day') : __t('common.days'));
+}
+
 function format_short_date(string $mysqlDatetime): string
 {
     if ($mysqlDatetime === '' || $mysqlDatetime === '0000-00-00 00:00:00') {
