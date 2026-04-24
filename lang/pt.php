@@ -858,6 +858,25 @@ return [
     'student.course_card.cta.resume'       => 'Retomar',
     'student.course_card.cta.review'       => 'Revisar',
 
+    // Unit page (E14-04)
+    'student.unit.tab.content'             => 'Conteúdo',
+    'student.unit.tab.activities'          => 'Atividades',
+    'student.unit.tab.assessment'          => 'Avaliação',
+    'student.unit.tab.attachments'         => 'Anexos',
+    'student.unit.percent_complete'        => ':percent% concluído',
+    'student.unit.ring_aria'               => 'Progresso :percent%',
+    'student.unit.cta.open'                => 'Abrir',
+    'student.unit.cta.view_feedback'       => 'Ver feedback',
+    'student.unit.cta.view_submission'     => 'Ver submissão',
+    'student.unit.cta.resubmit'            => 'Reenviar',
+    'student.unit.state.unavailable'       => 'Indisponível',
+    'student.unit.state.pending'           => 'Pendente',
+    'student.unit.state.with-feedback'     => 'Com feedback',
+    'student.unit.state.approved'          => 'Aprovada',
+    'student.unit.state.failed'            => 'Reprovada',
+    'student.unit.state.resubmit-pending'  => 'Reenvio liberado',
+    'student.unit.attachments.file'        => 'Arquivo',
+
     // Course page (E14-03)
     'student.course_page.overall'           => 'Visão geral',
     'student.course_page.units'             => 'Unidades',

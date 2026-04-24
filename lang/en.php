@@ -858,6 +858,25 @@ return [
     'student.course_card.cta.resume'       => 'Resume',
     'student.course_card.cta.review'       => 'Review',
 
+    // Unit page (E14-04)
+    'student.unit.tab.content'             => 'Content',
+    'student.unit.tab.activities'          => 'Activities',
+    'student.unit.tab.assessment'          => 'Assessment',
+    'student.unit.tab.attachments'         => 'Attachments',
+    'student.unit.percent_complete'        => ':percent% complete',
+    'student.unit.ring_aria'               => 'Progress :percent%',
+    'student.unit.cta.open'                => 'Open',
+    'student.unit.cta.view_feedback'       => 'View feedback',
+    'student.unit.cta.view_submission'     => 'View submission',
+    'student.unit.cta.resubmit'            => 'Resubmit',
+    'student.unit.state.unavailable'       => 'Unavailable',
+    'student.unit.state.pending'           => 'Pending',
+    'student.unit.state.with-feedback'     => 'With feedback',
+    'student.unit.state.approved'          => 'Approved',
+    'student.unit.state.failed'            => 'Failed',
+    'student.unit.state.resubmit-pending'  => 'Resubmit pending',
+    'student.unit.attachments.file'        => 'File',
+
     // Course page (E14-03)
     'student.course_page.overall'           => 'Overall',
     'student.course_page.units'             => 'Units',

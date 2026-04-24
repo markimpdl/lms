@@ -2,17 +2,17 @@
 declare(strict_types=1);
 
 /**
- * /student/cu/{id} — aluno lê o conteúdo da CU (E5-05).
+ * /student/cu/{id} — Unit page do aluno (E14-04, rewrite).
  *
- * Regras:
- *  - Exige matrícula ativa no curso que contém a CU (via
- *    CompetenceUnit::findForStudent). 404 amigável caso contrário.
- *  - Filtra `contents.published = 1`. Conteúdo despublicado (ou
- *    inexistente) mostra placeholder "ainda não disponível" em vez de
- *    erro — permite que o aluno chegue na CU mesmo antes do professor
- *    publicar (útil pro E6 quando atividades estiverem prontas).
- *  - Anexos aparecem como links autenticados para /student/cu/{id}/
- *    attachment/{aid} (download forçado).
+ * Breadcrumb + unit header card (eyebrow + título + meta + ring) + section
+ * tabs (âncoras) + 4 seções:
+ *   1. Content — .unit-prose com HTML sanitizado (E5-01) + placeholder
+ *   2. Activities — lista vertical de ActivityCards (6 estados)
+ *   3. Assessment — 1 ActivityCard isAssessment=true (se existir avaliação)
+ *   4. Attachments — AttachmentRows com FileTypeChip
+ *
+ * Valida matrícula via `CompetenceUnit::findForStudent`. Estados das
+ * atividades/avaliação derivados server-side pra partial `activity_card`.
  */
 
 $user = current_user();
@@ -32,225 +32,264 @@ if ($cu === null) {
     return;
 }
 
-// Conteúdo: só se existir E publicado. Para o aluno, tenantId não se
-// aplica ao JOIN — já validamos matrícula acima; buscamos direto pela CU.
+$courseId  = (int) $cu['course_id'];
+$cuName    = (string) $cu['name'];
+$ccName    = (string) $cu['cc_name'];
+$unitIndex = (int) ($cu['cu_index_in_cc'] ?? 1);
+$workload  = (int) ($cu['workload_hours'] ?? 0);
+[$gradStart, $gradEnd] = Course::coverGradient($courseId);
+
+// Conteúdo HTML (sanitizado pelo professor em E5-01) — only if published.
 $stmt = Database::pdo()->prepare(
-    'SELECT html, published FROM contents WHERE competence_unit_id = ? LIMIT 1'
+    'SELECT id, html, published FROM contents WHERE competence_unit_id = ? LIMIT 1'
 );
 $stmt->execute([$cuId]);
 $content = $stmt->fetch();
-
 $hasPublishedContent = $content !== false && (int) $content['published'] === 1;
-$html                = $hasPublishedContent ? (string) $content['html'] : '';
-
-// Anexos (imagens inline, iframes) foram gravados pelo professor com URLs
-// apontando pra `/teacher/cu/{id}/attachment/.../view` — rotas só do
-// teacher, role=teacher. Pro aluno, reescrevemos o prefixo. O authorization
-// real continua no handler da rota (`ContentAttachment::findForStudent`
-// valida matrícula).
+$html = $hasPublishedContent ? (string) $content['html'] : '';
 if ($html !== '') {
     $html = str_replace('"/teacher/cu/', '"/student/cu/', $html);
 }
 
-// Atividades da CU com status da entrega do aluno (E6-06).
-$activities = ActivitySubmission::listForStudentInCu($cuId, $studentId);
+// Atividades com estado.
+$activitiesRaw = ActivitySubmission::listForStudentInCu($cuId, $studentId);
 
-// Avaliação da CU (E7-02). Aluno já passou pelo findForStudent acima
-// (matrícula validada). tenant_id do aluno = tenant do curso (ADR-026).
-$evaluation = Evaluation::findByCu($cuId, (int) ($user['tenant_id'] ?? 0));
+$activitiesCards = [];
+$xpEarned = 0;
+$xpTotal  = 0;
+$activitiesDone = 0;
+$activitiesCount = count($activitiesRaw);
 
-// Submissão corrente do aluno pra essa avaliação (E7-05). null quando o
-// aluno ainda não entregou nada. Usado pra derivar o estado no card.
-$evaluationCurrent = null;
-if ($evaluation !== null) {
-    $ctx = EvaluationSubmission::findForStudentEvaluation((int) $evaluation['id'], $studentId);
-    if ($ctx !== null) {
-        $evaluationCurrent = $ctx['current'];
+foreach ($activitiesRaw as $a) {
+    $open   = (int) $a['submission_open'] === 1;
+    $hasSub = $a['submission_id'] !== null;
+    $hasFb  = $hasSub && $a['feedback_at'] !== null;
+
+    if ($hasFb) {
+        $state = 'with-feedback';
+        $progress = 100;
+        $ctaKey = 'student.unit.cta.view_feedback';
+        $ctaVariant = 'outline';
+        $activitiesDone++;
+    } elseif ($hasSub) {
+        $state = 'pending';
+        $progress = 50;
+        $ctaKey = 'student.unit.cta.view_submission';
+        $ctaVariant = 'outline';
+    } elseif ($open) {
+        $state = 'pending';
+        $progress = 0;
+        $ctaKey = 'student.unit.cta.open';
+        $ctaVariant = 'gradient';
+    } else {
+        $state = 'unavailable';
+        $progress = 0;
+        $ctaKey = null;
+        $ctaVariant = 'gradient';
     }
+
+    $xpVal = (int) $a['xp_value'];
+    $xpTotal += $xpVal;
+    if ($hasFb) {
+        $xpEarned += $xpVal;
+    }
+
+    $activitiesCards[] = [
+        'url'           => '/student/activity/' . (int) $a['id'],
+        'type_label'    => __t('activities.type.' . (string) $a['type']),
+        'title'         => (string) $a['title'],
+        'description'   => null,
+        'xp_value'      => $xpVal,
+        'state'         => $state,
+        'progress'      => $progress,
+        'grade'         => null,
+        'cta_label'     => $ctaKey !== null ? __t($ctaKey) : null,
+        'cta_variant'   => $ctaVariant,
+        'is_assessment' => false,
+        'accent'        => null,
+    ];
 }
 
-// Anexos: só se o aluno tem matrícula (já validado). Listamos via o
-// contentId pra evitar nova validação N vezes. Se não há content, não há
-// anexos mesmo assim.
+// Avaliação + estado.
+$tenantId   = (int) ($user['tenant_id'] ?? 0);
+$evaluation = $tenantId > 0 ? Evaluation::findByCu($cuId, $tenantId) : null;
+
+$assessmentCard = null;
+if ($evaluation !== null) {
+    $evId = (int) $evaluation['id'];
+    $ctx = EvaluationSubmission::findForStudentEvaluation($evId, $studentId);
+    $current = $ctx['current'] ?? null;
+
+    if ($current === null) {
+        $state = 'pending'; $progress = 0; $grade = null;
+        $ctaKey = 'student.unit.cta.open'; $ctaVariant = 'gradient';
+    } elseif ($current['feedback_at'] === null) {
+        $state = 'pending'; $progress = 50; $grade = null;
+        $ctaKey = 'student.unit.cta.view_submission'; $ctaVariant = 'outline';
+    } else {
+        $grade = $current['grade'] !== null ? (float) $current['grade'] : null;
+        if ($grade !== null && $grade >= 6.0) {
+            $state = 'approved'; $progress = 100;
+            $ctaKey = 'student.unit.cta.view_feedback'; $ctaVariant = 'outline';
+        } elseif ((int) ($current['retry_allowed'] ?? 0) === 1) {
+            $state = 'resubmit-pending'; $progress = 0;
+            $ctaKey = 'student.unit.cta.resubmit'; $ctaVariant = 'gradient';
+        } else {
+            $state = 'failed'; $progress = 0;
+            $ctaKey = 'student.unit.cta.view_feedback'; $ctaVariant = 'outline';
+        }
+    }
+
+    $evXp = (int) $evaluation['xp_value'];
+    $xpTotal += $evXp;
+    if ($state === 'approved') {
+        $xpEarned += $evXp;
+    }
+
+    $assessmentCard = [
+        'url'           => '/student/evaluation/' . $evId,
+        'type_label'    => __t('evaluations.student.card_section'),
+        'title'         => (string) $evaluation['title'],
+        'description'   => ($evaluation['instructions'] ?? null) !== null
+            ? mb_substr(strip_tags((string) $evaluation['instructions']), 0, 220)
+            : null,
+        'xp_value'      => $evXp,
+        'state'         => $state,
+        'progress'      => $progress,
+        'grade'         => $grade,
+        'cta_label'     => $ctaKey !== null ? __t($ctaKey) : null,
+        'cta_variant'   => $ctaVariant,
+        'is_assessment' => true,
+        'accent'        => 'linear-gradient(135deg, #F59E0B, #EF4444)',
+    ];
+}
+
+// Anexos.
 $attachments = [];
 if ($content !== false) {
     $stmt = Database::pdo()->prepare(
         'SELECT a.id, a.filename, a.mime, a.size_bytes
            FROM content_attachments a
-          WHERE a.content_id = (SELECT id FROM contents WHERE competence_unit_id = ?)
+          WHERE a.content_id = ?
           ORDER BY a.created_at DESC, a.id DESC'
     );
-    $stmt->execute([$cuId]);
-    $attachments = $stmt->fetchAll();
+    $stmt->execute([(int) $content['id']]);
+    $rows = $stmt->fetchAll();
+    foreach ($rows as $r) {
+        $attachments[] = [
+            'filename'   => (string) $r['filename'],
+            'mime'       => (string) $r['mime'],
+            'size_bytes' => (int)    $r['size_bytes'],
+            'url'        => '/student/cu/' . $cuId . '/attachment/' . (int) $r['id'],
+        ];
+    }
+}
+$attachmentsCount = count($attachments);
+
+// Progresso global da CU (on-the-fly — mesma fórmula do StudentProgress)
+$cuStatus = student_cu_status($cuId, $studentId);
+$cuPercent = (int) $cuStatus['percent'];
+
+// Section tabs.
+$tabs = [
+    ['anchor' => '#content',     'label' => __t('student.unit.tab.content')],
+    ['anchor' => '#activities',  'label' => __t('student.unit.tab.activities'),  'count' => $activitiesCount],
+];
+if ($assessmentCard !== null) {
+    $tabs[] = ['anchor' => '#assessment', 'label' => __t('student.unit.tab.assessment')];
+}
+if ($attachmentsCount > 0) {
+    $tabs[] = ['anchor' => '#attachments', 'label' => __t('student.unit.tab.attachments'), 'count' => $attachmentsCount];
 }
 
-$page_title = (string) $cu['name'];
+$page_title = $cuName;
 
 ob_start();
 ?>
 <?= breadcrumbs([
     ['label' => __t('dashboard.student.title'), 'url' => '/student'],
-    ['label' => (string) $cu['course_name'],    'url' => '/student/course/' . (int) $cu['course_id']],
-    ['label' => (string) $cu['cc_name']],
-    ['label' => (string) $cu['name']],
+    ['label' => (string) $cu['course_name'],    'url' => '/student/course/' . $courseId],
+    ['label' => $ccName],
+    ['label' => $cuName],
 ]) ?>
 
-<div class="row justify-content-center">
-    <div class="col-12 col-lg-10">
-        <h1 class="h4 mb-3"><?= e((string) $cu['name']) ?></h1>
+<?php
+    // Unit header — renderizado via partial.
+    $percent = $cuPercent;
+    require LMS_ROOT . '/src/templates/partials/unit_header.php';
+?>
 
-        <?php if ($hasPublishedContent): ?>
-            <article class="card shadow-sm mb-3">
-                <div class="card-body content-render">
-                    <?php /* HTML já sanitizado pelo professor via HTML Purifier em E5-01 */ ?>
-                    <?= $html ?>
-                </div>
-            </article>
-        <?php else: ?>
-            <div class="card card-body shadow-sm text-center text-muted py-5 mb-3">
-                <p class="lead mb-0"><?= e(__t('student.content.not_available')) ?></p>
-                <p class="small mb-0"><?= e(__t('student.content.not_available_hint')) ?></p>
-            </div>
-        <?php endif; ?>
+<?php require LMS_ROOT . '/src/templates/partials/section_tabs.php'; ?>
 
-        <?php if ($activities !== []): ?>
-            <section class="mb-3">
-                <h2 class="h6 mb-2"><?= e(__t('student.activities.section_title')) ?></h2>
-                <div class="d-flex flex-column gap-2">
-                    <?php foreach ($activities as $act): ?>
-                        <?php
-                            $aid      = (int) $act['id'];
-                            $open     = (int) $act['submission_open'] === 1;
-                            $hasSub   = $act['submission_id'] !== null;
-                            $hasFb    = $hasSub && $act['feedback_at'] !== null;
-                            if ($hasFb) {
-                                $status = 'completed';
-                                $percent = 100;
-                            } elseif ($hasSub) {
-                                $status = 'in_progress';
-                                $percent = 50;
-                            } else {
-                                $status = 'not_started';
-                                $percent = 0;
-                            }
-                            $statusKey = 'student.activities.status.' . ($hasFb ? 'with_feedback' : ($hasSub ? 'submitted' : ($open ? 'not_submitted' : 'closed')));
-                        ?>
-                        <a href="/student/activity/<?= $aid ?>"
-                           class="lms-card lms-card--<?= e(str_replace('_', '-', $status)) ?>">
-                            <div class="lms-card__body">
-                                <div class="lms-card__title"><?= e((string) $act['title']) ?></div>
-                                <div class="lms-card__meta">
-                                    <?= e(__t('activities.type.' . $act['type'])) ?> ·
-                                    <?= (int) $act['xp_value'] ?> XP
-                                </div>
-                            </div>
-                            <span class="badge text-bg-<?= $hasFb ? 'success' : ($hasSub ? 'warning' : ($open ? 'secondary' : 'dark')) ?>">
-                                <?= e(__t($statusKey)) ?>
-                            </span>
-                            <div class="lms-progress-ring lms-progress-ring--<?= e(str_replace('_', '-', $status)) ?>"
-                                 style="--pct: <?= $percent ?>;"
-                                 role="progressbar"
-                                 aria-label="<?= e(__t('student.course.progress_aria', ['percent' => (string) $percent])) ?>"
-                                 aria-valuenow="<?= $percent ?>" aria-valuemin="0" aria-valuemax="100">
-                                <span class="lms-progress-ring__label"><?= $percent ?>%</span>
-                            </div>
-                        </a>
-                    <?php endforeach; ?>
-                </div>
-            </section>
-        <?php endif; ?>
+<!-- Section: Content -->
+<section class="lms-unit-section" id="content">
+    <?php
+        $title = __t('student.unit.tab.content');
+        $count = null;
+        $accent = null;
+        require LMS_ROOT . '/src/templates/partials/section_header.php';
+    ?>
+    <?php if ($hasPublishedContent): ?>
+        <div class="lms-content-card unit-prose">
+            <?= $html /* HTML já sanitizado em E5-01 via ContentSanitizer */ ?>
+        </div>
+    <?php else: ?>
+        <div class="lms-content-card lms-content-card--empty">
+            <p class="lms-content-card__empty-title"><?= e(__t('student.content.not_available')) ?></p>
+            <p class="lms-content-card__empty-hint"><?= e(__t('student.content.not_available_hint')) ?></p>
+        </div>
+    <?php endif; ?>
+</section>
 
-        <?php if ($evaluation !== null): ?>
-            <?php
-                // Deriva um dos 5 estados (E7-05) a partir da submissão corrente.
-                $evCurrent = $evaluationCurrent;
-                if ($evCurrent === null) {
-                    $evState = 'none';
-                    $evBadge = 'secondary';
-                    $evCardMod = 'not-started';
-                } elseif ($evCurrent['feedback_at'] === null) {
-                    $evState = 'awaiting';
-                    $evBadge = 'warning';
-                    $evCardMod = 'in-progress';
-                } elseif ($evCurrent['grade'] !== null && (float) $evCurrent['grade'] >= 6.0) {
-                    $evState = 'approved';
-                    $evBadge = 'success';
-                    $evCardMod = 'completed';
-                } elseif ((int) ($evCurrent['retry_allowed'] ?? 0) === 1) {
-                    $evState = 'retry';
-                    $evBadge = 'info';
-                    $evCardMod = 'in-progress';
-                } else {
-                    $evState = 'failed';
-                    $evBadge = 'danger';
-                    $evCardMod = 'in-progress';
-                }
-                $evGradeStr = ($evCurrent !== null && $evCurrent['grade'] !== null)
-                    ? number_format((float) $evCurrent['grade'], 1, ',', '')
-                    : '';
-            ?>
-            <section class="mb-3">
-                <h2 class="h6 mb-2"><?= e(__t('evaluations.student.card_section')) ?></h2>
-                <a href="/student/evaluation/<?= (int) $evaluation['id'] ?>"
-                   class="lms-card lms-card--<?= e($evCardMod) ?>">
-                    <div class="lms-card__body">
-                        <div class="lms-card__title"><?= e((string) $evaluation['title']) ?></div>
-                        <div class="lms-card__meta">
-                            <?= (int) $evaluation['xp_value'] ?> XP
-                            <?php if ($evaluation['pdf_path'] !== null): ?>
-                                · <?= e(__t('evaluations.student.has_pdf')) ?>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                    <span class="badge text-bg-<?= e($evBadge) ?>">
-                        <?php if (in_array($evState, ['approved', 'retry', 'failed'], true)): ?>
-                            <?= e(__t('evaluations.student.state.' . $evState, ['grade' => $evGradeStr])) ?>
-                        <?php else: ?>
-                            <?= e(__t('evaluations.student.state.' . $evState)) ?>
-                        <?php endif; ?>
-                    </span>
-                </a>
-            </section>
-        <?php endif; ?>
-
-        <?php if ($attachments !== []): ?>
-            <div class="card shadow-sm">
-                <div class="card-header">
-                    <h2 class="h6 mb-0"><?= e(__t('student.content.attachments_title')) ?></h2>
-                </div>
-                <ul class="list-group list-group-flush">
-                    <?php foreach ($attachments as $att): ?>
-                        <?php $aid = (int) $att['id']; ?>
-                        <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
-                            <div class="flex-grow-1">
-                                <a href="/student/cu/<?= $cuId ?>/attachment/<?= $aid ?>"
-                                   class="fw-semibold text-decoration-none">
-                                    <?= e((string) $att['filename']) ?>
-                                </a>
-                                <small class="text-muted ms-2">
-                                    <?= e((string) $att['mime']) ?> ·
-                                    <?= e(number_format((int) $att['size_bytes'] / 1024, 1, ',', '.')) ?> KB
-                                </small>
-                            </div>
-                            <a href="/student/cu/<?= $cuId ?>/attachment/<?= $aid ?>"
-                               class="btn btn-sm btn-outline-primary">
-                                <?= e(__t('student.content.download')) ?>
-                            </a>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-        <?php endif; ?>
+<!-- Section: Activities -->
+<?php if ($activitiesCount > 0): ?>
+<section class="lms-unit-section" id="activities">
+    <?php
+        $title = __t('student.unit.tab.activities');
+        $count = $activitiesCount;
+        $accent = null;
+        require LMS_ROOT . '/src/templates/partials/section_header.php';
+    ?>
+    <div class="lms-activity-list">
+        <?php foreach ($activitiesCards as $card): ?>
+            <?php require LMS_ROOT . '/src/templates/partials/activity_card.php'; ?>
+        <?php endforeach; ?>
     </div>
-</div>
+</section>
+<?php endif; ?>
 
-<style>
-.content-render img          { max-width: 100%; height: auto; }
-.content-render table        { width: 100%; }
-.content-render iframe       { width: 100%; aspect-ratio: 16 / 9; border: 0; }
-.content-render pre          { background: #f6f8fa; padding: .75rem; border-radius: .25rem; overflow-x: auto; }
-.content-render blockquote   { border-left: 3px solid #dee2e6; padding-left: 1rem; color: #6c757d; }
-</style>
+<!-- Section: Assessment -->
+<?php if ($assessmentCard !== null): ?>
+<section class="lms-unit-section" id="assessment">
+    <?php
+        $title = __t('student.unit.tab.assessment');
+        $count = null;
+        $accent = 'linear-gradient(135deg, #F59E0B, #EF4444)';
+        require LMS_ROOT . '/src/templates/partials/section_header.php';
+    ?>
+    <?php
+        $card = $assessmentCard;
+        require LMS_ROOT . '/src/templates/partials/activity_card.php';
+    ?>
+</section>
+<?php endif; ?>
+
+<!-- Section: Attachments -->
+<?php if ($attachmentsCount > 0): ?>
+<section class="lms-unit-section" id="attachments">
+    <?php
+        $title = __t('student.unit.tab.attachments');
+        $count = $attachmentsCount;
+        $accent = null;
+        require LMS_ROOT . '/src/templates/partials/section_header.php';
+    ?>
+    <div class="lms-attachment-list">
+        <?php foreach ($attachments as $attachment): ?>
+            <?php require LMS_ROOT . '/src/templates/partials/attachment_row.php'; ?>
+        <?php endforeach; ?>
+    </div>
+</section>
+<?php endif; ?>
 <?php
 $page_content = ob_get_clean();
 require LMS_ROOT . '/src/templates/layout.php';
