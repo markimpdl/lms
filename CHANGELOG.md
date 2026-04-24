@@ -4,6 +4,47 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.9.0] — 2026-04-24
+
+Nona release. Escopo: **execução online de código — Epic E8 inteiro** + pequenos ajustes UI na tela de curso do aluno. Primeira release que dá ao aluno feedback imediato do código sem sair da plataforma — Python/C#/JavaScript via Judge0 CE (RapidAPI) e HTML em sandbox local, tudo com CodeMirror 6 como editor.
+
+### Novas funcionalidades
+
+#### Execução online de código (Epic E8)
+- **Schema + editor** (E8-00): coluna `activities.code_language ENUM('python','csharp','javascript','html') NULL` cadastrada pelo professor no form de atividade quando `type='codigo'`. Aluno em `/student/activity/{id}` ganha editor CodeMirror 6 via CDN (esm.sh dynamic imports) com syntax highlight por linguagem — Python, JavaScript e HTML com pacote oficial; C# em plain text (CM6 não tem pacote oficial). Textarea `#f-code` permanece como source-of-truth hidden; editor sincroniza no submit. Fallback gracioso quando JS falha: textarea editável.
+- **HTML sandbox local** (E8-03): botão "Executar" renderiza o código HTML num `<iframe sandbox="allow-scripts">` — sem `allow-same-origin`, sem `allow-top-navigation`, sem `allow-forms`. `srcdoc` via JS, zero network, estado efêmero. UI do painel de resultado já pronta pra reuso em E8-02.
+- **Backend proxy** (E8-01): `src/lib/Judge0Client.php` com `run(language, code)` retornando shape consistente `{status, stdout?, stderr?, time?, status_id?, error?}`. Endpoint `POST /api/code/run` autenticado com cadeia de 13 validações (método, role, CSRF, activity_id, matrícula, type=codigo, allow_online_code_run=1, language != html, size ≤ 64KB) — cada falha com HTTP status + error_key i18n específico. Key do Judge0 fica em `config/env.php` (nunca no browser); `isConfigured()` permite degradação graciosa quando não setada. Timeout 15s + CPU limit 5s. Log estruturado em `storage/logs/judge0.log`.
+- **UI final de execução** (E8-02): state machine explícita com 5 estados (idle / loading / iframe / tabs / error) + `hideAllStates()` pra mutual exclusion. Tabs Saída (stdout) / Erros (stderr) / Info (tempo + status friendly) usando o pre escuro `#0F172A` igual à unit-prose. Ctrl+Enter / Cmd+Enter como atalho dentro do editor. Botão "Executar" desabilita durante fetch com `finally` garantindo unlock. Status ID do Judge0 → label friendly em 5 categorias (accepted, time_limit, compile_error, runtime_error, unknown).
+
+### Correções
+- Hero ring da Course page mostrava % invisível (letra branca em fundo branco). Corrigido com remoção do override `::before { background: transparent }` + label em `neutral-900`. Nos avatares de Competências e Unidades, trocadas as iniciais do nome pelo número sequencial (1..N) — mais legível e consistente com os eyebrows "Competência N" / "Unidade N" (#161).
+
+### Mudanças de schema
+- `activities.code_language ENUM('python','csharp','javascript','html') NULL` — idempotente via `INFORMATION_SCHEMA` check; aplicado em prod durante o ciclo.
+
+### Convenções consolidadas nesta janela
+- **CodeMirror 6 via esm.sh dynamic imports** — zero bundle no repo, carrega só a linguagem usada. Fallback a textarea preserva comportamento se JS falhar.
+- **Shape consistente em cliente HTTP** — `Judge0Client::run` sempre retorna `{status, ...}` com enums de status; caller faz switch por `status === 'ok'`.
+- **Cadeia de validações com error_key**: cada falha no endpoint tem HTTP status adequado + chave i18n pro client-side lookup. Zero branching por tipo de falha no cliente.
+- **`csrf_verify_no_rotate()` novo helper** pra endpoints AJAX chamáveis múltiplas vezes numa mesma página sem reload. `csrf_verify()` padrão (one-time rotativo) continua pros POSTs com redirect.
+- **Sandbox HTML com `allow-scripts` apenas** — sem `allow-same-origin` garante que o código do aluno roda em origem única, isolado de cookies/localStorage do parent.
+- **State machine UI explícita** via `hideAllStates()` + `showX()` funcs por state — impossible ter 2 estados visíveis simultaneamente.
+- **Map error_key → i18n message** pré-renderizado via `json_encode` do servidor — client faz só lookup por chave conhecida, zero risco de injection.
+- **textContent em vez de innerHTML** pros conteúdos vindos do Judge0 — stdout/stderr pode conter qualquer coisa, renderizado como texto puro.
+
+### Tooling
+- `package.json` bumpado para 0.9.0.
+
+### Pendências
+- **`JUDGE0_KEY` em prod**: endpoint responde "indisponível" (HTTP 503 + `code_run.err.unavailable`) até o PO configurar a key do RapidAPI no painel Hostinger. UI exibe mensagem amigável — zero quebra.
+- **C# sem syntax highlight no CodeMirror 6** — plain text funciona; se o PO pedir highlight, adicionar `@codemirror/legacy-modes/mode/clike` em story futura.
+- **Sem retry automático** no Judge0Client — 429 e 5xx retornam direto. Aceitável pro MVP (ADR-029); exponential backoff fica pra story futura se a quota ficar apertada.
+- **`context_lang($courseId)` helper** — AC do E14-03 mencionava mas ficou adiado. Plantado `course_language` em models; implementar quando o PO pedir.
+- **Arquivos órfãos em prod** herdados de v0.4.0: `src/lib/HtmlPurifier.php` e `public/_diag_*.php`.
+- **Cross-tenant smoke** ainda pendente — só 1 tenant em prod.
+
+[0.9.0]: https://github.com/markimpdl/lms/releases/tag/v0.9.0
+
 ## [0.8.0] — 2026-04-24
 
 Oitava release. Escopo: **área do aluno redesenhada + patentes por tenant** — Epic E14 inteiro (redesign handoff) + início de E9 com patentes. Primeira release visual grande: 3 telas do aluno (My Courses / Course page / Unit page) ganham design novo do handoff, ProfileSidebar 300px, design tokens globais scoped e ActivityCard com 6 estados. Professor ganha CRUD de patentes por tenant.

@@ -627,8 +627,12 @@ body.lms-student-area .lms-student-main {
     height: 112px;
     background: conic-gradient(#fff calc(var(--pct) * 1%), rgba(255,255,255,0.25) 0);
 }
-.lms-course-hero__ring::before { background: transparent; }
-.lms-course-hero__ring .lms-progress-ring__label { color: #fff; font-size: 20px; }
+/* inner circle usa o default branco-sólido de .lms-progress-ring::before
+ * (não sobrescreve). Porcentagem escura pra contrastar com o branco. */
+.lms-course-hero__ring .lms-progress-ring__label {
+    color: var(--lms-neutral-900);
+    font-size: 20px;
+}
 
 .lms-cc-list { display: flex; flex-direction: column; gap: 32px; }
 .lms-cc-section { display: flex; flex-direction: column; gap: 16px; }
@@ -1211,4 +1215,168 @@ body.lms-student-area .lms-student-main {
     .lms-activity-card__actions  { grid-area: actions; align-items: stretch; flex-direction: row; justify-content: space-between; }
     .lms-attachment-row { flex-direction: column; align-items: flex-start; gap: 8px; }
     .lms-attachment-row__btn { align-self: stretch; justify-content: center; }
+}
+
+/* ============================================================
+   CodeMirror 6 editor (E8-00) — container que espera o editor
+   ser injetado via JS. Placeholder estilizado pra evitar CLS.
+   ============================================================ */
+
+.lms-code-editor {
+    border: 1px solid var(--lms-neutral-200);
+    border-radius: var(--lms-radius-inner);
+    min-height: 280px;
+    overflow: hidden;
+    background: #fff;
+}
+.lms-code-editor .cm-editor {
+    min-height: 280px;
+    font-family: 'SF Mono', Menlo, Monaco, Consolas, 'Courier New', monospace;
+    font-size: 14px;
+}
+.lms-code-editor .cm-editor.cm-focused {
+    outline: 2px solid var(--lms-primary-1);
+    outline-offset: -1px;
+}
+
+/* ============================================================
+   Painel "Executar" — HTML sandbox local (E8-03). Judge0 vai
+   reutilizar o mesmo container em E8-02 pra exibir stdout/stderr.
+   ============================================================ */
+
+.lms-run-panel {
+    margin-top: 12px;
+    border: 1px solid var(--lms-neutral-200);
+    border-radius: var(--lms-radius-card);
+    background: var(--lms-card-bg);
+    overflow: hidden;
+    box-shadow: var(--lms-shadow-card);
+}
+.lms-run-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--lms-neutral-50);
+    border-bottom: 1px solid var(--lms-neutral-200);
+}
+.lms-run-panel__title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    color: var(--lms-neutral-900);
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+.lms-run-panel__close {
+    background: transparent;
+    border: 0;
+    color: var(--lms-neutral-500);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: var(--lms-radius-chip);
+    transition: background 160ms ease, color 160ms ease;
+}
+.lms-run-panel__close:hover {
+    background: var(--lms-neutral-100);
+    color: var(--lms-neutral-900);
+}
+.lms-run-panel__placeholder {
+    padding: 32px 20px;
+    text-align: center;
+    color: var(--lms-neutral-500);
+    font-size: 13px;
+}
+.lms-run-panel__frame {
+    display: block;
+    width: 100%;
+    height: 400px;
+    border: 0;
+    background: #fff;
+}
+
+/* Loading state (E8-02) */
+.lms-run-panel__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 40px 20px;
+    color: var(--lms-neutral-500);
+    font-size: 13px;
+}
+
+/* Tabs (Judge0 result — E8-02) */
+.lms-run-panel__tabs-wrap { display: flex; flex-direction: column; }
+.lms-run-panel__tabs {
+    display: flex;
+    gap: 0;
+    padding: 0 12px;
+    background: var(--lms-neutral-50);
+    border-bottom: 1px solid var(--lms-neutral-200);
+    overflow-x: auto;
+}
+.lms-run-panel__tab {
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    color: var(--lms-neutral-500);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 10px 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 160ms ease, border-color 160ms ease;
+}
+.lms-run-panel__tab:hover { color: var(--lms-neutral-900); }
+.lms-run-panel__tab.is-active {
+    color: var(--lms-primary-1);
+    border-bottom-color: var(--lms-primary-1);
+}
+.lms-run-panel__pane {
+    margin: 0;
+    padding: 16px 18px;
+    background: #0F172A;
+    color: #E2E8F0;
+    font-family: 'SF Mono', Menlo, Monaco, Consolas, 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 400px;
+    overflow: auto;
+}
+.lms-run-panel__pane--info {
+    background: #fff;
+    color: var(--lms-neutral-700);
+    font-family: inherit;
+    white-space: normal;
+}
+.lms-run-panel__pane--info dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 16px;
+    font-size: 13px;
+}
+.lms-run-panel__pane--info dt {
+    font-weight: 700;
+    color: var(--lms-neutral-900);
+}
+.lms-run-panel__pane--info dd { margin: 0; }
+
+/* Error state (E8-02) */
+.lms-run-panel__error {
+    padding: 20px;
+    background: var(--lms-danger-tint);
+    color: var(--lms-danger-dark);
+    font-size: 13px;
+    border-left: 3px solid var(--lms-danger);
+}
+
+@media (max-width: 575.98px) {
+    .lms-run-panel__frame { height: 320px; }
+    .lms-run-panel__pane { padding: 12px 14px; font-size: 12px; }
 }

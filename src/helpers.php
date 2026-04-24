@@ -261,6 +261,24 @@ function csrf_field(): string
  */
 function csrf_verify(): void
 {
+    csrf_assert_valid();
+    // Rotaciona: próxima request recebe token novo.
+    unset($_SESSION['_csrf'], $_SESSION['_csrf_expires']);
+}
+
+/**
+ * Versão sem rotação — pra endpoints AJAX/JSON que o mesmo usuário pode
+ * chamar múltiplas vezes na mesma página sem reload (ex.: /api/code/run
+ * em E8-02). O token vale até expirar (TTL de 30 min) ou até o usuário
+ * abrir outra página, que força novo token.
+ */
+function csrf_verify_no_rotate(): void
+{
+    csrf_assert_valid();
+}
+
+function csrf_assert_valid(): void
+{
     $posted  = (string) ($_POST['_csrf'] ?? '');
     $stored  = (string) ($_SESSION['_csrf'] ?? '');
     $expires = (int)    ($_SESSION['_csrf_expires'] ?? 0);
@@ -269,9 +287,6 @@ function csrf_verify(): void
         http_response_code(403);
         throw new RuntimeException('CSRF token inválido ou expirado');
     }
-
-    // Rotaciona: próxima request recebe token novo.
-    unset($_SESSION['_csrf'], $_SESSION['_csrf_expires']);
 }
 
 // ---------------------------------------------------------------------

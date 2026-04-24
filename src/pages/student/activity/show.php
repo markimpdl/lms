@@ -36,6 +36,8 @@ $submission = $ctx['submission'];
 $mutable    = ActivitySubmission::isMutable($submission);
 $isOpen     = (int) $activity['submission_open'] === 1;
 $isCode     = $activity['type'] === 'codigo';
+$codeLang   = $activity['code_language'] ?? null;
+$useEditor  = $isCode && (int) ($activity['allow_online_code_run'] ?? 0) === 1 && $codeLang !== null;
 $errors     = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -206,13 +208,77 @@ ob_start();
 
                         <?php if ($isCode): ?>
                             <div class="mb-3">
-                                <label for="f-code" class="form-label">
-                                    <?= e(__t('submissions.form.code')) ?>
-                                </label>
+                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                                    <label for="f-code" class="form-label mb-0">
+                                        <?= e(__t('submissions.form.code')) ?>
+                                        <?php if ($useEditor): ?>
+                                            <span class="badge text-bg-primary ms-1"><?= e(__t('activities.code_language.' . $codeLang)) ?></span>
+                                        <?php endif; ?>
+                                    </label>
+                                    <?php if ($useEditor): ?>
+                                        <button type="button" id="btn-run" class="btn btn-sm btn-outline-primary">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                            </svg>
+                                            <?= e(__t('submissions.form.run')) ?>
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
+                                <?php if ($useEditor): ?>
+                                    <div id="f-code-editor" class="lms-code-editor" data-code-language="<?= e((string) $codeLang) ?>"></div>
+                                <?php endif; ?>
                                 <textarea id="f-code" name="code_text" rows="10"
-                                          class="form-control font-monospace"
+                                          class="form-control font-monospace<?= $useEditor ? ' d-none' : '' ?>"
                                           placeholder="<?= e(__t('submissions.form.code_placeholder')) ?>"><?= e((string) ($submission['code_text'] ?? '')) ?></textarea>
                                 <div class="form-text"><?= e(__t('submissions.form.code_hint')) ?></div>
+
+                                <?php if ($useEditor): ?>
+                                    <div id="run-result-panel" class="lms-run-panel" hidden>
+                                        <div class="lms-run-panel__header">
+                                            <h3 class="lms-run-panel__title"><?= e(__t('submissions.run.result_title')) ?></h3>
+                                            <button type="button" id="btn-clear" class="lms-run-panel__close" aria-label="<?= e(__t('submissions.run.clear')) ?>">
+                                                <?= e(__t('submissions.run.clear')) ?>
+                                            </button>
+                                        </div>
+
+                                        <!-- Loading state -->
+                                        <div id="run-loading" class="lms-run-panel__loading" hidden>
+                                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                            <span><?= e(__t('submissions.run.loading')) ?></span>
+                                        </div>
+
+                                        <!-- HTML sandbox (E8-03) -->
+                                        <iframe id="run-iframe"
+                                                class="lms-run-panel__frame"
+                                                sandbox="allow-scripts"
+                                                title="<?= e(__t('submissions.run.sandbox_title')) ?>"
+                                                hidden></iframe>
+
+                                        <!-- Judge0 tabs (E8-02) -->
+                                        <div id="run-tabs" class="lms-run-panel__tabs-wrap" hidden>
+                                            <div class="lms-run-panel__tabs" role="tablist">
+                                                <button type="button" data-tab="stdout" class="lms-run-panel__tab is-active" role="tab"><?= e(__t('submissions.run.tab.stdout')) ?></button>
+                                                <button type="button" data-tab="stderr" class="lms-run-panel__tab" role="tab"><?= e(__t('submissions.run.tab.stderr')) ?></button>
+                                                <button type="button" data-tab="info"   class="lms-run-panel__tab" role="tab"><?= e(__t('submissions.run.tab.info')) ?></button>
+                                            </div>
+                                            <pre id="run-pane-stdout" class="lms-run-panel__pane" data-pane="stdout"></pre>
+                                            <pre id="run-pane-stderr" class="lms-run-panel__pane" data-pane="stderr" hidden></pre>
+                                            <div id="run-pane-info" class="lms-run-panel__pane lms-run-panel__pane--info" data-pane="info" hidden>
+                                                <dl class="mb-0">
+                                                    <dt><?= e(__t('submissions.run.info.time')) ?></dt>
+                                                    <dd id="run-info-time">—</dd>
+                                                    <dt><?= e(__t('submissions.run.info.status')) ?></dt>
+                                                    <dd id="run-info-status">—</dd>
+                                                </dl>
+                                            </div>
+                                        </div>
+
+                                        <!-- Error state -->
+                                        <div id="run-error" class="lms-run-panel__error" hidden>
+                                            <p id="run-error-msg" class="mb-0"></p>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         <?php endif; ?>
 
@@ -237,6 +303,200 @@ ob_start();
         </div>
     </div>
 </div>
+<?php if ($useEditor): ?>
+<script type="module">
+// CodeMirror 6 via esm.sh — carrega extensão da linguagem dinamicamente.
+// Editor sincroniza conteúdo com o textarea `#f-code` ao submeter o form
+// (textarea é quem vai no POST como `code_text`).
+import { EditorView, basicSetup } from "https://esm.sh/codemirror@6.0.1";
+
+const container = document.getElementById('f-code-editor');
+const textarea  = document.getElementById('f-code');
+if (container && textarea) {
+    const lang = container.dataset.codeLanguage;
+    let langExt;
+    if (lang === 'python') {
+        const m = await import("https://esm.sh/@codemirror/lang-python@6.1.6");
+        langExt = m.python();
+    } else if (lang === 'javascript') {
+        const m = await import("https://esm.sh/@codemirror/lang-javascript@6.2.2");
+        langExt = m.javascript();
+    } else if (lang === 'html') {
+        const m = await import("https://esm.sh/@codemirror/lang-html@6.4.9");
+        langExt = m.html();
+    }
+    // C# fica sem highlight (CM6 não tem pacote oficial); texto plain roda.
+
+    const view = new EditorView({
+        doc: textarea.value,
+        parent: container,
+        extensions: [basicSetup, langExt].filter(Boolean),
+    });
+
+    const form = textarea.closest('form');
+    if (form) {
+        form.addEventListener('submit', () => {
+            textarea.value = view.state.doc.toString();
+        });
+    }
+
+    // Painel "Executar" (E8-02) — estados: loading / iframe (HTML) /
+    // tabs (Judge0 stdout/stderr/info) / error. Também Ctrl+Enter /
+    // Cmd+Enter como atalho pra executar.
+    const btnRun    = document.getElementById('btn-run');
+    const btnClear  = document.getElementById('btn-clear');
+    const panel     = document.getElementById('run-result-panel');
+    const iframe    = document.getElementById('run-iframe');
+    const loading   = document.getElementById('run-loading');
+    const tabsWrap  = document.getElementById('run-tabs');
+    const errBlock  = document.getElementById('run-error');
+    const errMsg    = document.getElementById('run-error-msg');
+    const paneOut   = document.getElementById('run-pane-stdout');
+    const paneErr   = document.getElementById('run-pane-stderr');
+    const paneInfo  = document.getElementById('run-pane-info');
+    const infoTime  = document.getElementById('run-info-time');
+    const infoStat  = document.getElementById('run-info-status');
+
+    const errorMessages = <?= json_encode([
+        'code_run.err.method'       => __t('code_run.err.method'),
+        'code_run.err.forbidden'    => __t('code_run.err.forbidden'),
+        'code_run.err.csrf'         => __t('code_run.err.csrf'),
+        'code_run.err.bad_request'  => __t('code_run.err.bad_request'),
+        'code_run.err.not_found'    => __t('code_run.err.not_found'),
+        'code_run.err.not_code'     => __t('code_run.err.not_code'),
+        'code_run.err.disabled'     => __t('code_run.err.disabled'),
+        'code_run.err.bad_language' => __t('code_run.err.bad_language'),
+        'code_run.err.too_large'    => __t('code_run.err.too_large'),
+        'code_run.err.unavailable'  => __t('code_run.err.unavailable'),
+        'code_run.err.quota'        => __t('code_run.err.quota'),
+        'code_run.err.timeout'      => __t('code_run.err.timeout'),
+        'code_run.err.remote'       => __t('code_run.err.remote'),
+        'network'                   => __t('code_run.err.remote'),
+    ], JSON_UNESCAPED_UNICODE) ?>;
+
+    const statusLabels = <?= json_encode([
+        'accepted'    => __t('submissions.run.status.accepted'),
+        'time_limit'  => __t('submissions.run.status.time_limit'),
+        'compile'     => __t('submissions.run.status.compile_error'),
+        'runtime'     => __t('submissions.run.status.runtime_error'),
+        'unknown'     => __t('submissions.run.status.unknown'),
+    ], JSON_UNESCAPED_UNICODE) ?>;
+
+    const csrfToken  = <?= json_encode(csrf_token()) ?>;
+    const activityId = <?= (int) $activityId ?>;
+    const emptyHint  = <?= json_encode(__t('submissions.run.empty_output')) ?>;
+
+    function hideAllStates() {
+        loading.hidden  = true;
+        iframe.hidden   = true;
+        iframe.srcdoc   = '';
+        tabsWrap.hidden = true;
+        errBlock.hidden = true;
+    }
+    function clearPanel() {
+        panel.hidden = true;
+        hideAllStates();
+    }
+    function showLoading() {
+        panel.hidden    = false;
+        hideAllStates();
+        loading.hidden  = false;
+    }
+    function showIframe(code) {
+        panel.hidden    = false;
+        hideAllStates();
+        iframe.hidden   = false;
+        iframe.srcdoc   = code;
+    }
+    function showError(key) {
+        panel.hidden    = false;
+        hideAllStates();
+        errMsg.textContent = errorMessages[key] || errorMessages['network'];
+        errBlock.hidden = false;
+    }
+    function statusIdToLabel(id) {
+        if (id === 3) return statusLabels.accepted;
+        if (id === 5) return statusLabels.time_limit;
+        if (id === 6) return statusLabels.compile;
+        if (id >= 7 && id <= 12) return statusLabels.runtime;
+        return statusLabels.unknown;
+    }
+    function showTabs(data) {
+        panel.hidden    = false;
+        hideAllStates();
+        paneOut.textContent  = data.stdout && data.stdout !== '' ? data.stdout : emptyHint;
+        paneErr.textContent  = data.stderr && data.stderr !== '' ? data.stderr : emptyHint;
+        infoTime.textContent = data.time !== null && data.time !== undefined ? (data.time + ' s') : '—';
+        infoStat.textContent = statusIdToLabel(data.status_id);
+        activateTab('stdout');
+        tabsWrap.hidden = false;
+    }
+    function activateTab(name) {
+        tabsWrap.querySelectorAll('.lms-run-panel__tab').forEach((b) => {
+            b.classList.toggle('is-active', b.dataset.tab === name);
+        });
+        tabsWrap.querySelectorAll('.lms-run-panel__pane').forEach((p) => {
+            p.hidden = p.dataset.pane !== name;
+        });
+    }
+
+    async function runCode() {
+        if (btnRun.disabled) return;  // evita double-click durante loading
+        const code = view.state.doc.toString();
+        if (lang === 'html') {
+            showIframe(code);
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            return;
+        }
+
+        btnRun.disabled = true;
+        showLoading();
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        try {
+            const body = new URLSearchParams();
+            body.set('_csrf', csrfToken);
+            body.set('activity_id', String(activityId));
+            body.set('code', code);
+
+            const resp = await fetch('/api/code/run', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body.toString(),
+            });
+
+            let data;
+            try { data = await resp.json(); } catch (_) { data = null; }
+
+            if (data && data.ok === true) {
+                showTabs(data);
+            } else {
+                showError((data && data.error_key) ? data.error_key : 'network');
+            }
+        } catch (_) {
+            showError('network');
+        } finally {
+            btnRun.disabled = false;
+        }
+    }
+
+    if (btnRun)   btnRun.addEventListener('click', runCode);
+    if (btnClear) btnClear.addEventListener('click', clearPanel);
+
+    tabsWrap.querySelectorAll('.lms-run-panel__tab').forEach((b) => {
+        b.addEventListener('click', () => activateTab(b.dataset.tab));
+    });
+
+    // Ctrl+Enter / Cmd+Enter como atalho dentro do editor.
+    container.addEventListener('keydown', (ev) => {
+        if ((ev.ctrlKey || ev.metaKey) && ev.key === 'Enter') {
+            ev.preventDefault();
+            runCode();
+        }
+    });
+}
+</script>
+<?php endif; ?>
 <?php
 $page_content = ob_get_clean();
 require LMS_ROOT . '/src/templates/layout.php';
