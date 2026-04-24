@@ -38,14 +38,15 @@ final class CuRoster
         // Contexto + course_id via CU
         $stmt = $pdo->prepare(
             'SELECT c.id AS course_id,
-                    (SELECT id FROM evaluations WHERE competence_unit_id = ? LIMIT 1) AS eval_id
+                    (SELECT id FROM evaluations
+                      WHERE competence_unit_id = ? AND tenant_id = ? LIMIT 1) AS eval_id
                FROM competence_units cu
                JOIN core_competencies cc ON cc.id = cu.core_competency_id
                JOIN courses c            ON c.id  = cc.course_id AND c.tenant_id = ?
               WHERE cu.id = ?
               LIMIT 1'
         );
-        $stmt->execute([$cuId, $tenantId, $cuId]);
+        $stmt->execute([$cuId, $tenantId, $tenantId, $cuId]);
         $ctx = $stmt->fetch();
         if ($ctx === false) {
             return [];
