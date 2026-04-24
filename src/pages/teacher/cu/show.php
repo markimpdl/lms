@@ -38,6 +38,8 @@ $attachments = ContentAttachment::listByCu($cuId, $tenantId);
 $activities  = Activity::listByCu($cuId, $tenantId);
 $activityCount = count($activities);
 $evaluation    = Evaluation::findByCu($cuId, $tenantId);
+$roster        = CuRoster::listForCu($cuId, $tenantId);
+$rosterCount   = count($roster);
 
 $tree       = curriculum_tree($courseId, $tenantId);
 $activeCcId = $ccId;
@@ -245,6 +247,155 @@ ob_start();
                 </div>
             <?php endif; ?>
         </div>
+
+        <!-- Alunos (E11-03) -->
+        <?php if ($rosterCount > 0): ?>
+        <div class="card shadow-sm mb-3" x-data="{ onlyActive: true }">
+            <div class="card-header d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                <div>
+                    <h2 class="h6 mb-0"><?= e(__t('cu_roster.title')) ?></h2>
+                    <small class="text-muted">
+                        <?= e(__t('cu_roster.subtitle', ['count' => (string) $rosterCount])) ?>
+                    </small>
+                </div>
+                <label class="form-check form-switch m-0">
+                    <input type="checkbox" class="form-check-input" role="switch" x-model="onlyActive">
+                    <span class="form-check-label small"><?= e(__t('cu_roster.only_active')) ?></span>
+                </label>
+            </div>
+
+            <!-- Tabela (≥ md) -->
+            <div class="d-none d-md-block table-responsive">
+                <table class="table align-middle mb-0 small">
+                    <thead class="table-light">
+                        <tr>
+                            <th><?= e(__t('cu_roster.col.student')) ?></th>
+                            <?php foreach ($activities as $i => $act): ?>
+                                <th class="text-center" style="min-width:70px" title="<?= e((string) $act['title']) ?>">
+                                    <span class="badge text-bg-light border"><?= e(__t('cu_roster.col.activity_n', ['n' => (string) ($i + 1)])) ?></span>
+                                </th>
+                            <?php endforeach; ?>
+                            <?php if ($evaluation !== null): ?>
+                                <th class="text-center" style="min-width:80px"><?= e(__t('cu_roster.col.evaluation')) ?></th>
+                            <?php endif; ?>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($roster as $r): ?>
+                            <tr x-show="!onlyActive || <?= (int) $r['active'] ?> === 1" x-transition.opacity>
+                                <td>
+                                    <a href="/teacher/students/<?= (int) $r['id'] ?>" class="text-decoration-none">
+                                        <?= e((string) $r['name']) ?>
+                                    </a>
+                                    <?php if ((int) $r['active'] === 0): ?>
+                                        <span class="badge text-bg-secondary ms-1"><?= e(__t('cu_roster.badge.inactive')) ?></span>
+                                    <?php endif; ?>
+                                </td>
+                                <?php foreach ($activities as $act):
+                                    $aid    = (int) $act['id'];
+                                    $status = (string) ($r['activity_statuses'][$aid] ?? 'not_submitted');
+                                    [$bg, $icon, $label] = match ($status) {
+                                        'with_feedback' => ['bg-success-subtle text-success-emphasis', '✓', __t('cu_roster.activity.with_feedback')],
+                                        'pending'       => ['bg-warning-subtle text-warning-emphasis', '⏳', __t('cu_roster.activity.pending')],
+                                        default         => ['bg-light text-muted',                     '—', __t('cu_roster.activity.not_submitted')],
+                                    };
+                                    $cellContent = '<span class="d-inline-block px-2 py-1 rounded ' . $bg . '" title="' . e($label) . '">' . $icon . '</span>';
+                                    $cellHref = $status !== 'not_submitted'
+                                        ? '/teacher/activity/' . $aid . '/submission/' . (int) $r['id']
+                                        : null;
+                                ?>
+                                    <td class="text-center">
+                                        <?php if ($cellHref !== null): ?>
+                                            <a href="<?= e($cellHref) ?>" class="text-decoration-none"><?= $cellContent ?></a>
+                                        <?php else: ?>
+                                            <?= $cellContent ?>
+                                        <?php endif; ?>
+                                    </td>
+                                <?php endforeach; ?>
+                                <?php if ($evaluation !== null):
+                                    $ev = $r['evaluation_status'];
+                                    $evState = (string) $ev['state'];
+                                    $gradeStr = isset($ev['grade']) && $ev['grade'] !== null
+                                        ? number_format((float) $ev['grade'], 1, ',', '')
+                                        : null;
+                                    [$bg2, $label2] = match ($evState) {
+                                        'approved' => ['bg-success-subtle text-success-emphasis', $gradeStr . ' · ' . __t('cu_roster.evaluation.approved')],
+                                        'failed'   => ['bg-danger-subtle text-danger-emphasis',   $gradeStr . ' · ' . __t('cu_roster.evaluation.failed')],
+                                        'retry'    => ['bg-info-subtle text-info-emphasis',      $gradeStr . ' · ' . __t('cu_roster.evaluation.retry')],
+                                        'pending'  => ['bg-warning-subtle text-warning-emphasis', __t('cu_roster.evaluation.pending')],
+                                        default    => ['bg-light text-muted',                    __t('cu_roster.evaluation.not_submitted')],
+                                    };
+                                    $evCellContent = '<span class="d-inline-block px-2 py-1 rounded ' . $bg2 . '">' . e($label2) . '</span>';
+                                    $evHref = $evState !== 'not_submitted'
+                                        ? '/teacher/evaluation/' . (int) $evaluation['id'] . '/submission/' . (int) $r['id']
+                                        : null;
+                                ?>
+                                    <td class="text-center">
+                                        <?php if ($evHref !== null): ?>
+                                            <a href="<?= e($evHref) ?>" class="text-decoration-none"><?= $evCellContent ?></a>
+                                        <?php else: ?>
+                                            <?= $evCellContent ?>
+                                        <?php endif; ?>
+                                    </td>
+                                <?php endif; ?>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Cards (< md) -->
+            <div class="d-md-none">
+                <ul class="list-group list-group-flush">
+                    <?php foreach ($roster as $r): ?>
+                        <li class="list-group-item" x-show="!onlyActive || <?= (int) $r['active'] ?> === 1" x-transition.opacity>
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <a href="/teacher/students/<?= (int) $r['id'] ?>" class="fw-semibold text-decoration-none flex-grow-1">
+                                    <?= e((string) $r['name']) ?>
+                                </a>
+                                <?php if ((int) $r['active'] === 0): ?>
+                                    <span class="badge text-bg-secondary"><?= e(__t('cu_roster.badge.inactive')) ?></span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="d-flex flex-wrap gap-1">
+                                <?php foreach ($activities as $i => $act):
+                                    $aid    = (int) $act['id'];
+                                    $status = (string) ($r['activity_statuses'][$aid] ?? 'not_submitted');
+                                    [$bg, $icon] = match ($status) {
+                                        'with_feedback' => ['bg-success-subtle text-success-emphasis', '✓'],
+                                        'pending'       => ['bg-warning-subtle text-warning-emphasis', '⏳'],
+                                        default         => ['bg-light text-muted',                     '—'],
+                                    };
+                                ?>
+                                    <span class="badge <?= e($bg) ?>" title="<?= e((string) $act['title']) ?>">
+                                        <?= e(__t('cu_roster.col.activity_n', ['n' => (string) ($i + 1)])) ?> <?= $icon ?>
+                                    </span>
+                                <?php endforeach; ?>
+                                <?php if ($evaluation !== null):
+                                    $ev = $r['evaluation_status'];
+                                    $evState = (string) $ev['state'];
+                                    $gradeStr = isset($ev['grade']) && $ev['grade'] !== null
+                                        ? number_format((float) $ev['grade'], 1, ',', '')
+                                        : '';
+                                    [$bg2, $icon2] = match ($evState) {
+                                        'approved' => ['bg-success-subtle text-success-emphasis', '✓ ' . $gradeStr],
+                                        'failed'   => ['bg-danger-subtle text-danger-emphasis',   '✗ ' . $gradeStr],
+                                        'retry'    => ['bg-info-subtle text-info-emphasis',      '↻ ' . $gradeStr],
+                                        'pending'  => ['bg-warning-subtle text-warning-emphasis', '⏳'],
+                                        default    => ['bg-light text-muted',                    '—'],
+                                    };
+                                ?>
+                                    <span class="badge <?= e($bg2) ?>">
+                                        <?= e(__t('cu_roster.col.evaluation')) ?> <?= e($icon2) ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        </div>
+        <?php endif; ?>
 
         <?php if ($attachments !== []): ?>
             <div class="card shadow-sm">
