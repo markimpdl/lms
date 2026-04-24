@@ -47,9 +47,10 @@ if ($user === null || ($user['role'] ?? '') !== 'student') {
     judge0_json_response(403, ['ok' => false, 'error_key' => 'code_run.err.forbidden']);
 }
 
-// CSRF
+// CSRF — usa verify-no-rotate porque o aluno pode executar várias vezes
+// na mesma página sem reload. Token vale até expirar (TTL 30 min).
 try {
-    csrf_verify();
+    csrf_verify_no_rotate();
 } catch (RuntimeException) {
     judge0_json_response(403, ['ok' => false, 'error_key' => 'code_run.err.csrf']);
 }

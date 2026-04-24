@@ -1297,6 +1297,86 @@ body.lms-student-area .lms-student-main {
     border: 0;
     background: #fff;
 }
+
+/* Loading state (E8-02) */
+.lms-run-panel__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 40px 20px;
+    color: var(--lms-neutral-500);
+    font-size: 13px;
+}
+
+/* Tabs (Judge0 result — E8-02) */
+.lms-run-panel__tabs-wrap { display: flex; flex-direction: column; }
+.lms-run-panel__tabs {
+    display: flex;
+    gap: 0;
+    padding: 0 12px;
+    background: var(--lms-neutral-50);
+    border-bottom: 1px solid var(--lms-neutral-200);
+    overflow-x: auto;
+}
+.lms-run-panel__tab {
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    color: var(--lms-neutral-500);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 10px 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 160ms ease, border-color 160ms ease;
+}
+.lms-run-panel__tab:hover { color: var(--lms-neutral-900); }
+.lms-run-panel__tab.is-active {
+    color: var(--lms-primary-1);
+    border-bottom-color: var(--lms-primary-1);
+}
+.lms-run-panel__pane {
+    margin: 0;
+    padding: 16px 18px;
+    background: #0F172A;
+    color: #E2E8F0;
+    font-family: 'SF Mono', Menlo, Monaco, Consolas, 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 400px;
+    overflow: auto;
+}
+.lms-run-panel__pane--info {
+    background: #fff;
+    color: var(--lms-neutral-700);
+    font-family: inherit;
+    white-space: normal;
+}
+.lms-run-panel__pane--info dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 16px;
+    font-size: 13px;
+}
+.lms-run-panel__pane--info dt {
+    font-weight: 700;
+    color: var(--lms-neutral-900);
+}
+.lms-run-panel__pane--info dd { margin: 0; }
+
+/* Error state (E8-02) */
+.lms-run-panel__error {
+    padding: 20px;
+    background: var(--lms-danger-tint);
+    color: var(--lms-danger-dark);
+    font-size: 13px;
+    border-left: 3px solid var(--lms-danger);
+}
+
 @media (max-width: 575.98px) {
     .lms-run-panel__frame { height: 320px; }
+    .lms-run-panel__pane { padding: 12px 14px; font-size: 12px; }
 }

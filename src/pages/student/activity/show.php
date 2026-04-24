@@ -240,14 +240,43 @@ ob_start();
                                                 <?= e(__t('submissions.run.clear')) ?>
                                             </button>
                                         </div>
-                                        <div id="run-placeholder" class="lms-run-panel__placeholder" hidden>
-                                            <p class="mb-0"><?= e(__t('submissions.run.placeholder_judge0')) ?></p>
+
+                                        <!-- Loading state -->
+                                        <div id="run-loading" class="lms-run-panel__loading" hidden>
+                                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                            <span><?= e(__t('submissions.run.loading')) ?></span>
                                         </div>
+
+                                        <!-- HTML sandbox (E8-03) -->
                                         <iframe id="run-iframe"
                                                 class="lms-run-panel__frame"
                                                 sandbox="allow-scripts"
                                                 title="<?= e(__t('submissions.run.sandbox_title')) ?>"
                                                 hidden></iframe>
+
+                                        <!-- Judge0 tabs (E8-02) -->
+                                        <div id="run-tabs" class="lms-run-panel__tabs-wrap" hidden>
+                                            <div class="lms-run-panel__tabs" role="tablist">
+                                                <button type="button" data-tab="stdout" class="lms-run-panel__tab is-active" role="tab"><?= e(__t('submissions.run.tab.stdout')) ?></button>
+                                                <button type="button" data-tab="stderr" class="lms-run-panel__tab" role="tab"><?= e(__t('submissions.run.tab.stderr')) ?></button>
+                                                <button type="button" data-tab="info"   class="lms-run-panel__tab" role="tab"><?= e(__t('submissions.run.tab.info')) ?></button>
+                                            </div>
+                                            <pre id="run-pane-stdout" class="lms-run-panel__pane" data-pane="stdout"></pre>
+                                            <pre id="run-pane-stderr" class="lms-run-panel__pane" data-pane="stderr" hidden></pre>
+                                            <div id="run-pane-info" class="lms-run-panel__pane lms-run-panel__pane--info" data-pane="info" hidden>
+                                                <dl class="mb-0">
+                                                    <dt><?= e(__t('submissions.run.info.time')) ?></dt>
+                                                    <dd id="run-info-time">—</dd>
+                                                    <dt><?= e(__t('submissions.run.info.status')) ?></dt>
+                                                    <dd id="run-info-status">—</dd>
+                                                </dl>
+                                            </div>
+                                        </div>
+
+                                        <!-- Error state -->
+                                        <div id="run-error" class="lms-run-panel__error" hidden>
+                                            <p id="run-error-msg" class="mb-0"></p>
+                                        </div>
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -311,41 +340,160 @@ if (container && textarea) {
         });
     }
 
-    // E8-03: botão "Executar" + painel de resultado.
-    // - HTML: renderiza o código no iframe sandbox local (sem backend)
-    // - Outras linguagens: placeholder até E8-01/E8-02 conectarem Judge0
-    const btnRun   = document.getElementById('btn-run');
-    const btnClear = document.getElementById('btn-clear');
-    const panel    = document.getElementById('run-result-panel');
-    const iframe   = document.getElementById('run-iframe');
-    const placeh   = document.getElementById('run-placeholder');
+    // Painel "Executar" (E8-02) — estados: loading / iframe (HTML) /
+    // tabs (Judge0 stdout/stderr/info) / error. Também Ctrl+Enter /
+    // Cmd+Enter como atalho pra executar.
+    const btnRun    = document.getElementById('btn-run');
+    const btnClear  = document.getElementById('btn-clear');
+    const panel     = document.getElementById('run-result-panel');
+    const iframe    = document.getElementById('run-iframe');
+    const loading   = document.getElementById('run-loading');
+    const tabsWrap  = document.getElementById('run-tabs');
+    const errBlock  = document.getElementById('run-error');
+    const errMsg    = document.getElementById('run-error-msg');
+    const paneOut   = document.getElementById('run-pane-stdout');
+    const paneErr   = document.getElementById('run-pane-stderr');
+    const paneInfo  = document.getElementById('run-pane-info');
+    const infoTime  = document.getElementById('run-info-time');
+    const infoStat  = document.getElementById('run-info-status');
 
+    const errorMessages = <?= json_encode([
+        'code_run.err.method'       => __t('code_run.err.method'),
+        'code_run.err.forbidden'    => __t('code_run.err.forbidden'),
+        'code_run.err.csrf'         => __t('code_run.err.csrf'),
+        'code_run.err.bad_request'  => __t('code_run.err.bad_request'),
+        'code_run.err.not_found'    => __t('code_run.err.not_found'),
+        'code_run.err.not_code'     => __t('code_run.err.not_code'),
+        'code_run.err.disabled'     => __t('code_run.err.disabled'),
+        'code_run.err.bad_language' => __t('code_run.err.bad_language'),
+        'code_run.err.too_large'    => __t('code_run.err.too_large'),
+        'code_run.err.unavailable'  => __t('code_run.err.unavailable'),
+        'code_run.err.quota'        => __t('code_run.err.quota'),
+        'code_run.err.timeout'      => __t('code_run.err.timeout'),
+        'code_run.err.remote'       => __t('code_run.err.remote'),
+        'network'                   => __t('code_run.err.remote'),
+    ], JSON_UNESCAPED_UNICODE) ?>;
+
+    const statusLabels = <?= json_encode([
+        'accepted'    => __t('submissions.run.status.accepted'),
+        'time_limit'  => __t('submissions.run.status.time_limit'),
+        'compile'     => __t('submissions.run.status.compile_error'),
+        'runtime'     => __t('submissions.run.status.runtime_error'),
+        'unknown'     => __t('submissions.run.status.unknown'),
+    ], JSON_UNESCAPED_UNICODE) ?>;
+
+    const csrfToken  = <?= json_encode(csrf_token()) ?>;
+    const activityId = <?= (int) $activityId ?>;
+    const emptyHint  = <?= json_encode(__t('submissions.run.empty_output')) ?>;
+
+    function hideAllStates() {
+        loading.hidden  = true;
+        iframe.hidden   = true;
+        iframe.srcdoc   = '';
+        tabsWrap.hidden = true;
+        errBlock.hidden = true;
+    }
     function clearPanel() {
         panel.hidden = true;
-        iframe.hidden = true;
-        iframe.srcdoc = '';
-        placeh.hidden = true;
+        hideAllStates();
     }
-
-    if (btnRun && panel && iframe && placeh) {
-        btnRun.addEventListener('click', () => {
-            const code = view.state.doc.toString();
-            panel.hidden = false;
-            if (lang === 'html') {
-                placeh.hidden = true;
-                iframe.hidden = false;
-                iframe.srcdoc = code;
-            } else {
-                iframe.hidden = true;
-                iframe.srcdoc = '';
-                placeh.hidden = false;
-            }
-            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    function showLoading() {
+        panel.hidden    = false;
+        hideAllStates();
+        loading.hidden  = false;
+    }
+    function showIframe(code) {
+        panel.hidden    = false;
+        hideAllStates();
+        iframe.hidden   = false;
+        iframe.srcdoc   = code;
+    }
+    function showError(key) {
+        panel.hidden    = false;
+        hideAllStates();
+        errMsg.textContent = errorMessages[key] || errorMessages['network'];
+        errBlock.hidden = false;
+    }
+    function statusIdToLabel(id) {
+        if (id === 3) return statusLabels.accepted;
+        if (id === 5) return statusLabels.time_limit;
+        if (id === 6) return statusLabels.compile;
+        if (id >= 7 && id <= 12) return statusLabels.runtime;
+        return statusLabels.unknown;
+    }
+    function showTabs(data) {
+        panel.hidden    = false;
+        hideAllStates();
+        paneOut.textContent  = data.stdout && data.stdout !== '' ? data.stdout : emptyHint;
+        paneErr.textContent  = data.stderr && data.stderr !== '' ? data.stderr : emptyHint;
+        infoTime.textContent = data.time !== null && data.time !== undefined ? (data.time + ' s') : '—';
+        infoStat.textContent = statusIdToLabel(data.status_id);
+        activateTab('stdout');
+        tabsWrap.hidden = false;
+    }
+    function activateTab(name) {
+        tabsWrap.querySelectorAll('.lms-run-panel__tab').forEach((b) => {
+            b.classList.toggle('is-active', b.dataset.tab === name);
+        });
+        tabsWrap.querySelectorAll('.lms-run-panel__pane').forEach((p) => {
+            p.hidden = p.dataset.pane !== name;
         });
     }
-    if (btnClear) {
-        btnClear.addEventListener('click', clearPanel);
+
+    async function runCode() {
+        if (btnRun.disabled) return;  // evita double-click durante loading
+        const code = view.state.doc.toString();
+        if (lang === 'html') {
+            showIframe(code);
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            return;
+        }
+
+        btnRun.disabled = true;
+        showLoading();
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        try {
+            const body = new URLSearchParams();
+            body.set('_csrf', csrfToken);
+            body.set('activity_id', String(activityId));
+            body.set('code', code);
+
+            const resp = await fetch('/api/code/run', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body.toString(),
+            });
+
+            let data;
+            try { data = await resp.json(); } catch (_) { data = null; }
+
+            if (data && data.ok === true) {
+                showTabs(data);
+            } else {
+                showError((data && data.error_key) ? data.error_key : 'network');
+            }
+        } catch (_) {
+            showError('network');
+        } finally {
+            btnRun.disabled = false;
+        }
     }
+
+    if (btnRun)   btnRun.addEventListener('click', runCode);
+    if (btnClear) btnClear.addEventListener('click', clearPanel);
+
+    tabsWrap.querySelectorAll('.lms-run-panel__tab').forEach((b) => {
+        b.addEventListener('click', () => activateTab(b.dataset.tab));
+    });
+
+    // Ctrl+Enter / Cmd+Enter como atalho dentro do editor.
+    container.addEventListener('keydown', (ev) => {
+        if ((ev.ctrlKey || ev.metaKey) && ev.key === 'Enter') {
+            ev.preventDefault();
+            runCode();
+        }
+    });
 }
 </script>
 <?php endif; ?>
