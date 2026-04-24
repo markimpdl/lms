@@ -36,6 +36,8 @@ $submission = $ctx['submission'];
 $mutable    = ActivitySubmission::isMutable($submission);
 $isOpen     = (int) $activity['submission_open'] === 1;
 $isCode     = $activity['type'] === 'codigo';
+$codeLang   = $activity['code_language'] ?? null;
+$useEditor  = $isCode && (int) ($activity['allow_online_code_run'] ?? 0) === 1 && $codeLang !== null;
 $errors     = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -208,9 +210,15 @@ ob_start();
                             <div class="mb-3">
                                 <label for="f-code" class="form-label">
                                     <?= e(__t('submissions.form.code')) ?>
+                                    <?php if ($useEditor): ?>
+                                        <span class="badge text-bg-primary ms-1"><?= e(__t('activities.code_language.' . $codeLang)) ?></span>
+                                    <?php endif; ?>
                                 </label>
+                                <?php if ($useEditor): ?>
+                                    <div id="f-code-editor" class="lms-code-editor" data-code-language="<?= e((string) $codeLang) ?>"></div>
+                                <?php endif; ?>
                                 <textarea id="f-code" name="code_text" rows="10"
-                                          class="form-control font-monospace"
+                                          class="form-control font-monospace<?= $useEditor ? ' d-none' : '' ?>"
                                           placeholder="<?= e(__t('submissions.form.code_placeholder')) ?>"><?= e((string) ($submission['code_text'] ?? '')) ?></textarea>
                                 <div class="form-text"><?= e(__t('submissions.form.code_hint')) ?></div>
                             </div>
@@ -237,6 +245,45 @@ ob_start();
         </div>
     </div>
 </div>
+<?php if ($useEditor): ?>
+<script type="module">
+// CodeMirror 6 via esm.sh — carrega extensão da linguagem dinamicamente.
+// Editor sincroniza conteúdo com o textarea `#f-code` ao submeter o form
+// (textarea é quem vai no POST como `code_text`).
+import { EditorView, basicSetup } from "https://esm.sh/codemirror@6.0.1";
+
+const container = document.getElementById('f-code-editor');
+const textarea  = document.getElementById('f-code');
+if (container && textarea) {
+    const lang = container.dataset.codeLanguage;
+    let langExt;
+    if (lang === 'python') {
+        const m = await import("https://esm.sh/@codemirror/lang-python@6.1.6");
+        langExt = m.python();
+    } else if (lang === 'javascript') {
+        const m = await import("https://esm.sh/@codemirror/lang-javascript@6.2.2");
+        langExt = m.javascript();
+    } else if (lang === 'html') {
+        const m = await import("https://esm.sh/@codemirror/lang-html@6.4.9");
+        langExt = m.html();
+    }
+    // C# fica sem highlight (CM6 não tem pacote oficial); texto plain roda.
+
+    const view = new EditorView({
+        doc: textarea.value,
+        parent: container,
+        extensions: [basicSetup, langExt].filter(Boolean),
+    });
+
+    const form = textarea.closest('form');
+    if (form) {
+        form.addEventListener('submit', () => {
+            textarea.value = view.state.doc.toString();
+        });
+    }
+}
+</script>
+<?php endif; ?>
 <?php
 $page_content = ob_get_clean();
 require LMS_ROOT . '/src/templates/layout.php';

@@ -178,6 +178,7 @@ CREATE TABLE IF NOT EXISTS activities (
     title                 VARCHAR(200) NOT NULL,
     instruction           MEDIUMTEXT NOT NULL,
     type                  ENUM('projeto','codigo') NOT NULL,
+    code_language         ENUM('python','csharp','javascript','html') NULL,
     xp_value              INT UNSIGNED NOT NULL DEFAULT 0,
     submission_open       TINYINT(1) NOT NULL DEFAULT 1,
     allow_online_code_run TINYINT(1) NOT NULL DEFAULT 0,
@@ -704,6 +705,22 @@ SET @col_exists := (
 );
 SET @sql := IF(@col_exists = 0,
     'ALTER TABLE competence_units ADD COLUMN workload_hours INT UNSIGNED NOT NULL DEFAULT 0 AFTER position',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E8-00] activities.code_language — linguagem da atividade tipo codigo
+-- (Python/C#/JS/HTML). NULL pra atividades legacy ou que o professor ainda
+-- nao configurou. Editor CodeMirror e Judge0 decidem o fluxo com base nela.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'activities'
+       AND COLUMN_NAME  = 'code_language'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE activities ADD COLUMN code_language ENUM('python','csharp','javascript','html') NULL AFTER type",
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;

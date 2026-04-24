@@ -33,6 +33,7 @@ $old = [
     'title'                 => '',
     'instruction'           => '',
     'type'                  => 'projeto',
+    'code_language'         => null,
     'xp_value'              => 0,
     'submission_open'       => true,
     'allow_online_code_run' => false,
@@ -48,10 +49,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         return;
     }
 
+    $rawLang = trim((string) ($_POST['code_language'] ?? ''));
     $old = [
         'title'                 => trim((string) ($_POST['title']       ?? '')),
         'instruction'           => (string)       ($_POST['instruction'] ?? ''),
         'type'                  => (string)       ($_POST['type']        ?? ''),
+        'code_language'         => $rawLang !== '' ? $rawLang : null,
         'xp_value'              => (int)          ($_POST['xp_value']    ?? 0),
         'submission_open'       => isset($_POST['submission_open']),
         'allow_online_code_run' => isset($_POST['allow_online_code_run']),
@@ -63,12 +66,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!in_array($old['type'], Activity::TYPES, true)) {
         $errors['type'] = 'activities.form.err.type';
     }
+    if ($old['code_language'] !== null && !in_array($old['code_language'], Activity::CODE_LANGUAGES, true)) {
+        $errors['code_language'] = 'activities.form.err.code_language';
+    }
     if ($old['xp_value'] < 0 || $old['xp_value'] > 9999) {
         $errors['xp_value'] = 'activities.form.err.xp';
     }
-    // code_run só vale se type=codigo
+    // code_run e code_language só valem se type=codigo
     if ($old['allow_online_code_run'] && $old['type'] !== 'codigo') {
         $old['allow_online_code_run'] = false;
+    }
+    if ($old['type'] !== 'codigo') {
+        $old['code_language'] = null;
     }
 
     if ($errors === []) {
@@ -77,6 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'title'                 => $old['title'],
             'instruction'           => $clean,
             'type'                  => $old['type'],
+            'code_language'         => $old['code_language'],
             'xp_value'              => $old['xp_value'],
             'submission_open'       => $old['submission_open'],
             'allow_online_code_run' => $old['allow_online_code_run'],

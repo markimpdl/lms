@@ -1212,3 +1212,25 @@ body.lms-student-area .lms-student-main {
     .lms-attachment-row { flex-direction: column; align-items: flex-start; gap: 8px; }
     .lms-attachment-row__btn { align-self: stretch; justify-content: center; }
 }
+
+/* ============================================================
+   CodeMirror 6 editor (E8-00) — container que espera o editor
+   ser injetado via JS. Placeholder estilizado pra evitar CLS.
+   ============================================================ */
+
+.lms-code-editor {
+    border: 1px solid var(--lms-neutral-200);
+    border-radius: var(--lms-radius-inner);
+    min-height: 280px;
+    overflow: hidden;
+    background: #fff;
+}
+.lms-code-editor .cm-editor {
+    min-height: 280px;
+    font-family: 'SF Mono', Menlo, Monaco, Consolas, 'Courier New', monospace;
+    font-size: 14px;
+}
+.lms-code-editor .cm-editor.cm-focused {
+    outline: 2px solid var(--lms-primary-1);
+    outline-offset: -1px;
+}
