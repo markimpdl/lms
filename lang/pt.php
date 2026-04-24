@@ -841,4 +841,11 @@ return [
     'ranks.err.xp_max_less_than_min' => 'XP máximo precisa ser maior que o mínimo.',
     'ranks.err.duplicate'           => 'Já existe uma patente com o nome ":name".',
     'ranks.err.overlap'             => 'A faixa de XP se sobrepõe a outra patente existente.',
+
+    // ProfileSidebar do aluno (E14-01)
+    'sidebar.total_xp'     => 'TOTAL XP',
+    'sidebar.next_rank_to' => 'para',
+    'sidebar.next_rank_xp' => ':xp XP',
+    'sidebar.max_rank'     => 'Nível máximo atingido',
+    'sidebar.no_rank'      => 'Sem patente cadastrada no seu tenant',
 ];
