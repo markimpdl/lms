@@ -36,6 +36,22 @@ return [
     'nav.logout'         => 'Log out',
     'nav.profile'        => 'My profile',
     'nav.dashboard'      => 'Go to dashboard',
+    'nav.login'          => 'Log in',
+    'nav.language.switch_to' => 'Switch language to :target',
+
+    // Notifications (E10-01)
+    'notifications.bell.aria'              => 'Notifications',
+    'notifications.bell.title'             => 'Notifications',
+    'notifications.bell.mark_all_read'     => 'Mark all as read',
+    'notifications.bell.view_all'          => 'View all',
+    'notifications.bell.empty'             => 'No notifications yet.',
+    'notifications.bell.unread_count'      => ':n unread',
+    'notifications.page.title'             => 'Notifications',
+    'notifications.page.empty'             => 'You have no notifications.',
+    'notifications.page.prev'              => 'Previous',
+    'notifications.page.next'              => 'Next',
+    'notifications.page.page_x_of_y'       => 'Page :x of :y',
+    'notifications.page.pagination_label'  => 'Notifications pagination',
 
     // Auth extras (E1-01)
     'auth.rate_limited'  => 'Too many attempts. Please try again in a few minutes.',
