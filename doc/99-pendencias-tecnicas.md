@@ -65,10 +65,8 @@ A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** du
 ### [E1-04] Mobile 360×640 da tela /profile
 - `col-12 col-md-10 col-lg-8`, `form-control-lg`. Validar no DevTools que as nav-tabs não quebram em 360px e que os botões ficam full-width abaixo de sm.
 
-### [E1-04] Bug menor no helper `current_lang()`
-- Em `src/helpers.php:43`, fallback lê `current_user()['lang']`, mas o payload de sessão em `AuthController::completeLogin()` grava `'language'`. Na prática a condição nunca dispara — só `$_SESSION['lang']` (do `?lang=` ou da atualização de perfil) é que funciona.
-- **Impacto:** usuário com `users.language='en'` no banco vê a UI em PT até clicar `?lang=en` pela primeira vez ou atualizar o perfil.
-- **Ação:** corrigir a chave no helper (de `'lang'` para `'language'`) em uma story futura — fora do escopo de E1-04.
+### ~~[E1-04] Bug menor no helper `current_lang()`~~ ✅ RESOLVIDA
+- Corrigido em PR #81 (hotfix do smoke v0.3.0). `current_lang()` agora lê `current_user()['language']` corretamente.
 
 ### [E1-05] Middleware de auth com MySQL real
 - Código revisado; sem MySQL local não dá para validar as SELECTs de `active` + `password_changed_at` que `require_auth()` agora faz a cada request autenticada.
@@ -198,9 +196,9 @@ A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** du
 - **Ainda falta validar no browser:** clicar no "Testar flash" na raiz faz redirect 302 → `/` → mostra o alerta; botão "×" fecha o alerta com animação (depende do bundle JS do Bootstrap carregado do CDN).
 - **Ação:** abrir a home, clicar em "Testar flash".
 
-### [E0-04] Seletor de idioma preserva query string atual
-- Links atuais são `?lang=pt` / `?lang=en` — se a URL for `/courses/5?tab=overview`, trocar idioma joga fora o `tab`.
-- **Ação (follow-up):** substituir por um helper `lang_url('pt')` que chama `http_build_query(array_merge($_GET, ['lang' => 'pt']))`. Fazer junto da primeira página que tiver query string real (E3 ou E4).
+### ~~[E0-04] Seletor de idioma preserva query string atual~~ ✅ RESOLVIDA
+- Logado: `/settings/language` já preservava o query string via `HTTP_REFERER` (lines 45-56 em `src/pages/settings/language.php`).
+- Anônimo: era um `<form method="get" action="">` que substituía o query string — quebrava em `/reset?token=XYZ` (perdia o token). Resolvido trocando por `<a href>` que usa helper novo `lang_url($lang)` em `src/helpers.php` — merge de `array_merge($_GET, ['lang' => $lang])`.
 
 ### [E0-04] Divergência "toast" no AC vs "alert" implementado
 - A issue #17 fala em "toast Bootstrap"; a implementação usa `alert-dismissible`.
