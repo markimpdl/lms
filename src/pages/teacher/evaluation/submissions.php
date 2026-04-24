@@ -25,7 +25,8 @@ if ($evaluation === null) {
     return;
 }
 
-$rows = EvaluationSubmission::listForEvaluation($evaluationId, $tenantId);
+$rows    = EvaluationSubmission::listForEvaluation($evaluationId, $tenantId);
+$metrics = CourseMetrics::forEvaluation($evaluationId, $tenantId);
 
 $totals = ['none' => 0, 'awaiting' => 0, 'approved' => 0, 'retry' => 0, 'failed' => 0];
 $decorated = [];
@@ -78,6 +79,35 @@ ob_start();
                 <?= e(__t('common.back')) ?>
             </a>
         </div>
+
+        <?php if ($metrics !== null && $metrics['enrolled'] > 0): ?>
+            <div class="card card-body shadow-sm mb-3">
+                <div class="row text-center g-3">
+                    <div class="col-6 col-md-3">
+                        <small class="text-muted text-uppercase fw-semibold d-block"><?= e(__t('metrics.eval.enrolled')) ?></small>
+                        <div class="h4 mb-0"><?= (int) $metrics['enrolled'] ?></div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <small class="text-muted text-uppercase fw-semibold d-block"><?= e(__t('metrics.eval.pct_approved')) ?></small>
+                        <div class="h4 mb-0 <?= $metrics['pct_approved'] >= 80 ? 'text-success' : ($metrics['pct_approved'] >= 50 ? 'text-warning-emphasis' : 'text-danger-emphasis') ?>">
+                            <?= (int) $metrics['pct_approved'] ?>%
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <small class="text-muted text-uppercase fw-semibold d-block"><?= e(__t('metrics.eval.avg_grade')) ?></small>
+                        <div class="h4 mb-0">
+                            <?= $metrics['avg_grade'] !== null
+                                ? e(number_format($metrics['avg_grade'], 1, current_lang() === 'pt' ? ',' : '.', ''))
+                                : '—' ?>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <small class="text-muted text-uppercase fw-semibold d-block"><?= e(__t('metrics.eval.avg_feedback')) ?></small>
+                        <div class="h4 mb-0"><?= e(format_duration_minutes($metrics['avg_feedback_minutes'])) ?></div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <?php if ($total === 0): ?>
             <div class="card card-body shadow-sm text-center text-muted py-5">
