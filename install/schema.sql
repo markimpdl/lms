@@ -130,6 +130,7 @@ CREATE TABLE IF NOT EXISTS competence_units (
     core_competency_id  BIGINT UNSIGNED NOT NULL,
     name                VARCHAR(150) NOT NULL,
     position            INT UNSIGNED NOT NULL DEFAULT 0,
+    workload_hours      INT UNSIGNED NOT NULL DEFAULT 0,
     created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
@@ -269,6 +270,7 @@ CREATE TABLE IF NOT EXISTS enrollments (
     student_user_id BIGINT UNSIGNED NOT NULL,
     course_id       BIGINT UNSIGNED NOT NULL,
     enrolled_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_access_at  DATETIME NULL DEFAULT NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uk_enr_student_course (student_user_id, course_id),
     KEY idx_enr_course (course_id),
@@ -687,6 +689,36 @@ SET @idx_exists := (
 );
 SET @sql := IF(@idx_exists = 0,
     'ALTER TABLE evaluation_submissions ADD KEY idx_es_eval_current (evaluation_id, is_current)',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E14-00] competence_units.workload_hours — carga horária em horas cheias
+-- exibida nos UnitCards e somada nos CourseCards do painel do aluno.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'competence_units'
+       AND COLUMN_NAME  = 'workload_hours'
+);
+SET @sql := IF(@col_exists = 0,
+    'ALTER TABLE competence_units ADD COLUMN workload_hours INT UNSIGNED NOT NULL DEFAULT 0 AFTER position',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E14-00] enrollments.last_access_at — timestamp do último acesso do aluno
+-- ao curso; atualizado em /student/course/{id} pra CourseCard mostrar.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'enrollments'
+       AND COLUMN_NAME  = 'last_access_at'
+);
+SET @sql := IF(@col_exists = 0,
+    'ALTER TABLE enrollments ADD COLUMN last_access_at DATETIME NULL DEFAULT NULL AFTER enrolled_at',
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;

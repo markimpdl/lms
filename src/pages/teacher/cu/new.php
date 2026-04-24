@@ -17,8 +17,9 @@ try {
     exit;
 }
 
-$courseId = (int)    ($_POST['course_id'] ?? 0);
-$ccId     = (int)    ($_POST['cc_id']     ?? 0);
-$name     = (string) ($_POST['name']      ?? '');
+$courseId = (int)    ($_POST['course_id']      ?? 0);
+$ccId     = (int)    ($_POST['cc_id']          ?? 0);
+$name     = (string) ($_POST['name']           ?? '');
+$workload = (int)    ($_POST['workload_hours'] ?? 0);
 
-TeacherCurriculumController::createCu($courseId, $ccId, $name);
+TeacherCurriculumController::createCu($courseId, $ccId, $name, $workload);
