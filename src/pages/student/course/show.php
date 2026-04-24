@@ -23,6 +23,10 @@ if ($course === null) {
     return;
 }
 
+// E14-00: registra o último acesso do aluno ao curso pro CourseCard
+// (E14-02) mostrar "Último acesso: {data}". Silencioso em falha.
+Enrollment::touchLastAccess($studentId, $courseId);
+
 $archived   = (int) $course['course_archived'] === 1;
 $page_title = (string) $course['course_name'];
 

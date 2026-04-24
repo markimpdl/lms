@@ -17,7 +17,8 @@ try {
     exit;
 }
 
-$cuId = (int)    ($_REQUEST['id']   ?? 0);
-$name = (string) ($_POST['name']    ?? '');
+$cuId     = (int)    ($_REQUEST['id']           ?? 0);
+$name     = (string) ($_POST['name']            ?? '');
+$workload = isset($_POST['workload_hours']) ? (int) $_POST['workload_hours'] : null;
 
-TeacherCurriculumController::renameCu($cuId, $name);
+TeacherCurriculumController::renameCu($cuId, $name, $workload);

@@ -311,6 +311,8 @@ return [
     'cu.new.title'        => 'Nova Competence Unit',
     'cu.edit.title'       => 'Renomear Competence Unit',
     'cu.form.name'        => 'Nome',
+    'cu.form.workload_hours'      => 'Carga horária (horas)',
+    'cu.form.workload_hours_hint' => 'Horas inteiras. Use 0 se ainda não souber.',
     'cu.form.err.name'    => 'Entre 2 e 150 caracteres.',
     'cu.action.move_up'   => 'Mover para cima',
     'cu.action.move_down' => 'Mover para baixo',
