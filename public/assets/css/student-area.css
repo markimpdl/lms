@@ -95,6 +95,7 @@ body.lms-student-area .lms-student-sidebar {
 
 body.lms-student-area .lms-student-main {
     min-width: 0; /* permite filhos truncarem sem estourar a grid */
+    width: 100%;  /* força o grid item a preencher o track 1fr */
 }
 
 @media (max-width: 767.98px) {
@@ -291,6 +292,7 @@ body.lms-student-area .lms-student-main {
     gap: 20px;
     flex-wrap: wrap;
     margin-bottom: 24px;
+    width: 100%;
 }
 
 .lms-dashboard-eyebrow {
@@ -374,13 +376,15 @@ body.lms-student-area .lms-student-main {
     font-weight: 700;
 }
 
-/* Grid: 1 CourseCard por linha (full-width do main, mesma largura do
- * .lms-cc-header). Handoff sugeria auto-fill minmax(300px, 1fr) mas o
- * PO preferiu cards grandes, consistentes com o card de competência. */
+/* 1 CourseCard por linha (full-width do main, mesma largura do
+ * .lms-cc-header). Flex column garante que o card ocupe 100% da
+ * largura independente de intrínseco — grid com 1fr sozinho pode
+ * colapsar ao min-content do conteúdo em alguns browsers. */
 .lms-course-grid {
-    display: grid;
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 16px;
+    width: 100%;
 }
 
 /* CourseCard */
@@ -548,7 +552,7 @@ body.lms-student-area .lms-student-main {
     .lms-dashboard-header { margin-bottom: 16px; }
     .lms-dashboard-title { font-size: 24px; }
     .lms-filter-pills { width: 100%; overflow-x: auto; }
-    .lms-course-grid { grid-template-columns: 1fr; gap: 12px; }
+    .lms-course-grid { gap: 12px; }
 }
 
 /* ============================================================
