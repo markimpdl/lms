@@ -29,7 +29,11 @@ return [
     ],
 
     'authenticated' => [
-        '/profile' => '/src/pages/profile.php',
+        '/profile'                      => '/src/pages/profile.php',
+        '/notifications'                => '/src/pages/notifications/index.php',
+        '/notifications/mark-read'      => '/src/pages/notifications/mark-read.php',
+        '/notifications/mark-all-read'  => '/src/pages/notifications/mark-all-read.php',
+        '/settings/language'            => '/src/pages/settings/language.php',
     ],
 
     'roles' => [

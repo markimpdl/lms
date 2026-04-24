@@ -36,6 +36,22 @@ return [
     'nav.logout'         => 'Sair',
     'nav.profile'        => 'Meu perfil',
     'nav.dashboard'      => 'Ir para o painel',
+    'nav.login'          => 'Entrar',
+    'nav.language.switch_to' => 'Mudar idioma para :target',
+
+    // Notificações (E10-01)
+    'notifications.bell.aria'              => 'Notificações',
+    'notifications.bell.title'             => 'Notificações',
+    'notifications.bell.mark_all_read'     => 'Marcar todas como lidas',
+    'notifications.bell.view_all'          => 'Ver todas',
+    'notifications.bell.empty'             => 'Nenhuma notificação por enquanto.',
+    'notifications.bell.unread_count'      => ':n não lidas',
+    'notifications.page.title'             => 'Notificações',
+    'notifications.page.empty'             => 'Você não tem notificações.',
+    'notifications.page.prev'              => 'Anterior',
+    'notifications.page.next'              => 'Próxima',
+    'notifications.page.page_x_of_y'       => 'Página :x de :y',
+    'notifications.page.pagination_label'  => 'Paginação de notificações',
 
     // Auth extras (E1-01)
     'auth.rate_limited'  => 'Muitas tentativas. Tente novamente em alguns minutos.',
