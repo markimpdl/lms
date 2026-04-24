@@ -374,11 +374,13 @@ body.lms-student-area .lms-student-main {
     font-weight: 700;
 }
 
-/* Grid */
+/* Grid: 1 CourseCard por linha (full-width do main, mesma largura do
+ * .lms-cc-header). Handoff sugeria auto-fill minmax(300px, 1fr) mas o
+ * PO preferiu cards grandes, consistentes com o card de competência. */
 .lms-course-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
+    grid-template-columns: 1fr;
+    gap: 16px;
 }
 
 /* CourseCard */
