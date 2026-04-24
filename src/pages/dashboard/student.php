@@ -1,58 +1,109 @@
 <?php
 declare(strict_types=1);
 
-// Auth + papel garantidos pelo front controller via src/routes.php (E1-05).
+/**
+ * /student — "Meus cursos" (E14-02, rewrite).
+ *
+ * Header com eyebrow + H1 + contador + filter pills; grid de CourseCards
+ * responsivo (auto-fill minmax 300). Status/percent calculados on-the-fly
+ * via `StudentProgress`; cover gradient derivado do `course.id` por hash
+ * (Course::coverGradient).
+ */
+
+// Auth + papel garantidos pelo front controller.
 $user      = current_user();
 $studentId = (int) $user['id'];
-$tree      = StudentCurriculum::forStudent($studentId);
+
+$courses = Course::listForStudentWithProgress($studentId);
+
+// Enriquecimento on-the-fly: status, percent, units_done, cover gradient.
+$total = 0;
+$active = 0;
+$completed = 0;
+foreach ($courses as &$c) {
+    $courseId = (int) $c['course_id'];
+    $s = student_course_status($courseId, $studentId);
+    $c['status']  = $s['status'];
+    $c['percent'] = (int) $s['percent'];
+
+    // units_done = round(units_total * percent/100) — aproximação suficiente
+    // pro card; percent já vem da fórmula em `StudentProgress::courseStatus`.
+    $unitsTotal = (int) $c['units_total'];
+    $c['units_done'] = $unitsTotal > 0
+        ? (int) round(($c['percent'] / 100) * $unitsTotal)
+        : 0;
+
+    [$c['grad_start'], $c['grad_end']] = Course::coverGradient($courseId);
+
+    $total++;
+    if ($c['status'] === 'completed') {
+        $completed++;
+    } else {
+        $active++;
+    }
+}
+unset($c);
+
+$firstName = explode(' ', trim((string) ($user['name'] ?? '')))[0] ?? '';
 
 $page_title = __t('dashboard.student.title');
 
 ob_start();
 ?>
-<div class="py-3">
-    <h1 class="h3 mb-3"><?= e(__t('dashboard.student.title')) ?></h1>
-    <p class="text-muted mb-4"><?= e(__t('dashboard.student.welcome', ['name' => $user['name']])) ?></p>
+<div x-data="{ filter: 'all' }">
+    <header class="lms-dashboard-header">
+        <div>
+            <span class="lms-dashboard-eyebrow">
+                <?= e(__t('student.my_courses.eyebrow', ['name' => $firstName])) ?>
+            </span>
+            <h1 class="lms-dashboard-title"><?= e(__t('dashboard.student.title')) ?></h1>
+            <?php if ($total > 0): ?>
+                <p class="lms-dashboard-subtitle">
+                    <?= e(__t('student.my_courses.subtitle', [
+                        'total'     => (string) $total,
+                        'active'    => (string) $active,
+                        'completed' => (string) $completed,
+                    ])) ?>
+                </p>
+            <?php endif; ?>
+        </div>
 
-    <?php if ($tree === []): ?>
-        <div class="card card-body text-center text-muted py-5">
-            <p class="lead mb-0"><?= e(__t('dashboard.student.no_courses')) ?></p>
-            <p class="small mb-0"><?= e(__t('dashboard.student.no_courses_hint')) ?></p>
+        <?php if ($total > 0): ?>
+            <div class="lms-filter-pills" role="tablist" aria-label="<?= e(__t('student.my_courses.filter.aria')) ?>">
+                <button type="button" class="lms-filter-pill"
+                        :class="{ 'is-active': filter === 'all' }"
+                        @click="filter = 'all'" role="tab"
+                        :aria-selected="(filter === 'all').toString()">
+                    <?= e(__t('student.my_courses.filter.all')) ?>
+                    <span class="lms-filter-pill__count"><?= (int) $total ?></span>
+                </button>
+                <button type="button" class="lms-filter-pill"
+                        :class="{ 'is-active': filter === 'active' }"
+                        @click="filter = 'active'" role="tab"
+                        :aria-selected="(filter === 'active').toString()">
+                    <?= e(__t('student.my_courses.filter.active')) ?>
+                    <span class="lms-filter-pill__count"><?= (int) $active ?></span>
+                </button>
+                <button type="button" class="lms-filter-pill"
+                        :class="{ 'is-active': filter === 'completed' }"
+                        @click="filter = 'completed'" role="tab"
+                        :aria-selected="(filter === 'completed').toString()">
+                    <?= e(__t('student.my_courses.filter.completed')) ?>
+                    <span class="lms-filter-pill__count"><?= (int) $completed ?></span>
+                </button>
+            </div>
+        <?php endif; ?>
+    </header>
+
+    <?php if ($total === 0): ?>
+        <div class="lms-dashboard-empty">
+            <p class="lms-dashboard-empty__title"><?= e(__t('dashboard.student.no_courses')) ?></p>
+            <p class="lms-dashboard-empty__hint"><?= e(__t('dashboard.student.no_courses_hint')) ?></p>
         </div>
     <?php else: ?>
-        <div class="d-flex flex-column gap-2">
-            <?php foreach ($tree as $course): ?>
-                <?php
-                    $archived = (int) $course['course_archived'] === 1;
-                    $s        = student_course_status((int) $course['course_id'], $studentId);
-                    $status   = $s['status'];
-                    $percent  = (int) $s['percent'];
-                    $enrolledDate = substr((string) $course['enrolled_at'], 0, 10);
-                ?>
-                <a href="/student/course/<?= (int) $course['course_id'] ?>"
-                   class="lms-card lms-card--<?= e(str_replace('_', '-', $status)) ?>">
-                    <div class="lms-card__body">
-                        <div class="lms-card__title">
-                            <?= e((string) $course['course_name']) ?>
-                            <?php if ($archived): ?>
-                                <span class="badge text-bg-warning ms-1"><?= e(__t('courses.status.archived')) ?></span>
-                            <?php endif; ?>
-                        </div>
-                        <div class="lms-card__meta">
-                            <?= e(__t('student.course.enrolled_at', ['date' => $enrolledDate])) ?>
-                        </div>
-                    </div>
-                    <span class="badge text-bg-<?= $status === 'completed' ? 'success' : ($status === 'in_progress' ? 'warning' : 'secondary') ?>">
-                        <?= e(__t('status.course.' . $status)) ?>
-                    </span>
-                    <div class="lms-progress-ring lms-progress-ring--<?= e(str_replace('_', '-', $status)) ?>"
-                         style="--pct: <?= e((string) $percent) ?>;"
-                         role="progressbar"
-                         aria-label="<?= e(__t('student.course.progress_aria', ['percent' => (string) $percent])) ?>"
-                         aria-valuenow="<?= e((string) $percent) ?>" aria-valuemin="0" aria-valuemax="100">
-                        <span class="lms-progress-ring__label"><?= e((string) $percent) ?>%</span>
-                    </div>
-                </a>
+        <div class="lms-course-grid">
+            <?php foreach ($courses as $course): ?>
+                <?php require LMS_ROOT . '/src/templates/partials/course_card.php'; ?>
             <?php endforeach; ?>
         </div>
     <?php endif; ?>

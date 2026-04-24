@@ -842,6 +842,22 @@ return [
     'ranks.err.duplicate'           => 'Já existe uma patente com o nome ":name".',
     'ranks.err.overlap'             => 'A faixa de XP se sobrepõe a outra patente existente.',
 
+    // Dashboard "Meus cursos" do aluno (E14-02)
+    'student.my_courses.eyebrow'           => 'Bem-vindo(a), :name 👋',
+    'student.my_courses.subtitle'          => ':total curso(s) matriculado(s) · :active ativo(s) · :completed concluído(s)',
+    'student.my_courses.filter.aria'       => 'Filtrar cursos por status',
+    'student.my_courses.filter.all'        => 'Todos',
+    'student.my_courses.filter.active'     => 'Ativos',
+    'student.my_courses.filter.completed'  => 'Concluídos',
+    'student.course_card.instructor'       => 'Instrutor:',
+    'student.course_card.units_count'      => ':done/:total unidades',
+    'student.course_card.total_hours'      => ':hours h no total',
+    'student.course_card.last_access'      => 'Último acesso: :date',
+    'student.course_card.last_access_none' => 'Ainda não acessado',
+    'student.course_card.cta.access'       => 'Acessar curso',
+    'student.course_card.cta.resume'       => 'Retomar',
+    'student.course_card.cta.review'       => 'Revisar',
+
     // ProfileSidebar do aluno (E14-01)
     'sidebar.total_xp'     => 'TOTAL XP',
     'sidebar.next_rank_to' => 'para',

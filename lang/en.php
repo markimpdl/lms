@@ -842,6 +842,22 @@ return [
     'ranks.err.duplicate'           => 'A rank named ":name" already exists.',
     'ranks.err.overlap'             => 'The XP range overlaps another existing rank.',
 
+    // Student "My courses" dashboard (E14-02)
+    'student.my_courses.eyebrow'           => 'Welcome back, :name 👋',
+    'student.my_courses.subtitle'          => ':total enrolled · :active active · :completed completed',
+    'student.my_courses.filter.aria'       => 'Filter courses by status',
+    'student.my_courses.filter.all'        => 'All',
+    'student.my_courses.filter.active'     => 'Active',
+    'student.my_courses.filter.completed'  => 'Completed',
+    'student.course_card.instructor'       => 'Instructor:',
+    'student.course_card.units_count'      => ':done/:total units',
+    'student.course_card.total_hours'      => ':hours h total',
+    'student.course_card.last_access'      => 'Last access: :date',
+    'student.course_card.last_access_none' => 'Not accessed yet',
+    'student.course_card.cta.access'       => 'Access course',
+    'student.course_card.cta.resume'       => 'Resume',
+    'student.course_card.cta.review'       => 'Review',
+
     // Student ProfileSidebar (E14-01)
     'sidebar.total_xp'     => 'TOTAL XP',
     'sidebar.next_rank_to' => 'to',

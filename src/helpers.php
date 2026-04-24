@@ -137,6 +137,26 @@ function app_url(string $path): string
 }
 
 /**
+ * Formata um timestamp MySQL como data curta, respeitando o idioma corrente:
+ *   pt → `d/m/Y` (ex.: 24/04/2026)
+ *   en → `M j, Y` (ex.: Apr 24, 2026)
+ * Fallback pra string vazia em entrada inválida. Usado no CourseCard
+ * (E14-02) pra "Último acesso: {date}".
+ */
+function format_short_date(string $mysqlDatetime): string
+{
+    if ($mysqlDatetime === '' || $mysqlDatetime === '0000-00-00 00:00:00') {
+        return '';
+    }
+    try {
+        $dt = new \DateTimeImmutable($mysqlDatetime);
+    } catch (\Exception) {
+        return '';
+    }
+    return $dt->format(current_lang() === 'pt' ? 'd/m/Y' : 'M j, Y');
+}
+
+/**
  * Formata um timestamp (MySQL DATETIME) em `d/m HH:MM` (pt) ou `m/d HH:MM` (en).
  * Curto o suficiente pro item do dropdown de notificações. Fallback pra string
  * vazia em entrada inválida.
