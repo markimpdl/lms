@@ -79,6 +79,7 @@ body.lms-student-area .h4 {
    ============================================================ */
 
 body.lms-student-area main.lms-student-grid {
+    width: 100%;
     max-width: 1280px;
     margin: 0 auto;
     padding: 24px;
