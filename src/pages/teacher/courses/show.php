@@ -32,6 +32,7 @@ $courseCountsFormatted = format_delete_counts(Course::countDescendants($courseId
 
 $enrolledPage = max(1, (int) ($_GET['students_page'] ?? 1));
 $enrolled = Enrollment::listByCourse($courseId, $tenantId, $enrolledPage);
+$metrics  = CourseMetrics::forCourse($courseId, $tenantId);
 
 $page_title = (string) $course['name'];
 
@@ -107,6 +108,44 @@ ob_start();
         <?php if (!empty($course['description'])): ?>
             <div class="card card-body shadow-sm mb-3">
                 <p class="mb-0" style="white-space: pre-line;"><?= e((string) $course['description']) ?></p>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($metrics !== null && ($metrics['activities_count'] + $metrics['evaluations_count']) > 0): ?>
+            <div class="card card-body shadow-sm mb-3">
+                <h2 class="h6 text-muted text-uppercase mb-3" style="letter-spacing:.06em"><?= e(__t('metrics.course.title')) ?></h2>
+                <div class="row text-center g-3">
+                    <div class="col-6 col-md-4 col-lg-2">
+                        <small class="text-muted text-uppercase fw-semibold d-block"><?= e(__t('metrics.course.activities')) ?></small>
+                        <div class="h5 mb-0"><?= (int) $metrics['activities_count'] ?></div>
+                    </div>
+                    <div class="col-6 col-md-4 col-lg-2">
+                        <small class="text-muted text-uppercase fw-semibold d-block"><?= e(__t('metrics.course.evaluations')) ?></small>
+                        <div class="h5 mb-0"><?= (int) $metrics['evaluations_count'] ?></div>
+                    </div>
+                    <div class="col-6 col-md-4 col-lg-2">
+                        <small class="text-muted text-uppercase fw-semibold d-block"><?= e(__t('metrics.course.enrolled')) ?></small>
+                        <div class="h5 mb-0"><?= (int) $metrics['enrolled'] ?></div>
+                    </div>
+                    <div class="col-6 col-md-4 col-lg-2">
+                        <small class="text-muted text-uppercase fw-semibold d-block"><?= e(__t('metrics.course.completion')) ?></small>
+                        <div class="h5 mb-0 <?= $metrics['pct_completion'] >= 80 ? 'text-success' : ($metrics['pct_completion'] >= 50 ? 'text-warning-emphasis' : '') ?>">
+                            <?= (int) $metrics['pct_completion'] ?>%
+                        </div>
+                    </div>
+                    <?php if ($metrics['evaluations_count'] > 0): ?>
+                        <div class="col-6 col-md-4 col-lg-2">
+                            <small class="text-muted text-uppercase fw-semibold d-block"><?= e(__t('metrics.course.approval')) ?></small>
+                            <div class="h5 mb-0 <?= ($metrics['pct_approved_avg'] ?? 0) >= 80 ? 'text-success' : (($metrics['pct_approved_avg'] ?? 0) >= 50 ? 'text-warning-emphasis' : '') ?>">
+                                <?= $metrics['pct_approved_avg'] !== null ? (int) $metrics['pct_approved_avg'] . '%' : '—' ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                    <div class="col-6 col-md-4 col-lg-2">
+                        <small class="text-muted text-uppercase fw-semibold d-block"><?= e(__t('metrics.course.avg_feedback')) ?></small>
+                        <div class="h5 mb-0"><?= e(format_duration_minutes($metrics['avg_feedback_minutes'])) ?></div>
+                    </div>
+                </div>
             </div>
         <?php endif; ?>
 

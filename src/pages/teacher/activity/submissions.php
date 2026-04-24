@@ -23,6 +23,7 @@ if ($activity === null) {
 
 $submissions = ActivitySubmission::listForActivity($activityId, $tenantId);
 $cuId        = (int) $activity['competence_unit_id'];
+$metrics     = CourseMetrics::forActivity($activityId, $tenantId);
 
 $page_title = __t('submissions.teacher.title', ['name' => (string) $activity['title']]);
 
@@ -48,6 +49,31 @@ ob_start();
                 </a>
             </div>
         </div>
+
+        <?php if ($metrics !== null && $metrics['enrolled'] > 0): ?>
+            <div class="card card-body shadow-sm mb-3">
+                <div class="row text-center g-3">
+                    <div class="col-6 col-md-3">
+                        <small class="text-muted text-uppercase fw-semibold d-block"><?= e(__t('metrics.activity.enrolled')) ?></small>
+                        <div class="h4 mb-0"><?= (int) $metrics['enrolled'] ?></div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <small class="text-muted text-uppercase fw-semibold d-block"><?= e(__t('metrics.activity.submitted')) ?></small>
+                        <div class="h4 mb-0"><?= (int) $metrics['submitted'] ?></div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <small class="text-muted text-uppercase fw-semibold d-block"><?= e(__t('metrics.activity.pct_submitted')) ?></small>
+                        <div class="h4 mb-0 <?= $metrics['pct_submitted'] >= 80 ? 'text-success' : ($metrics['pct_submitted'] >= 50 ? 'text-warning-emphasis' : 'text-danger-emphasis') ?>">
+                            <?= (int) $metrics['pct_submitted'] ?>%
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <small class="text-muted text-uppercase fw-semibold d-block"><?= e(__t('metrics.activity.avg_feedback')) ?></small>
+                        <div class="h4 mb-0"><?= e(format_duration_minutes($metrics['avg_feedback_minutes'])) ?></div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <?php if ($submissions === []): ?>
             <div class="card card-body text-center text-muted py-5">
