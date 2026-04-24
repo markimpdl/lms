@@ -64,18 +64,16 @@ if ($user !== null && ($user['role'] ?? null) !== 'super_admin') {
                     </ul>
                 </div>
             <?php else: ?>
-                <form method="get" action="" class="lms-navbar__lang-form m-0">
-                    <input type="hidden" name="lang" value="<?= e($otherLang) ?>">
-                    <button type="submit" class="lms-navbar__lang">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                        </svg>
-                        <span class="lms-navbar__lang-label">
-                            <?= e(__t('common.language')) ?>: <strong><?= e(strtoupper($lang)) ?></strong>
-                        </span>
-                    </button>
-                </form>
+                <a href="<?= e(lang_url($otherLang)) ?>" class="lms-navbar__lang"
+                   aria-label="<?= e(__t('nav.language.switch_to', ['target' => strtoupper($otherLang)])) ?>">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                    <span class="lms-navbar__lang-label">
+                        <?= e(__t('common.language')) ?>: <strong><?= e(strtoupper($lang)) ?></strong>
+                    </span>
+                </a>
                 <a class="btn btn-primary btn-sm ms-2" href="/login"><?= e(__t('nav.login')) ?></a>
             <?php endif; ?>
         </div>

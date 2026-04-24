@@ -222,6 +222,23 @@ function current_lang(): string
 }
 
 /**
+ * URL do path atual com `?lang=X` mergeado no query string existente.
+ * Usada pelo switcher de idioma ANÔNIMO (header.php) pra não matar
+ * params como `?token=XYZ` em `/reset`. Para usuário logado, o POST
+ * pra /settings/language já preserva via HTTP_REFERER.
+ */
+function lang_url(string $lang): string
+{
+    $path = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
+    if ($path === '') {
+        $path = '/';
+    }
+    $params = array_merge($_GET, ['lang' => $lang]);
+    $qs = http_build_query($params);
+    return $qs === '' ? $path : ($path . '?' . $qs);
+}
+
+/**
  * Traduz uma chave. Substitui placeholders `:var` com valores de $params.
  * Se a chave não existir, retorna a própria chave e loga em storage/logs/i18n-missing.log.
  *
