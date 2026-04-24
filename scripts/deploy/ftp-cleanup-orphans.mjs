@@ -37,6 +37,20 @@ const APPLY = ARGS.has("--apply");
 //       note: "vX.Y.Z: motivo. Por que ficou órfão." },
 const ORPHANS = [];
 
+// Valida estrutura de ORPHANS antes de processar
+function validateOrphans() {
+    for (const orphan of ORPHANS) {
+        if (!orphan.path || typeof orphan.path !== "string") {
+            console.error("❌ ORPHANS: cada entrada deve ter .path (string)");
+            process.exit(1);
+        }
+        if (!orphan.note || typeof orphan.note !== "string") {
+            console.error(`❌ ORPHANS: "${orphan.path}" deve ter .note (string) explicando a origem`);
+            process.exit(1);
+        }
+    }
+}
+
 function loadEnvDeploy() {
     const file = join(REPO_ROOT, ".env.deploy");
     if (!existsSync(file)) {
@@ -82,6 +96,8 @@ async function remoteExists(client, remotePath) {
 }
 
 async function main() {
+    validateOrphans();
+
     const env = loadEnvDeploy();
     const remoteRoot = env.FTP_REMOTE_ROOT || "/";
     const secure = (env.FTP_SECURE || "true").toLowerCase() !== "false";
@@ -148,6 +164,9 @@ async function main() {
 }
 
 main().catch(e => {
-    console.error("❌ Erro:", e);
+    console.error("❌ Erro:", String(e?.message ?? e));
+    if (ARGS.has("--verbose")) {
+        console.error("\nStack trace:", e);
+    }
     process.exit(1);
 });
