@@ -279,3 +279,272 @@ body.lms-student-area .lms-student-main {
     font-weight: 700;
     color: var(--lms-success-dark);
 }
+
+/* ============================================================
+   Dashboard "Meus cursos" (E14-02)
+   ============================================================ */
+
+.lms-dashboard-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.lms-dashboard-eyebrow {
+    display: block;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #7C3AED;
+    margin-bottom: 6px;
+}
+
+.lms-dashboard-title {
+    font-size: 32px;
+    line-height: 1.15;
+    margin: 0 0 6px;
+}
+
+.lms-dashboard-subtitle {
+    margin: 0;
+    color: var(--lms-neutral-500);
+    font-size: 14px;
+}
+
+.lms-dashboard-empty {
+    background: var(--lms-card-bg);
+    border: 1px dashed var(--lms-neutral-300);
+    border-radius: var(--lms-radius-card);
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--lms-neutral-500);
+}
+.lms-dashboard-empty__title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--lms-neutral-900);
+    margin: 0 0 8px;
+}
+.lms-dashboard-empty__hint { margin: 0; font-size: 13px; }
+
+/* Filter pills */
+.lms-filter-pills {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    background: var(--lms-card-bg);
+    border: 1px solid var(--lms-neutral-200);
+    border-radius: var(--lms-radius-chip);
+    flex-wrap: nowrap;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.lms-filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 0;
+    background: transparent;
+    color: var(--lms-neutral-500);
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: var(--lms-radius-chip);
+    cursor: pointer;
+    transition: background 160ms ease, color 160ms ease;
+    white-space: nowrap;
+}
+.lms-filter-pill:hover { color: var(--lms-neutral-900); }
+.lms-filter-pill.is-active {
+    background: var(--lms-gradient-primary);
+    color: #fff;
+    box-shadow: var(--lms-shadow-cta);
+}
+.lms-filter-pill__count {
+    font-size: 11px;
+    opacity: 0.75;
+    font-weight: 700;
+}
+
+/* Grid */
+.lms-course-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+/* CourseCard */
+.lms-course-card {
+    background: var(--lms-card-bg);
+    border: 1px solid var(--lms-neutral-200);
+    border-radius: var(--lms-radius-card);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--lms-shadow-card);
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+.lms-course-card:hover {
+    transform: translateY(-2px);
+    border-color: #C7D2FE;
+    box-shadow: var(--lms-shadow-card-indigo);
+}
+
+.lms-course-card__cover {
+    position: relative;
+    height: 56px;
+    overflow: hidden;
+}
+.lms-course-card__cover-circle {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+}
+.lms-course-card__cover-circle--a { top: -60px; right: -20px; }
+.lms-course-card__cover-circle--b { bottom: -80px; right: 40px; width: 140px; height: 140px; background: rgba(255,255,255,0.08); }
+
+.lms-course-card__body {
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.lms-course-card__title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800;
+    font-size: 17px;
+    line-height: 1.3;
+    color: var(--lms-neutral-900);
+    margin: 0;
+    text-wrap: pretty;
+}
+
+.lms-course-card__instructor {
+    font-size: 12px;
+    color: var(--lms-neutral-500);
+}
+.lms-course-card__instructor strong {
+    color: var(--lms-neutral-900);
+    font-weight: 700;
+    margin-left: 4px;
+}
+
+.lms-course-card__progress {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.lms-course-card__progress-meta {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.lms-course-card__units {
+    font-size: 12px;
+    color: var(--lms-neutral-700);
+    font-weight: 600;
+}
+.lms-course-card__hours {
+    font-size: 11px;
+    color: var(--lms-neutral-500);
+}
+.lms-course-card__bar {
+    margin-top: 4px;
+    height: 6px;
+    background: var(--lms-neutral-200);
+    border-radius: 999px;
+    overflow: hidden;
+}
+.lms-course-card__bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 400ms ease;
+}
+
+.lms-course-card__progress .lms-progress-ring {
+    width: 52px;
+    height: 52px;
+    flex: 0 0 52px;
+}
+
+.lms-course-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 4px;
+}
+.lms-course-card__last-access {
+    font-size: 11px;
+    color: #9CA3AF;
+}
+.lms-course-card__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: var(--lms-radius-chip);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: var(--lms-shadow-cta);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+}
+.lms-course-card__cta:hover {
+    color: #fff;
+    transform: translateX(2px);
+}
+.lms-course-card__cta--completed {
+    background: #111827 !important;
+    box-shadow: 0 4px 10px -4px rgba(0,0,0,0.3);
+}
+
+/* Status badge reusável */
+.lms-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: var(--lms-radius-chip);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    width: fit-content;
+}
+.lms-status-badge__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+.lms-status-badge--completed { background: var(--lms-success-tint); color: var(--lms-success-dark); }
+.lms-status-badge--completed .lms-status-badge__dot { background: var(--lms-success); }
+.lms-status-badge--in-progress { background: var(--lms-violet-tint); color: var(--lms-violet-dark); }
+.lms-status-badge--in-progress .lms-status-badge__dot { background: var(--lms-violet); }
+.lms-status-badge--not-started { background: var(--lms-muted-tint); color: var(--lms-muted-dark); }
+.lms-status-badge--not-started .lms-status-badge__dot { background: var(--lms-muted); }
+
+/* Mobile */
+@media (max-width: 575.98px) {
+    .lms-dashboard-header { margin-bottom: 16px; }
+    .lms-dashboard-title { font-size: 24px; }
+    .lms-filter-pills { width: 100%; overflow-x: auto; }
+    .lms-course-grid { grid-template-columns: 1fr; gap: 12px; }
+}
