@@ -51,6 +51,50 @@ function student_course_status(int $courseId, int $studentId): array
     return StudentProgress::courseStatus($courseId, $studentId);
 }
 
+/**
+ * Converte um path interno (`/student/activity/42`) em URL absoluta pra links
+ * em emails (E10-03). Usa `APP_BASE_URL` de `config/env.php`; fallback pro
+ * scheme+host do request quando a env estiver vazia (útil em dev).
+ *
+ * Aceita tanto `/path` quanto `path` — sempre retorna com `/` inicial.
+ */
+function app_url(string $path): string
+{
+    $env  = $GLOBALS['__ENV'] ?? [];
+    $base = rtrim((string) ($env['APP_BASE_URL'] ?? ''), '/');
+
+    if ($base === '') {
+        $scheme = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
+        $host   = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
+        $base   = $scheme . '://' . $host;
+    }
+
+    if ($path === '' || $path[0] !== '/') {
+        $path = '/' . $path;
+    }
+
+    return $base . $path;
+}
+
+/**
+ * Formata um timestamp (MySQL DATETIME) em `d/m HH:MM` (pt) ou `m/d HH:MM` (en).
+ * Curto o suficiente pro item do dropdown de notificações. Fallback pra string
+ * vazia em entrada inválida.
+ */
+function format_short_datetime(string $mysqlDatetime): string
+{
+    if ($mysqlDatetime === '' || $mysqlDatetime === '0000-00-00 00:00:00') {
+        return '';
+    }
+    try {
+        $dt = new \DateTimeImmutable($mysqlDatetime);
+    } catch (\Exception) {
+        return '';
+    }
+    $fmt = current_lang() === 'pt' ? 'd/m H:i' : 'm/d H:i';
+    return $dt->format($fmt);
+}
+
 function current_lang(): string
 {
     static $resolved = null;

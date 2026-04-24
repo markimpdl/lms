@@ -29,11 +29,18 @@ final class Mailer
             && !empty($env['SMTP_FROM']);
     }
 
-    public static function send(string $to, string $subject, string $htmlBody, string $textBody): void
+    /**
+     * Retorna `null` em sucesso (ou no fallback de debug — considerado
+     * "entregue" pro fluxo de dev). Retorna a **mensagem de erro** quando o
+     * SMTP falhou — o erro já fica em `storage/logs/mail.log`, mas o
+     * chamador pode logar contexto adicional (ex.: E10-03 grava em
+     * `mail-failures.log` com `user_id` + `type` + a mesma mensagem).
+     */
+    public static function send(string $to, string $subject, string $htmlBody, string $textBody): ?string
     {
         if (!self::isConfigured()) {
             self::logDebug($to, $subject, $htmlBody, $textBody);
-            return;
+            return null;
         }
 
         $env = $GLOBALS['__ENV'];
@@ -47,6 +54,7 @@ final class Mailer
             $mail->SMTPAuth = true;
             $mail->Username = (string)$env['SMTP_USER'];
             $mail->Password = (string)$env['SMTP_PASS'];
+            $mail->Timeout  = (int)($env['SMTP_TIMEOUT'] ?? 10);
 
             $secure = strtolower((string)($env['SMTP_SECURE'] ?? 'ssl'));
             $mail->SMTPSecure = $secure === 'tls'
@@ -63,10 +71,15 @@ final class Mailer
 
             $mail->send();
             self::logSend('ok', $to, $subject, null);
+            return null;
         } catch (PHPMailerException $e) {
-            self::logSend('fail', $to, $subject, $mail->ErrorInfo ?: $e->getMessage());
+            $err = $mail->ErrorInfo ?: $e->getMessage();
+            self::logSend('fail', $to, $subject, $err);
+            return $err;
         } catch (\Throwable $e) {
-            self::logSend('fail', $to, $subject, $e->getMessage());
+            $err = $e->getMessage();
+            self::logSend('fail', $to, $subject, $err);
+            return $err;
         }
     }
 

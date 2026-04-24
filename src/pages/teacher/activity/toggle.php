@@ -45,6 +45,28 @@ if ($next === null) {
             ['name' => (string) $activity['title']]
         )
     );
+
+    // Fanout `submission_closed` (E10-05) — só sino, sem email. Dispara só
+    // na transição 1 → 0 (fechou a entrega). Reabrir não notifica.
+    if ($next === 0) {
+        $cuId = (int) $activity['competence_unit_id'];
+        $cu   = CompetenceUnit::findForTenant($cuId, $tenantId);
+        if ($cu !== null) {
+            $courseId   = (int) $cu['course_id'];
+            $studentIds = Enrollment::activeStudentIdsForCourse($courseId, $tenantId);
+            if ($studentIds !== []) {
+                NotificationService::fanout(
+                    'submission_closed',
+                    $studentIds,
+                    (string) $activity['title'],
+                    null,
+                    '/student/activity/' . $activityId,
+                    $courseId,
+                    false
+                );
+            }
+        }
+    }
 }
 
 header('Location: /teacher/cu/' . (int) $activity['competence_unit_id'], true, 303);

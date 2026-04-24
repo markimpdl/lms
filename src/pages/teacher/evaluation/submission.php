@@ -94,8 +94,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
 
         if ($result['status'] === 'ok') {
-            // TODO [E10]: disparar notificação grade_evaluation
-            //             (+ retry_enabled quando retry_effective === 1).
+            // Fanouts E10-04 — 1 destinatário (aluno autor da submissão). Idioma
+            // do email via `courses.language` usando courseId da avaliação.
+            $courseId = (int) $evaluation['course_id'];
+            $evalLink = '/student/evaluation/' . $evaluationId;
+
+            NotificationService::fanout(
+                'grade_evaluation',
+                [$studentId],
+                (string) $evaluation['title'],
+                null,
+                $evalLink,
+                $courseId
+            );
+
+            if ((int) $result['retry_effective'] === 1) {
+                NotificationService::fanout(
+                    'retry_enabled',
+                    [$studentId],
+                    (string) $evaluation['title'],
+                    null,
+                    $evalLink,
+                    $courseId
+                );
+            }
 
             $msgKey = 'evaluations.grade.saved';
             if ($rawRetry && $result['retry_effective'] === 0) {
