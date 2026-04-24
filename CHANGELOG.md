@@ -4,6 +4,41 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.7.0] — 2026-04-24
+
+Sétima release. Escopo: **notificações — primeiro feedback loop de verdade** — Epic E10 inteiro. A partir desta release, aluno e professor recebem sinais fora da plataforma (email) e dentro dela (sino in-app), fechando a cadeia de eventos dos épicos anteriores que até aqui eram fanout stub.
+
+### Novas funcionalidades
+
+#### Notificações (Épico E10)
+- `Notification` model + `NotificationService::fanout` centralizam criação de sinos. 2 callsites inline (`Content.php` e `submission-review.php`) migrados pro service sem mudança de comportamento. `resolveLanguage(userId, courseId)` resolve o idioma do email via `courses.language` (se contexto de curso) ou `users.language` (E10-00).
+- Sino no header com badge de contador de não-lidas (gradient pink→red), dropdown com 10 mais recentes, "Marcar todas", clicar redireciona pro link associado. Página `/notifications` com paginação. **Navbar rebuild** conforme design handoff: logo gradient 34×34, wordmark LMS, language pill (persiste `users.language`), sino, avatar+nome com dropdown Profile/Logout. Super_admin não vê sino (coerente com matriz do doc/09). Alpine.js adicionado ao layout comum (E10-01).
+- `EmailTemplates::render(name, lang, vars)` — 1 arquivo PHP por (name, lang) retornando `['subject', 'html', 'text']`, layout base table-based CSS-inline sem imagens externas, fallback EN→PT, guard contra path traversal, log em `email-missing.log`. Primeiro template funcional: `activity_feedback` (E10-02).
+- **Canal email ativado** pros fanouts já existentes (`content_published` + `activity_feedback`). `Mailer::send` agora retorna `?string` (null=ok, error=falha); `SMTP_TIMEOUT` env (default 10s) evita request travada. Novo helper `app_url($path)` pra URL absoluta usando `APP_BASE_URL`. Falhas de SMTP gravam em `storage/logs/mail-failures.log` com user_id + type + error; sino **sempre** inserido antes do loop de email (E10-03).
+- Eventos do E7 ligados ao service — `new_evaluation` (ao criar avaliação), `grade_evaluation` (após correção), `retry_enabled` (condicional a `retry_effective===1` após clamp server-side). TODO do E7 removido. 3 templates PT+EN novos; `retry_enabled` usa CTA pink (`#EC4899`) pra diferenciar visualmente do informativo (E10-04).
+- Eventos remanescentes da matriz do doc/09 — `enrollment` (email + sino ao matricular em curso novo; guard `isEnrolled` evita spam em re-enroll idempotente), `activity_new` (só sino, quando atividade nasce com entrega aberta), `submission_closed` (só sino, na transição 1→0 do toggle). Template `enrollment` PT+EN. Flag `sendEmail=false` (plantada em E10-00) serviu pros 2 eventos sino-only (E10-05).
+
+### Convenções consolidadas nesta janela
+- **Storage por caso de uso** já era padrão; agora o fanout tem **um service central** (`NotificationService::fanout`) com contrato fixo — `insert primeiro, email depois, try/catch individual`. Callers só passam `type`, `userIds`, `title`, `body`, `link`, `courseId`, `sendEmail`.
+- **Vars unificadas nos templates** — `student_name`, `title`, `body`, `link` (URL absoluta). Cada template escolhe quais usar. Abre espaço pra E10 futuro adicionar eventos sem refactor no service.
+- **Pre-check de idempotência** em fanouts que dependem de criação idempotente (`Enrollment::isEnrolled` pro INSERT IGNORE do enrollment). Evita email duplicado em re-ações silenciosas.
+- **`Enrollment::activeStudentIdsForCourse`** com double tenant filter (`c.tenant_id` + `u.tenant_id`) — virou helper compartilhado pra todos os fanouts de curso (`new_evaluation`, `activity_new`, `submission_closed`).
+- **Anti open-redirect no mark-read**: `str_starts_with($link, '/') && !str_starts_with($link, '//')` bloqueia protocol-relative (`//evil.com`). `mark-all-read` e `settings/language` parseiam referer com host match.
+
+### Tooling
+- `package.json` bumpado para 0.7.0.
+- Alpine.js 3.14.1 adicionado ao layout via CDN (sem SRI — alpine canary sem hash oficial estável).
+- CSS `.lms-navbar`, `.lms-bell`, `.lms-notif-row` em `public/assets/css/app.css` — design tokens globais ficam pro E14.
+
+### Pendências
+- **E10-06 Digest diário do professor** adiado — depende de `tenants.timezone` configurável + cron + template agregador. Sino do professor já mostra submissões em tempo quase-real via E10-05, cobrindo o MVP.
+- **E10-07 Tabela `email_failures` + UI admin** adiado — log em arquivo (`mail-failures.log`) cobre diagnóstico operacional hoje.
+- **Epic E14 (Redesign da área do aluno)** + **#136 E9-01 Patentes** são o próximo ciclo — base visual pra ProfileSidebar + dados de patente pra ranking.
+- Remover arquivos órfãos em prod herdados: `src/lib/HtmlPurifier.php` e `public/_diag_*.php`.
+- Cross-tenant smoke ainda pendente — 1 tenant em prod.
+
+[0.7.0]: https://github.com/markimpdl/lms/releases/tag/v0.7.0
+
 ## [0.6.0] — 2026-04-24
 
 Sexta release. Escopo: **avaliações — primeiro ciclo pedagógico completo** — Épico E7 inteiro. A partir desta release o fluxo fecha: aluno lê conteúdo (E5), entrega atividades (E6), envia avaliação com PDF de enunciado, professor corrige com nota + feedback + XP condicional, aluno acompanha status e reenvia quando liberado.
