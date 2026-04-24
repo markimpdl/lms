@@ -790,6 +790,22 @@ return [
     'dashboard.teacher.groups_hint'   => 'Organize your students into groups (parallel classes, project teams).',
     'dashboard.teacher.ranks_hint'    => 'Create ranks with XP ranges — Apprentice, Cadet, Master, etc.',
 
+    // Teacher dashboard (E11-01)
+    'teacher_dashboard.totals.courses'          => 'Active courses',
+    'teacher_dashboard.totals.students'         => 'Active students',
+    'teacher_dashboard.totals.pending'          => 'Pending submissions',
+    'teacher_dashboard.recent.title'            => 'Recent submissions',
+    'teacher_dashboard.recent.empty'            => 'No recent submissions yet.',
+    'teacher_dashboard.recent.badge.activity'   => 'Activity',
+    'teacher_dashboard.recent.badge.evaluation' => 'Assessment',
+    'teacher_dashboard.recent.pending'          => 'Awaiting feedback',
+    'teacher_dashboard.recent.with_feedback'    => 'Feedbacked',
+    'teacher_dashboard.inactive.title'          => 'Students without recent access',
+    'teacher_dashboard.inactive.empty'          => 'All students have accessed recently.',
+    'teacher_dashboard.inactive.never'          => 'Never accessed',
+    'teacher_dashboard.inactive.days_ago'       => ':days days ago',
+    'teacher_dashboard.hubs.title'              => 'Manage',
+
     'groups.title'                    => 'Groups',
     'groups.new_button'                => 'New group',
     'groups.search_placeholder'        => 'Search by group name',

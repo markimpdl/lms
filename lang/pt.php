@@ -791,6 +791,22 @@ return [
     'dashboard.teacher.groups_hint'   => 'Organize seus alunos em grupos (turmas paralelas, equipes de projeto).',
     'dashboard.teacher.ranks_hint'    => 'Crie patentes com faixas de XP — Aprendiz, Cadete, Mestre etc.',
 
+    // Teacher dashboard (E11-01)
+    'teacher_dashboard.totals.courses'          => 'Cursos ativos',
+    'teacher_dashboard.totals.students'         => 'Alunos ativos',
+    'teacher_dashboard.totals.pending'          => 'Entregas pendentes',
+    'teacher_dashboard.recent.title'            => 'Submissões recentes',
+    'teacher_dashboard.recent.empty'            => 'Nenhuma submissão recente ainda.',
+    'teacher_dashboard.recent.badge.activity'   => 'Atividade',
+    'teacher_dashboard.recent.badge.evaluation' => 'Avaliação',
+    'teacher_dashboard.recent.pending'          => 'Aguardando feedback',
+    'teacher_dashboard.recent.with_feedback'    => 'Corrigida',
+    'teacher_dashboard.inactive.title'          => 'Alunos sem acesso recente',
+    'teacher_dashboard.inactive.empty'          => 'Todos os alunos acessaram recentemente.',
+    'teacher_dashboard.inactive.never'          => 'Nunca acessou',
+    'teacher_dashboard.inactive.days_ago'       => 'Há :days dias',
+    'teacher_dashboard.hubs.title'              => 'Gerenciar',
+
     'groups.title'                    => 'Grupos',
     'groups.new_button'                => 'Novo grupo',
     'groups.search_placeholder'        => 'Buscar por nome do grupo',
