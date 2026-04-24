@@ -52,6 +52,31 @@ function student_course_status(int $courseId, int $studentId): array
 }
 
 /**
+ * Converte um path interno (`/student/activity/42`) em URL absoluta pra links
+ * em emails (E10-03). Usa `APP_BASE_URL` de `config/env.php`; fallback pro
+ * scheme+host do request quando a env estiver vazia (útil em dev).
+ *
+ * Aceita tanto `/path` quanto `path` — sempre retorna com `/` inicial.
+ */
+function app_url(string $path): string
+{
+    $env  = $GLOBALS['__ENV'] ?? [];
+    $base = rtrim((string) ($env['APP_BASE_URL'] ?? ''), '/');
+
+    if ($base === '') {
+        $scheme = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
+        $host   = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
+        $base   = $scheme . '://' . $host;
+    }
+
+    if ($path === '' || $path[0] !== '/') {
+        $path = '/' . $path;
+    }
+
+    return $base . $path;
+}
+
+/**
  * Formata um timestamp (MySQL DATETIME) em `d/m HH:MM` (pt) ou `m/d HH:MM` (en).
  * Curto o suficiente pro item do dropdown de notificações. Fallback pra string
  * vazia em entrada inválida.

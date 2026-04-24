@@ -34,6 +34,7 @@ return [
     'SMTP_FROM'     => 'naoresponda@exemplo.com',
     'SMTP_FROM_NAME'=> 'LMS',
     'SMTP_SECURE'   => 'ssl',              // ssl | tls
+    'SMTP_TIMEOUT'  => 10,                 // segundos (E10-03: evita travar request)
 
     // --- Judge0 (RapidAPI plano gratuito) ------------------------------
     'JUDGE0_HOST'   => 'judge0-ce.p.rapidapi.com',

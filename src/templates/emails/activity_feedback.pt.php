@@ -9,16 +9,16 @@ declare(strict_types=1);
  *
  * Placeholders esperados:
  *   :student_name   — nome do aluno destinatário
- *   :activity_title — título da atividade
+ *   :title — título da atividade
  *   :link           — URL absoluta pra /student/activity/{id}
  */
 
 return [
-    'subject' => 'Feedback em :activity_title',
+    'subject' => 'Feedback em :title',
 
     'html' => <<<'HTML'
 <p style="margin:0 0 12px;">Olá, <strong>:student_name</strong>!</p>
-<p style="margin:0 0 12px;">O professor deixou um feedback na sua entrega da atividade <strong>:activity_title</strong>.</p>
+<p style="margin:0 0 12px;">O professor deixou um feedback na sua entrega da atividade <strong>:title</strong>.</p>
 <p style="margin:16px 0;">
   <a href=":link" style="display:inline-block;padding:10px 20px;border-radius:999px;background:#6366F1;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;">Ver feedback</a>
 </p>
@@ -28,7 +28,7 @@ HTML,
     'text' => <<<TXT
 Olá, :student_name!
 
-O professor deixou um feedback na sua entrega da atividade ":activity_title".
+O professor deixou um feedback na sua entrega da atividade ":title".
 
 Acesse: :link
 TXT,
