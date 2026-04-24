@@ -197,4 +197,28 @@ final class Enrollment
         $stmt->execute([$studentId, $tenantId, $tenantId]);
         return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
     }
+
+    /**
+     * Ids de alunos ativos matriculados num curso — usado pra fanout de
+     * notificações (E10-04 new_evaluation; E10-05 activity_new / submission_closed).
+     * Valida que o curso pertence ao tenant e que os alunos são do mesmo.
+     *
+     * @return list<int>
+     */
+    public static function activeStudentIdsForCourse(int $courseId, int $tenantId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT e.student_user_id
+               FROM enrollments e
+               JOIN users   u ON u.id = e.student_user_id
+               JOIN courses c ON c.id = e.course_id
+              WHERE e.course_id = ?
+                AND c.tenant_id = ?
+                AND u.tenant_id = ?
+                AND u.role   = "student"
+                AND u.active = 1'
+        );
+        $stmt->execute([$courseId, $tenantId, $tenantId]);
+        return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    }
 }
