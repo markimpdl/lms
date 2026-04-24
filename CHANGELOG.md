@@ -4,6 +4,48 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.6.0] — 2026-04-24
+
+Sexta release. Escopo: **avaliações — primeiro ciclo pedagógico completo** — Épico E7 inteiro. A partir desta release o fluxo fecha: aluno lê conteúdo (E5), entrega atividades (E6), envia avaliação com PDF de enunciado, professor corrige com nota + feedback + XP condicional, aluno acompanha status e reenvia quando liberado.
+
+### Novas funcionalidades
+
+#### Avaliações (Épico E7)
+- CRUD de avaliação pelo professor com upload de PDF de enunciado (até 10 MB, ADR-028) via `EvaluationBriefStorage` — 1 avaliação por CU (ADR-007). Campo `instructions` em texto complementa o PDF. Edição sem PDF novo preserva o arquivo atual. Exclusão apaga arquivos físicos e cascade FK apaga submissões (E7-01).
+- Entrega do aluno em `/student/evaluation/{id}` com upload (PDF/ZIP/TXT ≤ 3 MB), histórico de tentativas preservado (nome `<student_id>_<attempt>.<ext>`, sem sobrescrita), badges por estado e reenvio quando liberado. `EvaluationSubmissionService::submit` concentra os gates transacionais (1ª entrega com `submission_open=1`; reenvio exige `retry_allowed=1` na atual) (E7-02).
+- Correção pelo professor em `/teacher/evaluation/{id}/submission/{student_id}` com nota `DECIMAL(3,1)` de 0,0 a 10,0, feedback, checkbox de reenvio. Regras consolidadas: **nota ≥ 6 = aprovado e sem reenvio** (clamp server-side independente do checkbox), **nota ≥ 8 = libera XP** via `XpEvents::awardEvaluation` (ADR-002, UK composite evita duplicação em re-correção). `StudentProgress` passa a contar avaliação aprovada no % da CU e do curso (E7-03).
+- Listagem de entregas de uma avaliação em `/teacher/evaluation/{id}/submissions` com ordenação por pendentes (`feedback_at IS NULL` no topo), agregando só a tentativa corrente (`is_current=1`) acelerado por `idx_es_eval_current` (E7-04).
+- Visão completa da avaliação pelo aluno em `/student/evaluation/{id}` com 5 estados (ainda não entregou / entregue aguardando / aprovada / reprovada sem reenvio / reprovada com reenvio liberado), badges, histórico de tentativas e form de reenvio contextual (E7-05).
+
+### Correções
+- Card "Sua entrega" não aparecia mais depois que o aluno aprovava, evitando mostrar form de reenvio indevido em estado final (#127).
+
+### Mudanças de schema
+- `evaluations.tenant_id BIGINT UNSIGNED NOT NULL` + FK `fk_evaluations_tenant` CASCADE + `idx_evaluations_tenant` — redundância deliberada pra simplificar filtro multi-tenant sem JOIN em `cu→cc→courses`.
+- `evaluations.instructions TEXT NULL` — texto opcional complementar ao PDF.
+- `evaluation_submissions.tenant_id` + FK `fk_es_tenant` CASCADE + `idx_es_tenant`.
+- `evaluation_submissions.idx_es_eval_current (evaluation_id, is_current)` — acelera listagem do professor em E7-04.
+
+Todas aplicadas em prod via seção "Migrações incrementais" do `install/schema.sql` (ADR-017) com backfill idempotente — tabelas estavam vazias mas o backfill é defensivo.
+
+### Convenções consolidadas nesta janela
+- **Storage por caso de uso, não genérico** — `EvaluationBriefStorage` (determinístico `brief.pdf`, pdf-only) e `EvaluationSubmissionStorage` (nome versionado `<student_id>_<attempt>.<ext>`, preserva histórico). Contraste com `SubmissionStorage` de E6 que sobrescreve.
+- **Service transacional como fonte de verdade** — `EvaluationSubmissionService::submit/grade` concentram gates e clamps; JS do form só espelha por UX. Clamp `retry_allowed=0 quando grade>=6` roda server-side independente do checkbox.
+- **XP idempotente por UK composite** — `(student_user_id, source_type='evaluation', source_id)` garante que re-correção 8,5→9,0 não duplica XP e 5,0→8,5 credita na 2ª.
+- **Filtro multi-tenant direto sem JOIN** — quando a coluna `tenant_id` redundante existe (E7-00), filtra por ela. Mais barato que JOIN encadeado até `courses`.
+
+### Tooling
+- `package.json` bumpado para 0.6.0.
+
+### Pendências
+- Notificações `new_evaluation` / `grade_evaluation` / `retry_enabled` adiadas pro Epic E10 (TODOs nos pontos de disparo).
+- Execução online de código (Judge0) — Epic E8.
+- Gamificação completa (rankings, badges visuais) — Epic E9.
+- Remover arquivos órfãos em prod herdados: `src/lib/HtmlPurifier.php` e `public/_diag_*.php`.
+- Cross-tenant smoke ainda pendente — 1 tenant em prod.
+
+[0.6.0]: https://github.com/markimpdl/lms/releases/tag/v0.6.0
+
 ## [0.5.0] — 2026-04-23
 
 Quinta release. Escopo: **atividades — ciclo aluno produz, professor corrige** — Épico E6 inteiro + redesign visual do painel do aluno em cards com anel de progresso. É a primeira release onde o fluxo pedagógico fecha de ponta a ponta: aluno lê conteúdo (E5), entrega atividade, ganha XP, recebe feedback.
