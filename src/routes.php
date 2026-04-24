@@ -34,6 +34,7 @@ return [
         '/notifications/mark-read'      => '/src/pages/notifications/mark-read.php',
         '/notifications/mark-all-read'  => '/src/pages/notifications/mark-all-read.php',
         '/settings/language'            => '/src/pages/settings/language.php',
+        '/api/code/run'                 => '/src/pages/api/code/run.php',
     ],
 
     'roles' => [

@@ -587,6 +587,22 @@ return [
     'submissions.run.clear'             => 'Limpar',
     'submissions.run.sandbox_title'     => 'Resultado da execução',
     'submissions.run.placeholder_judge0' => 'Execução remota (Python/C#/JS) chega junto com o Judge0 em breve. HTML já roda aqui no navegador.',
+
+    // Erros do /api/code/run (E8-01)
+    'code_run.err.method'       => 'Método HTTP inválido.',
+    'code_run.err.forbidden'    => 'Acesso negado.',
+    'code_run.err.csrf'         => 'Sessão expirada. Atualize a página e tente novamente.',
+    'code_run.err.bad_request'  => 'Requisição inválida.',
+    'code_run.err.not_found'    => 'Atividade não encontrada.',
+    'code_run.err.not_code'     => 'Esta atividade não aceita execução de código.',
+    'code_run.err.disabled'     => 'O professor desativou a execução online nesta atividade.',
+    'code_run.err.bad_language' => 'Linguagem inválida pra execução remota.',
+    'code_run.err.too_large'    => 'Código maior que 64 KB — reduza antes de executar.',
+    'code_run.err.unavailable'  => 'Execução remota indisponível no momento. Tente mais tarde.',
+    'code_run.err.quota'        => 'Cota diária de execuções esgotada. Tente novamente amanhã.',
+    'code_run.err.timeout'      => 'O servidor de execução demorou a responder. Tente novamente.',
+    'code_run.err.remote'       => 'Erro no serviço de execução. Tente novamente.',
+
     'submissions.form.submit'           => 'Enviar entrega',
     'submissions.form.update'           => 'Atualizar entrega',
     'submissions.form.delete'           => 'Remover entrega',
