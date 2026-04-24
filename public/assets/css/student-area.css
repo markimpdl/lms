@@ -627,8 +627,12 @@ body.lms-student-area .lms-student-main {
     height: 112px;
     background: conic-gradient(#fff calc(var(--pct) * 1%), rgba(255,255,255,0.25) 0);
 }
-.lms-course-hero__ring::before { background: transparent; }
-.lms-course-hero__ring .lms-progress-ring__label { color: #fff; font-size: 20px; }
+/* inner circle usa o default branco-sólido de .lms-progress-ring::before
+ * (não sobrescreve). Porcentagem escura pra contrastar com o branco. */
+.lms-course-hero__ring .lms-progress-ring__label {
+    color: var(--lms-neutral-900);
+    font-size: 20px;
+}
 
 .lms-cc-list { display: flex; flex-direction: column; gap: 32px; }
 .lms-cc-section { display: flex; flex-direction: column; gap: 16px; }
