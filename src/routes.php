@@ -92,6 +92,11 @@ return [
             'role'   => 'teacher',
             'params' => ['id'],
         ],
+        '#^/teacher/courses/(\d+)/matrix$#' => [
+            'file'   => '/src/pages/teacher/courses/matrix.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
         '#^/teacher/cc/(\d+)/rename$#' => [
             'file'   => '/src/pages/teacher/cc/rename.php',
             'role'   => 'teacher',

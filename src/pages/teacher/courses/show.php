@@ -73,6 +73,9 @@ ob_start();
                 </div>
             </div>
             <div class="d-flex gap-2 flex-wrap">
+                <a href="/teacher/courses/<?= (int) $course['id'] ?>/matrix" class="btn btn-outline-secondary">
+                    <?= e(__t('courses.action.matrix')) ?>
+                </a>
                 <?php if (!$isArchived): ?>
                     <a href="/teacher/courses/<?= (int) $course['id'] ?>/edit" class="btn btn-outline-primary">
                         <?= e(__t('courses.action.edit')) ?>

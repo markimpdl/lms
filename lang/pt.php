@@ -262,6 +262,7 @@ return [
     'courses.action.edit'          => 'Editar',
     'courses.action.archive'       => 'Arquivar',
     'courses.action.restore'       => 'Restaurar',
+    'courses.action.matrix'        => 'Matriz de progresso',
     'courses.new.title'            => 'Novo curso',
     'courses.edit.title'           => 'Editar curso',
     'courses.edit.archived_notice' => 'Este curso está arquivado. Restaure antes de editar.',
@@ -823,6 +824,20 @@ return [
     'cu_roster.evaluation.retry'          => 'Reenvio liberado',
     'cu_roster.evaluation.pending'        => 'Aguardando correção',
     'cu_roster.evaluation.not_submitted'  => 'Não entregue',
+
+    // Matriz alunos × CUs por curso (E11-02)
+    'course_matrix.page_title'             => 'Matriz — :name',
+    'course_matrix.breadcrumb'             => 'Matriz de progresso',
+    'course_matrix.title'                  => 'Matriz de progresso',
+    'course_matrix.filter.all_groups'      => 'Todos os grupos',
+    'course_matrix.filter.no_group'        => 'Sem grupo',
+    'course_matrix.filter.only_active'     => 'Só alunos ativos',
+    'course_matrix.col.student'            => 'Aluno',
+    'course_matrix.col.cu_n'               => 'U:n',
+    'course_matrix.col.avg'                => 'Média',
+    'course_matrix.row.class_avg'          => 'Turma (concluíram)',
+    'course_matrix.empty.students'         => 'Nenhum aluno matriculado neste curso ainda.',
+    'course_matrix.empty.cus'              => 'Este curso ainda não tem unidades cadastradas.',
 
     'groups.title'                    => 'Grupos',
     'groups.new_button'                => 'Novo grupo',
