@@ -83,6 +83,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
         if (is_int($result)) {
+            // Fanout `activity_new` (E10-05) — só sino, sem email (decisão do
+            // PO 2026-04-24: email de atividade nova gera ruído). Dispara só
+            // quando a entrega já nasce aberta; em submission_open=0 a atividade
+            // é draft e não há ação pro aluno ainda.
+            if ($old['submission_open']) {
+                $courseId   = (int) $cu['course_id'];
+                $studentIds = Enrollment::activeStudentIdsForCourse($courseId, $tenantId);
+                if ($studentIds !== []) {
+                    NotificationService::fanout(
+                        'activity_new',
+                        $studentIds,
+                        $old['title'],
+                        null,
+                        '/student/activity/' . $result,
+                        $courseId,
+                        false
+                    );
+                }
+            }
+
             flash('success', __t('activities.created', ['name' => $old['title']]));
             header('Location: /teacher/activity/' . $result . '/edit', true, 303);
             return;
