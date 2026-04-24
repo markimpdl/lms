@@ -274,4 +274,76 @@ final class Course
             ->execute([$courseId, $tenantId]);
         return 'ok';
     }
+
+    /**
+     * Agregação pra tela "Meus cursos" do aluno (E14-02). Junta em uma só
+     * passagem:
+     *  - dados do curso (id, name, language, archived)
+     *  - `last_access_at` da matrícula e `enrolled_at`
+     *  - nome do instrutor (owner do tenant — ADR-025)
+     *  - totais: CUs do curso, horas somadas (workload), XP teórico
+     *
+     * O status/percent do aluno é on-the-fly via `StudentProgress` — não
+     * cabe nesta query. O caller itera e enriquece com `student_course_status`.
+     *
+     * Ordena por `last_access_at DESC NULLS LAST, course.name ASC` pra
+     * colocar cursos ativos no topo.
+     *
+     * @return list<array<string,mixed>>
+     */
+    public static function listForStudentWithProgress(int $studentId): array
+    {
+        $sql = <<<SQL
+            SELECT
+                c.id                AS course_id,
+                c.name              AS course_name,
+                c.language          AS course_language,
+                c.archived          AS course_archived,
+                e.enrolled_at       AS enrolled_at,
+                e.last_access_at    AS last_access_at,
+                u.name              AS instructor_name,
+                (SELECT COUNT(*)
+                   FROM competence_units cu
+                   JOIN core_competencies cc ON cc.id = cu.core_competency_id
+                  WHERE cc.course_id = c.id)                    AS units_total,
+                (SELECT COALESCE(SUM(cu.workload_hours), 0)
+                   FROM competence_units cu
+                   JOIN core_competencies cc ON cc.id = cu.core_competency_id
+                  WHERE cc.course_id = c.id)                    AS total_hours
+              FROM enrollments e
+              JOIN courses c       ON c.id        = e.course_id
+              JOIN tenants t       ON t.id        = c.tenant_id
+              JOIN users   u       ON u.id        = t.owner_user_id
+             WHERE e.student_user_id = ?
+             ORDER BY e.last_access_at IS NULL ASC,
+                      e.last_access_at DESC,
+                      c.name ASC, c.id ASC
+            SQL;
+
+        $stmt = Database::pdo()->prepare($sql);
+        $stmt->execute([$studentId]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Deriva um par de cores (hex) pro gradient do cover do CourseCard a
+     * partir do `courseId` (E14-02). Palette fixa de 6 combinações do design
+     * handoff — determinística, mesma cor sempre pro mesmo curso, zero
+     * schema change.
+     *
+     * @return array{0:string, 1:string} `[color_start, color_end]`
+     */
+    public static function coverGradient(int $courseId): array
+    {
+        static $palette = [
+            ['#6366F1', '#8B5CF6'], // indigo → violet
+            ['#EC4899', '#F59E0B'], // pink → amber
+            ['#06B6D4', '#3B82F6'], // cyan → blue
+            ['#10B981', '#34D399'], // emerald → green
+            ['#F59E0B', '#EF4444'], // amber → red
+            ['#8B5CF6', '#EC4899'], // violet → pink
+        ];
+        $idx = abs(crc32((string) $courseId)) % count($palette);
+        return $palette[$idx];
+    }
 }

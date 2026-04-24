@@ -21,7 +21,7 @@ final class CompetenceUnit
     public static function listByCc(int $ccId, int $tenantId): array
     {
         $stmt = Database::pdo()->prepare(
-            'SELECT cu.id, cu.core_competency_id, cu.name, cu.position,
+            'SELECT cu.id, cu.core_competency_id, cu.name, cu.position, cu.workload_hours,
                     cu.created_at, cu.updated_at,
                     (SELECT COUNT(*) FROM activities  WHERE competence_unit_id = cu.id) AS activities_count,
                     (SELECT COUNT(*) FROM evaluations WHERE competence_unit_id = cu.id) AS evaluations_count
@@ -136,9 +136,15 @@ final class CompetenceUnit
     public static function findForStudent(int $cuId, int $studentId): ?array
     {
         $stmt = Database::pdo()->prepare(
-            'SELECT cu.id, cu.name,
+            'SELECT cu.id, cu.name, cu.position AS cu_position, cu.workload_hours,
                     cc.id AS cc_id, cc.name AS cc_name,
-                    c.id AS course_id, c.name AS course_name
+                    c.id AS course_id, c.name AS course_name, c.language AS course_language,
+                    (SELECT COUNT(*) + 1
+                       FROM competence_units cu2
+                      WHERE cu2.core_competency_id = cc.id
+                        AND (cu2.position < cu.position
+                             OR (cu2.position = cu.position AND cu2.id < cu.id))
+                    ) AS cu_index_in_cc
                FROM competence_units cu
                JOIN core_competencies cc ON cc.id = cu.core_competency_id
                JOIN courses c            ON c.id  = cc.course_id
@@ -154,11 +160,12 @@ final class CompetenceUnit
 
     /**
      * Cria CU com position = MAX+1. Retorna id ou null se a CC não pertence
-     * ao tenant ou o curso está arquivado.
+     * ao tenant ou o curso está arquivado. `workloadHours` é a carga horária
+     * em horas cheias (E14-00); 0 é default (sem carga cadastrada).
      */
-    public static function create(int $ccId, int $tenantId, string $name): ?int
+    public static function create(int $ccId, int $tenantId, string $name, int $workloadHours = 0): ?int
     {
-        return Database::tx(static function (PDO $pdo) use ($ccId, $tenantId, $name): ?int {
+        return Database::tx(static function (PDO $pdo) use ($ccId, $tenantId, $name, $workloadHours): ?int {
             $stmt = $pdo->prepare(
                 'SELECT cc.id, c.archived
                    FROM core_competencies cc
@@ -178,22 +185,52 @@ final class CompetenceUnit
             $pos = (int) $stmt->fetchColumn();
 
             $ins = $pdo->prepare(
-                'INSERT INTO competence_units (core_competency_id, name, position) VALUES (?, ?, ?)'
+                'INSERT INTO competence_units (core_competency_id, name, position, workload_hours)
+                      VALUES (?, ?, ?, ?)'
             );
-            $ins->execute([$ccId, $name, $pos]);
+            $ins->execute([$ccId, $name, $pos, max(0, $workloadHours)]);
             return (int) $pdo->lastInsertId();
         });
     }
 
-    public static function rename(int $id, int $tenantId, string $name): bool
+    /**
+     * Atualiza nome e (opcionalmente) carga horária. `workloadHours = null`
+     * mantém o valor atual — preserva compat com callers legados (E3-03
+     * chamava só com nome).
+     */
+    public static function rename(int $id, int $tenantId, string $name, ?int $workloadHours = null): bool
     {
         $cu = self::findForTenant($id, $tenantId);
         if ($cu === null || (int) $cu['course_archived'] === 1) {
             return false;
         }
-        $stmt = Database::pdo()->prepare('UPDATE competence_units SET name = ? WHERE id = ?');
-        $stmt->execute([$name, $id]);
+        if ($workloadHours === null) {
+            $stmt = Database::pdo()->prepare('UPDATE competence_units SET name = ? WHERE id = ?');
+            $stmt->execute([$name, $id]);
+        } else {
+            $stmt = Database::pdo()->prepare(
+                'UPDATE competence_units SET name = ?, workload_hours = ? WHERE id = ?'
+            );
+            $stmt->execute([$name, max(0, $workloadHours), $id]);
+        }
         return true;
+    }
+
+    /**
+     * Soma das cargas horárias das CUs do curso — usado no CourseCard
+     * (E14-02) pra mostrar "{N}h no total". Zero se curso sem CUs ou
+     * sem workload cadastrado.
+     */
+    public static function sumWorkloadForCourse(int $courseId): int
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT COALESCE(SUM(cu.workload_hours), 0)
+               FROM competence_units cu
+               JOIN core_competencies cc ON cc.id = cu.core_competency_id
+              WHERE cc.course_id = ?'
+        );
+        $stmt->execute([$courseId]);
+        return (int) $stmt->fetchColumn();
     }
 
     public static function moveUp(int $id, int $tenantId): bool

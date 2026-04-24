@@ -199,6 +199,28 @@ final class Enrollment
     }
 
     /**
+     * Atualiza `last_access_at = NOW()` na matrícula do aluno no curso
+     * (E14-00). Idempotente: múltiplos reloads só reescrevem o timestamp.
+     * Filtra por `student_user_id + course_id` — não toca matrícula alheia.
+     * Silencioso em erro (aluno sem matrícula, course_id inválido): retorna
+     * void porque não vale travar a página só porque o tracking falhou.
+     */
+    public static function touchLastAccess(int $studentId, int $courseId): void
+    {
+        try {
+            Database::pdo()
+                ->prepare(
+                    'UPDATE enrollments
+                        SET last_access_at = NOW()
+                      WHERE student_user_id = ? AND course_id = ?'
+                )
+                ->execute([$studentId, $courseId]);
+        } catch (\Throwable) {
+            // Loga? Por ora só swallow — o tracking é melhoria, não essencial.
+        }
+    }
+
+    /**
      * Checa se o aluno já está matriculado no curso. Usado pra saber se
      * `Enrollment::create` vai criar nova linha ou absorver pelo UK
      * (INSERT IGNORE é idempotente). Assim `enrollBulk` só dispara

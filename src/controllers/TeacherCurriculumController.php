@@ -167,7 +167,7 @@ final class TeacherCurriculumController
     }
 
     /** POST /teacher/cu/new — cria CU e redireciona para a página da CC. */
-    public static function createCu(int $courseId, int $ccId, string $name): void
+    public static function createCu(int $courseId, int $ccId, string $name, int $workloadHours = 0): void
     {
         $tenantId = current_tenant_id();
         if ($tenantId === null) {
@@ -186,7 +186,7 @@ final class TeacherCurriculumController
             exit;
         }
 
-        $newId = CompetenceUnit::create($ccId, $tenantId, $name);
+        $newId = CompetenceUnit::create($ccId, $tenantId, $name, max(0, $workloadHours));
         if ($newId === null) {
             flash('danger', __t('cu.err.cc_unavailable'));
             header('Location: ' . $backUrl, true, 303);
@@ -198,8 +198,8 @@ final class TeacherCurriculumController
         exit;
     }
 
-    /** POST /teacher/cu/{id}/rename. */
-    public static function renameCu(int $cuId, string $name): void
+    /** POST /teacher/cu/{id}/rename. `workloadHours=null` mantém o valor. */
+    public static function renameCu(int $cuId, string $name, ?int $workloadHours = null): void
     {
         $tenantId = current_tenant_id();
         if ($tenantId === null) {
@@ -226,7 +226,7 @@ final class TeacherCurriculumController
             exit;
         }
 
-        $ok = CompetenceUnit::rename($cuId, $tenantId, $name);
+        $ok = CompetenceUnit::rename($cuId, $tenantId, $name, $workloadHours);
         if (!$ok) {
             flash('danger', __t('cu.err.cc_unavailable'));
         } else {

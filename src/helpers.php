@@ -52,6 +52,66 @@ function student_course_status(int $courseId, int $studentId): array
 }
 
 /**
+ * XP acumulado do aluno (E14-01). Soma `xp_events.value` — inclui atividades
+ * entregues (E6-03) e avaliações com nota ≥ 8 (E7-03). Idempotência de XP já
+ * é garantida pelo UK composite em `xp_events`.
+ */
+function student_total_xp(int $studentId): int
+{
+    $stmt = Database::pdo()->prepare(
+        'SELECT COALESCE(SUM(value), 0) FROM xp_events WHERE student_user_id = ?'
+    );
+    $stmt->execute([$studentId]);
+    return (int) $stmt->fetchColumn();
+}
+
+/**
+ * Patente atual do aluno dado o XP acumulado (E14-01). Delega pra
+ * `Rank::findCurrentByXp` usando o tenant do aluno. null quando tenant sem
+ * patentes, aluno em gap, ou aluno sem tenant (super-admin).
+ *
+ * @return array<string,mixed>|null
+ */
+function student_current_rank(int $studentId, int $tenantId): ?array
+{
+    $xp = student_total_xp($studentId);
+    return Rank::findCurrentByXp($tenantId, $xp);
+}
+
+/**
+ * Próxima patente acima do XP atual do aluno (E14-01). null quando aluno
+ * já está na faixa topo.
+ *
+ * @return array<string,mixed>|null
+ */
+function student_next_rank(int $studentId, int $tenantId): ?array
+{
+    $xp = student_total_xp($studentId);
+    return Rank::findNextByXp($tenantId, $xp);
+}
+
+/**
+ * Nome do curso acessado mais recentemente pelo aluno (via
+ * `enrollments.last_access_at`, E14-00). Usado como subtítulo no
+ * ProfileSidebar. null quando o aluno nunca abriu curso ou não tem
+ * matrícula.
+ */
+function student_recent_course_name(int $studentId): ?string
+{
+    $stmt = Database::pdo()->prepare(
+        'SELECT c.name
+           FROM enrollments e
+           JOIN courses c ON c.id = e.course_id
+          WHERE e.student_user_id = ? AND e.last_access_at IS NOT NULL
+          ORDER BY e.last_access_at DESC
+          LIMIT 1'
+    );
+    $stmt->execute([$studentId]);
+    $name = $stmt->fetchColumn();
+    return $name !== false ? (string) $name : null;
+}
+
+/**
  * Converte um path interno (`/student/activity/42`) em URL absoluta pra links
  * em emails (E10-03). Usa `APP_BASE_URL` de `config/env.php`; fallback pro
  * scheme+host do request quando a env estiver vazia (útil em dev).
@@ -74,6 +134,26 @@ function app_url(string $path): string
     }
 
     return $base . $path;
+}
+
+/**
+ * Formata um timestamp MySQL como data curta, respeitando o idioma corrente:
+ *   pt → `d/m/Y` (ex.: 24/04/2026)
+ *   en → `M j, Y` (ex.: Apr 24, 2026)
+ * Fallback pra string vazia em entrada inválida. Usado no CourseCard
+ * (E14-02) pra "Último acesso: {date}".
+ */
+function format_short_date(string $mysqlDatetime): string
+{
+    if ($mysqlDatetime === '' || $mysqlDatetime === '0000-00-00 00:00:00') {
+        return '';
+    }
+    try {
+        $dt = new \DateTimeImmutable($mysqlDatetime);
+    } catch (\Exception) {
+        return '';
+    }
+    return $dt->format(current_lang() === 'pt' ? 'd/m/Y' : 'M j, Y');
 }
 
 /**

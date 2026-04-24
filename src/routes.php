@@ -50,6 +50,8 @@ return [
         '/teacher/students/new' => ['file' => '/src/pages/teacher/students/new.php',   'role' => 'teacher'],
         '/teacher/groups'       => ['file' => '/src/pages/teacher/groups/index.php',   'role' => 'teacher'],
         '/teacher/groups/new'   => ['file' => '/src/pages/teacher/groups/new.php',     'role' => 'teacher'],
+        '/teacher/ranks'        => ['file' => '/src/pages/teacher/ranks/index.php',    'role' => 'teacher'],
+        '/teacher/ranks/save'   => ['file' => '/src/pages/teacher/ranks/save.php',     'role' => 'teacher'],
         '/student'             => ['file' => '/src/pages/dashboard/student.php',     'role' => 'student'],
     ],
 
@@ -328,6 +330,16 @@ return [
             'file'   => '/src/pages/teacher/groups/remove-member.php',
             'role'   => 'teacher',
             'params' => ['id', 'student_id'],
+        ],
+        '#^/teacher/ranks/(\d+)/delete$#' => [
+            'file'   => '/src/pages/teacher/ranks/delete.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/ranks/(\d+)/move-(up|down)$#' => [
+            'file'   => '/src/pages/teacher/ranks/move.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'direction'],
         ],
         '#^/teacher/students/(\d+)/assign-groups$#' => [
             'file'   => '/src/pages/teacher/students/assign-groups.php',

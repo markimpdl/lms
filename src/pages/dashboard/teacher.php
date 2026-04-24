@@ -31,6 +31,12 @@ ob_start();
                 <p class="text-muted small mb-0"><?= e(__t('dashboard.teacher.groups_hint')) ?></p>
             </a>
         </div>
+        <div class="col-12 col-md-6">
+            <a href="/teacher/ranks" class="card card-body shadow-sm h-100 text-decoration-none">
+                <h2 class="h5 mb-1"><?= e(__t('ranks.title')) ?></h2>
+                <p class="text-muted small mb-0"><?= e(__t('dashboard.teacher.ranks_hint')) ?></p>
+            </a>
+        </div>
     </div>
 </div>
 <?php

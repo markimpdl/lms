@@ -120,6 +120,7 @@ ob_start();
                             <button type="button" class="btn btn-sm btn-outline-primary"
                                     data-bs-toggle="modal" data-bs-target="#cuEditModal"
                                     data-cu-id="<?= $cuId ?>" data-cu-name="<?= e($cuName) ?>"
+                                    data-cu-workload="<?= (int) ($cu['workload_hours'] ?? 0) ?>"
                                     aria-label="<?= e(__t('cu.action.rename')) ?>">✎</button>
                             <button type="button" class="btn btn-sm btn-outline-danger"
                                     data-bs-toggle="modal" data-bs-target="#deleteConfirmModal"
@@ -148,9 +149,17 @@ ob_start();
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <label for="cuNewName" class="form-label"><?= e(__t('cu.form.name')) ?></label>
-                <input type="text" id="cuNewName" name="name" class="form-control form-control-lg"
-                       required minlength="2" maxlength="150" autofocus>
+                <div class="mb-3">
+                    <label for="cuNewName" class="form-label"><?= e(__t('cu.form.name')) ?></label>
+                    <input type="text" id="cuNewName" name="name" class="form-control form-control-lg"
+                           required minlength="2" maxlength="150" autofocus>
+                </div>
+                <div class="mb-0">
+                    <label for="cuNewWorkload" class="form-label"><?= e(__t('cu.form.workload_hours')) ?></label>
+                    <input type="number" id="cuNewWorkload" name="workload_hours" class="form-control form-control-lg"
+                           min="0" max="999" step="1" value="0">
+                    <div class="form-text"><?= e(__t('cu.form.workload_hours_hint')) ?></div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= e(__t('common.cancel')) ?></button>
@@ -170,9 +179,17 @@ ob_start();
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <label for="cuEditName" class="form-label"><?= e(__t('cu.form.name')) ?></label>
-                <input type="text" id="cuEditName" name="name" class="form-control form-control-lg"
-                       required minlength="2" maxlength="150">
+                <div class="mb-3">
+                    <label for="cuEditName" class="form-label"><?= e(__t('cu.form.name')) ?></label>
+                    <input type="text" id="cuEditName" name="name" class="form-control form-control-lg"
+                           required minlength="2" maxlength="150">
+                </div>
+                <div class="mb-0">
+                    <label for="cuEditWorkload" class="form-label"><?= e(__t('cu.form.workload_hours')) ?></label>
+                    <input type="number" id="cuEditWorkload" name="workload_hours" class="form-control form-control-lg"
+                           min="0" max="999" step="1">
+                    <div class="form-text"><?= e(__t('cu.form.workload_hours_hint')) ?></div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= e(__t('common.cancel')) ?></button>
@@ -191,9 +208,11 @@ ob_start();
         if (!btn) return;
         var id = btn.getAttribute('data-cu-id');
         var name = btn.getAttribute('data-cu-name');
+        var workload = btn.getAttribute('data-cu-workload') || '0';
         var form = document.getElementById('cuEditForm');
         form.action = '/teacher/cu/' + id + '/rename';
         document.getElementById('cuEditName').value = name;
+        document.getElementById('cuEditWorkload').value = workload;
     });
 })();
 </script>
