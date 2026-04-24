@@ -806,6 +806,23 @@ return [
     'teacher_dashboard.inactive.days_ago'       => ':days days ago',
     'teacher_dashboard.hubs.title'              => 'Manage',
 
+    // CU Roster — students tab on CU page (E11-03)
+    'cu_roster.title'                     => 'Students',
+    'cu_roster.subtitle'                  => ':count student(s) enrolled in this CU\'s course',
+    'cu_roster.only_active'               => 'Active students only',
+    'cu_roster.col.student'               => 'Student',
+    'cu_roster.col.activity_n'            => 'A:n',
+    'cu_roster.col.evaluation'            => 'Assessment',
+    'cu_roster.badge.inactive'            => 'Deactivated',
+    'cu_roster.activity.with_feedback'    => 'With feedback',
+    'cu_roster.activity.pending'          => 'Awaiting feedback',
+    'cu_roster.activity.not_submitted'    => 'Not submitted',
+    'cu_roster.evaluation.approved'       => 'Approved',
+    'cu_roster.evaluation.failed'         => 'Failed',
+    'cu_roster.evaluation.retry'          => 'Retry allowed',
+    'cu_roster.evaluation.pending'        => 'Awaiting grade',
+    'cu_roster.evaluation.not_submitted'  => 'Not submitted',
+
     'groups.title'                    => 'Groups',
     'groups.new_button'                => 'New group',
     'groups.search_placeholder'        => 'Search by group name',

@@ -807,6 +807,23 @@ return [
     'teacher_dashboard.inactive.days_ago'       => 'Há :days dias',
     'teacher_dashboard.hubs.title'              => 'Gerenciar',
 
+    // CU Roster — aba Alunos da CU (E11-03)
+    'cu_roster.title'                     => 'Alunos',
+    'cu_roster.subtitle'                  => ':count aluno(s) matriculado(s) no curso desta CU',
+    'cu_roster.only_active'               => 'Só alunos ativos',
+    'cu_roster.col.student'               => 'Aluno',
+    'cu_roster.col.activity_n'            => 'A:n',
+    'cu_roster.col.evaluation'            => 'Avaliação',
+    'cu_roster.badge.inactive'            => 'Desativado',
+    'cu_roster.activity.with_feedback'    => 'Com feedback',
+    'cu_roster.activity.pending'          => 'Aguardando feedback',
+    'cu_roster.activity.not_submitted'    => 'Não entregue',
+    'cu_roster.evaluation.approved'       => 'Aprovada',
+    'cu_roster.evaluation.failed'         => 'Reprovada',
+    'cu_roster.evaluation.retry'          => 'Reenvio liberado',
+    'cu_roster.evaluation.pending'        => 'Aguardando correção',
+    'cu_roster.evaluation.not_submitted'  => 'Não entregue',
+
     'groups.title'                    => 'Grupos',
     'groups.new_button'                => 'Novo grupo',
     'groups.search_placeholder'        => 'Buscar por nome do grupo',
