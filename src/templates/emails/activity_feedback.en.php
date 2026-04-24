@@ -2,11 +2,11 @@
 declare(strict_types=1);
 
 return [
-    'subject' => 'Feedback on :activity_title',
+    'subject' => 'Feedback on :title',
 
     'html' => <<<'HTML'
 <p style="margin:0 0 12px;">Hi <strong>:student_name</strong>,</p>
-<p style="margin:0 0 12px;">Your teacher left feedback on your submission for <strong>:activity_title</strong>.</p>
+<p style="margin:0 0 12px;">Your teacher left feedback on your submission for <strong>:title</strong>.</p>
 <p style="margin:16px 0;">
   <a href=":link" style="display:inline-block;padding:10px 20px;border-radius:999px;background:#6366F1;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;">View feedback</a>
 </p>
@@ -16,7 +16,7 @@ HTML,
     'text' => <<<TXT
 Hi :student_name,
 
-Your teacher left feedback on your submission for ":activity_title".
+Your teacher left feedback on your submission for ":title".
 
 Open: :link
 TXT,
