@@ -841,4 +841,11 @@ return [
     'ranks.err.xp_max_less_than_min' => 'XP max must be greater than XP min.',
     'ranks.err.duplicate'           => 'A rank named ":name" already exists.',
     'ranks.err.overlap'             => 'The XP range overlaps another existing rank.',
+
+    // Student ProfileSidebar (E14-01)
+    'sidebar.total_xp'     => 'TOTAL XP',
+    'sidebar.next_rank_to' => 'to',
+    'sidebar.next_rank_xp' => ':xp XP',
+    'sidebar.max_rank'     => 'Max level reached',
+    'sidebar.no_rank'      => 'No rank configured for your tenant',
 ];
