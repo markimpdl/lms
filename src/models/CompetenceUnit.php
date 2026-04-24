@@ -136,9 +136,15 @@ final class CompetenceUnit
     public static function findForStudent(int $cuId, int $studentId): ?array
     {
         $stmt = Database::pdo()->prepare(
-            'SELECT cu.id, cu.name,
+            'SELECT cu.id, cu.name, cu.position AS cu_position, cu.workload_hours,
                     cc.id AS cc_id, cc.name AS cc_name,
-                    c.id AS course_id, c.name AS course_name
+                    c.id AS course_id, c.name AS course_name, c.language AS course_language,
+                    (SELECT COUNT(*) + 1
+                       FROM competence_units cu2
+                      WHERE cu2.core_competency_id = cc.id
+                        AND (cu2.position < cu.position
+                             OR (cu2.position = cu.position AND cu2.id < cu.id))
+                    ) AS cu_index_in_cc
                FROM competence_units cu
                JOIN core_competencies cc ON cc.id = cu.core_competency_id
                JOIN courses c            ON c.id  = cc.course_id
