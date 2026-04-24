@@ -262,6 +262,7 @@ return [
     'courses.action.edit'          => 'Edit',
     'courses.action.archive'       => 'Archive',
     'courses.action.restore'       => 'Restore',
+    'courses.action.matrix'        => 'Progress matrix',
     'courses.new.title'            => 'New course',
     'courses.edit.title'           => 'Edit course',
     'courses.edit.archived_notice' => 'This course is archived. Restore it before editing.',
@@ -822,6 +823,20 @@ return [
     'cu_roster.evaluation.retry'          => 'Retry allowed',
     'cu_roster.evaluation.pending'        => 'Awaiting grade',
     'cu_roster.evaluation.not_submitted'  => 'Not submitted',
+
+    // Students × CUs matrix (E11-02)
+    'course_matrix.page_title'             => 'Matrix — :name',
+    'course_matrix.breadcrumb'             => 'Progress matrix',
+    'course_matrix.title'                  => 'Progress matrix',
+    'course_matrix.filter.all_groups'      => 'All groups',
+    'course_matrix.filter.no_group'        => 'No group',
+    'course_matrix.filter.only_active'     => 'Active students only',
+    'course_matrix.col.student'            => 'Student',
+    'course_matrix.col.cu_n'               => 'U:n',
+    'course_matrix.col.avg'                => 'Avg',
+    'course_matrix.row.class_avg'          => 'Class (completed)',
+    'course_matrix.empty.students'         => 'No students enrolled in this course yet.',
+    'course_matrix.empty.cus'              => 'This course has no units yet.',
 
     'groups.title'                    => 'Groups',
     'groups.new_button'                => 'New group',
