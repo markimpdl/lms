@@ -587,6 +587,18 @@ return [
     'submissions.run.clear'             => 'Limpar',
     'submissions.run.sandbox_title'     => 'Resultado da execução',
     'submissions.run.placeholder_judge0' => 'Execução remota (Python/C#/JS) chega junto com o Judge0 em breve. HTML já roda aqui no navegador.',
+    'submissions.run.loading'            => 'Executando…',
+    'submissions.run.tab.stdout'         => 'Saída',
+    'submissions.run.tab.stderr'         => 'Erros',
+    'submissions.run.tab.info'           => 'Info',
+    'submissions.run.info.time'          => 'Tempo',
+    'submissions.run.info.status'        => 'Status',
+    'submissions.run.empty_output'       => '(sem saída)',
+    'submissions.run.status.accepted'      => 'Execução concluída',
+    'submissions.run.status.time_limit'    => 'Tempo limite excedido',
+    'submissions.run.status.compile_error' => 'Erro de compilação',
+    'submissions.run.status.runtime_error' => 'Erro em tempo de execução',
+    'submissions.run.status.unknown'       => 'Status desconhecido',
 
     // Erros do /api/code/run (E8-01)
     'code_run.err.method'       => 'Método HTTP inválido.',
