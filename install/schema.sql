@@ -377,6 +377,29 @@ CREATE TABLE IF NOT EXISTS login_attempts (
     KEY idx_la_ip_created (ip_address, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ----------------------------------------------------------------------------
+-- 20. ranks — patentes por tenant (E9-01). Professor cadastra faixas de XP
+-- com nome; aluno vê a patente atual no ProfileSidebar (E14-01). Faixa no
+-- topo tem xp_max = NULL ("sem teto"). UK por (tenant_id, name). Índice
+-- (tenant_id, xp_min) acelera busca da patente atual por XP do aluno.
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS ranks (
+    id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tenant_id  BIGINT UNSIGNED NOT NULL,
+    name       VARCHAR(80)  NOT NULL,
+    xp_min     INT UNSIGNED NOT NULL,
+    xp_max     INT UNSIGNED NULL,
+    color_hex  VARCHAR(7)   NOT NULL DEFAULT '#6366F1',
+    position   INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_ranks_tenant_name (tenant_id, name),
+    KEY idx_ranks_tenant_xpmin (tenant_id, xp_min),
+    CONSTRAINT fk_ranks_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+    CONSTRAINT chk_ranks_xp_max CHECK (xp_max IS NULL OR xp_max > xp_min)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ============================================================================
 -- SEEDS
 -- ============================================================================
