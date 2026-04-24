@@ -44,9 +44,17 @@ final class StudentCurriculum
     {
         $sql = <<<SQL
             SELECT c.id  AS course_id, c.name AS course_name, c.archived AS course_archived,
+                   c.language AS course_language,
                    e.enrolled_at AS enrolled_at,
                    cc.id AS cc_id,     cc.name AS cc_name,     cc.position AS cc_position,
-                   cu.id AS cu_id,     cu.name AS cu_name,     cu.position AS cu_position
+                   cu.id AS cu_id,     cu.name AS cu_name,     cu.position AS cu_position,
+                   cu.workload_hours AS cu_workload_hours,
+                   (SELECT COALESCE(SUM(a.xp_value), 0)
+                      FROM activities a
+                     WHERE a.competence_unit_id = cu.id)         AS cu_xp_activities,
+                   (SELECT COALESCE(ev.xp_value, 0)
+                      FROM evaluations ev
+                     WHERE ev.competence_unit_id = cu.id)        AS cu_xp_evaluation
               FROM enrollments e
               JOIN courses c            ON c.id  = e.course_id
               LEFT JOIN core_competencies cc ON cc.course_id = c.id
@@ -73,6 +81,7 @@ final class StudentCurriculum
                     'course_id'       => $courseId,
                     'course_name'     => (string) $row['course_name'],
                     'course_archived' => (int)    $row['course_archived'],
+                    'course_language' => (string) ($row['course_language'] ?? 'pt'),
                     'enrolled_at'     => (string) $row['enrolled_at'],
                     'ccs'             => [],
                 ];
@@ -92,8 +101,10 @@ final class StudentCurriculum
             }
             if ($row['cu_id'] !== null) {
                 $tree[$courseIdx[$courseId]]['ccs'][$ccIdx[$key]]['cus'][] = [
-                    'id'   => (int)    $row['cu_id'],
-                    'name' => (string) $row['cu_name'],
+                    'id'             => (int)    $row['cu_id'],
+                    'name'           => (string) $row['cu_name'],
+                    'workload_hours' => (int)    ($row['cu_workload_hours'] ?? 0),
+                    'xp_total'       => (int) (($row['cu_xp_activities'] ?? 0) + ($row['cu_xp_evaluation'] ?? 0)),
                 ];
             }
         }
