@@ -103,9 +103,38 @@ final class TeacherEnrollmentsController
             if ($cid <= 0) {
                 continue;
             }
-            $result = Enrollment::create($studentId, $cid, $tenantId);
+            // Checa antes pra distinguir "nova matrícula" de "já existia" — só
+            // notifica no primeiro caso (E10-05). `Enrollment::create` usa
+            // INSERT IGNORE e retorna 'ok' pros dois.
+            $wasEnrolled = Enrollment::isEnrolled($studentId, $cid);
+            $result      = Enrollment::create($studentId, $cid, $tenantId);
             $stats[$result] = ($stats[$result] ?? 0) + 1;
+
+            if ($result === 'ok' && !$wasEnrolled) {
+                self::fanoutEnrollment($studentId, $cid, $tenantId);
+            }
         }
         return $stats;
+    }
+
+    /**
+     * Fanout `enrollment` (email + sino, E10-05). Separado pra manter
+     * `enrollBulk` legível. Idioma do email via `courses.language` pelo
+     * courseId. Noop se curso sumir entre create e fanout.
+     */
+    private static function fanoutEnrollment(int $studentId, int $courseId, int $tenantId): void
+    {
+        $course = Course::findForTenant($courseId, $tenantId);
+        if ($course === null) {
+            return;
+        }
+        NotificationService::fanout(
+            'enrollment',
+            [$studentId],
+            (string) $course['name'],
+            null,
+            '/student/course/' . $courseId,
+            $courseId
+        );
     }
 }

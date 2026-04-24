@@ -199,6 +199,24 @@ final class Enrollment
     }
 
     /**
+     * Checa se o aluno já está matriculado no curso. Usado pra saber se
+     * `Enrollment::create` vai criar nova linha ou absorver pelo UK
+     * (INSERT IGNORE é idempotente). Assim `enrollBulk` só dispara
+     * fanout de `enrollment` em matrícula realmente nova — re-enroll
+     * não spamma o aluno (E10-05).
+     */
+    public static function isEnrolled(int $studentId, int $courseId): bool
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT 1 FROM enrollments
+              WHERE student_user_id = ? AND course_id = ?
+              LIMIT 1'
+        );
+        $stmt->execute([$studentId, $courseId]);
+        return $stmt->fetchColumn() !== false;
+    }
+
+    /**
      * Ids de alunos ativos matriculados num curso — usado pra fanout de
      * notificações (E10-04 new_evaluation; E10-05 activity_new / submission_closed).
      * Valida que o curso pertence ao tenant e que os alunos são do mesmo.
