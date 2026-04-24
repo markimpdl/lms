@@ -4,6 +4,51 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.8.0] — 2026-04-24
+
+Oitava release. Escopo: **área do aluno redesenhada + patentes por tenant** — Epic E14 inteiro (redesign handoff) + início de E9 com patentes. Primeira release visual grande: 3 telas do aluno (My Courses / Course page / Unit page) ganham design novo do handoff, ProfileSidebar 300px, design tokens globais scoped e ActivityCard com 6 estados. Professor ganha CRUD de patentes por tenant.
+
+### Novas funcionalidades
+
+#### Patentes (Epic E9 parcial)
+- Professor cadastra faixas de XP com nome e cor em `/teacher/ranks` (ex.: Aprendiz 0-1000, Cadete 1001-5000, Mestre 5001+). Tabela `ranks` nova por tenant com overlap detection em PHP, unique name, reordenação por position swap+renormalize. `Rank::findCurrentByXp` e `findNextByXp` plantados pro ProfileSidebar consumir. Sem cascade destrutivo — excluir patente não afeta aluno (cálculo on-the-fly) (E9-01).
+
+#### Redesign da área do aluno (Epic E14)
+- **Schema** (E14-00): `competence_units.workload_hours INT UNSIGNED` pra carga horária cadastrada pelo professor; `enrollments.last_access_at DATETIME NULL` atualizada quando aluno abre `/student/course/{id}` (silencioso em falha, tracking é melhoria não-crítica). Form de CU ganhou input number 0-999 pros dois campos em ambos modais (new + edit).
+- **Design tokens + ProfileSidebar** (E14-01): fonts Plus Jakarta Sans + Inter via Google CDN, CSS vars da paleta (primary/success/warning/danger/violet/muted/neutrals + page-bg `#F8F7FB`), radii, shadows — **tudo scoped a `body.lms-student-area`** (professor/admin inalterados). Layout grid 300/1fr com ProfileSidebar sticky top 88px; mobile <768 empilha. Sidebar renderiza avatar 104 com border colorida pela patente, rank pill gradient sobreposto ou "—" muted, nome com ellipsis, subtítulo do curso acessado mais recente, XP block com barra de progresso e footer "X para {next rank}" ou "Nível máximo". 4 helpers novos: `student_total_xp`, `student_current_rank`, `student_next_rank`, `student_recent_course_name`.
+- **My Courses redesign** (E14-02): header com eyebrow roxo + H1 32 + contadores (total/ativos/concluídos) + filter pills Alpine.js client-side (All/Active/Completed com counts, selecionado = gradient). Grid `auto-fill minmax(300px, 1fr)`. CourseCard com cover 56px gradient determinístico por `crc32(courseId) % 6` (palette do handoff, zero schema change), body com StatusBadge + H3 + instrutor (via `tenants.owner_user_id`) + ProgressRing 52 + barra 6px + "{done}/{total} unidades" + "{hours}h no total", footer com "Último acesso: {date}" ou "Ainda não acessado" + CTA arrow contextual ("Acessar/Retomar/Revisar", gradient ou `#111827` se completed). Empty state dedicado.
+- **Course page redesign** (E14-03): hero banner gradient 3-stops, 2 círculos decorativos, eyebrow "Welcome back", H1 30, stats row (Overall %, Units done/total, CC count) + ProgressRing 112 em painel translúcido com backdrop-filter blur. Per-CC section (partial) com ícone 52×52 letra inicial, eyebrow "Competência N" em cor do curso, H2 22, summary "{done} de {total}", barra 8px, ring 72 "Overall" à direita. UnitCard (partial) com ícone 40 + ring 64 + eyebrow "Unidade N" + título + StatusBadge + clock/horas + "+XP" em roxo. Hover com translateY e glow indigo. `StudentCurriculum::forStudent` expandido com workload_hours, xp_activities e xp_evaluation por CU + course_language.
+- **Unit page redesign** (E14-04): breadcrumb 4 níveis; unit header card com eyebrow "UNIT N · {CC}" roxo, H1 28, meta row (clock+h, star+earned/total XP roxo, dot+%), ProgressRing 84; section tabs pill group com Alpine.js (active highlight + ancoras nativas); 4 seções — Content (unit-prose CSS completo: h2/h3, blockquote violet, pre dark, code chip, tables, iframes responsivos), Activities (lista vertical de ActivityCards), Assessment (1 ActivityCard com `isAssessment=true` e accent amber→red), Attachments (rows com FileTypeChip colorido por extensão PDF/ZIP/IMG/outros). ActivityCard unificado com 6 estados (unavailable/pending/with-feedback/approved/failed/resubmit-pending), ring 64 com grade overlay opcional (verde ≥6 / vermelho <6), CTAs gradient ou outline. `CompetenceUnit::findForStudent` expandido com `cu_index_in_cc` subquery pra eyebrow "UNIT N".
+
+### Mudanças de schema
+- `ranks` tabela nova — `(tenant_id, name, xp_min, xp_max NULL, color_hex, position, created_at, updated_at)`, UK `(tenant_id, name)`, idx `(tenant_id, xp_min)`, FK CASCADE, CHECK `xp_max > xp_min`.
+- `competence_units.workload_hours INT UNSIGNED NOT NULL DEFAULT 0` — idempotente via `INFORMATION_SCHEMA`.
+- `enrollments.last_access_at DATETIME NULL DEFAULT NULL` — idempotente via `INFORMATION_SCHEMA`.
+
+Todas aplicadas em prod via `install/schema.sql` (ADR-017) durante o ciclo.
+
+### Convenções consolidadas nesta janela
+- **Design tokens scoped** via `body.lms-student-area` — permite redesign progressivo sem quebrar telas existentes do professor/admin. Padrão replicável pra futuras áreas temáticas.
+- **Gradient determinístico por id** (`crc32(id) % palette`) — cor consistente por entidade sem schema change. Usado pra cover de curso e ícones de CC/CU.
+- **Partials por componente** — `section_header`, `unit_header`, `section_tabs`, `activity_card`, `attachment_row`, `course_card`, `profile_sidebar`, `student_course_hero`, `student_cc_section`, `unit_card`. Cada um isolado e reusável; state logic fica no controller, partial é declarativo.
+- **ActivityCard unificado** pra atividade e avaliação via flag `is_assessment` — 1 partial serve múltiplos fluxos, DRY entre 6 estados.
+- **6 estados da atividade/avaliação** consolidados: unavailable, pending, with-feedback, approved, failed, resubmit-pending. Cada um tem cor de borda, ActivityBadge e variante de CTA definidos.
+- **Tracking silencioso** (`Enrollment::touchLastAccess`) — operações não-críticas engolem Throwable pra não travar UI.
+- **CSS vars inline** (`--lms-avatar-color`, `--lms-rank-gradient`, `--lms-xp-pct`, etc.) — tematização dinâmica sem CSS por request.
+- **Alpine.js como padrão** pro client state leve (filter pills, section tabs, bell dropdown) — reusa a dependência já carregada pro sino (E10-01).
+
+### Tooling
+- `package.json` bumpado para 0.8.0.
+
+### Pendências
+- **`context_lang($courseId)` helper adiado** — AC do E14-03 pedia helper que `__t` respeitasse `courses.language` quando dentro de curso. Plantado `course_language` em todos os models relevantes; `context_lang` fica pra story dedicada ou quando o PO pedir. Hoje `__t` usa preferência do usuário.
+- **Avatar do aluno é placeholder** (letra inicial) — upload de foto não está no escopo do MVP.
+- **Ranking, badges e conquistas** (restante do E9) — adiados. Este release só entrega patentes.
+- **Remover arquivos órfãos em prod herdados**: `src/lib/HtmlPurifier.php` e `public/_diag_*.php` (v0.4.0).
+- **Cross-tenant smoke** ainda pendente — só 1 tenant em prod.
+
+[0.8.0]: https://github.com/markimpdl/lms/releases/tag/v0.8.0
+
 ## [0.7.0] — 2026-04-24
 
 Sétima release. Escopo: **notificações — primeiro feedback loop de verdade** — Epic E10 inteiro. A partir desta release, aluno e professor recebem sinais fora da plataforma (email) e dentro dela (sino in-app), fechando a cadeia de eventos dos épicos anteriores que até aqui eram fanout stub.
