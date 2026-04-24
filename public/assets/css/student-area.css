@@ -548,3 +548,254 @@ body.lms-student-area .lms-student-main {
     .lms-filter-pills { width: 100%; overflow-x: auto; }
     .lms-course-grid { grid-template-columns: 1fr; gap: 12px; }
 }
+
+/* ============================================================
+   Course page hero + CC sections + UnitCards (E14-03)
+   ============================================================ */
+
+.lms-course-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--lms-radius-hero);
+    padding: 28px;
+    color: #fff;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 32px;
+}
+.lms-course-hero__circle {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    pointer-events: none;
+}
+.lms-course-hero__circle--a { width: 180px; height: 180px; top: -60px; right: -40px; }
+.lms-course-hero__circle--b { width: 240px; height: 240px; bottom: -140px; right: 80px; background: rgba(255,255,255,0.06); }
+
+.lms-course-hero__body { position: relative; flex: 1 1 300px; min-width: 0; }
+.lms-course-hero__eyebrow {
+    display: inline-block;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 8px;
+}
+.lms-course-hero__title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800;
+    font-size: 30px;
+    line-height: 1.15;
+    color: #fff;
+    letter-spacing: -0.02em;
+    margin: 0 0 20px;
+}
+.lms-course-hero__stats { display: flex; gap: 24px; flex-wrap: wrap; }
+.lms-course-hero__stat { min-width: 64px; }
+.lms-course-hero__stat-eyebrow {
+    display: block;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.75);
+    margin-bottom: 4px;
+}
+.lms-course-hero__stat-value {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    color: #fff;
+}
+
+.lms-course-hero__ring-panel {
+    position: relative;
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: var(--lms-radius-card);
+    padding: 10px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+.lms-course-hero__ring {
+    width: 112px;
+    height: 112px;
+    background: conic-gradient(#fff calc(var(--pct) * 1%), rgba(255,255,255,0.25) 0);
+}
+.lms-course-hero__ring::before { background: transparent; }
+.lms-course-hero__ring .lms-progress-ring__label { color: #fff; font-size: 20px; }
+
+.lms-cc-list { display: flex; flex-direction: column; gap: 32px; }
+.lms-cc-section { display: flex; flex-direction: column; gap: 16px; }
+
+.lms-cc-header {
+    background: var(--lms-card-bg);
+    border: 1px solid var(--lms-neutral-200);
+    border-radius: var(--lms-radius-card);
+    padding: 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    box-shadow: var(--lms-shadow-card);
+}
+.lms-cc-header__icon {
+    flex: 0 0 52px;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    color: #fff;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 14px -6px rgba(99, 102, 241, 0.4);
+}
+.lms-cc-header__body { flex: 1 1 auto; min-width: 0; }
+.lms-cc-header__eyebrow {
+    display: block;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+.lms-cc-header__title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    color: var(--lms-neutral-900);
+    margin: 0 0 10px;
+    text-wrap: pretty;
+}
+.lms-cc-header__summary { font-size: 12px; color: var(--lms-neutral-500); margin-bottom: 8px; }
+.lms-cc-header__bar {
+    height: 8px;
+    background: var(--lms-muted-tint);
+    border-radius: 999px;
+    overflow: hidden;
+}
+.lms-cc-header__bar-fill { height: 100%; border-radius: 999px; transition: width 400ms ease; }
+
+.lms-cc-header__ring {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 72px;
+}
+.lms-cc-header__ring .lms-progress-ring { width: 72px; height: 72px; }
+.lms-cc-header__ring-label {
+    font-size: 11px;
+    color: var(--lms-neutral-500);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+}
+
+.lms-cc-section__empty {
+    margin: 0;
+    padding: 16px 20px;
+    background: var(--lms-neutral-50);
+    border: 1px dashed var(--lms-neutral-300);
+    border-radius: var(--lms-radius-inner);
+    color: var(--lms-neutral-500);
+    font-size: 13px;
+}
+
+.lms-unit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+}
+
+.lms-unit-card {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    background: var(--lms-card-bg);
+    border: 1px solid var(--lms-neutral-200);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: var(--lms-shadow-card);
+    text-decoration: none;
+    color: inherit;
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+.lms-unit-card:hover {
+    transform: translateY(-2px);
+    border-color: #C7D2FE;
+    box-shadow: var(--lms-shadow-card-indigo);
+    color: inherit;
+}
+
+.lms-unit-card__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.lms-unit-card__icon {
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    color: #fff;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.lms-unit-card__ring { width: 64px; height: 64px; flex: 0 0 64px; }
+
+.lms-unit-card__body { display: flex; flex-direction: column; gap: 4px; }
+.lms-unit-card__eyebrow {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--lms-neutral-500);
+}
+.lms-unit-card__title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    line-height: 1.35;
+    color: var(--lms-neutral-900);
+    margin: 0;
+    text-wrap: pretty;
+}
+
+.lms-unit-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--lms-neutral-500);
+    margin-top: auto;
+}
+.lms-unit-card__meta { display: inline-flex; align-items: center; gap: 8px; }
+.lms-unit-card__meta svg { vertical-align: -2px; stroke-width: 2; }
+.lms-unit-card__xp { font-weight: 700; color: #7C3AED; }
+
+@media (max-width: 767.98px) {
+    .lms-course-hero { padding: 20px; gap: 16px; }
+    .lms-course-hero__title { font-size: 24px; }
+    .lms-course-hero__ring-panel { padding: 6px; }
+    .lms-course-hero__ring { width: 88px; height: 88px; }
+    .lms-course-hero__ring .lms-progress-ring__label { font-size: 16px; }
+    .lms-cc-header { flex-wrap: wrap; padding: 16px; gap: 14px; }
+    .lms-cc-header__ring { order: 2; }
+    .lms-unit-grid { grid-template-columns: 1fr; gap: 10px; }
+}

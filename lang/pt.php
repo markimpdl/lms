@@ -858,6 +858,15 @@ return [
     'student.course_card.cta.resume'       => 'Retomar',
     'student.course_card.cta.review'       => 'Revisar',
 
+    // Course page (E14-03)
+    'student.course_page.overall'           => 'Visão geral',
+    'student.course_page.units'             => 'Unidades',
+    'student.course_page.cc_count'          => 'Competências',
+    'student.course_page.cc_n'              => 'Competência :n',
+    'student.course_page.cc_units_summary'  => ':done de :total unidades concluídas',
+    'student.course_page.unit_n'            => 'Unidade :n',
+    'student.course_page.unit_hours_tooltip' => 'Carga horária',
+
     // ProfileSidebar do aluno (E14-01)
     'sidebar.total_xp'     => 'TOTAL XP',
     'sidebar.next_rank_to' => 'para',

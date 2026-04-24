@@ -858,6 +858,15 @@ return [
     'student.course_card.cta.resume'       => 'Resume',
     'student.course_card.cta.review'       => 'Review',
 
+    // Course page (E14-03)
+    'student.course_page.overall'           => 'Overall',
+    'student.course_page.units'             => 'Units',
+    'student.course_page.cc_count'          => 'Core comp.',
+    'student.course_page.cc_n'              => 'Core competence :n',
+    'student.course_page.cc_units_summary'  => ':done of :total units completed',
+    'student.course_page.unit_n'            => 'Unit :n',
+    'student.course_page.unit_hours_tooltip' => 'Workload',
+
     // Student ProfileSidebar (E14-01)
     'sidebar.total_xp'     => 'TOTAL XP',
     'sidebar.next_rank_to' => 'to',

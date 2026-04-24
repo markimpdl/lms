@@ -2,8 +2,14 @@
 declare(strict_types=1);
 
 /**
- * /student/course/{id} — tela do curso pro aluno. Lista CCs como seções
- * com barra de progresso; cada CU vira card no padrão `.lms-card` (issue #99).
+ * /student/course/{id} — tela do curso pro aluno (E14-03, rewrite).
+ *
+ * Hero banner com gradient do curso + stats (overall%/units/cc count) +
+ * ProgressRing 112; por-CC section header (ícone letter, eyebrow, H2,
+ * barra, ring 72) + grid de UnitCards com workload e XP total.
+ *
+ * E14-00 segue sendo respeitado: chama `Enrollment::touchLastAccess`
+ * no topo pra atualizar last_access_at antes do render.
  */
 
 $user = current_user();
@@ -23,93 +29,85 @@ if ($course === null) {
     return;
 }
 
-// E14-00: registra o último acesso do aluno ao curso pro CourseCard
-// (E14-02) mostrar "Último acesso: {data}". Silencioso em falha.
 Enrollment::touchLastAccess($studentId, $courseId);
 
-$archived   = (int) $course['course_archived'] === 1;
-$page_title = (string) $course['course_name'];
+$archived    = (int) $course['course_archived'] === 1;
+$courseName  = (string) $course['course_name'];
+$firstName   = explode(' ', trim((string) ($user['name'] ?? '')))[0] ?? '';
+[$gradStart, $gradEnd] = Course::coverGradient($courseId);
+
+// Enriquecimento on-the-fly: status+percent por CU, agregados por CC e por curso.
+$ccPayload = [];
+$unitsTotal = 0;
+$unitsDone  = 0;
+$overallSum = 0;
+$overallCount = 0;
+
+foreach ($course['ccs'] as $cc) {
+    $ccUnitsTot  = count($cc['cus']);
+    $ccUnitsDone = 0;
+    $ccPctSum    = 0;
+
+    foreach ($cc['cus'] as $cu) {
+        $status = student_cu_status((int) $cu['id'], $studentId);
+        if ($status['status'] === 'completed') {
+            $ccUnitsDone++;
+        }
+        $ccPctSum += (int) $status['percent'];
+        $overallSum += (int) $status['percent'];
+        $overallCount++;
+    }
+
+    $ccPercent = $ccUnitsTot > 0 ? (int) round($ccPctSum / $ccUnitsTot) : 0;
+    $unitsTotal += $ccUnitsTot;
+    $unitsDone  += $ccUnitsDone;
+
+    $ccPayload[] = [
+        'cc'         => $cc,
+        'percent'    => $ccPercent,
+        'units_done' => $ccUnitsDone,
+        'units_tot'  => $ccUnitsTot,
+    ];
+}
+
+$overallPct = $overallCount > 0 ? (int) round($overallSum / $overallCount) : 0;
+$ccCount    = count($course['ccs']);
+
+$page_title = $courseName;
 
 ob_start();
 ?>
 <?= breadcrumbs([
     ['label' => __t('dashboard.student.title'), 'url' => '/student'],
-    ['label' => (string) $course['course_name']],
+    ['label' => $courseName],
 ]) ?>
 
-<div class="row justify-content-center">
-    <div class="col-12 col-lg-10">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-            <h1 class="h4 mb-0">
-                <?= e((string) $course['course_name']) ?>
-                <?php if ($archived): ?>
-                    <span class="badge text-bg-warning ms-2"><?= e(__t('courses.status.archived')) ?></span>
-                <?php endif; ?>
-            </h1>
-        </div>
-
-        <?php if ($course['ccs'] === []): ?>
-            <div class="card card-body text-center text-muted py-5">
-                <p class="mb-0"><?= e(__t('dashboard.student.course_empty')) ?></p>
-            </div>
-        <?php else: ?>
-            <?php foreach ($course['ccs'] as $cc): ?>
-                <?php
-                    // % do CC = média dos percent das CUs (placeholder até E6/E7).
-                    // Hoje é sempre 0 porque student_cu_status é placeholder.
-                    $ccPercent = 0;
-                    if ($cc['cus'] !== []) {
-                        $sum = 0;
-                        foreach ($cc['cus'] as $cu) {
-                            $sum += student_cu_status((int) $cu['id'], $studentId)['percent'];
-                        }
-                        $ccPercent = (int) round($sum / count($cc['cus']));
-                    }
-                ?>
-                <section class="mb-4">
-                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-                        <h2 class="h6 mb-0"><?= e((string) $cc['name']) ?></h2>
-                        <small class="text-muted"><?= e((string) $ccPercent) ?>%</small>
-                    </div>
-                    <div class="progress mb-3" style="height: 6px;" role="progressbar"
-                         aria-valuenow="<?= e((string) $ccPercent) ?>" aria-valuemin="0" aria-valuemax="100">
-                        <div class="progress-bar" style="width: <?= e((string) $ccPercent) ?>%;"></div>
-                    </div>
-
-                    <?php if ($cc['cus'] === []): ?>
-                        <p class="small text-muted mb-0"><?= e(__t('dashboard.student.cc_empty')) ?></p>
-                    <?php else: ?>
-                        <div class="d-flex flex-column gap-2">
-                            <?php foreach ($cc['cus'] as $cu): ?>
-                                <?php
-                                    $s       = student_cu_status((int) $cu['id'], $studentId);
-                                    $status  = $s['status'];
-                                    $percent = (int) $s['percent'];
-                                ?>
-                                <a href="/student/cu/<?= (int) $cu['id'] ?>"
-                                   class="lms-card lms-card--<?= e(str_replace('_', '-', $status)) ?>">
-                                    <div class="lms-card__body">
-                                        <div class="lms-card__title"><?= e((string) $cu['name']) ?></div>
-                                    </div>
-                                    <span class="badge text-bg-<?= $status === 'completed' ? 'success' : ($status === 'in_progress' ? 'warning' : 'secondary') ?>">
-                                        <?= e(__t('status.cu.' . $status)) ?>
-                                    </span>
-                                    <div class="lms-progress-ring lms-progress-ring--<?= e(str_replace('_', '-', $status)) ?>"
-                                         style="--pct: <?= e((string) $percent) ?>;"
-                                         role="progressbar"
-                                         aria-label="<?= e(__t('student.course.progress_aria', ['percent' => (string) $percent])) ?>"
-                                         aria-valuenow="<?= e((string) $percent) ?>" aria-valuemin="0" aria-valuemax="100">
-                                        <span class="lms-progress-ring__label"><?= e((string) $percent) ?>%</span>
-                                    </div>
-                                </a>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
-                </section>
-            <?php endforeach; ?>
-        <?php endif; ?>
+<?php if ($archived): ?>
+    <div class="alert alert-warning mb-3" role="alert">
+        <?= e(__t('courses.status.archived')) ?>
     </div>
-</div>
+<?php endif; ?>
+
+<?php require LMS_ROOT . '/src/templates/partials/student_course_hero.php'; ?>
+
+<?php if ($course['ccs'] === []): ?>
+    <div class="lms-dashboard-empty mt-4">
+        <p class="lms-dashboard-empty__title"><?= e(__t('dashboard.student.course_empty')) ?></p>
+    </div>
+<?php else: ?>
+    <div class="lms-cc-list">
+        <?php foreach ($ccPayload as $ccIdx => $entry): ?>
+            <?php
+                $cc          = $entry['cc'];
+                $ccIndex     = $ccIdx + 1;
+                $ccPercent   = (int) $entry['percent'];
+                $ccUnitsDone = (int) $entry['units_done'];
+                $ccUnitsTot  = (int) $entry['units_tot'];
+                require LMS_ROOT . '/src/templates/partials/student_cc_section.php';
+            ?>
+        <?php endforeach; ?>
+    </div>
+<?php endif; ?>
 <?php
 $page_content = ob_get_clean();
 require LMS_ROOT . '/src/templates/layout.php';
