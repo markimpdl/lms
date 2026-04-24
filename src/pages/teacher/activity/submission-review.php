@@ -49,17 +49,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($errors === []) {
         ActivitySubmission::saveFeedback($activityId, $studentId, $oldFeedback);
 
-        // Fanout stub de notification (padrão E5-06) — 1 linha por
-        // destinatário (aqui só 1 aluno). E10 entrega por email.
-        Database::pdo()->prepare(
-            "INSERT INTO notifications (user_id, type, title, body, link)
-             VALUES (?, 'activity_feedback', ?, ?, ?)"
-        )->execute([
-            $studentId,
+        // Fanout via NotificationService (E10-00). courseId fica null por
+        // ora — `findForTeacher` só retorna cu_id; E10-03 adiciona o id do
+        // curso ao retorno quando o email for cabeado, pra resolver o
+        // idioma via `courses.language`.
+        NotificationService::fanout(
+            'activity_feedback',
+            [$studentId],
             (string) $activity['title'],
             __t('submissions.teacher.notification_body'),
-            '/student/activity/' . $activityId,
-        ]);
+            '/student/activity/' . $activityId
+        );
 
         flash('success', __t('submissions.teacher.feedback_saved', ['name' => (string) $student['name']]));
         header('Location: /teacher/activity/' . $activityId . '/submissions', true, 303);

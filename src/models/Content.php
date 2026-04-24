@@ -84,9 +84,9 @@ final class Content
     }
 
     /**
-     * Insere uma linha em `notifications` por aluno matriculado no curso que
-     * contém a CU, com type='content_published'. `title` = nome da CU,
-     * `body` = nome do curso, `link` = rota do aluno (E5-05).
+     * Fanout de `content_published` pros alunos matriculados no curso que
+     * contém a CU, via `NotificationService` (E10-00). `title` = nome da CU,
+     * `body` = nome do curso, `link` = rota do aluno.
      *
      * Caller deve ter validado acesso antes — esta função não verifica
      * tenant novamente (é chamada pelo upsertForCu que já passou pela
@@ -94,19 +94,32 @@ final class Content
      */
     private static function fanoutPublishedNotifications(int $cuId): void
     {
-        Database::pdo()->prepare(
-            "INSERT INTO notifications (user_id, type, title, body, link)
-             SELECT e.student_user_id,
-                    'content_published',
-                    cu.name,
-                    c.name,
-                    CONCAT('/student/cu/', cu.id)
+        $stmt = Database::pdo()->prepare(
+            'SELECT e.student_user_id, cu.name AS cu_name,
+                    c.name AS course_name, c.id AS course_id
                FROM enrollments e
                JOIN courses c            ON c.id  = e.course_id
                JOIN core_competencies cc ON cc.course_id = c.id
                JOIN competence_units cu  ON cu.core_competency_id = cc.id
-              WHERE cu.id = ?"
-        )->execute([$cuId]);
+              WHERE cu.id = ?'
+        );
+        $stmt->execute([$cuId]);
+        $rows = $stmt->fetchAll();
+
+        if ($rows === []) {
+            return;
+        }
+
+        $userIds = array_map(static fn ($r) => (int) $r['student_user_id'], $rows);
+
+        NotificationService::fanout(
+            'content_published',
+            $userIds,
+            (string) $rows[0]['cu_name'],
+            (string) $rows[0]['course_name'],
+            '/student/cu/' . $cuId,
+            (int) $rows[0]['course_id']
+        );
     }
 
     /**
