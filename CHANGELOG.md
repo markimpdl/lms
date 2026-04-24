@@ -4,6 +4,46 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.10.0] — 2026-04-25
+
+Décima release. Escopo: **Epic E11 inteiro — Dashboards do professor**. O `/teacher` vira uma home útil (totalizadores + submissões recentes + alunos inativos) em vez de menu de cards; CU ganha aba "Alunos" com matriz cruzada; curso ganha nova rota de matriz alunos × CUs; e as listas de submissões de atividade/avaliação/curso ganham cards de métricas agregadas inline. Zero mudança de schema — tudo derivado de queries sobre tabelas existentes.
+
+### Novas funcionalidades
+
+#### Epic E11 — Dashboards do professor
+
+- **Dashboard home do professor** (E11-01, #166): `/teacher` vira home útil em vez de menu de cards. Totalizadores (cursos ativos, alunos ativos, submissões pendentes), lista de 10 submissões recentes (UNION ALL de activity_submissions + evaluation_submissions is_current=1, ordenado por created_at DESC) linkando direto pra correção, e alunos inativos (LEFT JOIN + MAX(last_access_at) + HAVING pra pegar quem não acessou em 14 dias ou nunca acessou, NULLs primeiro). Novo model `TeacherDashboard` com 3 agregações: `totalsForTenant`, `recentSubmissions`, `inactiveStudents`. Design Bootstrap-native (cards grandes, grid 8/4) — não aplica design tokens do student-area do E14-01.
+- **Matriz Alunos × Unidades de Competência** (E11-02, #173): nova rota `/teacher/courses/{id}/matrix` mostrando em 1 tela todos os alunos matriculados no curso com status de cada CU em formato de matriz. Estados derivados inline sem N queries (evitando N*M com 30 alunos × 20 CUs): `completed` / `in_progress` / `not_started` / `evaluated_ok` / `evaluated_fail`. Novo model `CourseMatrix::forCourse`.
+- **Aba Alunos na CU com status cruzado** (E11-03, #171): `/teacher/cu/{id}` ganha seção "Alunos" com matriz alunos × atividades + coluna "Avaliação" quando eval existe. Tabela responsiva (≥md) com colunas "A1..AN" + "Avaliação"; cards empilhados (<md) com mini-badges coloridos. Cor Bootstrap `bg-*-subtle` + `text-*-emphasis` (contraste WCAG ok). Célula clicável linka direto pra review da submissão correspondente; célula vazia não-clicável. Filter Alpine.js client-side "Apenas ativos" default ligado. Novo model `CuRoster::listForCu` com 4 queries compostas em PHP — contexto + eval_id via CU, enrolled students do curso, activity_submissions da CU de uma tacada, evaluation_submissions correntes quando eval existe. Mapeamento final agrupa por student e mapeia `activity_id → 'not_submitted'|'pending'|'with_feedback'`, `eval → state` consistente com E7-05.
+- **Métricas agregadas inline** (E11-04, #175): `/teacher/activity/{id}/submissions`, `/teacher/evaluation/{id}/submissions` e `/teacher/courses/{id}` ganham card 4-col de métricas no topo (matriculados, submetidos, % submetido/aprovado, tempo médio de feedback em minutos/horas/dias). Novo model `CourseMetrics` com `forActivity`, `forEvaluation`, `forCourse`. Helper `format_duration_minutes` formata em `45 min` / `2h 30min` / `3 dias` segundo o idioma.
+
+### Correções
+
+- **Defesa em profundidade no CU roster** (#172): subquery de evaluation na `CuRoster::listForCu` agora filtra `tenant_id` explícito mesmo quando o contexto já foi validado upstream no primeiro select. Hardening pré-emptivo contra regressões futuras — se algum refactor separar as queries, o tenant isolation não depende do gate anterior.
+- **Largura do /student variando com idioma** (3 PRs encadeados — #174, #176, #177): PO reportou que cards do `/student` ficavam menores que a tela de detalhes do curso e variavam de tamanho conforme o idioma (EN < PT). Diagnóstico final com repro headless + outlines coloridos por wrapper: `main.lms-student-grid` sizava ao `max-content` do conteúdo (~1032px) em vez de esticar até o `max-width: 1280px`, porque `<body>` é `display: flex; flex-direction: column` e **auto-margins no cross-axis absorvem free-space antes de `align-items: stretch` agir**. Em `/student/course/{id}` o hero tem conteúdo grande (título 30px + ring + stats) que empurra o max-content alem de 1280, batendo o cap e mascarando o bug. Fix definitivo em #177: `width: 100%` no `main.lms-student-grid`. Alterações em #174 (`grid-template-columns: 1fr` → CourseCard full-width) e #176 (`width: 100%` defensivo em `.lms-student-main`, `.lms-dashboard-header`, `.lms-course-grid` + troca de grid por flex column) permanecem como belt-and-suspenders.
+
+### Convenções consolidadas nesta janela
+
+- **Models de agregação em `src/models/*Dashboard.php` / `*Matrix.php` / `*Metrics.php`** — não espelham tabela, são puramente derivados. Queries compostas em PHP em vez de SQL único gigante (mais testável, mais legível, e permite cacheamento futuro por método).
+- **Estados consistentes de submissão no vocabulário do professor** (`approved` / `failed` / `retry` / `pending` / `not_submitted` / `none` para evals; `with_feedback` / `pending` / `not_submitted` para activities) — mesmas strings em E7-05, E11-02 e E11-03.
+- **Card 4-col Bootstrap `row text-center g-3`** com `col-6 col-md-3` pra métricas — padrão reutilizável em 3 páginas do professor, mobile stackeia em 2x2.
+- **Alpine.js filter local com `x-data`** é preferível a reload por query param quando o dataset cabe numa renderização (ex.: "Apenas ativos" no roster) — UX instantânea, zero round-trip.
+- **Repro headless + outlines coloridos pra debugar CSS** — Edge headless + `--screenshot` + outlines de cor únicos por wrapper + `console.log` das medidas via `getBoundingClientRect` é o caminho mais rápido pra isolar bugs de layout que não reproduzem numa leitura de CSS.
+
+### Tooling
+
+- `package.json` bumpado para 0.10.0.
+
+### Pendências (herdadas de v0.9.0, ainda abertas)
+
+- **`JUDGE0_KEY` em prod**: endpoint responde "indisponível" (HTTP 503) até o PO configurar a key do RapidAPI no painel Hostinger.
+- **Arquivos órfãos em prod**: `src/lib/HtmlPurifier.php` e `public/_diag_*.php` (cleanup pendente).
+- **Cross-tenant smoke** ainda pendente — só 1 tenant em prod.
+- **C# sem syntax highlight no CodeMirror 6** — plain text funciona; nice-to-have futuro com `@codemirror/legacy-modes/mode/clike`.
+- **`context_lang($courseId)` helper** — mencionado no AC do E14-03 mas ficou adiado.
+
+[0.10.0]: https://github.com/markimpdl/lms/releases/tag/v0.10.0
+
 ## [0.9.0] — 2026-04-24
 
 Nona release. Escopo: **execução online de código — Epic E8 inteiro** + pequenos ajustes UI na tela de curso do aluno. Primeira release que dá ao aluno feedback imediato do código sem sair da plataforma — Python/C#/JavaScript via Judge0 CE (RapidAPI) e HTML em sandbox local, tudo com CodeMirror 6 como editor.
