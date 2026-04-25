@@ -241,6 +241,31 @@ body.lms-student-area .lms-student-main {
     color: var(--lms-neutral-900);
 }
 
+/* Posicao no ranking (E9-07). Mesma estrutura visual do header (eyebrow
+   esquerda, valor direita). Valor e link clicavel pra /student/ranking. */
+.lms-xp-position {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: -4px;
+}
+
+.lms-xp-position__link {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800;
+    font-size: 16px;
+    color: var(--lms-primary-1);
+    text-decoration: none;
+    transition: color 160ms ease;
+}
+.lms-xp-position__link:hover { color: var(--lms-primary-2); }
+
+.lms-xp-position__link--empty {
+    color: var(--lms-neutral-300);
+    cursor: default;
+}
+
 .lms-xp-star {
     color: var(--lms-warning);
     flex-shrink: 0;

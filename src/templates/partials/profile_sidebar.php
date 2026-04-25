@@ -27,8 +27,13 @@ $name      = (string) ($user['name'] ?? '');
 $initial   = $name !== '' ? mb_strtoupper(mb_substr($name, 0, 1)) : '?';
 
 $totalXp    = student_total_xp($studentId);
-$rank       = $tenantId > 0 ? student_current_rank($studentId, $tenantId) : null;
-$nextRank   = $tenantId > 0 ? student_next_rank($studentId, $tenantId)    : null;
+$rank       = $tenantId > 0 ? student_current_rank($studentId, $tenantId)  : null;
+$nextRank   = $tenantId > 0 ? student_next_rank($studentId, $tenantId)     : null;
+// Aluno zero XP entra no ranking "geral" como último colocado (LEFT JOIN
+// + sem HAVING). Pra UX, o AC pede que isso vire "sem ranking ainda" no
+// header — então só calcula a posição quando há XP de fato.
+$position   = ($tenantId > 0 && $totalXp > 0)
+    ? student_ranking_position($studentId, $tenantId) : null;
 $recentCrs  = student_recent_course_name($studentId);
 
 $rankColor  = $rank !== null ? (string) $rank['color_hex'] : '#94A3B8';
@@ -92,6 +97,18 @@ if ($nextRank !== null) {
                     <span class="lms-xp-eyebrow"><?= e(__t('sidebar.total_xp')) ?></span>
                 </div>
                 <span class="lms-xp-total"><?= number_format($totalXp, 0, ',', '.') ?></span>
+            </div>
+
+            <div class="lms-xp-position">
+                <span class="lms-xp-eyebrow"><?= e(__t('sidebar.position')) ?></span>
+                <?php if ($position !== null): ?>
+                    <a href="/student/ranking" class="lms-xp-position__link">
+                        #<?= (int) $position ?>
+                    </a>
+                <?php else: ?>
+                    <span class="lms-xp-position__link lms-xp-position__link--empty"
+                          title="<?= e(__t('sidebar.no_position')) ?>">—</span>
+                <?php endif; ?>
             </div>
 
             <?php if ($rank !== null): ?>

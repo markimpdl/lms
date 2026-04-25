@@ -91,6 +91,26 @@ function student_next_rank(int $studentId, int $tenantId): ?array
 }
 
 /**
+ * Posição linear do aluno no ranking geral do tenant (E9-07). Delega pra
+ * `RankingService::myPosition` (window 'all', sem filtros). Engole Throwable
+ * graciosamente — sidebar mostra "—" se a query falhar (mesmo padrão do
+ * `Enrollment::touchLastAccess` em E14: tracking silencioso jamais derruba a UI).
+ *
+ * Sem cache no MVP (decisão consolidada do PO no #10).
+ */
+function student_ranking_position(int $studentId, int $tenantId): ?int
+{
+    if ($studentId <= 0 || $tenantId <= 0) {
+        return null;
+    }
+    try {
+        return RankingService::myPosition($studentId, $tenantId, 'all', []);
+    } catch (\Throwable) {
+        return null;
+    }
+}
+
+/**
  * Nome do curso acessado mais recentemente pelo aluno (via
  * `enrollments.last_access_at`, E14-00). Usado como subtítulo no
  * ProfileSidebar. null quando o aluno nunca abriu curso ou não tem
