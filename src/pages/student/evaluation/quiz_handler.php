@@ -36,10 +36,14 @@ if ($fullQuiz === null || ($fullQuiz['questions'] ?? []) === []) {
 
 $errors          = [];
 $previousAnswers = [];
-$readOnly        = $current !== null;
 
-// POST → submit + grade calc + snapshot. Bloqueia se já submeteu (sem retry
-// pra avaliação-quiz no E20-03; retry pelo professor entra em E20-06).
+// E20-06: retry pelo professor. Quando $current['retry_allowed']=1, aluno
+// pode refazer o quiz (gera nova attempt + novo snapshot). Caso contrário,
+// view fica readOnly após primeiro submit.
+$canRetry = $current !== null && (int) ($current['retry_allowed'] ?? 0) === 1;
+$readOnly = $current !== null && !$canRetry;
+
+// POST → submit + grade calc + snapshot. Permite re-submit quando retry_allowed.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$readOnly) {
     try {
         csrf_verify();
@@ -67,12 +71,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$readOnly) {
         $snapshot = QuizSubmissionService::buildSnapshot($fullQuiz, $v['answers']);
         $grade    = QuizSubmissionService::calculateGrade($snapshot);
 
+        // E20-06: nova attempt quando retry_allowed; primeira submissão = 1.
+        $nextAttempt = $current === null ? 1 : ((int) $current['attempt'] + 1);
+
         try {
             Database::tx(static function () use (
-                $evaluationId, $studentId, $tenantId, $snapshot, $grade
+                $evaluationId, $studentId, $tenantId, $snapshot, $grade, $nextAttempt
             ): void {
                 $pdo = Database::pdo();
-                // Marca submissões anteriores (improvável aqui, mas defensivo) como não-current.
+                // Marca submissões anteriores como não-current.
                 $pdo->prepare(
                     'UPDATE evaluation_submissions SET is_current = 0
                       WHERE evaluation_id = ? AND student_user_id = ?'
@@ -83,11 +90,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$readOnly) {
                         (tenant_id, evaluation_id, student_user_id, attempt,
                          filename, stored_path, quiz_snapshot, grade,
                          feedback, feedback_at, retry_allowed, is_current)
-                     VALUES (?, ?, ?, 1, NULL, NULL, ?, ?, NULL, NOW(), 0, 1)'
+                     VALUES (?, ?, ?, ?, NULL, NULL, ?, ?, NULL, NOW(), 0, 1)'
                 )->execute([
                     $tenantId,
                     $evaluationId,
                     $studentId,
+                    $nextAttempt,
                     json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                     $grade,
                 ]);

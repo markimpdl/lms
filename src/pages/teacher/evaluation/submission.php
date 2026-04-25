@@ -41,6 +41,13 @@ if ($current === null) {
     return;
 }
 
+// E20-06: avaliação tipo Quiz tem fluxo próprio (nota auto-calculada,
+// professor só decide retry). Delega pro handler dedicado.
+if ((string) ($evaluation['type'] ?? 'projeto') === 'quiz') {
+    require LMS_ROOT . '/src/pages/teacher/evaluation/submission_quiz.php';
+    return;
+}
+
 $old = [
     'grade'         => $current['grade']         !== null ? (string) $current['grade']   : '',
     'feedback'      => $current['feedback']      !== null ? (string) $current['feedback'] : '',
