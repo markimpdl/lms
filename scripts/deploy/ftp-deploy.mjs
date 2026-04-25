@@ -62,6 +62,14 @@ const EXCLUDE_PATHS = [
     "README.md",
 ];
 
+// ── Subpastas que VOLTAM a ser permitidas mesmo quando o pai está
+// excluído. Útil pra `scripts/cron/` (rodado em prod via cPanel) sem
+// liberar `scripts/deploy/` (devtool) inteiro. Match exato no prefixo
+// posix do path relativo.
+const INCLUDE_OVERRIDES = [
+    "scripts/cron",
+];
+
 const EXCLUDE_PATTERNS = [
     /(^|\/)\.DS_Store$/,
     /(^|\/)Thumbs\.db$/,
@@ -121,11 +129,22 @@ function saveState(state) {
 }
 
 function isExcluded(relPath) {
+    const posixPath = relPath.split(/\\/).join("/");
+    // INCLUDE_OVERRIDES tem precedência sobre EXCLUDE_PATHS — ex.: scripts/
+    // está bloqueado, mas scripts/cron/ é liberado pra subir crons de prod.
+    for (const allow of INCLUDE_OVERRIDES) {
+        if (posixPath === allow || posixPath.startsWith(allow + "/")) {
+            // Ainda passa pelos EXCLUDE_PATTERNS abaixo pra evitar lixo (.log, etc.).
+            for (const re of EXCLUDE_PATTERNS) {
+                if (re.test(posixPath)) return true;
+            }
+            return false;
+        }
+    }
     const parts = relPath.split(/[\\/]/);
     for (const ex of EXCLUDE_PATHS) {
         if (parts[0] === ex) return true;
     }
-    const posixPath = relPath.split(/\\/).join("/");
     for (const re of EXCLUDE_PATTERNS) {
         if (re.test(posixPath)) return true;
     }
@@ -141,15 +160,32 @@ function hashFile(absPath) {
     return h.digest("hex");
 }
 
+function hasOverrideUnder(relPath) {
+    // True quando algum INCLUDE_OVERRIDES está dentro de relPath — força
+    // o walk a descer mesmo que relPath esteja em EXCLUDE_PATHS.
+    const posixPath = relPath.split(/\\/).join("/");
+    for (const allow of INCLUDE_OVERRIDES) {
+        if (allow === posixPath || allow.startsWith(posixPath + "/")) return true;
+    }
+    return false;
+}
+
 function walk(dir, baseRel = "") {
     const out = [];
     for (const entry of readdirSync(dir)) {
         const abs = join(dir, entry);
         const rel = baseRel ? join(baseRel, entry) : entry;
-        if (isExcluded(rel)) continue;
-        const st = statSync(abs);
-        if (st.isDirectory()) out.push(...walk(abs, rel));
-        else if (st.isFile()) out.push({ abs, rel });
+        const st  = statSync(abs);
+        if (st.isDirectory()) {
+            // Desce se não excluído OU se algum override aponta pra dentro dessa dir.
+            if (!isExcluded(rel) || hasOverrideUnder(rel)) {
+                out.push(...walk(abs, rel));
+            }
+        } else if (st.isFile()) {
+            if (!isExcluded(rel)) {
+                out.push({ abs, rel });
+            }
+        }
     }
     return out;
 }

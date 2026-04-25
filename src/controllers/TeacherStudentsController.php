@@ -96,8 +96,10 @@ final class TeacherStudentsController
             exit;
         }
 
-        $name = trim((string) ($input['name']     ?? ''));
-        $lang = (string)      ($input['language'] ?? '');
+        $name   = trim((string) ($input['name']        ?? ''));
+        $lang   = (string)      ($input['language']    ?? '');
+        $gender = (string)      ($input['gender']      ?? '');
+        $idDoc  = trim((string) ($input['id_document'] ?? ''));
 
         $errors = [];
         if (mb_strlen($name) < 3 || mb_strlen($name) > 120) {
@@ -105,6 +107,12 @@ final class TeacherStudentsController
         }
         if ($lang !== 'pt' && $lang !== 'en') {
             $errors['language'] = 'students.form.err.language';
+        }
+        if ($gender !== 'male' && $gender !== 'female') {
+            $errors['gender'] = 'students.form.err.gender_required';
+        }
+        if ($idDoc !== '' && preg_match('/^[0-9]{1,30}$/', $idDoc) !== 1) {
+            $errors['id_document'] = 'students.form.err.id_document_format';
         }
         if ($errors !== []) {
             return $errors;
@@ -117,7 +125,12 @@ final class TeacherStudentsController
             exit;
         }
 
-        Student::update($studentId, $tenantId, ['name' => $name, 'language' => $lang]);
+        Student::update($studentId, $tenantId, [
+            'name'        => $name,
+            'language'    => $lang,
+            'gender'      => $gender,
+            'id_document' => $idDoc !== '' ? $idDoc : null,
+        ]);
 
         flash('success', __t('students.edit.updated', ['name' => $name]));
         header('Location: /teacher/students/' . $studentId, true, 303);

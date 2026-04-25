@@ -686,6 +686,15 @@ return [
     'students.filter.inactive'       => 'Apenas inativos',
     'students.filter.all'            => 'Todos',
     'students.col.name'              => 'Nome',
+    'students.col.id_document'       => 'Documento',
+    // Histórico de conexões — visível só pro professor (E16-04).
+    'students.logins.title'          => 'Últimos acessos',
+    'students.logins.subtitle'       => '10 conexões mais recentes; IP, localização aproximada e navegador.',
+    'students.logins.empty'          => 'Nenhum acesso registrado ainda.',
+    'students.logins.col.datetime'   => 'Data/hora',
+    'students.logins.col.ip'         => 'IP',
+    'students.logins.col.location'   => 'Localização',
+    'students.logins.col.user_agent' => 'Navegador',
     'students.col.email'             => 'E-mail',
     'students.col.language'          => 'Idioma',
     'students.col.status'            => 'Status',
@@ -727,6 +736,16 @@ return [
     'students.form.err.email_taken_by_staff'=> 'Esse email já pertence a um professor ou administrador. Use outro.',
     'students.form.err.password_min'        => 'Senha precisa ter ao menos 8 caracteres.',
     'students.form.err.language'            => 'Idioma inválido.',
+    'students.form.err.gender_required'     => 'Selecione um sexo.',
+    'students.form.err.id_document_format'  => 'Documento deve conter apenas números (até 30 dígitos).',
+
+    // Sexo + doc identificação (E16-01)
+    'students.form.gender'         => 'Sexo',
+    'students.form.gender.choose'  => 'Selecione…',
+    'students.form.gender.male'    => 'Masculino',
+    'students.form.gender.female'  => 'Feminino',
+    'students.form.id_document'    => 'Doc. identificação',
+    'students.form.id_document.help' => 'Apenas números, sem máscara (opcional).',
 
     'students.created'               => 'Aluno :name cadastrado com sucesso.',
     'students.edit.title'            => 'Editar aluno',
@@ -768,6 +787,13 @@ return [
 
     'enrollments.section.title'              => 'Matrículas',
     'enrollments.section.subtitle'           => ':count curso(s) matriculado(s)',
+    // Status do aluno na matrícula (E16-03) — visível só pro professor.
+    'enrollment.status.label'        => 'Status',
+    'enrollment.status.active'       => 'Ativo',
+    'enrollment.status.absent'       => 'Ausente',
+    'enrollment.status.completed'    => 'Concluído',
+    'enrollment.status.updated'      => 'Status atualizado.',
+    'enrollment.status.err.invalid'  => 'Status inválido.',
     'enrollments.add_button'                 => 'Matricular em curso',
     'enrollments.empty'                      => 'Este aluno ainda não está matriculado em nenhum curso.',
     'enrollments.enrolled_at'                => 'Matriculado em :date',

@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS users (
     password_changed_at   DATETIME NULL,
     last_login_at         DATETIME NULL,
     name                  VARCHAR(150) NOT NULL,
+    gender                ENUM('male','female') NOT NULL DEFAULT 'male',
+    id_document           VARCHAR(30)  NULL DEFAULT NULL,
     role                  ENUM('super_admin','teacher','student') NOT NULL,
     language              ENUM('pt','en') NOT NULL DEFAULT 'pt',
     active                TINYINT(1) NOT NULL DEFAULT 1,
@@ -272,6 +274,7 @@ CREATE TABLE IF NOT EXISTS enrollments (
     course_id       BIGINT UNSIGNED NOT NULL,
     enrolled_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_access_at  DATETIME NULL DEFAULT NULL,
+    status          ENUM('active','absent','completed') NOT NULL DEFAULT 'active',
     PRIMARY KEY (id),
     UNIQUE KEY uk_enr_student_course (student_user_id, course_id),
     KEY idx_enr_course (course_id),
@@ -736,6 +739,77 @@ SET @col_exists := (
 );
 SET @sql := IF(@col_exists = 0,
     'ALTER TABLE enrollments ADD COLUMN last_access_at DATETIME NULL DEFAULT NULL AFTER enrolled_at',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E16-01] users.gender — sexo do aluno (obrigatorio no form do professor;
+-- usado para escolher avatar default no F11/E17). DEFAULT 'male' cobre o
+-- backfill silencioso de alunos legados, alinhado com a decisao do PO em
+-- 2026-04-25 (so havia 1 aluno legado em prod, conforme `doc/15` F3).
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'users'
+       AND COLUMN_NAME  = 'gender'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE users ADD COLUMN gender ENUM('male','female') NOT NULL DEFAULT 'male' AFTER name",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E16-01] users.id_document — doc de identificacao do aluno (so digitos,
+-- max 30 chars). Opcional; professor preenche depois manualmente quando
+-- legado. Sem mascara visual — input free-form numerico, validacao server-side.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'users'
+       AND COLUMN_NAME  = 'id_document'
+);
+SET @sql := IF(@col_exists = 0,
+    'ALTER TABLE users ADD COLUMN id_document VARCHAR(30) NULL DEFAULT NULL AFTER gender',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E16-04] user_logins — historico de conexoes bem-sucedidas. Coletado em
+-- AuthController::completeLogin (apos password ok + sessao regenerada).
+-- IP via REMOTE_ADDR ou X-Forwarded-For (primeira entrada se setado);
+-- location preenchido por GeoIPClient (ip-api.com free tier 45req/min,
+-- fallback NULL em falha). Retencao 180 dias via cron purge-old-logins.
+-- Visivel APENAS pelo professor no detalhe do aluno. LGPD note em doc/14.
+CREATE TABLE IF NOT EXISTS user_logins (
+    id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id       BIGINT UNSIGNED NOT NULL,
+    tenant_id     BIGINT UNSIGNED NULL,
+    ip            VARCHAR(45)     NOT NULL,
+    location      VARCHAR(120)    NULL,
+    user_agent    VARCHAR(255)    NULL,
+    logged_in_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_ul_user_recent (user_id, logged_in_at),
+    KEY idx_ul_purge (logged_in_at),
+    CONSTRAINT fk_ul_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- [E16-03] enrollments.status — status do aluno no curso, visivel APENAS pro
+-- professor (active/absent/completed). E so indicativo: nao altera regras de
+-- negocio (XP, progresso, ranking continuam normais). Manual sempre — sem
+-- auto-set. Aluno NAO ve esse campo. Default 'active' aplica retroativamente
+-- pra matriculas existentes via DEFAULT do schema.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'enrollments'
+       AND COLUMN_NAME  = 'status'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE enrollments ADD COLUMN status ENUM('active','absent','completed') NOT NULL DEFAULT 'active' AFTER last_access_at",
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;

@@ -74,7 +74,9 @@ final class AuthController
 
     /**
      * Regenera o ID de sessão, marca o login em `users.last_login_at` e grava
-     * o payload do usuário autenticado.
+     * o payload do usuário autenticado. Também registra a conexão em
+     * `user_logins` (E16-04) com geo-IP best-effort — falha aqui é silenciosa,
+     * jamais derruba o login.
      */
     public static function completeLogin(array $user): void
     {
@@ -96,6 +98,41 @@ final class AuthController
             'language'            => (string) ($user['language'] ?? 'pt'),
             'password_changed_at' => $user['password_changed_at'] ?? null,
         ];
+
+        // Histórico de conexões (E16-04). Best-effort: model + service engolem
+        // Throwable. Geo-IP é uma chamada HTTP de até 3s; se ip-api.com estiver
+        // fora ou rate-limited, location fica NULL.
+        $ip       = self::clientIp();
+        $userAgent = isset($_SERVER['HTTP_USER_AGENT'])
+            ? (string) $_SERVER['HTTP_USER_AGENT']
+            : null;
+        $location = $ip !== '' ? GeoIPClient::lookup($ip) : null;
+        UserLogin::recordLogin(
+            (int) $user['id'],
+            $user['tenant_id'] !== null ? (int) $user['tenant_id'] : null,
+            $ip,
+            $location,
+            $userAgent
+        );
+    }
+
+    /**
+     * IP do cliente, preferindo X-Forwarded-For (primeira entrada válida) e
+     * caindo para REMOTE_ADDR. Retorna string vazia se nenhum IP válido.
+     */
+    private static function clientIp(): string
+    {
+        $xff = (string) ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? '');
+        if ($xff !== '') {
+            $first = trim((string) (explode(',', $xff)[0] ?? ''));
+            if ($first !== '' && filter_var($first, FILTER_VALIDATE_IP) !== false) {
+                return $first;
+            }
+        }
+        $remote = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+        return $remote !== '' && filter_var($remote, FILTER_VALIDATE_IP) !== false
+            ? $remote
+            : '';
     }
 
     public static function logout(): void

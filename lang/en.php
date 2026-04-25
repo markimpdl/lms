@@ -685,6 +685,15 @@ return [
     'students.filter.inactive'       => 'Inactive only',
     'students.filter.all'            => 'All',
     'students.col.name'              => 'Name',
+    'students.col.id_document'       => 'ID document',
+    // Login history — teacher-only view (E16-04).
+    'students.logins.title'          => 'Recent logins',
+    'students.logins.subtitle'       => 'Last 10 sign-ins; IP, approximate location and browser.',
+    'students.logins.empty'          => 'No sign-ins recorded yet.',
+    'students.logins.col.datetime'   => 'Date/time',
+    'students.logins.col.ip'         => 'IP',
+    'students.logins.col.location'   => 'Location',
+    'students.logins.col.user_agent' => 'Browser',
     'students.col.email'             => 'Email',
     'students.col.language'          => 'Language',
     'students.col.status'            => 'Status',
@@ -726,6 +735,16 @@ return [
     'students.form.err.email_taken_by_staff'=> 'That email already belongs to a teacher or administrator. Use another one.',
     'students.form.err.password_min'        => 'Password must be at least 8 characters.',
     'students.form.err.language'            => 'Invalid language.',
+    'students.form.err.gender_required'     => 'Please select a gender.',
+    'students.form.err.id_document_format'  => 'Document must contain only digits (up to 30 characters).',
+
+    // Gender + ID document (E16-01)
+    'students.form.gender'         => 'Gender',
+    'students.form.gender.choose'  => 'Select…',
+    'students.form.gender.male'    => 'Male',
+    'students.form.gender.female'  => 'Female',
+    'students.form.id_document'    => 'ID document',
+    'students.form.id_document.help' => 'Digits only, no mask (optional).',
 
     'students.created'               => 'Student :name created successfully.',
     'students.edit.title'            => 'Edit student',
@@ -766,6 +785,13 @@ return [
     'students.deleted'               => 'Student :name deleted.',
 
     'enrollments.section.title'              => 'Enrollments',
+    // Enrollment status visible only to the teacher (E16-03).
+    'enrollment.status.label'        => 'Status',
+    'enrollment.status.active'       => 'Active',
+    'enrollment.status.absent'       => 'Absent',
+    'enrollment.status.completed'    => 'Completed',
+    'enrollment.status.updated'      => 'Status updated.',
+    'enrollment.status.err.invalid'  => 'Invalid status.',
     'enrollments.section.subtitle'           => ':count enrolled course(s)',
     'enrollments.add_button'                 => 'Enroll in course',
     'enrollments.empty'                      => 'This student is not enrolled in any course yet.',

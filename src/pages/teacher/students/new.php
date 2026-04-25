@@ -12,11 +12,13 @@ $activeCourses = $tenantId !== null ? Course::listActiveForSelect($tenantId) : [
 
 $errors = [];
 $old = [
-    'name'       => '',
-    'email'      => '',
-    'language'   => current_user()['language'] ?? 'pt',
-    'send_email' => '1',
-    'course_ids' => [],
+    'name'        => '',
+    'email'       => '',
+    'language'    => current_user()['language'] ?? 'pt',
+    'gender'      => '',
+    'id_document' => '',
+    'send_email'  => '1',
+    'course_ids'  => [],
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -29,19 +31,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $old = [
-        'name'       => (string) ($_POST['name']     ?? ''),
-        'email'      => (string) ($_POST['email']    ?? ''),
-        'language'   => (string) ($_POST['language'] ?? 'pt'),
-        'send_email' => isset($_POST['send_email']) ? '1' : '0',
-        'course_ids' => array_map('intval', (array) ($_POST['course_ids'] ?? [])),
+        'name'        => (string) ($_POST['name']        ?? ''),
+        'email'       => (string) ($_POST['email']       ?? ''),
+        'language'    => (string) ($_POST['language']    ?? 'pt'),
+        'gender'      => (string) ($_POST['gender']      ?? ''),
+        'id_document' => trim((string) ($_POST['id_document'] ?? '')),
+        'send_email'  => isset($_POST['send_email']) ? '1' : '0',
+        'course_ids'  => array_map('intval', (array) ($_POST['course_ids'] ?? [])),
     ];
 
     $errors = TeacherStudentsController::create(
         [
-            'name'     => $old['name'],
-            'email'    => $old['email'],
-            'password' => (string) ($_POST['password'] ?? ''),
-            'language' => $old['language'],
+            'name'        => $old['name'],
+            'email'       => $old['email'],
+            'password'    => (string) ($_POST['password'] ?? ''),
+            'language'    => $old['language'],
+            'gender'      => $old['gender'],
+            'id_document' => $old['id_document'],
         ],
         $old['send_email'] === '1',
         $old['course_ids']
@@ -118,6 +124,33 @@ ob_start();
                 </select>
                 <?php if (isset($errors['language'])): ?>
                     <div class="invalid-feedback"><?= e(__t($errors['language'])) ?></div>
+                <?php endif; ?>
+            </div>
+
+            <div class="mb-3">
+                <label for="f-gender" class="form-label"><?= e(__t('students.form.gender')) ?></label>
+                <select name="gender" id="f-gender" required
+                        class="form-select form-select-lg<?= isset($errors['gender']) ? ' is-invalid' : '' ?>">
+                    <option value="" disabled <?= $old['gender'] === '' ? 'selected' : '' ?>>
+                        <?= e(__t('students.form.gender.choose')) ?>
+                    </option>
+                    <option value="male"   <?= $old['gender'] === 'male'   ? 'selected' : '' ?>><?= e(__t('students.form.gender.male')) ?></option>
+                    <option value="female" <?= $old['gender'] === 'female' ? 'selected' : '' ?>><?= e(__t('students.form.gender.female')) ?></option>
+                </select>
+                <?php if (isset($errors['gender'])): ?>
+                    <div class="invalid-feedback"><?= e(__t($errors['gender'])) ?></div>
+                <?php endif; ?>
+            </div>
+
+            <div class="mb-3">
+                <label for="f-id-doc" class="form-label"><?= e(__t('students.form.id_document')) ?></label>
+                <input type="text" name="id_document" id="f-id-doc" inputmode="numeric"
+                       pattern="[0-9]{1,30}" maxlength="30" autocomplete="off"
+                       class="form-control form-control-lg<?= isset($errors['id_document']) ? ' is-invalid' : '' ?>"
+                       value="<?= e($old['id_document']) ?>">
+                <div class="form-text"><?= e(__t('students.form.id_document.help')) ?></div>
+                <?php if (isset($errors['id_document'])): ?>
+                    <div class="invalid-feedback"><?= e(__t($errors['id_document'])) ?></div>
                 <?php endif; ?>
             </div>
 
