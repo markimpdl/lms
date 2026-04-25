@@ -4,6 +4,49 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.11.0] — 2026-04-25
+
+Décima primeira release. Escopo: **Epic E9 inteiro — Rankings de gamificação**. O XP que vinha sendo acumulado em `xp_events` desde o E6/E7 agora ganha uma cara: aluno vê sua posição absoluta no header lateral, abre uma tela cheia de ranking com 3 janelas (Geral / 7d / 30d), filtra por grupo e ano civil, e tem rota dedicada por curso. Professor ganha visão equivalente com coluna extra de "última entrega" pra identificar engajamento e risco. Zero schema change — tudo derivado do `xp_events` + `groups` + `users` existentes.
+
+### Novas funcionalidades
+
+#### Epic E9 — Rankings
+
+- **`RankingService` — fundação de leitura agregada** (E9-02, #188): novo service em `src/services/RankingService.php` com 2 métodos. `compute(tenantId, window, filters, page, perPage)` retorna lista paginada com `[position, student_id, name, group_names, xp, last_event_at]` + total. `myPosition(studentId, tenantId, window, filters)` retorna posição linear via `ROW_NUMBER() OVER (...)` sem trazer toda a lista pro PHP. 3 janelas rolantes (`all`/`7d`/`30d`), filtros opcionais combináveis (`group_id`, `year`, `course_id`), desempate `xp DESC, last_event_at DESC, name ASC`. Janela "all" sem filtros temporais inclui aluno zero XP via LEFT JOIN; demais escopos aplicam `HAVING > 0`. Multi-tenant via `users.tenant_id`. Sem cache no MVP (decisão consolidada — reavaliar com métrica em prod).
+- **Tela `/student/ranking`** (E9-03, #189): rota nova com pills Geral / Últimos 7 dias / Últimos 30 dias via `?window=`, tabela 4 colunas (posição, nome, grupos, XP) com linha do aluno logado destacada (gradient indigo/pink + badge "Você"), paginação 50/página preservando filtros via querystring. Item "Ranking" novo no navbar do aluno com active state. CSS scoped a `body.lms-student-area` com tokens E14 (Plus Jakarta Sans, paleta indigo/pink). Mobile 360px: coluna grupos oculta via `d-none d-md-table-cell`.
+- **Filtros de grupo e ano civil** (E9-04, #190): form GET com selects de grupo (lista do tenant via `Group::listForSelect`) e ano (DISTINCT `YEAR(created_at)` de `xp_events` do tenant DESC). Ano default = ano corrente quando `?year` não passado; `?year=all` = todos os anos. Whitelist no controller: `group_id` precisa existir em `groups` do tenant; `year` válido entre 2020-2099 com fallback silencioso. Filtros encadeiam livremente com a janela; trocar filtro reseta `?page=1`. Builder `$qs(...)` que preserva todo o estado e aceita overrides com `null` pra remover chave.
+- **Tela `/teacher/ranking`** (E9-05, #191): mesmo Service, layout com Bootstrap default (`.table table-hover`) alinhado com `/teacher/students`, `/teacher/groups`. 5 colunas: posição, nome, grupos, XP, **última entrega** (`format_short_date($last_event_at)`). Sem destaque de linha (professor não compete). Item "Ranking" no navbar do professor reusando lógica do aluno (`$rankingHref` resolvido condicionalmente por role). Mobile 360px: grupos hidden md+, última entrega hidden lg+.
+- **Ranking por curso específico** (E9-06, #192): 2 rotas novas (`/student/course/{id}/ranking` + `/teacher/courses/{id}/ranking`) que reusam as pages existentes injetando `course_id` via route pattern. Aluno valida matrícula via `Enrollment::isEnrolled` → 404 se não-matriculado. Professor valida tenant via `Course::findForTenant` → 404 cross-tenant. Header das pages muda quando em escopo de curso (eyebrow "RANKING DO CURSO" + h1 com nome + breadcrumb pro professor + link "← Voltar ao curso" pro aluno). Links de entrada: aluno via card abaixo do hero em `student/course/show.php`; professor via botão ao lado de "Matriz" em `teacher/courses/show.php`.
+- **`#posição` no ProfileSidebar** (E9-07, #193): linha nova `.lms-xp-position` entre TOTAL XP e a barra de progresso, com eyebrow "POSIÇÃO" + `#N` clicável que leva pra `/student/ranking`. Helper novo `student_ranking_position(studentId, tenantId): ?int` em `src/helpers.php` que delega pra `RankingService::myPosition('all', [])` e engole Throwable graciosamente (mesmo padrão do tracking silencioso de E14 — sidebar nunca quebra a UI). Edge case do AC: aluno zero XP mostra "—" em vez de "#último" (check `$totalXp > 0` no partial reusa query já calculada).
+
+### Correções
+
+- **Switcher anônimo de idioma quebrava com query string** (#180): em `/reset?token=XYZ`, clicar no toggle de idioma fazia GET pra `/reset?lang=pt` perdendo o token. Fix com helper novo `lang_url($lang)` em `src/helpers.php` que faz `array_merge($_GET, ['lang' => $lang])` e preserva todo o query string. Aplicado no header do navbar quando o user está deslogado.
+
+### Mudanças internas / Tooling
+
+- **Script `scripts/deploy/ftp-cleanup-orphans.mjs`** (#179): contraparte do `ftp-deploy.mjs` (que é upload-only) pra remover arquivos órfãos em prod. Dry-run default + lista curada `ORPHANS` no topo do script (commitada vazia — próximos órfãos se somam lá) + validação de estrutura (rejeita paths vazios, com `..`, ou começando com `/`). Usado nesta janela pra apagar 3 arquivos órfãos em prod (`src/lib/HtmlPurifier.php` herdado de v0.4.0, `public/_diag_students.php`, `public/_diag_purify.php`).
+- **Doc fix: ENUM `activities.type` em `doc/12-modelo-de-dados.md`** (#181): valores antigos (`quiz`, `pesquisa`, `formulario`) tinham sido removidos do schema durante E6-05 (PR #113) mas a doc nunca foi atualizada. Commit recuperado de branch órfã `feature/115-evaluations-schema` que não tinha sido mergeada após o E7-00.
+- **Issues stale fechadas em massa**: 18 issues do GitHub (#1-5, #8, #9, #11, #13-20, #137, #138) fechadas com referência ao release em que foram entregues — limpa o backlog visível.
+- **`package.json` bumpado para 0.11.0.**
+
+### Convenções consolidadas nesta janela
+
+- **Service de leitura agregada com `ROW_NUMBER()` em window function** — MariaDB 10.11 / MySQL 8 suportam window functions sobre agregados, então `ROW_NUMBER() OVER (ORDER BY SUM(x.value) DESC, ...)` em GROUP BY query é o caminho mais limpo pra calcular posição linear sem trazer toda a lista pro PHP. Padrão aplicável a outros rankings/leaderboards futuros.
+- **Reaproveitamento de pages via route pattern** com filtros injetados (`/teacher/courses/{id}/ranking` injeta `course_id`) — quando o delta entre 2 contextos é pequeno (filter extra + header diferente), reutilizar a page com 2 patterns diferentes evita duplicar 100+ linhas. Padrão já usado em `/teacher/courses/{id}/matrix`.
+- **`$qs(...)` builder de querystring** com overrides explícitos e suporte a `null` pra remover chave — substitui `urlencode + concat` em pages com múltiplos filtros encadeáveis. Reusável.
+- **Visual diverge intencionalmente entre aluno e professor**: aluno tem o look gamificado (gradients, Plus Jakarta Sans, badge "Você"), professor tem o look administrativo (Bootstrap default), alinhado com as outras telas do professor. Não compartilham CSS — duplicação aceitável de ~100 linhas em troca de separação visual clara entre as 2 áreas.
+- **Hook `gh pr create` rodando code-review automático** começou a aplicar sugestões via Edit em commits subsequentes — quando o working tree fica sujo após `gh pr create`, é o hook agindo. Solução: commitar como follow-up commit no mesmo branch antes do merge.
+
+### Pendências (herdadas, ainda abertas)
+
+- **`JUDGE0_KEY` em prod**: endpoint responde 503 amigável até o PO configurar a key do RapidAPI no painel Hostinger.
+- **C# sem syntax highlight no CodeMirror 6** — plain text funciona; nice-to-have futuro.
+- **Cross-tenant smoke** ainda parcial — só 1 tenant ativo em prod; novo cenário coberto em E9-06 (cross-tenant 404 forjando URL de curso de outro tenant).
+- **`context_lang($courseId)` helper** — adiado do E14-03; hoje `current_lang()` cobre o uso.
+
+[0.11.0]: https://github.com/markimpdl/lms/releases/tag/v0.11.0
+
 ## [0.10.0] — 2026-04-25
 
 Décima release. Escopo: **Epic E11 inteiro — Dashboards do professor**. O `/teacher` vira uma home útil (totalizadores + submissões recentes + alunos inativos) em vez de menu de cards; CU ganha aba "Alunos" com matriz cruzada; curso ganha nova rota de matriz alunos × CUs; e as listas de submissões de atividade/avaliação/curso ganham cards de métricas agregadas inline. Zero mudança de schema — tudo derivado de queries sobre tabelas existentes.
