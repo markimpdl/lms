@@ -109,6 +109,11 @@ return [
             'role'   => 'teacher',
             'params' => ['id', 'student_id'],
         ],
+        '#^/teacher/courses/(\d+)/enrollment/(\d+)/period$#' => [
+            'file'   => '/src/pages/teacher/courses/enrollment-period.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'student_id'],
+        ],
         '#^/teacher/cc/(\d+)/rename$#' => [
             'file'   => '/src/pages/teacher/cc/rename.php',
             'role'   => 'teacher',

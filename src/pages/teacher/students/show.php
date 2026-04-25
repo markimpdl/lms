@@ -444,7 +444,19 @@ ob_start();
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <div class="form-text"><?= e(__t('enrollments.form.pick_courses_hint')) ?></div>
+                <div class="form-text mb-3"><?= e(__t('enrollments.form.pick_courses_hint')) ?></div>
+
+                <div class="row g-2">
+                    <div class="col-12 col-sm-6">
+                        <label for="enrollAccessStart" class="form-label small"><?= e(__t('enrollments.field.access_starts_at')) ?></label>
+                        <input type="datetime-local" name="access_starts_at" id="enrollAccessStart" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <label for="enrollAccessEnd" class="form-label small"><?= e(__t('enrollments.field.access_ends_at')) ?></label>
+                        <input type="datetime-local" name="access_ends_at" id="enrollAccessEnd" class="form-control form-control-sm">
+                    </div>
+                </div>
+                <div class="form-text"><?= e(__t('enrollments.field.access.help')) ?></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= e(__t('common.cancel')) ?></button>
