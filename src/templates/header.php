@@ -24,14 +24,23 @@ if ($user !== null && ($user['role'] ?? null) !== 'super_admin') {
         $userRole    = $user !== null ? ($user['role'] ?? null) : null;
         $rankingHref = $userRole === 'student' ? '/student/ranking'
                      : ($userRole === 'teacher' ? '/teacher/ranking' : null);
+        $achievementsHref = $userRole === 'student' ? '/student/achievements' : null;
         ?>
-        <?php if ($rankingHref !== null): ?>
+        <?php if ($rankingHref !== null || $achievementsHref !== null): ?>
             <?php $currentPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH); ?>
             <nav class="lms-navbar__nav" aria-label="<?= e(__t('nav.primary_aria')) ?>">
-                <a class="lms-navbar__link <?= $currentPath === $rankingHref ? 'is-active' : '' ?>"
-                   href="<?= e($rankingHref) ?>">
-                    <?= e(__t('nav.ranking')) ?>
-                </a>
+                <?php if ($rankingHref !== null): ?>
+                    <a class="lms-navbar__link <?= $currentPath === $rankingHref ? 'is-active' : '' ?>"
+                       href="<?= e($rankingHref) ?>">
+                        <?= e(__t('nav.ranking')) ?>
+                    </a>
+                <?php endif; ?>
+                <?php if ($achievementsHref !== null): ?>
+                    <a class="lms-navbar__link <?= $currentPath === $achievementsHref ? 'is-active' : '' ?>"
+                       href="<?= e($achievementsHref) ?>">
+                        <?= e(__t('nav.achievements')) ?>
+                    </a>
+                <?php endif; ?>
             </nav>
         <?php endif; ?>
 

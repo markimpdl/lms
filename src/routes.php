@@ -57,6 +57,7 @@ return [
         '/teacher/settings'     => ['file' => '/src/pages/teacher/settings/index.php', 'role' => 'teacher'],
         '/student'             => ['file' => '/src/pages/dashboard/student.php',     'role' => 'student'],
         '/student/ranking'     => ['file' => '/src/pages/student/ranking.php',       'role' => 'student'],
+        '/student/achievements'=> ['file' => '/src/pages/student/achievements.php',  'role' => 'student'],
     ],
 
     'role_patterns' => [

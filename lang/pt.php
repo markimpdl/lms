@@ -1067,6 +1067,7 @@ return [
     // Navbar — link primário (E9-03)
     'nav.primary_aria' => 'Navegação principal',
     'nav.ranking'      => 'Ranking',
+    'nav.achievements' => 'Conquistas',
 
     // Ranking (E9-03)
     'ranking.title'                => 'Ranking',
@@ -1106,4 +1107,11 @@ return [
     'ranking.scope.tenant'        => 'RANKING DO TENANT',
     'ranking.link.course_ranking' => 'Ranking do curso',
     'ranking.back_to_course'      => '← Voltar ao curso',
+
+    // Conquistas (E18-05)
+    'achievements.title'          => 'Conquistas',
+    'achievements.eyebrow'        => 'GAMIFICAÇÃO',
+    'achievements.empty'          => 'Nenhuma conquista disponível ainda.',
+    'achievements.unlocked_count' => ':done de :total conquistas desbloqueadas',
+    'achievements.unlocked_at'    => 'Desbloqueado em :date',
 ];
