@@ -81,7 +81,7 @@ final class Enrollment
         // da query de COUNT acima, repetindo $tenantId nas duas posições.
         $sql = <<<SQL
             SELECT u.id AS student_id, u.name, u.email, u.language, u.active,
-                   e.enrolled_at
+                   e.enrolled_at, e.status
               FROM enrollments e
               JOIN users   u ON u.id = e.student_user_id
               JOIN courses c ON c.id = e.course_id
@@ -153,6 +153,34 @@ final class Enrollment
         )->execute([$studentId, $courseId]);
 
         return 'ok';
+    }
+
+    /**
+     * Atualiza o status da matrícula (E16-03). Manual sempre, indicativo —
+     * não muda regras de negócio (XP, progresso, ranking). Visível só pro
+     * professor. Valida ownership do curso + aluno via JOIN.
+     *
+     * @param string $status Whitelist: 'active' | 'absent' | 'completed'.
+     * @return bool true se alguma linha foi atualizada.
+     */
+    public static function updateStatus(int $studentId, int $courseId, int $tenantId, string $status): bool
+    {
+        if (!in_array($status, ['active', 'absent', 'completed'], true)) {
+            return false;
+        }
+        $stmt = Database::pdo()->prepare(
+            'UPDATE enrollments e
+                JOIN users   u ON u.id = e.student_user_id
+                JOIN courses c ON c.id = e.course_id
+                SET e.status = ?
+              WHERE e.student_user_id = ?
+                AND e.course_id = ?
+                AND u.tenant_id = ?
+                AND c.tenant_id = ?
+                AND u.role = "student"'
+        );
+        $stmt->execute([$status, $studentId, $courseId, $tenantId, $tenantId]);
+        return $stmt->rowCount() > 0;
     }
 
     /**

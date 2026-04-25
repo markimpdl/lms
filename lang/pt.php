@@ -779,6 +779,13 @@ return [
 
     'enrollments.section.title'              => 'Matrículas',
     'enrollments.section.subtitle'           => ':count curso(s) matriculado(s)',
+    // Status do aluno na matrícula (E16-03) — visível só pro professor.
+    'enrollment.status.label'        => 'Status',
+    'enrollment.status.active'       => 'Ativo',
+    'enrollment.status.absent'       => 'Ausente',
+    'enrollment.status.completed'    => 'Concluído',
+    'enrollment.status.updated'      => 'Status atualizado.',
+    'enrollment.status.err.invalid'  => 'Status inválido.',
     'enrollments.add_button'                 => 'Matricular em curso',
     'enrollments.empty'                      => 'Este aluno ainda não está matriculado em nenhum curso.',
     'enrollments.enrolled_at'                => 'Matriculado em :date',

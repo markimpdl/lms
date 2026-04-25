@@ -274,6 +274,7 @@ CREATE TABLE IF NOT EXISTS enrollments (
     course_id       BIGINT UNSIGNED NOT NULL,
     enrolled_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_access_at  DATETIME NULL DEFAULT NULL,
+    status          ENUM('active','absent','completed') NOT NULL DEFAULT 'active',
     PRIMARY KEY (id),
     UNIQUE KEY uk_enr_student_course (student_user_id, course_id),
     KEY idx_enr_course (course_id),
@@ -771,6 +772,24 @@ SET @col_exists := (
 );
 SET @sql := IF(@col_exists = 0,
     'ALTER TABLE users ADD COLUMN id_document VARCHAR(30) NULL DEFAULT NULL AFTER gender',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E16-03] enrollments.status — status do aluno no curso, visivel APENAS pro
+-- professor (active/absent/completed). E so indicativo: nao altera regras de
+-- negocio (XP, progresso, ranking continuam normais). Manual sempre — sem
+-- auto-set. Aluno NAO ve esse campo. Default 'active' aplica retroativamente
+-- pra matriculas existentes via DEFAULT do schema.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'enrollments'
+       AND COLUMN_NAME  = 'status'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE enrollments ADD COLUMN status ENUM('active','absent','completed') NOT NULL DEFAULT 'active' AFTER last_access_at",
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;

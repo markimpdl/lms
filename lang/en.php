@@ -777,6 +777,13 @@ return [
     'students.deleted'               => 'Student :name deleted.',
 
     'enrollments.section.title'              => 'Enrollments',
+    // Enrollment status visible only to the teacher (E16-03).
+    'enrollment.status.label'        => 'Status',
+    'enrollment.status.active'       => 'Active',
+    'enrollment.status.absent'       => 'Absent',
+    'enrollment.status.completed'    => 'Completed',
+    'enrollment.status.updated'      => 'Status updated.',
+    'enrollment.status.err.invalid'  => 'Invalid status.',
     'enrollments.section.subtitle'           => ':count enrolled course(s)',
     'enrollments.add_button'                 => 'Enroll in course',
     'enrollments.empty'                      => 'This student is not enrolled in any course yet.',
