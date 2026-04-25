@@ -811,6 +811,12 @@ return [
     'enrollments.block.success'          => 'Access blocked.',
     'enrollments.unblock.success'        => 'Access unblocked.',
     'enrollments.remove.success'         => 'Enrollment removed.',
+    // Course unavailable to the student (E17-03).
+    'enrollment.unavailable.badge'       => 'Unavailable',
+    'enrollment.unavailable.blocked'     => 'Access blocked by the teacher.',
+    'enrollment.unavailable.before'      => 'Access available starting :date.',
+    'enrollment.unavailable.after'       => 'Access expired on :date.',
+    'enrollment.unavailable.generic'     => 'Course access is unavailable at the moment.',
     'enrollments.section.subtitle'           => ':count enrolled course(s)',
     'enrollments.add_button'                 => 'Enroll in course',
     'enrollments.empty'                      => 'This student is not enrolled in any course yet.',

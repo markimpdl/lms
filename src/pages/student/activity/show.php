@@ -32,6 +32,14 @@ if ($ctx === null) {
 }
 
 $activity   = $ctx['activity'];
+
+// Gate de disponibilidade do curso (E17-03).
+$availability = enrollment_access_status($studentId, (int) $activity['course_id']);
+if (!$availability['available']) {
+    flash('warning', $availability['message'] ?? __t('enrollment.unavailable.generic'));
+    header('Location: /student', true, 303);
+    exit;
+}
 $submission = $ctx['submission'];
 $mutable    = ActivitySubmission::isMutable($submission);
 $isOpen     = (int) $activity['submission_open'] === 1;

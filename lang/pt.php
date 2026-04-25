@@ -813,6 +813,12 @@ return [
     'enrollments.block.success'          => 'Acesso bloqueado.',
     'enrollments.unblock.success'        => 'Acesso desbloqueado.',
     'enrollments.remove.success'         => 'Matrícula removida.',
+    // Curso indisponível pro aluno (E17-03).
+    'enrollment.unavailable.badge'       => 'Indisponível',
+    'enrollment.unavailable.blocked'     => 'Acesso bloqueado pelo professor.',
+    'enrollment.unavailable.before'      => 'Acesso liberado a partir de :date.',
+    'enrollment.unavailable.after'       => 'Acesso expirou em :date.',
+    'enrollment.unavailable.generic'     => 'Acesso ao curso indisponível no momento.',
     'enrollments.add_button'                 => 'Matricular em curso',
     'enrollments.empty'                      => 'Este aluno ainda não está matriculado em nenhum curso.',
     'enrollments.enrolled_at'                => 'Matriculado em :date',

@@ -30,6 +30,18 @@ $gradTo    = (string) ($c['grad_end']         ?? '#EC4899');
 
 $gradient  = sprintf('linear-gradient(135deg, %s, %s)', $gradFrom, $gradTo);
 
+// Disponibilidade do curso (E17-03). Pure logic sobre as 3 colunas que já
+// vieram do listForStudentWithProgress — zero query extra. Card desabilitado
+// quando blocked_at, NOW < access_starts_at ou NOW > access_ends_at.
+$availability = enrollment_availability(
+    $c['access_starts_at'] ?? null,
+    $c['access_ends_at']   ?? null,
+    $c['blocked_at']       ?? null
+);
+$isUnavailable = !$availability['available'];
+$unavailReason = (string) ($availability['reason']  ?? '');
+$unavailMsg    = (string) ($availability['message'] ?? '');
+
 // Mapa de status → classe + label i18n + CTA
 $statusClass = str_replace('_', '-', $status);
 $statusLabel = __t('status.course.' . $status);
@@ -44,7 +56,7 @@ $lastAccessText = $lastAcc !== ''
     ? __t('student.course_card.last_access', ['date' => format_short_date($lastAcc)])
     : __t('student.course_card.last_access_none');
 ?>
-<article class="lms-course-card lms-course-card--<?= e($statusClass) ?>"
+<article class="lms-course-card lms-course-card--<?= e($statusClass) ?> <?= $isUnavailable ? 'lms-course-card--unavailable' : '' ?>"
          data-status="<?= e($status) ?>"
          x-show="filter === 'all'
                   || (filter === 'active'    && ['not_started','in_progress'].includes('<?= e($status) ?>'))
@@ -95,14 +107,21 @@ $lastAccessText = $lastAcc !== ''
             </div>
         </div>
 
-        <div class="lms-course-card__footer">
-            <span class="lms-course-card__last-access"><?= e($lastAccessText) ?></span>
-            <a href="/student/course/<?= (int) $courseId ?>"
-               class="lms-course-card__cta lms-course-card__cta--<?= e($statusClass) ?>"
-               style="<?= $status === 'completed' ? '' : 'background: ' . e($gradient) . ';' ?>">
-                <?= e($ctaLabel) ?>
-                <span aria-hidden="true">→</span>
-            </a>
-        </div>
+        <?php if ($isUnavailable): ?>
+            <div class="lms-course-card__unavailable" role="status">
+                <span class="lms-course-card__unavailable-badge"><?= e(__t('enrollment.unavailable.badge')) ?></span>
+                <p class="lms-course-card__unavailable-msg"><?= e($unavailMsg) ?></p>
+            </div>
+        <?php else: ?>
+            <div class="lms-course-card__footer">
+                <span class="lms-course-card__last-access"><?= e($lastAccessText) ?></span>
+                <a href="/student/course/<?= (int) $courseId ?>"
+                   class="lms-course-card__cta lms-course-card__cta--<?= e($statusClass) ?>"
+                   style="<?= $status === 'completed' ? '' : 'background: ' . e($gradient) . ';' ?>">
+                    <?= e($ctaLabel) ?>
+                    <span aria-hidden="true">→</span>
+                </a>
+            </div>
+        <?php endif; ?>
     </div>
 </article>

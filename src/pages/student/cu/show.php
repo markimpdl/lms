@@ -33,6 +33,14 @@ if ($cu === null) {
 }
 
 $courseId  = (int) $cu['course_id'];
+
+// Gate de disponibilidade do curso (E17-03).
+$availability = enrollment_access_status($studentId, $courseId);
+if (!$availability['available']) {
+    flash('warning', $availability['message'] ?? __t('enrollment.unavailable.generic'));
+    header('Location: /student', true, 303);
+    exit;
+}
 $cuName    = (string) $cu['name'];
 $ccName    = (string) $cu['cc_name'];
 $unitIndex = (int) ($cu['cu_index_in_cc'] ?? 1);
