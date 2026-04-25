@@ -1394,6 +1394,39 @@ body.lms-student-area .lms-student-main {
 
 body.lms-student-area .lms-ranking-header { margin-bottom: 16px; }
 
+/* Link "Ver ranking do curso" abaixo do hero da Course page (E9-06). */
+body.lms-student-area .lms-course-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0 4px;
+}
+body.lms-student-area .lms-course-actions__link {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 14px;
+    border-radius: var(--lms-radius-chip);
+    background: var(--lms-card-bg);
+    border: 1px solid var(--lms-neutral-200);
+    color: var(--lms-neutral-700);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: background 160ms ease, border-color 160ms ease;
+}
+body.lms-student-area .lms-course-actions__link:hover {
+    background: var(--lms-neutral-50);
+    border-color: var(--lms-neutral-300);
+}
+
+/* Link "← Voltar ao curso" no subtitle do header de ranking por curso. */
+body.lms-student-area .lms-ranking-back {
+    color: var(--lms-primary-1);
+    text-decoration: none;
+    font-weight: 600;
+}
+body.lms-student-area .lms-ranking-back:hover { text-decoration: underline; }
+
 /* Form de filtros (E9-04). Sits between header and table. */
 body.lms-student-area .lms-ranking-filters {
     display: flex;

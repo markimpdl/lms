@@ -1035,4 +1035,11 @@ return [
     // Ranking — teacher view (E9-05)
     'ranking.subtitle.teacher' => 'Monitor student engagement by window, group and year.',
     'ranking.col.last_event'   => 'Last submission',
+
+    // Ranking — course scope (E9-06)
+    'ranking.title.course'        => 'Ranking · :name',
+    'ranking.scope.course'        => 'COURSE RANKING',
+    'ranking.scope.tenant'        => 'TENANT RANKING',
+    'ranking.link.course_ranking' => 'Course ranking',
+    'ranking.back_to_course'      => '← Back to course',
 ];

@@ -90,6 +90,12 @@ ob_start();
 
 <?php require LMS_ROOT . '/src/templates/partials/student_course_hero.php'; ?>
 
+<div class="lms-course-actions">
+    <a href="/student/course/<?= (int) $courseId ?>/ranking" class="lms-course-actions__link">
+        <?= e(__t('ranking.link.course_ranking')) ?>
+    </a>
+</div>
+
 <?php if ($course['ccs'] === []): ?>
     <div class="lms-dashboard-empty mt-4">
         <p class="lms-dashboard-empty__title"><?= e(__t('dashboard.student.course_empty')) ?></p>

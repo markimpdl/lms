@@ -2,12 +2,12 @@
 declare(strict_types=1);
 
 /**
- * /teacher/ranking — visão completa do ranking pelo professor (E9-05).
+ * /teacher/ranking            — ranking do tenant inteiro (E9-05).
+ * /teacher/courses/{id}/ranking — ranking restrito ao curso (E9-06).
  *
  * Reusa o `RankingService` (E9-02). Mesmos filtros do aluno (janela + grupo
- * + ano), mas:
- *   - sem destaque de linha (professor não compete);
- *   - coluna extra "última entrega" (`last_event_at`).
+ * + ano + course_id) + coluna extra "última entrega". Sem destaque de linha
+ * (professor não compete).
  *
  * Auth + papel garantidos pelo front controller; tenant_id vem de
  * `current_tenant_id()` (helper do professor). Diferente do aluno, o
@@ -21,6 +21,21 @@ if ($tenantId === null) {
     http_response_code(403);
     require LMS_ROOT . '/src/templates/errors/403.php';
     return;
+}
+
+// Escopo de curso (vindo do route pattern /teacher/courses/{id}/ranking).
+// Quando presente, valida que o curso pertence ao tenant. 404 amigável caso
+// contrário (cross-tenant ou curso inexistente).
+$courseId   = (int) ($_REQUEST['course_id'] ?? 0);
+$courseName = null;
+if ($courseId > 0) {
+    $course = Course::findForTenant($courseId, $tenantId);
+    if ($course === null) {
+        http_response_code(404);
+        require LMS_ROOT . '/src/templates/errors/404.php';
+        return;
+    }
+    $courseName = (string) $course['name'];
 }
 
 $window = (string) ($_GET['window'] ?? 'all');
@@ -66,8 +81,9 @@ $page    = max(1, (int) ($_GET['page'] ?? 1));
 $perPage = RankingService::DEFAULT_PER_PAGE;
 
 $filters = [];
-if ($groupId !== null) { $filters['group_id'] = $groupId; }
-if ($year    !== null) { $filters['year']     = $year; }
+if ($groupId !== null) { $filters['group_id']  = $groupId; }
+if ($year    !== null) { $filters['year']      = $year; }
+if ($courseId > 0)     { $filters['course_id'] = $courseId; }
 
 $result   = RankingService::compute($tenantId, $window, $filters, $page, $perPage);
 $rows     = $result['rows'];
@@ -88,14 +104,28 @@ $qs = static function (array $overrides = []) use ($window, $groupId, $year, $pa
     return '?' . http_build_query($params);
 };
 
-$page_title = __t('ranking.title');
+$page_title = $courseName !== null
+    ? __t('ranking.title.course', ['name' => $courseName])
+    : __t('ranking.title');
 
 ob_start();
 ?>
+<?php if ($courseName !== null): ?>
+    <?= breadcrumbs([
+        ['label' => __t('courses.index.title'),     'url' => '/teacher/courses'],
+        ['label' => $courseName,                    'url' => '/teacher/courses/' . (int) $courseId],
+        ['label' => __t('ranking.title')],
+    ]) ?>
+<?php endif; ?>
+
 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
     <div>
-        <h1 class="h3 m-0"><?= e(__t('ranking.title')) ?></h1>
-        <p class="text-muted mb-0"><?= e(__t('ranking.subtitle.teacher')) ?></p>
+        <h1 class="h3 m-0">
+            <?= $courseName !== null ? e($courseName) : e(__t('ranking.title')) ?>
+        </h1>
+        <p class="text-muted mb-0">
+            <?= e(__t($courseName !== null ? 'ranking.scope.course' : 'ranking.subtitle.teacher')) ?>
+        </p>
     </div>
 
     <div class="btn-group" role="tablist" aria-label="<?= e(__t('ranking.window.aria')) ?>">

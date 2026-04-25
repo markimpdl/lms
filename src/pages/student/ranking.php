@@ -2,7 +2,9 @@
 declare(strict_types=1);
 
 /**
- * /student/ranking — ranking do tenant pro aluno (E9-03 + filtros E9-04).
+ * /student/ranking          — ranking do tenant inteiro (E9-03 + E9-04).
+ * /student/course/{id}/ranking — ranking restrito ao curso (E9-06). Mesma
+ *   página, com `course_id` capturado pela rota; valida matrícula ativa.
  *
  * 3 janelas (Geral / 7d / 30d) selecionáveis via `?window=`. Linha do aluno
  * logado destacada. Paginação 50/página via `?page=`. Filtros opcionais de
@@ -16,6 +18,28 @@ declare(strict_types=1);
 $user      = current_user();
 $studentId = (int) ($user['id'] ?? 0);
 $tenantId  = (int) ($user['tenant_id'] ?? 0);
+
+// Escopo de curso (vindo do route pattern /student/course/{id}/ranking).
+// Quando presente, valida matrícula ativa e carrega o nome do curso pra
+// exibir no header. 404 amigável se aluno não matriculado.
+$courseId   = (int) ($_REQUEST['course_id'] ?? 0);
+$courseName = null;
+if ($courseId > 0) {
+    if (!Enrollment::isEnrolled($studentId, $courseId)) {
+        http_response_code(404);
+        require LMS_ROOT . '/src/templates/errors/404.php';
+        return;
+    }
+    $cnStmt = Database::pdo()->prepare('SELECT name FROM courses WHERE id = ? AND tenant_id = ? LIMIT 1');
+    $cnStmt->execute([$courseId, $tenantId]);
+    $cn = $cnStmt->fetchColumn();
+    if ($cn === false) {
+        http_response_code(404);
+        require LMS_ROOT . '/src/templates/errors/404.php';
+        return;
+    }
+    $courseName = (string) $cn;
+}
 
 // Janela: whitelist + fallback silencioso.
 $window = (string) ($_GET['window'] ?? 'all');
@@ -70,8 +94,9 @@ $page    = max(1, (int) ($_GET['page'] ?? 1));
 $perPage = RankingService::DEFAULT_PER_PAGE;
 
 $filters = [];
-if ($groupId !== null) { $filters['group_id'] = $groupId; }
-if ($year    !== null) { $filters['year']     = $year; }
+if ($groupId !== null) { $filters['group_id']  = $groupId; }
+if ($year    !== null) { $filters['year']      = $year; }
+if ($courseId > 0)     { $filters['course_id'] = $courseId; }
 
 $result = $tenantId > 0
     ? RankingService::compute($tenantId, $window, $filters, $page, $perPage)
@@ -97,15 +122,29 @@ $qs = static function (array $overrides = []) use ($window, $groupId, $year, $pa
     return '?' . http_build_query($params);
 };
 
-$page_title = __t('ranking.title');
+$page_title = $courseName !== null
+    ? __t('ranking.title.course', ['name' => $courseName])
+    : __t('ranking.title');
 
 ob_start();
 ?>
 <header class="lms-dashboard-header lms-ranking-header">
     <div>
-        <span class="lms-dashboard-eyebrow"><?= e(__t('ranking.eyebrow')) ?></span>
-        <h1 class="lms-dashboard-title"><?= e(__t('ranking.title')) ?></h1>
-        <p class="lms-dashboard-subtitle"><?= e(__t('ranking.subtitle')) ?></p>
+        <span class="lms-dashboard-eyebrow">
+            <?= e(__t($courseName !== null ? 'ranking.scope.course' : 'ranking.eyebrow')) ?>
+        </span>
+        <h1 class="lms-dashboard-title">
+            <?= $courseName !== null ? e($courseName) : e(__t('ranking.title')) ?>
+        </h1>
+        <p class="lms-dashboard-subtitle">
+            <?php if ($courseName !== null): ?>
+                <a href="/student/course/<?= (int) $courseId ?>" class="lms-ranking-back">
+                    <?= e(__t('ranking.back_to_course')) ?>
+                </a>
+            <?php else: ?>
+                <?= e(__t('ranking.subtitle')) ?>
+            <?php endif; ?>
+        </p>
     </div>
 
     <div class="lms-filter-pills" role="tablist" aria-label="<?= e(__t('ranking.window.aria')) ?>">
