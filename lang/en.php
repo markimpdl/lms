@@ -1059,13 +1059,17 @@ return [
     'sidebar.next_rank_xp' => ':xp XP',
     'sidebar.max_rank'     => 'Max level reached',
     'sidebar.no_rank'      => 'No rank configured for your tenant',
-    'sidebar.position'     => 'POSITION',
-    'sidebar.no_position'  => 'No ranking yet',
-    'sidebar.see_ranking'  => 'See ranking',
+    'sidebar.position'         => 'POSITION',
+    'sidebar.no_position'      => 'No ranking yet',
+    'sidebar.see_ranking'      => 'See ranking',
+    'sidebar.achievements'     => 'ACHIEVEMENTS',
+    'sidebar.see_achievements' => 'See all →',
+    'sidebar.no_achievements'  => 'Start studying to unlock',
 
     // Navbar — primary link (E9-03)
     'nav.primary_aria' => 'Primary navigation',
     'nav.ranking'      => 'Ranking',
+    'nav.achievements' => 'Achievements',
 
     // Ranking (E9-03)
     'ranking.title'                => 'Ranking',
@@ -1105,4 +1109,14 @@ return [
     'ranking.scope.tenant'        => 'TENANT RANKING',
     'ranking.link.course_ranking' => 'Course ranking',
     'ranking.back_to_course'      => '← Back to course',
+
+    // Achievements (E18-05 + E18-07)
+    'achievements.title'          => 'Achievements',
+    'achievements.eyebrow'        => 'GAMIFICATION',
+    'achievements.subtitle'       => 'Unlock milestones along your learning journey.',
+    'achievements.empty'          => 'No achievements available yet.',
+    'achievements.empty_hint'     => 'Wait for your teacher to publish courses and activities.',
+    'achievements.unlocked_count' => ':done of :total achievements unlocked',
+    'achievements.unlocked_label' => 'unlocked',
+    'achievements.unlocked_at'    => 'Unlocked on :date',
 ];

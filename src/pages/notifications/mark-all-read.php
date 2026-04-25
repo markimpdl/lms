@@ -27,7 +27,19 @@ if ($user === null) {
     return;
 }
 
-Notification::markAllRead((int) $user['id']);
+$marked = Notification::markAllRead((int) $user['id']);
+if ($marked > 0) {
+    // Conquistas (E18-04).
+    $uid      = (int) $user['id'];
+    $tenantId = $user['tenant_id'] !== null ? (int) $user['tenant_id'] : 0;
+    if ($tenantId > 0) {
+        try {
+            AchievementsService::evaluateForEvent($uid, $tenantId, 'notification_read');
+        } catch (\Throwable) {
+            // swallow
+        }
+    }
+}
 
 $referer = (string) ($_SERVER['HTTP_REFERER'] ?? '');
 $host    = (string) ($_SERVER['HTTP_HOST'] ?? '');

@@ -99,6 +99,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
 
         if ($result['status'] === 'ok') {
+            // Conquistas (E18-04). Best-effort.
+            try {
+                AchievementsService::evaluateForEvent($studentId, $tenantId, 'evaluation_submitted');
+            } catch (\Throwable) {
+                // swallow
+            }
             flash('success', __t($current === null ? 'evaluations.student.submitted' : 'evaluations.student.resubmitted'));
             header('Location: /student/evaluation/' . $evaluationId, true, 303);
             return;

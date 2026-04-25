@@ -1060,13 +1060,17 @@ return [
     'sidebar.next_rank_xp' => ':xp XP',
     'sidebar.max_rank'     => 'Nível máximo atingido',
     'sidebar.no_rank'      => 'Sem patente cadastrada no seu tenant',
-    'sidebar.position'     => 'POSIÇÃO',
-    'sidebar.no_position'  => 'Sem ranking ainda',
-    'sidebar.see_ranking'  => 'Ver ranking',
+    'sidebar.position'         => 'POSIÇÃO',
+    'sidebar.no_position'      => 'Sem ranking ainda',
+    'sidebar.see_ranking'      => 'Ver ranking',
+    'sidebar.achievements'     => 'CONQUISTAS',
+    'sidebar.see_achievements' => 'Ver todas →',
+    'sidebar.no_achievements'  => 'Comece a estudar pra desbloquear',
 
     // Navbar — link primário (E9-03)
     'nav.primary_aria' => 'Navegação principal',
     'nav.ranking'      => 'Ranking',
+    'nav.achievements' => 'Conquistas',
 
     // Ranking (E9-03)
     'ranking.title'                => 'Ranking',
@@ -1106,4 +1110,14 @@ return [
     'ranking.scope.tenant'        => 'RANKING DO TENANT',
     'ranking.link.course_ranking' => 'Ranking do curso',
     'ranking.back_to_course'      => '← Voltar ao curso',
+
+    // Conquistas (E18-05 + E18-07)
+    'achievements.title'          => 'Conquistas',
+    'achievements.eyebrow'        => 'GAMIFICAÇÃO',
+    'achievements.subtitle'       => 'Desbloqueie marcos ao longo da sua jornada de aprendizado.',
+    'achievements.empty'          => 'Nenhuma conquista disponível ainda.',
+    'achievements.empty_hint'     => 'Aguarde o seu professor disponibilizar cursos e atividades.',
+    'achievements.unlocked_count' => ':done de :total conquistas desbloqueadas',
+    'achievements.unlocked_label' => 'desbloqueadas',
+    'achievements.unlocked_at'    => 'Desbloqueado em :date',
 ];

@@ -66,6 +66,11 @@ if ($nextRank !== null) {
         $xpTarget = 0;
     }
 }
+
+// Conquistas recentes (E18-06): até 3 miniaturas das últimas desbloqueadas.
+$recentAchievements = $tenantId > 0
+    ? student_recent_achievements($studentId, $tenantId, 3)
+    : [];
 ?>
 <aside class="lms-student-sidebar">
     <div class="lms-sidebar-card"
@@ -119,6 +124,33 @@ if ($nextRank !== null) {
                     </div>
                 <?php endif; ?>
             <?php endif; ?>
+        </div>
+
+        <div class="lms-achievements-block">
+            <div class="lms-achievements-block__header">
+                <span class="lms-achievements-block__eyebrow"><?= e(__t('sidebar.achievements')) ?></span>
+            </div>
+            <div class="lms-achievements-block__items" aria-hidden="true">
+                <?php for ($i = 0; $i < 3; $i++): ?>
+                    <?php $a = $recentAchievements[$i] ?? null; ?>
+                    <?php if ($a !== null): ?>
+                        <span class="lms-achievements-block__item is-unlocked"
+                              title="<?= e($a['name']) ?>">
+                            <i class="bi bi-<?= e($a['icon_key']) ?>"></i>
+                        </span>
+                    <?php else: ?>
+                        <span class="lms-achievements-block__item is-placeholder">
+                            <i class="bi bi-circle"></i>
+                        </span>
+                    <?php endif; ?>
+                <?php endfor; ?>
+            </div>
+            <?php if ($recentAchievements === []): ?>
+                <p class="lms-achievements-block__empty"><?= e(__t('sidebar.no_achievements')) ?></p>
+            <?php endif; ?>
+            <a href="/student/achievements" class="lms-ranking-block__cta">
+                <?= e(__t('sidebar.see_achievements')) ?>
+            </a>
         </div>
 
         <div class="lms-ranking-block">

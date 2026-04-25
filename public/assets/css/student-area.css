@@ -297,6 +297,70 @@ body.lms-student-area .lms-student-main {
     flex-shrink: 0;
 }
 
+/* Card de Conquistas no ProfileSidebar (E18-06). Mesma paleta dos blocos
+   XP/Ranking; 3 miniaturas icon-only + CTA full-width "Ver todas". */
+.lms-achievements-block {
+    background: #FAFAFA;
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.lms-achievements-block__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.lms-achievements-block__eyebrow {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--lms-neutral-500);
+}
+
+.lms-achievements-block__items {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lms-achievements-block__item {
+    flex: 1;
+    aspect-ratio: 1 / 1;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    line-height: 1;
+}
+
+.lms-achievements-block__item.is-unlocked {
+    background: linear-gradient(135deg, var(--lms-primary-1), var(--lms-primary-2));
+    color: #fff;
+    box-shadow: 0 4px 10px -4px rgba(99, 102, 241, 0.4);
+}
+
+.lms-achievements-block__item.is-placeholder {
+    background: var(--lms-neutral-100);
+    color: var(--lms-neutral-300);
+    border: 1px dashed var(--lms-neutral-200);
+}
+
+.lms-achievements-block__empty {
+    margin: 0;
+    font-size: 12px;
+    color: var(--lms-neutral-500);
+    text-align: center;
+    line-height: 1.4;
+}
+
 .lms-xp-bar {
     position: relative;
     height: 6px;
@@ -1629,4 +1693,206 @@ body.lms-student-area .lms-ranking-xp-unit {
     body.lms-student-area .lms-ranking-filters { padding: 12px; }
     body.lms-student-area .lms-ranking-filter { min-width: 0; width: 100%; }
     body.lms-student-area .lms-ranking-filter__submit { width: 100%; }
+}
+
+/* ============================================================
+   Achievements grid (E18-05)
+   ============================================================ */
+
+body.lms-student-area .lms-achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+@media (max-width: 1199.98px) {
+    body.lms-student-area .lms-achievements-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 991.98px) {
+    body.lms-student-area .lms-achievements-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 575.98px) {
+    body.lms-student-area .lms-achievements-grid { grid-template-columns: 1fr; gap: 12px; }
+}
+
+body.lms-student-area .lms-achievement-card {
+    background: var(--lms-card-bg);
+    border: 1px solid var(--lms-neutral-200);
+    border-radius: var(--lms-radius-card);
+    padding: 22px 18px 18px;
+    text-align: center;
+    box-shadow: var(--lms-shadow-card);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+body.lms-student-area .lms-achievement-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--lms-shadow-card-hover);
+}
+
+body.lms-student-area .lms-achievement-card__icon {
+    position: relative;
+    font-size: 44px;
+    line-height: 1;
+    color: var(--lms-neutral-700);
+}
+body.lms-student-area .lms-achievement-card__badge {
+    position: absolute;
+    bottom: -4px;
+    right: -12px;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: var(--lms-card-bg);
+    color: var(--lms-neutral-900);
+    font-size: 11px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(16, 24, 40, 0.16);
+    line-height: 1;
+}
+body.lms-student-area .lms-achievement-card__name {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 4px 0 0;
+    line-height: 1.3;
+    min-height: 54px;
+    color: var(--lms-neutral-900);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+}
+body.lms-student-area .lms-achievement-card__date {
+    font-size: 12px;
+    margin: 0;
+    color: var(--lms-neutral-500);
+    font-weight: 600;
+}
+
+/* Estado bloqueado */
+body.lms-student-area .lms-achievement-card.is-locked {
+    opacity: 0.45;
+    filter: grayscale(0.85);
+}
+body.lms-student-area .lms-achievement-card.is-locked:hover {
+    transform: none;
+    box-shadow: var(--lms-shadow-card);
+}
+
+/* Estado desbloqueado — gradiente por família */
+body.lms-student-area .lms-achievement-card.is-unlocked {
+    border-color: transparent;
+    color: #fff;
+    box-shadow: var(--lms-shadow-card-indigo);
+}
+body.lms-student-area .lms-achievement-card.is-unlocked .lms-achievement-card__icon,
+body.lms-student-area .lms-achievement-card.is-unlocked .lms-achievement-card__name {
+    color: #fff;
+}
+body.lms-student-area .lms-achievement-card.is-unlocked .lms-achievement-card__date {
+    color: rgba(255, 255, 255, 0.85);
+}
+body.lms-student-area .lms-achievement-card.is-unlocked .lms-achievement-card__badge {
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--lms-neutral-900);
+}
+
+body.lms-student-area .lms-achievement-card--uc_completed.is-unlocked {
+    background: linear-gradient(135deg, #6366F1, #EC4899);
+}
+body.lms-student-area .lms-achievement-card--cc_completed.is-unlocked {
+    background: linear-gradient(135deg, #EC4899, #F43F5E);
+}
+body.lms-student-area .lms-achievement-card--course_completed.is-unlocked {
+    background: linear-gradient(135deg, #F59E0B, #F97316);
+}
+body.lms-student-area .lms-achievement-card--activity_submitted.is-unlocked {
+    background: linear-gradient(135deg, #10B981, #06B6D4);
+}
+body.lms-student-area .lms-achievement-card--evaluation_submitted.is-unlocked {
+    background: linear-gradient(135deg, #06B6D4, #3B82F6);
+}
+body.lms-student-area .lms-achievement-card--uc_max_grade.is-unlocked,
+body.lms-student-area .lms-achievement-card--cc_max_grade.is-unlocked,
+body.lms-student-area .lms-achievement-card--course_max_grade.is-unlocked {
+    background: linear-gradient(135deg, #F59E0B, #EAB308);
+}
+body.lms-student-area .lms-achievement-card--eval_grade_60_percent.is-unlocked,
+body.lms-student-area .lms-achievement-card--eval_grade_80_percent.is-unlocked,
+body.lms-student-area .lms-achievement-card--eval_grade_100_percent.is-unlocked {
+    background: linear-gradient(135deg, #8B5CF6, #6366F1);
+}
+body.lms-student-area .lms-achievement-card--notification_read.is-unlocked {
+    background: linear-gradient(135deg, #FBBF24, #F59E0B);
+}
+body.lms-student-area .lms-achievement-card--rank_first_promotion.is-unlocked {
+    background: linear-gradient(135deg, #F43F5E, #EC4899);
+}
+body.lms-student-area .lms-achievement-card--course_started.is-unlocked {
+    background: linear-gradient(135deg, #06B6D4, #6366F1);
+}
+
+/* Counter chip no header da tela /student/achievements (E18-07). Fica do
+   lado direito do header em desktop, empilha abaixo em mobile via
+   `flex-wrap: wrap` herdado de .lms-dashboard-header. */
+body.lms-student-area .lms-achievements-counter {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, var(--lms-primary-1), var(--lms-primary-2));
+    color: #fff;
+    border-radius: var(--lms-radius-chip);
+    box-shadow: var(--lms-shadow-card-indigo);
+    white-space: nowrap;
+}
+body.lms-student-area .lms-achievements-counter__numbers {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    line-height: 1;
+}
+body.lms-student-area .lms-achievements-counter__numbers strong {
+    font-size: 22px;
+    margin-right: 2px;
+}
+body.lms-student-area .lms-achievements-counter__label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.9;
+}
+
+@media (max-width: 575.98px) {
+    body.lms-student-area .lms-achievement-card {
+        padding: 18px 14px 14px;
+        gap: 6px;
+    }
+    body.lms-student-area .lms-achievement-card__icon {
+        font-size: 38px;
+    }
+    body.lms-student-area .lms-achievement-card__badge {
+        min-width: 22px;
+        height: 22px;
+        right: -8px;
+        font-size: 10px;
+    }
+    body.lms-student-area .lms-achievements-counter {
+        padding: 8px 14px;
+    }
+    body.lms-student-area .lms-achievements-counter__numbers {
+        font-size: 16px;
+    }
+    body.lms-student-area .lms-achievements-counter__numbers strong {
+        font-size: 20px;
+    }
 }

@@ -410,6 +410,43 @@ CREATE TABLE IF NOT EXISTS ranks (
     CONSTRAINT chk_ranks_xp_max CHECK (xp_max IS NULL OR xp_max > xp_min)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ----------------------------------------------------------------------------
+-- 18. achievements + student_achievements (E18-01)
+-- Conquistas (medalhas). NAO dao XP (XP continua sendo a metrica principal,
+-- ADR-002). Catalogo estatico em `achievements` (seed via INSERT IGNORE);
+-- desbloqueios em `student_achievements` por (aluno, tenant). Tela mostra
+-- apenas alcancaveis pelo tenant; desbloqueio nunca e revogado, mesmo se a
+-- condicao virar impossivel depois (ex.: professor apaga curso).
+-- Spec: doc/15-roadmap-pos-mvp.md F5.
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS achievements (
+    id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    code        VARCHAR(60)  NOT NULL,         -- ex.: 'uc_completed_5'
+    family      VARCHAR(40)  NOT NULL,         -- ex.: 'uc_completed'
+    threshold   INT UNSIGNED NULL,             -- ex.: 5 (NULL para conquistas pontuais)
+    icon_key    VARCHAR(40)  NOT NULL,         -- bootstrap-icons name (sem prefixo)
+    name_pt     VARCHAR(120) NOT NULL,
+    name_en     VARCHAR(120) NOT NULL,
+    sort_order  INT UNSIGNED NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_ach_code (code),
+    KEY idx_ach_family (family, threshold)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Desbloqueios por aluno × tenant. PK composta + FKs CASCADE.
+CREATE TABLE IF NOT EXISTS student_achievements (
+    student_user_id BIGINT UNSIGNED NOT NULL,
+    tenant_id       BIGINT UNSIGNED NOT NULL,
+    achievement_id  BIGINT UNSIGNED NOT NULL,
+    unlocked_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (student_user_id, tenant_id, achievement_id),
+    KEY idx_sa_recent (student_user_id, tenant_id, unlocked_at),
+    KEY idx_sa_tenant (tenant_id),
+    CONSTRAINT fk_sa_student FOREIGN KEY (student_user_id) REFERENCES users(id)        ON DELETE CASCADE,
+    CONSTRAINT fk_sa_tenant  FOREIGN KEY (tenant_id)        REFERENCES tenants(id)     ON DELETE CASCADE,
+    CONSTRAINT fk_sa_ach     FOREIGN KEY (achievement_id)   REFERENCES achievements(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ============================================================================
 -- SEEDS
 -- ============================================================================
@@ -423,6 +460,77 @@ INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
 -- senha real e sobrescrever este hash.
 INSERT IGNORE INTO users (email, password_hash, name, role, language, active, tenant_id) VALUES
     ('admin@lms.local', '!', 'Super Admin', 'super_admin', 'pt', 1, NULL);
+
+-- [E18-01] Seed das 57 conquistas iniciais. INSERT IGNORE absorve UK em
+-- re-run (catálogo é estático — `code` é a chave natural). Pra adicionar
+-- novas conquistas, basta acrescentar linhas; nunca renomear código de
+-- existente (quebraria desbloqueios já gravados em student_achievements).
+INSERT IGNORE INTO achievements (code, family, threshold, icon_key, name_pt, name_en, sort_order) VALUES
+    -- UC concluídas (11) — icon=mortarboard
+    ('uc_completed_1',    'uc_completed', 1,    'mortarboard', 'Concluiu 1 unidade de competência',     'Completed 1 competence unit',    10),
+    ('uc_completed_2',    'uc_completed', 2,    'mortarboard', 'Concluiu 2 unidades de competência',    'Completed 2 competence units',   20),
+    ('uc_completed_3',    'uc_completed', 3,    'mortarboard', 'Concluiu 3 unidades de competência',    'Completed 3 competence units',   30),
+    ('uc_completed_4',    'uc_completed', 4,    'mortarboard', 'Concluiu 4 unidades de competência',    'Completed 4 competence units',   40),
+    ('uc_completed_5',    'uc_completed', 5,    'mortarboard', 'Concluiu 5 unidades de competência',    'Completed 5 competence units',   50),
+    ('uc_completed_10',   'uc_completed', 10,   'mortarboard', 'Concluiu 10 unidades de competência',   'Completed 10 competence units',  60),
+    ('uc_completed_20',   'uc_completed', 20,   'mortarboard', 'Concluiu 20 unidades de competência',   'Completed 20 competence units',  70),
+    ('uc_completed_30',   'uc_completed', 30,   'mortarboard', 'Concluiu 30 unidades de competência',   'Completed 30 competence units',  80),
+    ('uc_completed_40',   'uc_completed', 40,   'mortarboard', 'Concluiu 40 unidades de competência',   'Completed 40 competence units',  90),
+    ('uc_completed_50',   'uc_completed', 50,   'mortarboard', 'Concluiu 50 unidades de competência',   'Completed 50 competence units', 100),
+    ('uc_completed_100',  'uc_completed', 100,  'mortarboard', 'Concluiu 100 unidades de competência',  'Completed 100 competence units',110),
+    -- CC concluídas (6) — icon=bullseye
+    ('cc_completed_1',    'cc_completed', 1,    'bullseye',    'Concluiu 1 competência',                'Completed 1 core competence',   200),
+    ('cc_completed_2',    'cc_completed', 2,    'bullseye',    'Concluiu 2 competências',               'Completed 2 core competencies', 210),
+    ('cc_completed_3',    'cc_completed', 3,    'bullseye',    'Concluiu 3 competências',               'Completed 3 core competencies', 220),
+    ('cc_completed_4',    'cc_completed', 4,    'bullseye',    'Concluiu 4 competências',               'Completed 4 core competencies', 230),
+    ('cc_completed_5',    'cc_completed', 5,    'bullseye',    'Concluiu 5 competências',               'Completed 5 core competencies', 240),
+    ('cc_completed_10',   'cc_completed', 10,   'bullseye',    'Concluiu 10 competências',              'Completed 10 core competencies',250),
+    -- Cursos concluídos (6) — icon=trophy
+    ('course_completed_1',  'course_completed', 1,  'trophy', 'Concluiu 1 curso',     'Completed 1 course',     300),
+    ('course_completed_2',  'course_completed', 2,  'trophy', 'Concluiu 2 cursos',    'Completed 2 courses',    310),
+    ('course_completed_3',  'course_completed', 3,  'trophy', 'Concluiu 3 cursos',    'Completed 3 courses',    320),
+    ('course_completed_4',  'course_completed', 4,  'trophy', 'Concluiu 4 cursos',    'Completed 4 courses',    330),
+    ('course_completed_5',  'course_completed', 5,  'trophy', 'Concluiu 5 cursos',    'Completed 5 courses',    340),
+    ('course_completed_10', 'course_completed', 10, 'trophy', 'Concluiu 10 cursos',   'Completed 10 courses',   350),
+    -- Atividades enviadas (15) — icon=pencil-square
+    ('activity_submitted_1',   'activity_submitted', 1,   'pencil-square', 'Enviou 1 atividade',     'Submitted 1 activity',    400),
+    ('activity_submitted_2',   'activity_submitted', 2,   'pencil-square', 'Enviou 2 atividades',    'Submitted 2 activities',  410),
+    ('activity_submitted_3',   'activity_submitted', 3,   'pencil-square', 'Enviou 3 atividades',    'Submitted 3 activities',  420),
+    ('activity_submitted_4',   'activity_submitted', 4,   'pencil-square', 'Enviou 4 atividades',    'Submitted 4 activities',  430),
+    ('activity_submitted_5',   'activity_submitted', 5,   'pencil-square', 'Enviou 5 atividades',    'Submitted 5 activities',  440),
+    ('activity_submitted_10',  'activity_submitted', 10,  'pencil-square', 'Enviou 10 atividades',   'Submitted 10 activities', 450),
+    ('activity_submitted_20',  'activity_submitted', 20,  'pencil-square', 'Enviou 20 atividades',   'Submitted 20 activities', 460),
+    ('activity_submitted_30',  'activity_submitted', 30,  'pencil-square', 'Enviou 30 atividades',   'Submitted 30 activities', 470),
+    ('activity_submitted_40',  'activity_submitted', 40,  'pencil-square', 'Enviou 40 atividades',   'Submitted 40 activities', 480),
+    ('activity_submitted_50',  'activity_submitted', 50,  'pencil-square', 'Enviou 50 atividades',   'Submitted 50 activities', 490),
+    ('activity_submitted_100', 'activity_submitted', 100, 'pencil-square', 'Enviou 100 atividades',  'Submitted 100 activities',500),
+    ('activity_submitted_200', 'activity_submitted', 200, 'pencil-square', 'Enviou 200 atividades',  'Submitted 200 activities',510),
+    ('activity_submitted_300', 'activity_submitted', 300, 'pencil-square', 'Enviou 300 atividades',  'Submitted 300 activities',520),
+    ('activity_submitted_400', 'activity_submitted', 400, 'pencil-square', 'Enviou 400 atividades',  'Submitted 400 activities',530),
+    ('activity_submitted_500', 'activity_submitted', 500, 'pencil-square', 'Enviou 500 atividades',  'Submitted 500 activities',540),
+    -- Avaliações enviadas (10) — icon=clipboard-check
+    ('evaluation_submitted_1',  'evaluation_submitted', 1,  'clipboard-check', 'Enviou 1 avaliação',    'Submitted 1 evaluation',    600),
+    ('evaluation_submitted_2',  'evaluation_submitted', 2,  'clipboard-check', 'Enviou 2 avaliações',   'Submitted 2 evaluations',   610),
+    ('evaluation_submitted_3',  'evaluation_submitted', 3,  'clipboard-check', 'Enviou 3 avaliações',   'Submitted 3 evaluations',   620),
+    ('evaluation_submitted_4',  'evaluation_submitted', 4,  'clipboard-check', 'Enviou 4 avaliações',   'Submitted 4 evaluations',   630),
+    ('evaluation_submitted_5',  'evaluation_submitted', 5,  'clipboard-check', 'Enviou 5 avaliações',   'Submitted 5 evaluations',   640),
+    ('evaluation_submitted_10', 'evaluation_submitted', 10, 'clipboard-check', 'Enviou 10 avaliações',  'Submitted 10 evaluations',  650),
+    ('evaluation_submitted_20', 'evaluation_submitted', 20, 'clipboard-check', 'Enviou 20 avaliações',  'Submitted 20 evaluations',  660),
+    ('evaluation_submitted_30', 'evaluation_submitted', 30, 'clipboard-check', 'Enviou 30 avaliações',  'Submitted 30 evaluations',  670),
+    ('evaluation_submitted_40', 'evaluation_submitted', 40, 'clipboard-check', 'Enviou 40 avaliações',  'Submitted 40 evaluations',  680),
+    ('evaluation_submitted_50', 'evaluation_submitted', 50, 'clipboard-check', 'Enviou 50 avaliações',  'Submitted 50 evaluations',  690),
+    -- Nota máxima por escopo (3) — icon=stars
+    ('uc_max_grade',     'uc_max_grade',     NULL, 'stars', 'Nota máxima em uma unidade de competência', 'Perfect score in a competence unit', 700),
+    ('cc_max_grade',     'cc_max_grade',     NULL, 'stars', 'Nota máxima em uma competência',            'Perfect score in a core competence', 710),
+    ('course_max_grade', 'course_max_grade', NULL, 'stars', 'Nota máxima em um curso',                   'Perfect score in a course',          720),
+    -- Nota mínima por avaliação (3) — icon=percent
+    ('eval_grade_60_percent',  'eval_grade_60_percent',  60,  'percent', 'Alcançou pelo menos 60% em uma avaliação', 'Achieved at least 60% on an evaluation', 730),
+    ('eval_grade_80_percent',  'eval_grade_80_percent',  80,  'percent', 'Alcançou pelo menos 80% em uma avaliação', 'Achieved at least 80% on an evaluation', 740),
+    ('eval_grade_100_percent', 'eval_grade_100_percent', 100, 'percent', 'Alcançou 100% em uma avaliação',           'Achieved 100% on an evaluation',         750),
+    -- Eventos pontuais (3)
+    ('notification_read',     'notification_read',     NULL, 'bell-fill',      'Leu uma notificação',     'Read a notification', 800),
+    ('rank_first_promotion',  'rank_first_promotion',  NULL, 'award',          'Obteve uma nova patente', 'Earned a new rank',   810),
+    ('course_started',        'course_started',        NULL, 'rocket-takeoff', 'Começou um curso',        'Started a course',    820);
 
 -- ============================================================================
 -- MIGRAÇÕES INCREMENTAIS (pós-v0.1.0)
