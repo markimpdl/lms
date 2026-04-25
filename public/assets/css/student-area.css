@@ -2008,3 +2008,92 @@ body.lms-student-area .lms-activity-card__lock-overlay {
         padding: 10px;
     }
 }
+
+/* ============================================================
+   Quiz — gabarito condicional (E20-05)
+   ------------------------------------------------------------
+   Aplica apenas em readOnly + show_answers=1. Verde = correta;
+   vermelho = sua escolha errada. Demais opcoes ficam neutras
+   (sem revelar quais nao sao corretas se voce nao escolheu).
+   ============================================================ */
+
+body.lms-student-area .lms-quiz-option {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: background-color 0.15s ease;
+}
+
+body.lms-student-area .lms-quiz-option--correct {
+    background-color: var(--lms-success-tint);
+    border-color: var(--lms-success);
+    color: var(--lms-success-dark);
+}
+
+body.lms-student-area .lms-quiz-option--wrong {
+    background-color: var(--lms-danger-tint);
+    border-color: var(--lms-danger);
+    color: var(--lms-danger-dark);
+    text-decoration: line-through;
+}
+
+body.lms-student-area .lms-quiz-option--wrong .form-check-label {
+    text-decoration: inherit;
+}
+
+body.lms-student-area .lms-quiz-option__badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-decoration: none;
+    vertical-align: middle;
+}
+
+body.lms-student-area .lms-quiz-option__badge--correct {
+    background-color: var(--lms-success);
+    color: #fff;
+}
+
+body.lms-student-area .lms-quiz-option__badge--wrong {
+    background-color: var(--lms-danger);
+    color: #fff;
+}
+
+/* Estrutura da questao do quiz (compartilhada com o aluno responder e o
+   readOnly post-submit). */
+body.lms-student-area .lms-quiz-question__num {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800;
+    color: var(--lms-primary-1);
+}
+body.lms-student-area .lms-quiz-question__text {
+    color: var(--lms-neutral-900);
+}
+
+/* Quiz mobile fine-tuning (E20-07): em <576px o numero da questao + texto
+   ficam mais apertados. Garante legibilidade em 360px. */
+@media (max-width: 575.98px) {
+    body.lms-student-area .lms-quiz-question {
+        margin-bottom: 1.5rem;
+    }
+    body.lms-student-area .lms-quiz-question__num {
+        font-size: 1.1rem;
+    }
+    body.lms-student-area .lms-quiz-question__text {
+        font-size: 0.95rem;
+        line-height: 1.4;
+    }
+    body.lms-student-area .lms-quiz-option {
+        padding: 10px 12px;
+    }
+    body.lms-student-area .lms-quiz-option__badge {
+        display: inline-flex;
+        margin-top: 4px;
+        margin-left: 0;
+    }
+}

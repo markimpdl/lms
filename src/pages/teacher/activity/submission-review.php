@@ -27,6 +27,14 @@ if ($ctx === null) {
 $activity   = $ctx['activity'];
 $submission = $ctx['submission'];
 $student    = $ctx['student'];
+
+// Fix #280: atividade tipo Quiz é auto-corrigida — sem form de feedback
+// (a nota auto-calculada já é o "feedback"). Delega pra handler dedicado.
+if ((string) ($activity['type'] ?? '') === 'quiz') {
+    require LMS_ROOT . '/src/pages/teacher/activity/submission-review-quiz.php';
+    return;
+}
+
 $oldFeedback = (string) ($submission['feedback'] ?? '');
 $errors = [];
 

@@ -45,8 +45,8 @@ final class ActivitySubmission
         }
 
         $stmt = Database::pdo()->prepare(
-            'SELECT id, filename, stored_path, code_text, feedback, feedback_at,
-                    created_at, updated_at
+            'SELECT id, filename, stored_path, code_text, quiz_snapshot,
+                    feedback, feedback_at, created_at, updated_at
                FROM activity_submissions
               WHERE activity_id = ? AND student_user_id = ?
               LIMIT 1'
@@ -169,7 +169,7 @@ final class ActivitySubmission
     public static function findForTeacher(int $activityId, int $studentId, int $tenantId): ?array
     {
         $stmt = Database::pdo()->prepare(
-            'SELECT s.id, s.filename, s.stored_path, s.code_text,
+            'SELECT s.id, s.filename, s.stored_path, s.code_text, s.quiz_snapshot,
                     s.feedback, s.feedback_at, s.created_at, s.updated_at,
                     a.id AS activity_id, a.title AS activity_title,
                     a.type AS activity_type, a.instruction,
@@ -199,6 +199,7 @@ final class ActivitySubmission
             'submission' => [
                 'id' => (int) $row['id'], 'filename' => $row['filename'],
                 'stored_path' => $row['stored_path'], 'code_text' => $row['code_text'],
+                'quiz_snapshot' => $row['quiz_snapshot'],
                 'feedback' => $row['feedback'], 'feedback_at' => $row['feedback_at'],
                 'created_at' => $row['created_at'], 'updated_at' => $row['updated_at'],
             ],

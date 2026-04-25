@@ -75,6 +75,14 @@ if ($evalAfter === 1) {
 }
 $current    = $ctx['current'];
 $tenantId   = (int) $evaluation['tenant_id'];
+
+// E20-03: avaliação tipo Quiz tem fluxo próprio (sem upload + grade
+// automática). Delega pro handler dedicado e termina aqui.
+if ((string) ($evaluation['type'] ?? 'projeto') === 'quiz') {
+    require LMS_ROOT . '/src/pages/student/evaluation/quiz_handler.php';
+    return;
+}
+
 $isOpen     = (int) $evaluation['submission_open'] === 1;
 $history    = EvaluationSubmission::listHistoryForStudent($evaluationId, $studentId);
 

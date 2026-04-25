@@ -79,6 +79,15 @@ declare(strict_types=1);
                 </div>
             </div>
 
+            <?php if ($mode === 'edit' && $old['type'] === 'quiz'): ?>
+                <div class="alert alert-info mb-3" role="alert">
+                    <?= e(__t('activities.form.quiz_hint')) ?>
+                    <a href="/teacher/activity/<?= (int) $activityId ?>/quiz" class="btn btn-sm btn-primary ms-2">
+                        <?= e(__t('activities.form.quiz_edit_btn')) ?>
+                    </a>
+                </div>
+            <?php endif; ?>
+
             <div class="mb-3" id="code-language-group" <?= $old['type'] !== 'codigo' ? 'style="display:none"' : '' ?>>
                 <label for="f-code-language" class="form-label"><?= e(__t('activities.form.code_language')) ?></label>
                 <select name="code_language" id="f-code-language"

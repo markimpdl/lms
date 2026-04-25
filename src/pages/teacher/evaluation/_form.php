@@ -55,16 +55,32 @@ $maxMb = (int) (EvaluationBriefStorage::maxBytes() / (1024 * 1024));
                 <?php endif; ?>
             </div>
 
-            <div class="mb-3">
-                <label for="f-xp" class="form-label"><?= e(__t('evaluations.form.xp')) ?></label>
-                <input type="number" name="xp_value" id="f-xp"
-                       class="form-control<?= isset($errors['xp_value']) ? ' is-invalid' : '' ?>"
-                       value="<?= (int) $old['xp_value'] ?>" min="0" max="9999" step="1"
-                       style="max-width: 10rem;">
-                <div class="form-text"><?= e(__t('evaluations.form.xp_hint')) ?></div>
-                <?php if (isset($errors['xp_value'])): ?>
-                    <div class="invalid-feedback"><?= e(__t($errors['xp_value'])) ?></div>
-                <?php endif; ?>
+            <div class="row g-3">
+                <div class="col-12 col-md-6 mb-3">
+                    <label for="f-type" class="form-label"><?= e(__t('evaluations.form.type')) ?></label>
+                    <select name="type" id="f-type"
+                            class="form-select<?= isset($errors['type']) ? ' is-invalid' : '' ?>">
+                        <?php foreach (Evaluation::TYPES as $t): ?>
+                            <option value="<?= e($t) ?>" <?= ($old['type'] ?? 'projeto') === $t ? 'selected' : '' ?>>
+                                <?= e(__t('evaluations.type.' . $t)) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div class="form-text"><?= e(__t('evaluations.form.type_hint')) ?></div>
+                    <?php if (isset($errors['type'])): ?>
+                        <div class="invalid-feedback"><?= e(__t($errors['type'])) ?></div>
+                    <?php endif; ?>
+                </div>
+                <div class="col-12 col-md-6 mb-3">
+                    <label for="f-xp" class="form-label"><?= e(__t('evaluations.form.xp')) ?></label>
+                    <input type="number" name="xp_value" id="f-xp"
+                           class="form-control<?= isset($errors['xp_value']) ? ' is-invalid' : '' ?>"
+                           value="<?= (int) $old['xp_value'] ?>" min="0" max="9999" step="1">
+                    <div class="form-text"><?= e(__t('evaluations.form.xp_hint')) ?></div>
+                    <?php if (isset($errors['xp_value'])): ?>
+                        <div class="invalid-feedback"><?= e(__t($errors['xp_value'])) ?></div>
+                    <?php endif; ?>
+                </div>
             </div>
 
             <div class="mb-3">
@@ -73,7 +89,7 @@ $maxMb = (int) (EvaluationBriefStorage::maxBytes() / (1024 * 1024));
                 <div class="form-text"><?= e(__t('evaluations.form.instructions_hint')) ?></div>
             </div>
 
-            <div class="mb-3">
+            <div class="mb-3" id="pdf-group" <?= ($old['type'] ?? 'projeto') === 'quiz' ? 'style="display:none"' : '' ?>>
                 <label for="f-pdf" class="form-label">
                     <?= e(__t('evaluations.form.pdf')) ?>
                     <?php if ($mode === 'new'): ?>
@@ -87,8 +103,7 @@ $maxMb = (int) (EvaluationBriefStorage::maxBytes() / (1024 * 1024));
                     </div>
                 <?php endif; ?>
                 <input type="file" name="pdf" id="f-pdf" accept="application/pdf"
-                       class="form-control<?= isset($errors['pdf']) ? ' is-invalid' : '' ?>"
-                       <?= $mode === 'new' ? 'required' : '' ?>>
+                       class="form-control<?= isset($errors['pdf']) ? ' is-invalid' : '' ?>">
                 <div class="form-text">
                     <?= e(__t('evaluations.form.pdf_hint', ['mb' => (string) $maxMb])) ?>
                     <?php if ($mode === 'edit'): ?>
@@ -99,6 +114,15 @@ $maxMb = (int) (EvaluationBriefStorage::maxBytes() / (1024 * 1024));
                     <div class="invalid-feedback"><?= e(__t($errors['pdf'])) ?></div>
                 <?php endif; ?>
             </div>
+
+            <?php if ($mode === 'edit' && ($old['type'] ?? 'projeto') === 'quiz'): ?>
+                <div class="alert alert-info mb-3" role="alert">
+                    <?= e(__t('evaluations.form.quiz_hint')) ?>
+                    <a href="/teacher/evaluation/<?= (int) $evaluationId ?>/quiz" class="btn btn-sm btn-primary ms-2">
+                        <?= e(__t('evaluations.form.quiz_edit_btn')) ?>
+                    </a>
+                </div>
+            <?php endif; ?>
 
             <div class="form-check mb-3">
                 <input class="form-check-input" type="checkbox" id="f-submission-open"
@@ -145,4 +169,17 @@ tinymce.init({
     content_style: 'body{font-family:system-ui,sans-serif;font-size:15px;line-height:1.6}',
     mobile: { toolbar_mode: 'floating' }
 });
+
+// E20-02: alterna visibilidade do bloco de upload de PDF conforme o type.
+(function () {
+    var sel = document.getElementById('f-type');
+    var pdf = document.getElementById('pdf-group');
+    var pdfInput = document.getElementById('f-pdf');
+    if (!sel || !pdf) return;
+    sel.addEventListener('change', function () {
+        var isQuiz = sel.value === 'quiz';
+        pdf.style.display = isQuiz ? 'none' : '';
+        if (pdfInput) pdfInput.required = !isQuiz;
+    });
+})();
 </script>

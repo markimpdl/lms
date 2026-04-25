@@ -112,6 +112,14 @@ if ($activityMode === 'sequential') {
         exit;
     }
 }
+
+// E20-03: atividade tipo Quiz tem fluxo próprio (sem upload + grade
+// automática informativa + XP por entregar). Delega pro handler.
+if ((string) ($activity['type'] ?? '') === 'quiz') {
+    require LMS_ROOT . '/src/pages/student/activity/quiz_handler.php';
+    return;
+}
+
 $submission = $ctx['submission'];
 $mutable    = ActivitySubmission::isMutable($submission);
 $isOpen     = (int) $activity['submission_open'] === 1;
