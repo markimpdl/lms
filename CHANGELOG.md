@@ -4,6 +4,39 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.13.0] — 2026-04-25
+
+Décima terceira release. Escopo: **Epic E16 inteiro — Fundamentos do aluno** (4 stories) + 1 chore de deploy. Adiciona atributos de gestão ao aluno (sexo, doc identificação, status no curso) e auditoria de acesso (histórico de conexões com geo-IP). Backfill silencioso de alunos legados como `gender = 'male'`.
+
+### Novas funcionalidades
+
+#### Epic E16 — Fundamentos do aluno
+
+- **Cadastro com sexo + doc identificação** (E16-01, #207): 2 colunas novas em `users` — `gender ENUM('male','female') NOT NULL DEFAULT 'male'` (obrigatório no form, default cobre backfill) e `id_document VARCHAR(30) NULL` (opcional, validação `^[0-9]{1,30}$`). Forms de criar/editar aluno (`/teacher/students/new` e `/teacher/students/{id}`) ganham os campos. Aluno **não** vê em `/student/*` nem `/profile`. PO confirmou que só havia 1 aluno legado em prod (vira 'male' silenciosamente). Bloqueia E17 (avatares no painel dependem do sexo).
+- **Listagem `/teacher/students` com nome curto + doc + busca expandida** (E16-02, #208): helper novo `format_short_name(string): string` em `src/helpers.php` — "Nome Múltiplos Tokens" → "Primeiro Último" (token único passa direto). Tabela ≥lg usa nome curto + tooltip com nome completo no hover. Coluna nova "Documento" entre Nome e E-mail. Filtro `q` agora bate em `id_document` além de name+email. Mobile cards mantidos como estavam.
+- **Status do aluno no curso visível só pro professor** (E16-03, #209): `enrollments.status ENUM('active','absent','completed') NOT NULL DEFAULT 'active'` — atributo manual e indicativo, **não altera regras de negócio** (XP, progresso, ranking continuam idênticos). Roster do curso (`/teacher/courses/{id}`) ganha select inline com auto-submit on change. Aluno **não** vê. Endpoint POST com whitelist + ownership via JOIN duplo (`u.tenant_id` E `c.tenant_id`).
+- **Histórico de conexões do aluno com geo-IP** (E16-04, #210): tabela nova `user_logins(user_id, tenant_id, ip, location, user_agent, logged_in_at)` populada a cada login bem-sucedido via hook em `AuthController::completeLogin`. Localização vem de **ip-api.com (free tier 45 req/min)** com fallback NULL em rate-limit/timeout. Visível APENAS pelo professor no detalhe do aluno (últimas 10). Retenção 180 dias via cron novo `scripts/cron/purge-old-logins.php` (setup manual no cPanel). LGPD note em `doc/14` ADR-031.
+
+### Mudanças internas / Tooling
+
+- **`scripts/cron/` agora vai pro deploy** (#211): `INCLUDE_OVERRIDES` novo em `scripts/deploy/ftp-deploy.mjs` permite que `scripts/cron/` suba mesmo com `scripts/` excluído por design (que continua bloqueando devtools como `ftp-deploy.mjs`). Refactor de `walk()` com `hasOverrideUnder()` permite descer em pastas excluídas quando algum override aponta pra dentro.
+- **`package.json`** bumpado para 0.13.0.
+
+### Convenções consolidadas nesta janela
+
+- **Defaults retroativos via DEFAULT no schema** — em vez de DML separado pra backfill, usar `DEFAULT 'male'` na coluna nova já cobre o caso. Limpa, atômica, sem race.
+- **Engine de tracking silencioso** (mesmo padrão do `Enrollment::touchLastAccess` em E14): `UserLogin::recordLogin` engole `Throwable` — falha de histórico jamais derruba o login.
+- **GeoIP defensivo** — pular IPs privados/locais antes de chamar API externa economiza quota e evita 422 na resposta.
+- **Hook `gh pr create` aplica auto-fix de "segurança"** que pode estar errado pro contexto — ex.: trocou `http://ip-api.com` por `https://` (free tier de ip-api.com **só** suporta HTTP; HTTPS exige pro plan). Solução: descartar o working tree quando o "fix" não couber, e seguir.
+
+### Pendências (herdadas, ainda abertas)
+
+- **`JUDGE0_KEY` em prod**: endpoint responde 503 amigável até o PO configurar.
+- **C# sem syntax highlight no CodeMirror 6** — plain text funciona; nice-to-have futuro.
+- **Cross-tenant smoke** ainda parcial — só 1 tenant em prod.
+
+[0.13.0]: https://github.com/markimpdl/lms/releases/tag/v0.13.0
+
 ## [0.12.0] — 2026-04-25
 
 Décima segunda release. Escopo: **Epic E15 inteiro — UX e fundamentos pós-MVP** (2 stories pequenas) + materialização do roadmap pós-MVP em `doc/15`. Primeira release abrindo a fase pós-MVP, com 7 épicos novos (E15-E21) já priorizados pelo PO.
