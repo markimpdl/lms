@@ -234,6 +234,8 @@ ob_start();
                             $rowStatus    = (string) ($row['status'] ?? 'active');
                             $rowStartsAt  = $row['access_starts_at'] ?? null;
                             $rowEndsAt    = $row['access_ends_at']   ?? null;
+                            $rowBlockedAt = $row['blocked_at']       ?? null;
+                            $isBlocked    = $rowBlockedAt !== null;
                             $periodLabel  = format_period_label($rowStartsAt, $rowEndsAt);
                             // datetime-local espera "YYYY-MM-DDTHH:MM"; converter do MySQL DATETIME.
                             $startsLocal  = $rowStartsAt !== null ? str_replace(' ', 'T', substr((string) $rowStartsAt, 0, 16)) : '';
@@ -248,11 +250,18 @@ ob_start();
                                 <?php if ((int) $row['active'] === 0): ?>
                                     <span class="badge text-bg-secondary ms-2"><?= e(__t('students.status.inactive')) ?></span>
                                 <?php endif; ?>
+                                <?php if ($isBlocked): ?>
+                                    <span class="badge bg-warning-subtle text-warning-emphasis ms-2"
+                                          title="<?= e((string) $rowBlockedAt) ?>">
+                                        <?= e(__t('enrollments.blocked.badge', ['date' => substr((string) $rowBlockedAt, 0, 10)])) ?>
+                                    </span>
+                                <?php endif; ?>
                                 <div class="small text-muted">
                                     <?= e(__t('enrollments.enrolled_at', ['date' => substr((string) $row['enrolled_at'], 0, 10)])) ?>
                                     · <?= e(__t('enrollments.period.label')) ?>: <?= e($periodLabel) ?>
                                 </div>
                             </div>
+
                             <button type="button" class="btn btn-sm btn-outline-secondary"
                                     data-bs-toggle="modal" data-bs-target="#periodModal"
                                     data-student-id="<?= (int) $row['student_id'] ?>"
@@ -261,6 +270,24 @@ ob_start();
                                     data-ends-at="<?= e($endsLocal) ?>">
                                 <?= e(__t('enrollments.action.edit_period')) ?>
                             </button>
+
+                            <form method="POST"
+                                  action="/teacher/courses/<?= (int) $course['id'] ?>/enrollment/<?= (int) $row['student_id'] ?>/block"
+                                  class="m-0 d-inline">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="btn btn-sm <?= $isBlocked ? 'btn-outline-success' : 'btn-outline-warning' ?>">
+                                    <?= e(__t($isBlocked ? 'enrollments.action.unblock' : 'enrollments.action.block')) ?>
+                                </button>
+                            </form>
+
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                    data-bs-toggle="modal" data-bs-target="#deleteConfirmModal"
+                                    data-item-name="<?= e((string) $row['email']) ?>"
+                                    data-action-url="/teacher/courses/<?= (int) $course['id'] ?>/enrollment/<?= (int) $row['student_id'] ?>/remove"
+                                    data-counts="[]">
+                                <?= e(__t('enrollments.action.remove')) ?>
+                            </button>
+
                             <form method="POST"
                                   action="/teacher/courses/<?= (int) $course['id'] ?>/enrollment/<?= (int) $row['student_id'] ?>/status"
                                   class="m-0 d-inline-flex align-items-center gap-2">

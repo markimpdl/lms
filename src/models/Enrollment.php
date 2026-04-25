@@ -83,7 +83,7 @@ final class Enrollment
         $sql = <<<SQL
             SELECT u.id AS student_id, u.name, u.email, u.language, u.active,
                    e.enrolled_at, e.status,
-                   e.access_starts_at, e.access_ends_at
+                   e.access_starts_at, e.access_ends_at, e.blocked_at
               FROM enrollments e
               JOIN users   u ON u.id = e.student_user_id
               JOIN courses c ON c.id = e.course_id
@@ -160,6 +160,106 @@ final class Enrollment
                 (student_user_id, course_id, access_starts_at, access_ends_at)
              VALUES (?, ?, ?, ?)'
         )->execute([$studentId, $courseId, $accessStartsAt, $accessEndsAt]);
+
+        return 'ok';
+    }
+
+    /**
+     * Toggle do bloqueio de acesso (E17-02). Se `blocked_at IS NULL`, seta
+     * `NOW()`; senão, volta a NULL. Reversível. Preserva XP, progresso,
+     * histórico — só impede acesso enquanto setado. Ownership via JOIN duplo.
+     *
+     * @return bool|null true=blocked, false=unblocked, null=cross-tenant ou
+     *                   matrícula inexistente.
+     */
+    public static function toggleBlock(int $studentId, int $courseId, int $tenantId): ?bool
+    {
+        $pdo = Database::pdo();
+
+        // Lê estado atual com ownership check no SELECT
+        $stmt = $pdo->prepare(
+            'SELECT e.blocked_at
+               FROM enrollments e
+               JOIN users   u ON u.id = e.student_user_id
+               JOIN courses c ON c.id = e.course_id
+              WHERE e.student_user_id = ?
+                AND e.course_id = ?
+                AND u.tenant_id = ?
+                AND c.tenant_id = ?
+                AND u.role = "student"
+              LIMIT 1'
+        );
+        $stmt->execute([$studentId, $courseId, $tenantId, $tenantId]);
+        $current = $stmt->fetchColumn();
+        if ($current === false) {
+            return null;
+        }
+
+        $newValue = $current === null ? date('Y-m-d H:i:s') : null;
+        $update = $pdo->prepare(
+            'UPDATE enrollments e
+                JOIN users   u ON u.id = e.student_user_id
+                JOIN courses c ON c.id = e.course_id
+                SET e.blocked_at = ?
+              WHERE e.student_user_id = ?
+                AND e.course_id = ?
+                AND u.tenant_id = ?
+                AND c.tenant_id = ?'
+        );
+        $update->execute([$newValue, $studentId, $courseId, $tenantId, $tenantId]);
+
+        return $newValue !== null;
+    }
+
+    /**
+     * Remove matrícula com confirmação por digitação (E17-02). Valida que o
+     * `expectedEmail` bate com o email do aluno antes do DELETE — padrão E3-05.
+     * NÃO apaga `xp_events` daquele curso (preserva histórico).
+     *
+     * @return string 'ok' | 'not_found' | 'email_mismatch'
+     */
+    public static function deleteWithConfirm(
+        int $studentId,
+        int $courseId,
+        int $tenantId,
+        string $expectedEmail
+    ): string {
+        $pdo = Database::pdo();
+
+        // Lookup do email com ownership check
+        $stmt = $pdo->prepare(
+            'SELECT u.email
+               FROM enrollments e
+               JOIN users   u ON u.id = e.student_user_id
+               JOIN courses c ON c.id = e.course_id
+              WHERE e.student_user_id = ?
+                AND e.course_id = ?
+                AND u.tenant_id = ?
+                AND c.tenant_id = ?
+                AND u.role = "student"
+              LIMIT 1'
+        );
+        $stmt->execute([$studentId, $courseId, $tenantId, $tenantId]);
+        $email = $stmt->fetchColumn();
+        if ($email === false) {
+            return 'not_found';
+        }
+        if ((string) $email !== $expectedEmail) {
+            return 'email_mismatch';
+        }
+
+        // DELETE limpo — `xp_events.course_id` permanece intacto (FK não cascateia
+        // via enrollment; cascade vem por user/course em outras hipóteses).
+        $del = $pdo->prepare(
+            'DELETE e FROM enrollments e
+               JOIN users   u ON u.id = e.student_user_id
+               JOIN courses c ON c.id = e.course_id
+              WHERE e.student_user_id = ?
+                AND e.course_id = ?
+                AND u.tenant_id = ?
+                AND c.tenant_id = ?'
+        );
+        $del->execute([$studentId, $courseId, $tenantId, $tenantId]);
 
         return 'ok';
     }
