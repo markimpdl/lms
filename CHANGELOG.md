@@ -4,6 +4,53 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.16.0] — 2026-04-25
+
+Décima sexta release. Escopo: **Epic E21 inteiro — Notificações configuráveis pelo professor** (4 stories) + 1 fix de bug visual reportado em smoke. Adiciona controle por tenant sobre quais eventos disparam sino e/ou email pros alunos. Reduz ruído em turmas grandes e prepara terreno pro Quiz (E20) que vai adicionar mais eventos ao catálogo.
+
+### Novas funcionalidades
+
+#### Epic E21 — Notificações configuráveis
+
+- **Schema + helper `notification_enabled`** (E21-01, #243): tabela nova `notification_settings(tenant_id, event, channel, enabled, updated_at)` com PK composta + FK CASCADE. Linha ausente = enabled (default ON preserva comportamento atual). Helper `notification_enabled(int $tenantId, string $event, string $channel): bool` em `helpers.php` com cache estático por request por chave composta `tenantId:event:channel` — evita N queries em loops (bulk enrollment, broadcast). Defensivo: tenant_id <= 0 → true; Throwable → true. Sem seed (catálogo de eventos vive em código).
+- **Integração no `NotificationService::fanout`** (E21-02, #244): plumbing do gate dentro do ponto único de dispatch. `resolveTenantId(userIds)` privado lê tenant da 1ª recipient (alunos exclusivos do tenant — ADR-026). Gate sino: pula INSERT em `notifications` se desligado. Gate email: pula loop de envio se desligado. Constantes públicas novas `NotificationService::EVENTS` (whitelist dos 8 eventos do F9) e `NotificationService::CHANNELS` (`['bell','email']`) usadas pela página de config. ~3 queries extras por fanout (resolve tenant + 2 helpers cached) — aceitável.
+- **Página `/teacher/settings/notifications`** (E21-03, #245): rota nova com matriz 8 eventos × 2 canais = 16 toggles. Modelo `NotificationSetting` com `getAllForTenant` (defaults ON pra eventos sem row) + `saveBulk` (REPLACE INTO bulk pra rastrear `updated_at`). POST com CSRF + ownership via `current_tenant_id()` + iteração sobre whitelist pra construir payload completo. Link "Configurar notificações" na `/teacher/settings` existente. 15 chaves PT/EN (5 UI + 2 canais + 8 eventos).
+- **Polish: constantes nomeadas + migração dos 8 callsites** (E21-04, #246): `NotificationService` ganha 8 constantes públicas `EVENT_*` (`EVENT_ENROLLMENT`, `EVENT_ACTIVITY_NEW`, etc.). Array `EVENTS` agora referencia `self::EVENT_*` (fonte única de verdade). Os 8 callsites do fanout migrados de string literal pra constante — typo prevention pra E20 (Quiz vai adicionar eventos novos). Sem mudança comportamental — strings idênticas.
+
+### Correções
+
+- **Render duplo causando toggle off ignorado** (#251): página `/teacher/settings/notifications` (E21-03) renderizava 2 sets de inputs (desktop tabela + mobile cards) com `name` igual. `display:none` NÃO desabilita inputs do form — ambos eram submetidos. Mobile (oculto em desktop) ficava com estado inicial `checked=ON` e o usuário não conseguia interagir, mas o input continuava no DOM submetendo. Resultado: desmarcar tudo em desktop + salvar + recarregar → tudo voltava marcado. Fix: render único via CSS Grid responsivo (3 colunas em desktop, 1 coluna empilhada em mobile com labels inline). CSS scoped em `.lms-notif-matrix` em `app.css`. **Lição consolidada**: nunca renderizar 2 sets de inputs com `name` igual em form HTML, mesmo que um esteja oculto por CSS — usar 1 set + CSS responsivo.
+
+### Mudanças internas / Tooling
+
+- **`package.json`** bumpado para 0.16.0.
+
+### Convenções consolidadas nesta janela
+
+- **Gate event-driven em ponto único** — quando todos os callsites passam por 1 service method (como `NotificationService::fanout`), gatear lá em vez de em cada call. 1 ponto de mudança vs N → menor superfície de bug, callsites preservados.
+- **Constantes nomeadas pra eventos string-based** — quando há catálogo fixo de "tipos" passados como string, criar `EVENT_*` constants e referenciar do array de whitelist. Previne typo silencioso (string com erro = helper retorna default e parece funcionar).
+- **REPLACE INTO pra upsert com `updated_at`** — quando o objetivo é "salvar o estado completo" e rastrear última alteração, REPLACE INTO é mais limpo que `INSERT ... ON DUPLICATE KEY UPDATE` (atualiza `updated_at` sempre, não só em mudança real).
+- **Default ON via linha ausente** — em config tipo "feature flag por tenant", inicializar a tabela vazia + helper retorna `true` quando sem row mantém comportamento legado intacto. Sem necessidade de seed por tenant.
+- **NUNCA dual-render de form inputs com mesmo `name`** — `display:none` não impede submission. Render único + CSS responsivo.
+
+### Pendências de schema
+
+**Aplicar antes de smoke em prod (já feito conforme confirmação do PO):**
+
+```sql
+-- E21-01: notification_settings
+-- (já em install/schema.sql — rodar o arquivo inteiro absorve via
+-- CREATE TABLE IF NOT EXISTS)
+```
+
+### Pendências (herdadas, ainda abertas)
+
+- **`JUDGE0_KEY` em prod**: endpoint responde 503 amigável até o PO configurar.
+- **C# sem syntax highlight no CodeMirror 6** — plain text funciona; nice-to-have futuro.
+- **Cross-tenant smoke** ainda parcial — só 1 tenant em prod.
+
+[0.16.0]: https://github.com/markimpdl/lms/releases/tag/v0.16.0
+
 ## [0.15.0] — 2026-04-25
 
 Décima quinta release. Escopo: **Epic E18 inteiro — Conquistas (medalhas)** (7 stories). Adiciona um sistema de conquistas paralelo ao XP — 57 medalhas em 8 famílias, desbloqueio event-driven via hooks nos 9 pontos de origem, recompute defensivo on-demand, tela `/student/achievements` com grid responsivo + card no ProfileSidebar do aluno.
