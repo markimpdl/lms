@@ -8,6 +8,11 @@ declare(strict_types=1);
  *
  * Auth + role pelo front controller. Tenant via `current_tenant_id()`.
  * Submit POST persiste 16 rows via REPLACE INTO (NotificationSetting::saveBulk).
+ *
+ * Render único com CSS Grid: desktop usa 3 colunas (label / sino / email);
+ * mobile (<768px) empilha em 1 coluna. NUNCA renderizar 2 sets de inputs
+ * com `name` igual — checkbox oculto por `display:none` ainda submete o
+ * estado inicial e ignora a interação do usuário no set visível.
  */
 
 $tenantId = current_tenant_id();
@@ -57,75 +62,53 @@ ob_start();
         <form method="POST" action="/teacher/settings/notifications" class="card card-body shadow-sm" novalidate>
             <?= csrf_field() ?>
 
-            <!-- Desktop: tabela -->
-            <div class="table-responsive d-none d-md-block">
-                <table class="table align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th><?= e(__t('notifications.settings.event_col')) ?></th>
-                            <th class="text-center" style="width: 110px;">
-                                <?= e(__t('notification.channel.bell')) ?>
-                            </th>
-                            <th class="text-center" style="width: 110px;">
-                                <?= e(__t('notification.channel.email')) ?>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach (NotificationService::EVENTS as $event): ?>
-                            <tr>
-                                <td><?= e(__t('notification.event.' . $event)) ?></td>
-                                <td class="text-center">
-                                    <input type="checkbox"
-                                           name="notifications[<?= e($event) ?>][bell]"
-                                           value="1"
-                                           class="form-check-input"
-                                           aria-label="<?= e(__t('notification.event.' . $event)) ?> · <?= e(__t('notification.channel.bell')) ?>"
-                                           <?= $settings[$event]['bell'] ? 'checked' : '' ?>>
-                                </td>
-                                <td class="text-center">
-                                    <input type="checkbox"
-                                           name="notifications[<?= e($event) ?>][email]"
-                                           value="1"
-                                           class="form-check-input"
-                                           aria-label="<?= e(__t('notification.event.' . $event)) ?> · <?= e(__t('notification.channel.email')) ?>"
-                                           <?= $settings[$event]['email'] ? 'checked' : '' ?>>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
+            <div class="lms-notif-matrix">
+                <div class="lms-notif-matrix__header">
+                    <span class="lms-notif-matrix__col-event">
+                        <?= e(__t('notifications.settings.event_col')) ?>
+                    </span>
+                    <span class="lms-notif-matrix__col-channel">
+                        <?= e(__t('notification.channel.bell')) ?>
+                    </span>
+                    <span class="lms-notif-matrix__col-channel">
+                        <?= e(__t('notification.channel.email')) ?>
+                    </span>
+                </div>
 
-            <!-- Mobile: cards empilhados -->
-            <div class="d-md-none">
                 <?php foreach (NotificationService::EVENTS as $event): ?>
-                    <div class="border rounded p-3 mb-2">
-                        <div class="fw-semibold mb-2"><?= e(__t('notification.event.' . $event)) ?></div>
-                        <div class="d-flex gap-3">
-                            <div class="form-check">
-                                <input type="checkbox"
-                                       name="notifications[<?= e($event) ?>][bell]"
-                                       value="1"
-                                       id="m_<?= e($event) ?>_bell"
-                                       class="form-check-input"
-                                       <?= $settings[$event]['bell'] ? 'checked' : '' ?>>
-                                <label class="form-check-label" for="m_<?= e($event) ?>_bell">
-                                    <?= e(__t('notification.channel.bell')) ?>
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox"
-                                       name="notifications[<?= e($event) ?>][email]"
-                                       value="1"
-                                       id="m_<?= e($event) ?>_email"
-                                       class="form-check-input"
-                                       <?= $settings[$event]['email'] ? 'checked' : '' ?>>
-                                <label class="form-check-label" for="m_<?= e($event) ?>_email">
-                                    <?= e(__t('notification.channel.email')) ?>
-                                </label>
-                            </div>
-                        </div>
+                    <?php
+                        $bellChecked  = $settings[$event]['bell'];
+                        $emailChecked = $settings[$event]['email'];
+                        $bellId       = 'notif_' . $event . '_bell';
+                        $emailId      = 'notif_' . $event . '_email';
+                        $eventLabel   = __t('notification.event.' . $event);
+                    ?>
+                    <div class="lms-notif-matrix__row">
+                        <div class="lms-notif-matrix__label"><?= e($eventLabel) ?></div>
+
+                        <label class="lms-notif-matrix__cell" for="<?= e($bellId) ?>">
+                            <span class="lms-notif-matrix__cell-label">
+                                <?= e(__t('notification.channel.bell')) ?>
+                            </span>
+                            <input type="checkbox"
+                                   id="<?= e($bellId) ?>"
+                                   name="notifications[<?= e($event) ?>][bell]"
+                                   value="1"
+                                   class="form-check-input"
+                                   <?= $bellChecked ? 'checked' : '' ?>>
+                        </label>
+
+                        <label class="lms-notif-matrix__cell" for="<?= e($emailId) ?>">
+                            <span class="lms-notif-matrix__cell-label">
+                                <?= e(__t('notification.channel.email')) ?>
+                            </span>
+                            <input type="checkbox"
+                                   id="<?= e($emailId) ?>"
+                                   name="notifications[<?= e($event) ?>][email]"
+                                   value="1"
+                                   class="form-check-input"
+                                   <?= $emailChecked ? 'checked' : '' ?>>
+                        </label>
                     </div>
                 <?php endforeach; ?>
             </div>
