@@ -183,7 +183,7 @@ CREATE TABLE IF NOT EXISTS activities (
     competence_unit_id    BIGINT UNSIGNED NOT NULL,
     title                 VARCHAR(200) NOT NULL,
     instruction           MEDIUMTEXT NOT NULL,
-    type                  ENUM('projeto','codigo') NOT NULL,
+    type                  ENUM('projeto','codigo','quiz') NOT NULL,
     code_language         ENUM('python','csharp','javascript','html') NULL,
     xp_value              INT UNSIGNED NOT NULL DEFAULT 0,
     submission_open       TINYINT(1) NOT NULL DEFAULT 1,
@@ -206,6 +206,7 @@ CREATE TABLE IF NOT EXISTS activity_submissions (
     filename        VARCHAR(255) NULL,
     stored_path     VARCHAR(500) NULL,
     code_text       MEDIUMTEXT NULL,
+    quiz_snapshot   JSON NULL DEFAULT NULL,
     feedback        TEXT NULL,
     feedback_at     DATETIME NULL DEFAULT NULL,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -227,6 +228,7 @@ CREATE TABLE IF NOT EXISTS evaluations (
     competence_unit_id  BIGINT UNSIGNED NOT NULL,
     title               VARCHAR(200) NOT NULL,
     instructions        TEXT NULL,
+    type                ENUM('projeto','quiz') NOT NULL DEFAULT 'projeto',
     pdf_path            VARCHAR(500) NULL,
     xp_value            INT UNSIGNED NOT NULL DEFAULT 0,
     submission_open     TINYINT(1) NOT NULL DEFAULT 1,
@@ -251,6 +253,7 @@ CREATE TABLE IF NOT EXISTS evaluation_submissions (
     attempt         INT UNSIGNED NOT NULL DEFAULT 1,
     filename        VARCHAR(255) NULL,
     stored_path     VARCHAR(500) NULL,
+    quiz_snapshot   JSON NULL DEFAULT NULL,
     grade           DECIMAL(3,1) NULL,
     feedback        TEXT NULL,
     feedback_at     DATETIME NULL DEFAULT NULL,
@@ -465,6 +468,51 @@ CREATE TABLE IF NOT EXISTS notification_settings (
     updated_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (tenant_id, event, channel),
     CONSTRAINT fk_ns_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- 20. quizzes + quiz_questions + quiz_options (E20-01)
+-- Quiz polimórfico (1:1 com activity OU evaluation via owner_type+owner_id).
+-- Múltipla escolha, 1 correta por questão (MVP). Pesos DECIMAL(4,2)
+-- somam exatamente 10.00 (validação no app, ver TeacherQuizController).
+-- show_answers controla se aluno vê gabarito após submeter (E20-05).
+-- Spec: doc/15-roadmap-pos-mvp.md F8.
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS quizzes (
+    id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tenant_id     BIGINT UNSIGNED NOT NULL,
+    owner_type    ENUM('activity','evaluation') NOT NULL,
+    owner_id      BIGINT UNSIGNED NOT NULL,
+    show_answers  TINYINT(1)      NOT NULL DEFAULT 0,
+    created_at    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_quiz_owner (owner_type, owner_id),
+    KEY idx_quiz_tenant (tenant_id),
+    CONSTRAINT fk_quiz_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS quiz_questions (
+    id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    quiz_id     BIGINT UNSIGNED NOT NULL,
+    text        TEXT            NOT NULL,
+    weight      DECIMAL(4,2)    NOT NULL,
+    position    INT UNSIGNED    NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    KEY idx_qq_quiz (quiz_id, position),
+    CONSTRAINT fk_qq_quiz FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE,
+    CONSTRAINT chk_qq_weight CHECK (weight >= 0 AND weight <= 10)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS quiz_options (
+    id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    question_id BIGINT UNSIGNED NOT NULL,
+    text        VARCHAR(500)    NOT NULL,
+    is_correct  TINYINT(1)      NOT NULL DEFAULT 0,
+    position    INT UNSIGNED    NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    KEY idx_qo_question (question_id, position),
+    CONSTRAINT fk_qo_question FOREIGN KEY (question_id) REFERENCES quiz_questions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -1052,6 +1100,57 @@ SET @col_exists := (
 );
 SET @sql := IF(@col_exists = 0,
     'ALTER TABLE courses ADD COLUMN eval_after_activities TINYINT(1) NOT NULL DEFAULT 1 AFTER activity_mode',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E20-01] Quiz: 4 ALTERs idempotentes pra bases legadas.
+-- (1) activities.type ENUM expandido pra incluir 'quiz'.
+-- MODIFY COLUMN sem checagem prévia é idempotente — o ENUM final é o
+-- mesmo, MySQL não dá erro se o set já contém os valores.
+ALTER TABLE activities
+    MODIFY COLUMN type ENUM('projeto','codigo','quiz') NOT NULL;
+
+-- (2) evaluations.type — coluna nova com default 'projeto'. Cobre cursos
+-- legados sem precisar de backfill (toda avaliação existente é de projeto).
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'evaluations'
+       AND COLUMN_NAME  = 'type'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE evaluations ADD COLUMN type ENUM('projeto','quiz') NOT NULL DEFAULT 'projeto' AFTER instructions",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- (3) activity_submissions.quiz_snapshot — JSON write-once gravado no submit
+-- pra preservar visão do quiz mesmo se professor editar depois.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'activity_submissions'
+       AND COLUMN_NAME  = 'quiz_snapshot'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE activity_submissions ADD COLUMN quiz_snapshot JSON NULL DEFAULT NULL AFTER code_text",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- (4) evaluation_submissions.quiz_snapshot — idem.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'evaluation_submissions'
+       AND COLUMN_NAME  = 'quiz_snapshot'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE evaluation_submissions ADD COLUMN quiz_snapshot JSON NULL DEFAULT NULL AFTER stored_path",
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
