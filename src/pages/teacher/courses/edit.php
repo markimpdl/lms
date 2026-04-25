@@ -25,10 +25,13 @@ $isArchived = (int) $course['archived'] === 1;
 
 $errors = [];
 $old = [
-    'name'        => (string) $course['name'],
-    'description' => (string) ($course['description'] ?? ''),
-    'year'        => (int)    $course['year'],
-    'language'    => (string) $course['language'],
+    'name'                  => (string) $course['name'],
+    'description'           => (string) ($course['description'] ?? ''),
+    'year'                  => (int)    $course['year'],
+    'language'              => (string) $course['language'],
+    'cc_mode'               => (string) ($course['cc_mode'] ?? 'sequential'),
+    'activity_mode'         => (string) ($course['activity_mode'] ?? 'sequential'),
+    'eval_after_activities' => (int)    ($course['eval_after_activities'] ?? 1),
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isArchived) {
@@ -41,10 +44,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isArchived) {
     }
 
     $old = [
-        'name'        => (string) ($_POST['name']        ?? ''),
-        'description' => (string) ($_POST['description'] ?? ''),
-        'year'        => (int)    ($_POST['year']        ?? 0),
-        'language'    => (string) ($_POST['language']    ?? 'pt'),
+        'name'                  => (string) ($_POST['name']        ?? ''),
+        'description'           => (string) ($_POST['description'] ?? ''),
+        'year'                  => (int)    ($_POST['year']        ?? 0),
+        'language'              => (string) ($_POST['language']    ?? 'pt'),
+        'cc_mode'               => (string) ($_POST['cc_mode']      ?? 'sequential'),
+        'activity_mode'         => (string) ($_POST['activity_mode'] ?? 'sequential'),
+        'eval_after_activities' => !empty($_POST['eval_after_activities']) ? 1 : 0,
     ];
 
     $errors = TeacherCoursesController::update($courseId, $old);
@@ -139,6 +145,8 @@ ob_start();
                         </select>
                     </div>
                 </div>
+
+                <?php require LMS_ROOT . '/src/templates/partials/course_progression_fields.php'; ?>
             </fieldset>
 
             <div class="d-flex flex-wrap gap-2">

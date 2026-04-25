@@ -25,6 +25,12 @@ final class TeacherCoursesController
         $year        = (int)          ($input['year']        ?? 0);
         $language    = (string)       ($input['language']    ?? 'pt');
 
+        // E19-01: 3 modos de progressao. Defaults sequenciais — alinha com
+        // schema. Whitelist estrita rejeita valores fora dos ENUMs.
+        $ccMode       = (string) ($input['cc_mode']       ?? 'sequential');
+        $activityMode = (string) ($input['activity_mode'] ?? 'sequential');
+        $evalAfter    = !empty($input['eval_after_activities']) ? 1 : 0;
+
         $errors = [];
         if (mb_strlen($name) < 3 || mb_strlen($name) > 150) {
             $errors['name'] = 'courses.form.err.name';
@@ -38,14 +44,23 @@ final class TeacherCoursesController
         if ($language !== 'pt' && $language !== 'en') {
             $errors['language'] = 'courses.form.err.language';
         }
+        if ($ccMode !== 'sequential' && $ccMode !== 'free') {
+            $errors['cc_mode'] = 'courses.form.err.cc_mode';
+        }
+        if ($activityMode !== 'sequential' && $activityMode !== 'free') {
+            $errors['activity_mode'] = 'courses.form.err.activity_mode';
+        }
 
         return [
             'errors' => $errors,
             'data'   => [
-                'name'        => $name,
-                'description' => $description,
-                'year'        => $year,
-                'language'    => $language,
+                'name'                  => $name,
+                'description'           => $description,
+                'year'                  => $year,
+                'language'              => $language,
+                'cc_mode'               => $ccMode,
+                'activity_mode'         => $activityMode,
+                'eval_after_activities' => $evalAfter,
             ],
         ];
     }

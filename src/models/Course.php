@@ -149,12 +149,14 @@ final class Course
     }
 
     /**
-     * @param array{name:string, description:?string, year:int, language:string} $data
+     * @param array{name:string, description:?string, year:int, language:string, cc_mode:string, activity_mode:string, eval_after_activities:int} $data
      */
     public static function create(int $tenantId, array $data): int
     {
         $stmt = Database::pdo()->prepare(
-            'INSERT INTO courses (tenant_id, name, description, year, language) VALUES (?, ?, ?, ?, ?)'
+            'INSERT INTO courses
+                (tenant_id, name, description, year, language, cc_mode, activity_mode, eval_after_activities)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $tenantId,
@@ -162,17 +164,22 @@ final class Course
             $data['description'] !== '' ? $data['description'] : null,
             $data['year'],
             $data['language'],
+            $data['cc_mode'],
+            $data['activity_mode'],
+            $data['eval_after_activities'],
         ]);
         return (int) Database::pdo()->lastInsertId();
     }
 
     /**
-     * @param array{name:string, description:?string, year:int, language:string} $data
+     * @param array{name:string, description:?string, year:int, language:string, cc_mode:string, activity_mode:string, eval_after_activities:int} $data
      */
     public static function update(int $courseId, int $tenantId, array $data): bool
     {
         $stmt = Database::pdo()->prepare(
-            'UPDATE courses SET name = ?, description = ?, year = ?, language = ?
+            'UPDATE courses SET
+                name = ?, description = ?, year = ?, language = ?,
+                cc_mode = ?, activity_mode = ?, eval_after_activities = ?
               WHERE id = ? AND tenant_id = ?'
         );
         $stmt->execute([
@@ -180,6 +187,9 @@ final class Course
             $data['description'] !== '' ? $data['description'] : null,
             $data['year'],
             $data['language'],
+            $data['cc_mode'],
+            $data['activity_mode'],
+            $data['eval_after_activities'],
             $courseId,
             $tenantId,
         ]);
