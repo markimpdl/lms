@@ -113,7 +113,7 @@ final class Content
         $userIds = array_map(static fn ($r) => (int) $r['student_user_id'], $rows);
 
         NotificationService::fanout(
-            'content_published',
+            NotificationService::EVENT_CONTENT_PUBLISHED,
             $userIds,
             (string) $rows[0]['cu_name'],
             (string) $rows[0]['course_name'],

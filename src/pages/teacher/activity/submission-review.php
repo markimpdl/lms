@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // curso ao retorno quando o email for cabeado, pra resolver o
         // idioma via `courses.language`.
         NotificationService::fanout(
-            'activity_feedback',
+            NotificationService::EVENT_ACTIVITY_FEEDBACK,
             [$studentId],
             (string) $activity['title'],
             __t('submissions.teacher.notification_body'),

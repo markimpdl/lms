@@ -119,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $studentIds = Enrollment::activeStudentIdsForCourse($courseId, $tenantId);
             if ($studentIds !== []) {
                 NotificationService::fanout(
-                    'new_evaluation',
+                    NotificationService::EVENT_NEW_EVALUATION,
                     $studentIds,
                     $old['title'],
                     null,

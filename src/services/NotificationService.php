@@ -27,21 +27,35 @@ final class NotificationService
     private const FAILURE_LOG = '/storage/logs/mail-failures.log';
 
     /**
-     * Catálogo de eventos do F9 (E21). Whitelist usada pela página de
-     * config (`/teacher/settings/notifications` em E21-03) pra renderizar
-     * a matriz e validar o submit. O `fanout` NÃO valida contra essa
-     * lista — eventos novos podem ser disparados sem cadastro prévio (a
-     * config simplesmente não terá toggle e o helper retornará default ON).
+     * Constantes nomeadas pros 8 eventos do F9 (E21). Callsites devem usar
+     * essas constantes em vez de string literal pra prevenir typos —
+     * particularmente ao adicionar eventos novos (Quiz E20, etc.).
+     */
+    public const EVENT_ENROLLMENT        = 'enrollment';
+    public const EVENT_ACTIVITY_NEW      = 'activity_new';
+    public const EVENT_SUBMISSION_CLOSED = 'submission_closed';
+    public const EVENT_ACTIVITY_FEEDBACK = 'activity_feedback';
+    public const EVENT_NEW_EVALUATION    = 'new_evaluation';
+    public const EVENT_GRADE_EVALUATION  = 'grade_evaluation';
+    public const EVENT_RETRY_ENABLED     = 'retry_enabled';
+    public const EVENT_CONTENT_PUBLISHED = 'content_published';
+
+    /**
+     * Whitelist usada pela página de config (`/teacher/settings/notifications`
+     * em E21-03) pra renderizar a matriz e validar o submit. O `fanout`
+     * NÃO valida contra essa lista — eventos novos podem ser disparados
+     * sem cadastro prévio (a config simplesmente não terá toggle e o
+     * helper retornará default ON).
      */
     public const EVENTS = [
-        'enrollment',
-        'activity_new',
-        'submission_closed',
-        'activity_feedback',
-        'new_evaluation',
-        'grade_evaluation',
-        'retry_enabled',
-        'content_published',
+        self::EVENT_ENROLLMENT,
+        self::EVENT_ACTIVITY_NEW,
+        self::EVENT_SUBMISSION_CLOSED,
+        self::EVENT_ACTIVITY_FEEDBACK,
+        self::EVENT_NEW_EVALUATION,
+        self::EVENT_GRADE_EVALUATION,
+        self::EVENT_RETRY_ENABLED,
+        self::EVENT_CONTENT_PUBLISHED,
     ];
 
     public const CHANNELS = ['bell', 'email'];

@@ -141,7 +141,7 @@ final class TeacherEnrollmentsController
             return;
         }
         NotificationService::fanout(
-            'enrollment',
+            NotificationService::EVENT_ENROLLMENT,
             [$studentId],
             (string) $course['name'],
             null,
