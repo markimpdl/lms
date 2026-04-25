@@ -2074,3 +2074,26 @@ body.lms-student-area .lms-quiz-question__num {
 body.lms-student-area .lms-quiz-question__text {
     color: var(--lms-neutral-900);
 }
+
+/* Quiz mobile fine-tuning (E20-07): em <576px o numero da questao + texto
+   ficam mais apertados. Garante legibilidade em 360px. */
+@media (max-width: 575.98px) {
+    body.lms-student-area .lms-quiz-question {
+        margin-bottom: 1.5rem;
+    }
+    body.lms-student-area .lms-quiz-question__num {
+        font-size: 1.1rem;
+    }
+    body.lms-student-area .lms-quiz-question__text {
+        font-size: 0.95rem;
+        line-height: 1.4;
+    }
+    body.lms-student-area .lms-quiz-option {
+        padding: 10px 12px;
+    }
+    body.lms-student-area .lms-quiz-option__badge {
+        display: inline-flex;
+        margin-top: 4px;
+        margin-left: 0;
+    }
+}

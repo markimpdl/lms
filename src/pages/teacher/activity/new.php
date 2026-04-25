@@ -93,6 +93,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
         if (is_int($result)) {
+            // E20-07: type=quiz redireciona pro form do quiz e NÃO dispara
+            // fanout activity_new aqui — atividade-quiz sem questões é
+            // inutilizável pro aluno; fanout fica diferido (não automatizado
+            // ainda) até o professor configurar o quiz.
+            if ($old['type'] === 'quiz') {
+                flash('success', __t('activities.quiz_created', ['name' => $old['title']]));
+                header('Location: /teacher/activity/' . $result . '/quiz', true, 303);
+                return;
+            }
+
             // Fanout `activity_new` (E10-05) — só sino, sem email (decisão do
             // PO 2026-04-24: email de atividade nova gera ruído). Dispara só
             // quando a entrega já nasce aberta; em submission_open=0 a atividade

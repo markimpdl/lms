@@ -439,6 +439,9 @@ return [
     'activities.type.projeto'          => 'Project',
     'activities.type.codigo'           => 'Code',
     'activities.type.quiz'             => 'Quiz (multiple choice)',
+    'activities.quiz_created'          => 'Activity ":name" created. Add questions below.',
+    'activities.form.quiz_hint'        => 'This is a Quiz-type activity.',
+    'activities.form.quiz_edit_btn'    => 'Edit questions',
 
     // Activity listing + controls (E6-02)
     'activities.section.title'         => 'Activities',
