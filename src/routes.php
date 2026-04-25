@@ -202,6 +202,11 @@ return [
             'role'   => 'teacher',
             'params' => ['id'],
         ],
+        '#^/teacher/activity/(\d+)/quiz$#' => [
+            'file'   => '/src/pages/teacher/activity/quiz.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
         '#^/teacher/activity/(\d+)/submission/(\d+)$#' => [
             'file'   => '/src/pages/teacher/activity/submission-review.php',
             'role'   => 'teacher',
@@ -224,6 +229,11 @@ return [
         ],
         '#^/teacher/evaluation/(\d+)/delete$#' => [
             'file'   => '/src/pages/teacher/evaluation/delete.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/evaluation/(\d+)/quiz$#' => [
+            'file'   => '/src/pages/teacher/evaluation/quiz.php',
             'role'   => 'teacher',
             'params' => ['id'],
         ],

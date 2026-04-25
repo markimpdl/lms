@@ -11,7 +11,7 @@ declare(strict_types=1);
  */
 final class Activity
 {
-    public const TYPES = ['projeto', 'codigo'];
+    public const TYPES = ['projeto', 'codigo', 'quiz'];
 
     /** Linguagens suportadas pra atividades tipo `codigo` (E8-00). NULL em
      *  atividades legacy ou quando o professor ainda não configurou. */

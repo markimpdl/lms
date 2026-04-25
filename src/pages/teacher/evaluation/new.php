@@ -40,6 +40,7 @@ if ($existing !== null) {
 $old = [
     'title'           => '',
     'instructions'    => '',
+    'type'            => 'projeto',
     'xp_value'        => 0,
     'submission_open' => true,
 ];
@@ -57,6 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old = [
         'title'           => trim((string) ($_POST['title']        ?? '')),
         'instructions'    => (string)       ($_POST['instructions'] ?? ''),
+        'type'            => (string)       ($_POST['type']         ?? 'projeto'),
         'xp_value'        => (int)          ($_POST['xp_value']    ?? 0),
         'submission_open' => isset($_POST['submission_open']),
     ];
@@ -64,13 +66,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (mb_strlen($old['title']) < 3 || mb_strlen($old['title']) > 200) {
         $errors['title'] = 'evaluations.form.err.title';
     }
+    if (!in_array($old['type'], Evaluation::TYPES, true)) {
+        $errors['type'] = 'evaluations.form.err.type';
+    }
     if ($old['xp_value'] < 0 || $old['xp_value'] > 9999) {
         $errors['xp_value'] = 'evaluations.form.err.xp';
     }
 
+    // PDF obrigatório só pra type=projeto. Quiz não usa upload.
     $fileField = $_FILES['pdf'] ?? null;
     $hasUpload = is_array($fileField) && (int) ($fileField['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
-    if (!$hasUpload) {
+    if ($old['type'] === 'projeto' && !$hasUpload) {
         $errors['pdf'] = 'evaluations.form.err.pdf_required';
     }
 
@@ -79,6 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $create = Evaluation::create($cuId, $tenantId, [
             'title'           => $old['title'],
             'instructions'    => $clean,
+            'type'            => $old['type'],
             'pdf_path'        => null,
             'xp_value'        => $old['xp_value'],
             'submission_open' => $old['submission_open'],
@@ -103,6 +110,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $evaluationId = $create;
+
+        // Type=quiz: sem upload, redireciona pro form do quiz pra adicionar
+        // questões. Fanout new_evaluation só dispara após o quiz ser
+        // configurado (avaliação sem questão é inutilizável pro aluno).
+        if ($old['type'] === 'quiz') {
+            flash('success', __t('evaluations.quiz_created', ['name' => $old['title']]));
+            header('Location: /teacher/evaluation/' . $evaluationId . '/quiz', true, 303);
+            return;
+        }
+
         $upload = EvaluationBriefStorage::store($fileField, $evaluationId, $tenantId);
         if ($upload['status'] !== 'ok') {
             // Desfaz o INSERT — sem PDF a avaliação fica inválida na criação.
