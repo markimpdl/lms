@@ -20,6 +20,10 @@ Décima quinta release. Escopo: **Epic E18 inteiro — Conquistas (medalhas)** (
 - **Card "Conquistas" no ProfileSidebar** (E18-06, #232): bloco novo `.lms-achievements-block` entre `.lms-xp-block` e `.lms-ranking-block`. Helper `student_recent_achievements($studentId, $tenantId, $limit = 3)` em `helpers.php` (defensivo, engole Throwable). 3 miniaturas das últimas desbloqueadas (gradient indigo→pink) + CTA "Ver todas →" pra `/student/achievements`. Vagas restantes quando aluno tem < 3 → placeholder neutro (`bi-circle` cinza dashed-border). Quando 0 → texto "Comece a estudar pra desbloquear".
 - **Polish final** (E18-07, #233): subtitle motivacional separado do contador na tela. Contador agora é um chip destacado (gradient indigo→pink) no canto direito do header com números grandes + label "desbloqueadas". Empty state ganhou hint do POV do aluno. Cards com `line-clamp: 3` + `min-height: 54px` — evita overflow visual em nomes longos como "Concluiu 100 unidades de competência"; cards mantêm altura uniforme. Mobile <576px com padding/ícone (38px)/badge (22x22)/chip menores.
 
+### Correções
+
+- **`$tenantId` undefined em `/student/course/show.php`**: hook de `course_started` (E18-04) usava `$tenantId` sem ter extraído do `current_user()` — chamada caía no early-return do service silenciosamente. Conquista nunca desbloqueava. Pego pelo code-review automático antes da release.
+
 ### Mudanças internas / Tooling
 
 - **`package.json`** bumpado para 0.15.0.
