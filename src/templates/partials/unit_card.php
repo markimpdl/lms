@@ -2,14 +2,17 @@
 declare(strict_types=1);
 
 /**
- * Partial: UnitCard — card de CU dentro da grid de uma CC (E14-03).
+ * Partial: UnitCard — card de CU dentro da grid de uma CC (E14-03 + E19-02).
  *
  * Espera no escopo:
- *   $unit       array com id, name, workload_hours, xp_total
- *   $unitIndex  int — numeração 1..N dentro da CC (pra eyebrow "UNIT N")
- *   $studentId  int — pra calcular status
- *   $gradStart  string (hex) — gradient do ícone
- *   $gradEnd    string (hex)
+ *   $unit           array com id, name, workload_hours, xp_total
+ *   $unitIndex      int — numeração 1..N dentro da CC (pra eyebrow "UNIT N")
+ *   $studentId      int — pra calcular status real (in_progress/completed/etc)
+ *   $gradStart      string (hex) — gradient do ícone
+ *   $gradEnd        string (hex)
+ *   $cuStatus       string (E19-02) — 'current'|'next'|'completed'|'free'
+ *                   ('hidden' já foi filtrado pelo caller)
+ *   $cuLockedByName ?string (E19-02) — nome da CU atual; usado no overlay quando $cuStatus='next'
  */
 
 $cuId    = (int) ($unit['id'] ?? 0);
@@ -22,9 +25,24 @@ $status  = (string) $s['status'];
 $percent = (int)    $s['percent'];
 $statusClass = str_replace('_', '-', $status);
 
+$cuStatus       = (string) ($cuStatus ?? 'free');
+$cuLockedByName = $cuLockedByName ?? null;
+$isLocked       = $cuStatus === 'next';
+
+$cardClasses = 'lms-unit-card lms-unit-card--' . $statusClass;
+if ($isLocked) {
+    $cardClasses .= ' lms-unit-card--locked';
+}
+
 $iconGradient = sprintf('linear-gradient(135deg, %s, %s)', $gradStart, $gradEnd);
+
+// Tag dinâmica: <a> quando navegável, <div> quando bloqueada (não-clicável).
+$tag      = $isLocked ? 'div' : 'a';
+$openAttr = $isLocked
+    ? sprintf('class="%s"', e($cardClasses))
+    : sprintf('class="%s" href="/student/cu/%d"', e($cardClasses), $cuId);
 ?>
-<a class="lms-unit-card lms-unit-card--<?= e($statusClass) ?>" href="/student/cu/<?= (int) $cuId ?>">
+<<?= $tag ?> <?= $openAttr ?>>
     <div class="lms-unit-card__top">
         <div class="lms-unit-card__icon" style="background: <?= e($iconGradient) ?>;" aria-hidden="true">
             <?= (int) $unitIndex ?>
@@ -64,4 +82,10 @@ $iconGradient = sprintf('linear-gradient(135deg, %s, %s)', $gradStart, $gradEnd)
             <?php endif; ?>
         </span>
     </footer>
-</a>
+
+    <?php if ($isLocked): ?>
+        <div class="lms-unit-card__lock-overlay">
+            <?= e(__t('progression.next_locked', ['name' => (string) ($cuLockedByName ?? '')])) ?>
+        </div>
+    <?php endif; ?>
+</<?= $tag ?>>
