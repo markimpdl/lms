@@ -447,6 +447,23 @@ CREATE TABLE IF NOT EXISTS student_achievements (
     CONSTRAINT fk_sa_ach     FOREIGN KEY (achievement_id)   REFERENCES achievements(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ----------------------------------------------------------------------------
+-- 19. notification_settings (E21-01)
+-- Config por tenant: matriz evento × canal (8 eventos × 2 canais = 16 toggles).
+-- Default ON quando linha ausente — não popula seed; nova tabela pra tenant
+-- novo é vazia e o helper `notification_enabled` retorna true por default.
+-- Spec: doc/15-roadmap-pos-mvp.md F9.
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS notification_settings (
+    tenant_id   BIGINT UNSIGNED NOT NULL,
+    event       VARCHAR(40)     NOT NULL,            -- code do evento (whitelist em app)
+    channel     ENUM('bell','email') NOT NULL,
+    enabled     TINYINT(1)      NOT NULL DEFAULT 1,
+    updated_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (tenant_id, event, channel),
+    CONSTRAINT fk_ns_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ============================================================================
 -- SEEDS
 -- ============================================================================

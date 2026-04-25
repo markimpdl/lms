@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $evalLink = '/student/evaluation/' . $evaluationId;
 
             NotificationService::fanout(
-                'grade_evaluation',
+                NotificationService::EVENT_GRADE_EVALUATION,
                 [$studentId],
                 (string) $evaluation['title'],
                 null,
@@ -122,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ((int) $result['retry_effective'] === 1) {
                 NotificationService::fanout(
-                    'retry_enabled',
+                    NotificationService::EVENT_RETRY_ENABLED,
                     [$studentId],
                     (string) $evaluation['title'],
                     null,

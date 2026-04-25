@@ -27,6 +27,40 @@ final class NotificationService
     private const FAILURE_LOG = '/storage/logs/mail-failures.log';
 
     /**
+     * Constantes nomeadas pros 8 eventos do F9 (E21). Callsites devem usar
+     * essas constantes em vez de string literal pra prevenir typos —
+     * particularmente ao adicionar eventos novos (Quiz E20, etc.).
+     */
+    public const EVENT_ENROLLMENT        = 'enrollment';
+    public const EVENT_ACTIVITY_NEW      = 'activity_new';
+    public const EVENT_SUBMISSION_CLOSED = 'submission_closed';
+    public const EVENT_ACTIVITY_FEEDBACK = 'activity_feedback';
+    public const EVENT_NEW_EVALUATION    = 'new_evaluation';
+    public const EVENT_GRADE_EVALUATION  = 'grade_evaluation';
+    public const EVENT_RETRY_ENABLED     = 'retry_enabled';
+    public const EVENT_CONTENT_PUBLISHED = 'content_published';
+
+    /**
+     * Whitelist usada pela página de config (`/teacher/settings/notifications`
+     * em E21-03) pra renderizar a matriz e validar o submit. O `fanout`
+     * NÃO valida contra essa lista — eventos novos podem ser disparados
+     * sem cadastro prévio (a config simplesmente não terá toggle e o
+     * helper retornará default ON).
+     */
+    public const EVENTS = [
+        self::EVENT_ENROLLMENT,
+        self::EVENT_ACTIVITY_NEW,
+        self::EVENT_SUBMISSION_CLOSED,
+        self::EVENT_ACTIVITY_FEEDBACK,
+        self::EVENT_NEW_EVALUATION,
+        self::EVENT_GRADE_EVALUATION,
+        self::EVENT_RETRY_ENABLED,
+        self::EVENT_CONTENT_PUBLISHED,
+    ];
+
+    public const CHANNELS = ['bell', 'email'];
+
+    /**
      * Dispara notificação pra lista de destinatários. Lista vazia é no-op.
      *
      * @param list<int> $userIds
@@ -44,15 +78,33 @@ final class NotificationService
             return;
         }
 
-        // 1) Inserts de sino — sempre, dentro de transação.
-        Database::tx(function () use ($type, $userIds, $title, $body, $link): void {
-            foreach ($userIds as $uid) {
-                Notification::create((int) $uid, $type, $title, $body, $link);
-            }
-        });
+        // E21-02: gate por (tenant, event, channel). Resolve tenant da 1ª
+        // recipient (todos os destinatários de um fanout são alunos do
+        // mesmo tenant). null → sem gate (preserva comportamento atual).
+        $tenantId = self::resolveTenantId($userIds);
+
+        // 1) Inserts de sino — sempre, dentro de transação. Pula se gate
+        // do canal 'bell' está OFF pro tenant.
+        $bellEnabled = $tenantId === null
+            || notification_enabled($tenantId, $type, 'bell');
+
+        if ($bellEnabled) {
+            Database::tx(function () use ($type, $userIds, $title, $body, $link): void {
+                foreach ($userIds as $uid) {
+                    Notification::create((int) $uid, $type, $title, $body, $link);
+                }
+            });
+        }
 
         // 2) Email síncrono por destinatário. Falha de SMTP não re-throw.
         if (!$sendEmail) {
+            return;
+        }
+
+        // Gate por canal 'email'. Skip silencioso se OFF.
+        $emailEnabled = $tenantId === null
+            || notification_enabled($tenantId, $type, 'email');
+        if (!$emailEnabled) {
             return;
         }
 
@@ -131,6 +183,35 @@ final class NotificationService
         );
         $stmt->execute(array_map('intval', $userIds));
         return $stmt->fetchAll();
+    }
+
+    /**
+     * Resolve `tenant_id` pro gate de `notification_enabled` (E21-02).
+     * Lê do 1º userId da lista — alunos são exclusivos do tenant (ADR-026)
+     * e qualquer fanout dispara pra alunos do mesmo tenant que originou
+     * a ação. null = recipient não é aluno (caso degenerado) ou erro;
+     * caller trata como "sem gate" (default ON).
+     *
+     * @param list<int> $userIds
+     */
+    private static function resolveTenantId(array $userIds): ?int
+    {
+        if ($userIds === []) {
+            return null;
+        }
+        try {
+            $stmt = Database::pdo()->prepare(
+                'SELECT tenant_id FROM users WHERE id = ? LIMIT 1'
+            );
+            $stmt->execute([(int) $userIds[0]]);
+            $val = $stmt->fetchColumn();
+        } catch (\Throwable) {
+            return null;
+        }
+        if ($val === false || $val === null) {
+            return null;
+        }
+        return (int) $val;
     }
 
     /**
