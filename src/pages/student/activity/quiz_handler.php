@@ -64,11 +64,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$readOnly) {
         $grade    = QuizSubmissionService::calculateGrade($snapshot);
 
         try {
+            // Atividade-quiz e auto-corrigida: feedback_at=NOW() marca a
+            // submissao como ja-revisada (a propria nota e o feedback) — assim
+            // a UI nao mostra "aguardando correcao" pro aluno e o professor
+            // nao precisa abrir feedback form. ADR-027 diz "feedback_at IS NULL
+            // = aluno pode editar"; aqui forcamos NOW pra travar (auto-graded).
             Database::pdo()->prepare(
                 'INSERT INTO activity_submissions
                     (activity_id, student_user_id, filename, stored_path,
-                     code_text, quiz_snapshot)
-                 VALUES (?, ?, NULL, NULL, NULL, ?)'
+                     code_text, quiz_snapshot, feedback_at)
+                 VALUES (?, ?, NULL, NULL, NULL, ?, NOW())'
             )->execute([
                 $activityId,
                 $studentId,

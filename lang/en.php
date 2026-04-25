@@ -523,6 +523,7 @@ return [
     'quiz.teacher.approved_note'        => 'Student passed (grade ≥ 6.0). Cannot enable a new attempt.',
     'quiz.teacher.no_snapshot'          => 'Submission snapshot is not available.',
     'quiz.teacher.saved'                => 'Settings saved.',
+    'quiz.teacher.activity_no_feedback_note' => 'Quiz is auto-graded — there is no manual feedback step. The grade above is the feedback.',
     'evaluations.deleted'               => 'Evaluation ":name" deleted.',
     'evaluations.status.open'           => 'Submissions open',
     'evaluations.status.closed'         => 'Submissions closed',
