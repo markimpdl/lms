@@ -241,10 +241,13 @@ ob_start();
                             $startsLocal  = $rowStartsAt !== null ? str_replace(' ', 'T', substr((string) $rowStartsAt, 0, 16)) : '';
                             $endsLocal    = $rowEndsAt   !== null ? str_replace(' ', 'T', substr((string) $rowEndsAt,   0, 16)) : '';
                         ?>
+                        <?php $rowFullName = (string) $row['name']; ?>
                         <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
                             <div class="flex-grow-1">
-                                <a href="/teacher/students/<?= (int) $row['student_id'] ?>" class="fw-semibold text-decoration-none">
-                                    <?= e((string) $row['name']) ?>
+                                <a href="/teacher/students/<?= (int) $row['student_id'] ?>"
+                                   class="fw-semibold text-decoration-none"
+                                   title="<?= e($rowFullName) ?>">
+                                    <?= e(format_short_name($rowFullName)) ?>
                                 </a>
                                 <small class="text-muted ms-2 text-break"><?= e((string) $row['email']) ?></small>
                                 <?php if ((int) $row['active'] === 0): ?>
