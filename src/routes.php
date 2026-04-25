@@ -99,6 +99,11 @@ return [
             'role'   => 'teacher',
             'params' => ['id'],
         ],
+        '#^/teacher/courses/(\d+)/ranking$#' => [
+            'file'   => '/src/pages/teacher/ranking.php',
+            'role'   => 'teacher',
+            'params' => ['course_id'],
+        ],
         '#^/teacher/cc/(\d+)/rename$#' => [
             'file'   => '/src/pages/teacher/cc/rename.php',
             'role'   => 'teacher',
@@ -238,6 +243,11 @@ return [
             'file'   => '/src/pages/student/course/show.php',
             'role'   => 'student',
             'params' => ['id'],
+        ],
+        '#^/student/course/(\d+)/ranking$#' => [
+            'file'   => '/src/pages/student/ranking.php',
+            'role'   => 'student',
+            'params' => ['course_id'],
         ],
         '#^/student/activity/(\d+)$#' => [
             'file'   => '/src/pages/student/activity/show.php',

@@ -1036,4 +1036,11 @@ return [
     // Ranking — visão do professor (E9-05)
     'ranking.subtitle.teacher' => 'Acompanhe o engajamento dos alunos por janela, grupo e ano.',
     'ranking.col.last_event'   => 'Última entrega',
+
+    // Ranking — escopo por curso (E9-06)
+    'ranking.title.course'        => 'Ranking · :name',
+    'ranking.scope.course'        => 'RANKING DO CURSO',
+    'ranking.scope.tenant'        => 'RANKING DO TENANT',
+    'ranking.link.course_ranking' => 'Ranking do curso',
+    'ranking.back_to_course'      => '← Voltar ao curso',
 ];
