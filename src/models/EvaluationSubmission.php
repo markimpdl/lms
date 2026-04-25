@@ -26,7 +26,7 @@ final class EvaluationSubmission
     public static function findForStudentEvaluation(int $evaluationId, int $studentId): ?array
     {
         $stmt = Database::pdo()->prepare(
-            'SELECT e.id, e.tenant_id, e.title, e.instructions, e.pdf_path,
+            'SELECT e.id, e.tenant_id, e.title, e.instructions, e.type, e.pdf_path,
                     e.xp_value, e.submission_open,
                     cu.id AS cu_id, cu.name AS cu_name,
                     c.id  AS course_id, c.name AS course_name
@@ -46,7 +46,7 @@ final class EvaluationSubmission
         }
 
         $stmt = Database::pdo()->prepare(
-            'SELECT id, attempt, filename, stored_path, grade, feedback,
+            'SELECT id, attempt, filename, stored_path, quiz_snapshot, grade, feedback,
                     feedback_at, retry_allowed, is_current, created_at
                FROM evaluation_submissions
               WHERE evaluation_id = ? AND student_user_id = ? AND is_current = 1
@@ -97,7 +97,7 @@ final class EvaluationSubmission
     public static function findForGrading(int $evaluationId, int $studentId, int $tenantId): ?array
     {
         $stmt = Database::pdo()->prepare(
-            'SELECT e.id, e.tenant_id, e.title, e.instructions, e.pdf_path,
+            'SELECT e.id, e.tenant_id, e.title, e.instructions, e.type, e.pdf_path,
                     e.xp_value, e.submission_open,
                     cu.id AS cu_id, cu.name AS cu_name,
                     c.id  AS course_id, c.name AS course_name

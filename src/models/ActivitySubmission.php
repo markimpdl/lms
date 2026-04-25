@@ -45,8 +45,8 @@ final class ActivitySubmission
         }
 
         $stmt = Database::pdo()->prepare(
-            'SELECT id, filename, stored_path, code_text, feedback, feedback_at,
-                    created_at, updated_at
+            'SELECT id, filename, stored_path, code_text, quiz_snapshot,
+                    feedback, feedback_at, created_at, updated_at
                FROM activity_submissions
               WHERE activity_id = ? AND student_user_id = ?
               LIMIT 1'
