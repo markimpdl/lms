@@ -279,34 +279,97 @@ final class AuthController
     public static function requestPasswordReset(string $email): void
     {
         $pdo  = Database::pdo();
+        // E22-02: SEM LIMIT 1 — pode haver N rows quando aluno tem email
+        // replicado em múltiplos tenants (ADR-026 permite). Cada row vira
+        // um token próprio + entra como item na lista de cards do email.
         $stmt = $pdo->prepare(
-            'SELECT id, name, language, active FROM users WHERE email = ? LIMIT 1'
+            'SELECT id, name, language FROM users
+              WHERE email = ? AND active = 1'
         );
         $stmt->execute([$email]);
-        $user = $stmt->fetch();
-        if (!$user || (int) $user['active'] !== 1) {
+        $rows = $stmt->fetchAll();
+        if ($rows === []) {
             return;
         }
 
-        // Rate limit: 3 tokens por usuário por hora
-        $count = $pdo->prepare(
-            'SELECT COUNT(*) FROM password_resets
-              WHERE user_id = ? AND created_at > (NOW() - INTERVAL 1 HOUR)'
+        $accounts = [];
+        foreach ($rows as $user) {
+            $userId = (int) $user['id'];
+
+            // Rate limit: 3 tokens por usuário por hora. Skip individual.
+            $count = $pdo->prepare(
+                'SELECT COUNT(*) FROM password_resets
+                  WHERE user_id = ? AND created_at > (NOW() - INTERVAL 1 HOUR)'
+            );
+            $count->execute([$userId]);
+            if ((int) $count->fetchColumn() >= self::RESET_MAX_PER_HOUR) {
+                continue;
+            }
+
+            $token     = bin2hex(random_bytes(32));          // 64 chars hex
+            $tokenHash = hash('sha256', $token);
+
+            $pdo->prepare(
+                'INSERT INTO password_resets (user_id, token_hash, expires_at)
+                 VALUES (?, ?, DATE_ADD(NOW(), INTERVAL ? SECOND))'
+            )->execute([$userId, $tokenHash, self::RESET_TTL_SECONDS]);
+
+            $accounts[] = [
+                'user_id'  => $userId,
+                'name'     => (string) $user['name'],
+                'language' => (string) $user['language'],
+                'token'    => $token,
+            ];
+        }
+
+        if ($accounts === []) {
+            return; // todos rate-limited
+        }
+
+        // Enriquece com tenant_name + teacher_name pros cards do email (só quando há tenant — alunos).
+        $accounts = self::enrichResetAccountsWithTenant($accounts);
+
+        self::sendResetEmail($email, $accounts);
+    }
+
+    /**
+     * Pra cada account com tenant_id (alunos), busca tenant_name +
+     * teacher_name (owner do tenant). Teachers não têm tenant — viram só
+     * `['tenant_name' => null, 'teacher_name' => null]` (template detecta
+     * e não renderiza card decoration).
+     *
+     * @param list<array<string,mixed>> $accounts
+     * @return list<array<string,mixed>> mesma lista enriquecida
+     */
+    private static function enrichResetAccountsWithTenant(array $accounts): array
+    {
+        $userIds = array_map(static fn ($a): int => (int) $a['user_id'], $accounts);
+        if ($userIds === []) {
+            return $accounts;
+        }
+        $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+        $stmt = Database::pdo()->prepare(
+            'SELECT u.id AS user_id, t.name AS tenant_name,
+                    owner.name AS teacher_name
+               FROM users u
+               LEFT JOIN tenants t      ON t.id = u.tenant_id AND t.active = 1
+               LEFT JOIN users   owner  ON owner.id = t.owner_user_id
+              WHERE u.id IN (' . $placeholders . ')'
         );
-        $count->execute([$user['id']]);
-        if ((int) $count->fetchColumn() >= self::RESET_MAX_PER_HOUR) {
-            return;
+        $stmt->execute(array_map('intval', $userIds));
+        $byUser = [];
+        foreach ($stmt->fetchAll() as $r) {
+            $byUser[(int) $r['user_id']] = [
+                'tenant_name'  => $r['tenant_name']  !== null ? (string) $r['tenant_name']  : null,
+                'teacher_name' => $r['teacher_name'] !== null ? (string) $r['teacher_name'] : null,
+            ];
         }
-
-        $token     = bin2hex(random_bytes(32));          // 64 chars hex
-        $tokenHash = hash('sha256', $token);
-
-        $pdo->prepare(
-            'INSERT INTO password_resets (user_id, token_hash, expires_at)
-             VALUES (?, ?, DATE_ADD(NOW(), INTERVAL ? SECOND))'
-        )->execute([$user['id'], $tokenHash, self::RESET_TTL_SECONDS]);
-
-        self::sendResetEmail((string) $email, (string) $user['name'], (string) $user['language'], $token);
+        foreach ($accounts as $i => $acc) {
+            $info = $byUser[(int) $acc['user_id']] ?? ['tenant_name' => null, 'teacher_name' => null];
+            $accounts[$i]['tenant_name']  = $info['tenant_name'];
+            $accounts[$i]['teacher_name'] = $info['teacher_name'];
+        }
+        return $accounts;
     }
 
     /**
@@ -380,30 +443,90 @@ final class AuthController
      * Monta o email (HTML + texto) no idioma do destinatário (ADR-014)
      * e entrega ao Mailer. URL absoluta montada a partir de APP_BASE_URL.
      */
-    private static function sendResetEmail(string $to, string $name, string $language, string $token): void
+    /**
+     * Renderiza e envia o email de reset (E22-02 — F13). Aceita lista de
+     * accounts; quando lista tem 1 elemento, formato é idêntico ao pré-E22.
+     * Quando 2+, renderiza intro multi-conta + um card por conta (tenant
+     * name + link próprio).
+     *
+     * Idioma do email: usa o language da primeira conta (defensivo —
+     * accounts em múltiplos tenants podem ter idiomas diferentes; uma
+     * escolha consistente mantém o template renderizável).
+     *
+     * @param list<array{user_id:int, name:string, language:string, token:string, tenant_name:?string, teacher_name:?string}> $accounts
+     */
+    private static function sendResetEmail(string $to, array $accounts): void
     {
-        $lang = in_array($language, ['pt', 'en'], true) ? $language : 'pt';
+        if ($accounts === []) {
+            return;
+        }
+        $primary = $accounts[0];
+        $lang = in_array($primary['language'], ['pt', 'en'], true) ? $primary['language'] : 'pt';
         $base = rtrim((string) ($GLOBALS['__ENV']['APP_BASE_URL'] ?? ''), '/');
-        $url  = $base . '/reset?token=' . urlencode($token);
+        $isMulti = count($accounts) > 1;
 
         $subject = __t('email.reset.subject', [], $lang);
 
-        $text = __t('email.reset.greeting', ['name' => $name], $lang) . "\n\n"
-              . __t('email.reset.intro', [], $lang) . "\n\n"
-              . $url . "\n\n"
-              . __t('email.reset.expires', ['hours' => 1], $lang) . "\n"
-              . __t('email.reset.disregard', [], $lang) . "\n\n"
-              . __t('email.reset.signature', [], $lang) . "\n";
+        // Pré-monta os links + textos por conta (usado em ambos text/html paths).
+        $cards = [];
+        foreach ($accounts as $acc) {
+            $url   = $base . '/reset?token=' . urlencode((string) $acc['token']);
+            $label = $acc['tenant_name'] !== null
+                ? (string) $acc['tenant_name']
+                : __t('email.reset.account_default_label', [], $lang);
+            $teacherLine = $acc['teacher_name'] !== null
+                ? __t('email.reset.teacher_label', ['name' => (string) $acc['teacher_name']], $lang)
+                : '';
+            $cards[] = [
+                'label'       => $label,
+                'teacher'     => $teacherLine,
+                'url'         => $url,
+            ];
+        }
 
+        // ---------------- TEXT ----------------
+        $text = __t('email.reset.greeting', ['name' => (string) $primary['name']], $lang) . "\n\n"
+              . __t($isMulti ? 'email.reset.multi_intro' : 'email.reset.intro', [], $lang) . "\n\n";
+        foreach ($cards as $c) {
+            if ($isMulti) {
+                $text .= '— ' . $c['label'] . "\n";
+                if ($c['teacher'] !== '') {
+                    $text .= '  ' . $c['teacher'] . "\n";
+                }
+                $text .= '  ' . $c['url'] . "\n\n";
+            } else {
+                $text .= $c['url'] . "\n\n";
+            }
+        }
+        $text .= __t('email.reset.expires', ['hours' => 1], $lang) . "\n"
+              .  __t('email.reset.disregard', [], $lang) . "\n\n"
+              .  __t('email.reset.signature', [], $lang) . "\n";
+
+        // ---------------- HTML ----------------
         $html = '<!doctype html><html><body style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:1rem">'
-              . '<p>' . htmlspecialchars(__t('email.reset.greeting', ['name' => $name], $lang), ENT_QUOTES, 'UTF-8') . '</p>'
-              . '<p>' . htmlspecialchars(__t('email.reset.intro', [], $lang), ENT_QUOTES, 'UTF-8') . '</p>'
-              . '<p><a href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;padding:.6rem 1.2rem;background:#0d6efd;color:#fff;border-radius:.4rem;text-decoration:none">'
-              . htmlspecialchars(__t('email.reset.cta', [], $lang), ENT_QUOTES, 'UTF-8') . '</a></p>'
-              . '<p style="color:#6c757d;font-size:.9rem">' . htmlspecialchars(__t('email.reset.expires', ['hours' => 1], $lang), ENT_QUOTES, 'UTF-8') . '</p>'
-              . '<p style="color:#6c757d;font-size:.9rem">' . htmlspecialchars(__t('email.reset.disregard', [], $lang), ENT_QUOTES, 'UTF-8') . '</p>'
-              . '<hr><p style="color:#6c757d;font-size:.85rem">' . htmlspecialchars(__t('email.reset.signature', [], $lang), ENT_QUOTES, 'UTF-8') . '</p>'
-              . '</body></html>';
+              . '<p>' . htmlspecialchars(__t('email.reset.greeting', ['name' => (string) $primary['name']], $lang), ENT_QUOTES, 'UTF-8') . '</p>'
+              . '<p>' . htmlspecialchars(__t($isMulti ? 'email.reset.multi_intro' : 'email.reset.intro', [], $lang), ENT_QUOTES, 'UTF-8') . '</p>';
+
+        foreach ($cards as $c) {
+            if ($isMulti) {
+                $html .= '<div style="border:1px solid #dee2e6;border-radius:.4rem;padding:.75rem 1rem;margin-bottom:.75rem">'
+                       . '<strong style="display:block;margin-bottom:.25rem">' . htmlspecialchars($c['label'], ENT_QUOTES, 'UTF-8') . '</strong>';
+                if ($c['teacher'] !== '') {
+                    $html .= '<small style="color:#6c757d;display:block;margin-bottom:.5rem">' . htmlspecialchars($c['teacher'], ENT_QUOTES, 'UTF-8') . '</small>';
+                }
+                $html .= '<a href="' . htmlspecialchars($c['url'], ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;padding:.5rem 1rem;background:#0d6efd;color:#fff;border-radius:.4rem;text-decoration:none;font-size:.9rem">'
+                       . htmlspecialchars(__t('email.reset.cta', [], $lang), ENT_QUOTES, 'UTF-8') . '</a>'
+                       . '</div>';
+            } else {
+                $html .= '<p><a href="' . htmlspecialchars($c['url'], ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;padding:.6rem 1.2rem;background:#0d6efd;color:#fff;border-radius:.4rem;text-decoration:none">'
+                       . htmlspecialchars(__t('email.reset.cta', [], $lang), ENT_QUOTES, 'UTF-8') . '</a></p>';
+            }
+        }
+
+        $html .= '<p style="color:#6c757d;font-size:.9rem">' . htmlspecialchars(__t('email.reset.expires', ['hours' => 1], $lang), ENT_QUOTES, 'UTF-8') . '</p>'
+              .  '<p style="color:#6c757d;font-size:.9rem">' . htmlspecialchars(__t('email.reset.disregard', [], $lang), ENT_QUOTES, 'UTF-8') . '</p>'
+              .  '<hr><p style="color:#6c757d;font-size:.85rem">' . htmlspecialchars(__t('email.reset.signature', [], $lang), ENT_QUOTES, 'UTF-8') . '</p>'
+              .  '</body></html>';
 
         Mailer::send($to, $subject, $html, $text);
     }
