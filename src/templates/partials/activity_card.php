@@ -51,8 +51,27 @@ if ($grade !== null) {
 
 $badgeLabel = __t('student.unit.state.' . $state);
 $unavailable = $state === 'unavailable';
+
+// E19-03: progressão sequencial / eval gate. Sobrepõe a renderização normal
+// com um overlay; CTA é suprimida (mesmo que $ctaLabel exista).
+$progressionStatus    = $progressionStatus    ?? 'free';
+$activityLockedByName = $activityLockedByName ?? null;
+$isLocked             = $progressionStatus === 'next' || $progressionStatus === 'eval_locked';
+$lockMessage          = null;
+if ($progressionStatus === 'next') {
+    $lockMessage = __t('progression.next_locked', ['name' => (string) ($activityLockedByName ?? '')]);
+} elseif ($progressionStatus === 'eval_locked') {
+    $lockMessage = __t('progression.eval_locked');
+}
+$cardClasses = 'lms-activity-card lms-activity-card--' . $stateClass;
+if ($unavailable) {
+    $cardClasses .= ' is-unavailable';
+}
+if ($isLocked) {
+    $cardClasses .= ' lms-activity-card--locked';
+}
 ?>
-<article class="lms-activity-card lms-activity-card--<?= e($stateClass) ?><?= $unavailable ? ' is-unavailable' : '' ?>"
+<article class="<?= e($cardClasses) ?>"
          <?= $accent !== null ? 'style="--lms-activity-accent: ' . e($accent) . ';"' : '' ?>>
     <div class="lms-activity-card__ring-wrap">
         <div class="lms-progress-ring lms-activity-card__ring <?= $grade !== null ? 'lms-activity-card__ring--has-grade' : '' ?>"
@@ -89,7 +108,7 @@ $unavailable = $state === 'unavailable';
             <span class="lms-status-badge__dot" aria-hidden="true"></span>
             <?= e($badgeLabel) ?>
         </span>
-        <?php if ($ctaLabel !== null && !$unavailable): ?>
+        <?php if ($ctaLabel !== null && !$unavailable && !$isLocked): ?>
             <a href="<?= e($url) ?>"
                class="lms-activity-card__cta lms-activity-card__cta--<?= e($ctaVariant) ?>">
                 <?= e($ctaLabel) ?>
@@ -97,4 +116,10 @@ $unavailable = $state === 'unavailable';
             </a>
         <?php endif; ?>
     </div>
+
+    <?php if ($isLocked && $lockMessage !== null): ?>
+        <div class="lms-activity-card__lock-overlay">
+            <?= e($lockMessage) ?>
+        </div>
+    <?php endif; ?>
 </article>

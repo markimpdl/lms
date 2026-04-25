@@ -41,6 +41,38 @@ if (!$availability['available']) {
     header('Location: /student', true, 303);
     exit;
 }
+
+// E19-03: gate eval_after_activities. Bloqueia GET e POST quando o curso
+// exige todas as atividades enviadas antes de liberar a avaliação.
+$courseId = (int) $evaluation['course_id'];
+$cuId     = (int) $evaluation['competence_unit_id'];
+$evalAfterStmt = Database::pdo()->prepare(
+    'SELECT eval_after_activities FROM courses WHERE id = ? LIMIT 1'
+);
+$evalAfterStmt->execute([$courseId]);
+$evalAfter = (int) ($evalAfterStmt->fetchColumn() ?: 1);
+if ($evalAfter === 1) {
+    $stmt = Database::pdo()->prepare(
+        'SELECT COUNT(*) FROM activities WHERE competence_unit_id = ?'
+    );
+    $stmt->execute([$cuId]);
+    $totalActivities = (int) $stmt->fetchColumn();
+
+    $stmt = Database::pdo()->prepare(
+        'SELECT COUNT(DISTINCT a.id)
+           FROM activities a
+           JOIN activity_submissions s ON s.activity_id = a.id AND s.student_user_id = ?
+          WHERE a.competence_unit_id = ?'
+    );
+    $stmt->execute([$studentId, $cuId]);
+    $submittedActivities = (int) $stmt->fetchColumn();
+
+    if ($totalActivities > 0 && $submittedActivities < $totalActivities) {
+        flash('warning', __t('progression.eval_locked'));
+        header('Location: /student/cu/' . $cuId, true, 303);
+        exit;
+    }
+}
 $current    = $ctx['current'];
 $tenantId   = (int) $evaluation['tenant_id'];
 $isOpen     = (int) $evaluation['submission_open'] === 1;
