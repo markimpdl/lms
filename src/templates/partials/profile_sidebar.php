@@ -24,7 +24,6 @@ if ($user === null || ($user['role'] ?? '') !== 'student') {
 $studentId = (int) ($user['id'] ?? 0);
 $tenantId  = (int) ($user['tenant_id'] ?? 0);
 $name      = (string) ($user['name'] ?? '');
-$initial   = $name !== '' ? mb_strtoupper(mb_substr($name, 0, 1)) : '?';
 
 $totalXp    = student_total_xp($studentId);
 $rank       = $tenantId > 0 ? student_current_rank($studentId, $tenantId)  : null;
@@ -74,7 +73,8 @@ if ($nextRank !== null) {
 
         <div class="lms-sidebar-profile">
             <div class="lms-sidebar-avatar-wrap">
-                <div class="lms-sidebar-avatar"><?= e($initial) ?></div>
+                <img class="lms-sidebar-avatar" src="<?= e(student_avatar_url($studentId)) ?>"
+                     alt="" loading="lazy" width="104" height="104">
                 <?php if ($rankName !== null): ?>
                     <span class="lms-sidebar-rank-pill"><?= e($rankName) ?></span>
                 <?php else: ?>

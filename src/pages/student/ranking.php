@@ -222,6 +222,9 @@ ob_start();
                             <span class="lms-ranking-pos">#<?= (int) $row['position'] ?></span>
                         </td>
                         <td>
+                            <img src="<?= e(student_avatar_url((int) $row['student_id'])) ?>"
+                                 class="lms-ranking-avatar d-none d-md-inline-block"
+                                 alt="" width="32" height="32" loading="lazy">
                             <span class="lms-ranking-name"><?= e($row['name']) ?></span>
                             <?php if ($isMe): ?>
                                 <span class="lms-ranking-you"><?= e(__t('ranking.you')) ?></span>

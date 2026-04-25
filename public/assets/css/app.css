@@ -185,6 +185,20 @@ main { flex: 1 0 auto; }
 .lms-navbar__link:hover { background: #F3F4F6; color: #111827; }
 .lms-navbar__link.is-active { background: #EEF2FF; color: #4F46E5; }
 
+/* Avatar nas linhas de ranking (E17-05). Funciona em /teacher/ranking
+   (Bootstrap default) e /student/ranking (override em student-area.css
+   se quiser ajustar tamanho). 32x32 redondo. Oculto em mobile via
+   d-none d-md-inline-block aplicado no markup. */
+.lms-ranking-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #F3F4F6;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
 /* Language pill */
 .lms-navbar__lang-form { display: inline-flex; }
 .lms-navbar__lang {
