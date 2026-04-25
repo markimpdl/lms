@@ -122,6 +122,12 @@
 **Por quê:** simplifica ACL e auditoria; troca de owner implica rever permissões em cascata (cursos, conteúdo, submissões) com risco que não se justifica no MVP.
 **A revisar quando:** houver cenário formal de transferência (venda do espaço, sucessão, etc.).
 
+### ADR-031 — Histórico de conexões com geo-IP, retenção 180 dias
+**Decisão (E16-04, 2026-04-25):** cada login bem-sucedido grava 1 row em `user_logins` com `(user_id, tenant_id, ip, location, user_agent, logged_in_at)`. O `ip` vem de `X-Forwarded-For` (primeira entrada) ou `REMOTE_ADDR`. `location` é resolvido por GeoIP via **ip-api.com (free tier 45 req/min)**, com falha silenciosa em rate-limit/timeout (location fica NULL). Visível APENAS pelo professor no detalhe do aluno (`/teacher/students/{id}`) — últimas 10 conexões. Retenção **180 dias** via cron `scripts/cron/purge-old-logins.php`.
+**Privacidade:** IP é dado pessoal. A coleta é proporcional (login bem-sucedido apenas, não cada request) e tem retenção limitada. Antes de habilitar **cadastro público** ou expandir além do contexto presencial atual, atualizar Termos de Uso/Política de Privacidade explicitando: (a) coleta de IP + endereço aproximado, (b) finalidade de auditoria/suporte, (c) retenção 180 dias, (d) acesso restrito ao professor do tenant.
+**Por quê:** o professor frequentemente recebe pedidos de suporte ("não consigo entrar", "alguém entrou na minha conta?") sem dados pra responder. IP + região + horário cobrem a maioria desses casos sem investir em SIEM/logging avançado.
+**A revisar quando:** (a) cadastro público abrir; (b) volume crescer a ponto da tabela ficar pesada (centenas de milhares de rows); (c) LGPD/GDPR demandarem direito à exclusão sob demanda — hoje só o cron de retenção funciona.
+
 ### ADR-030 — Sem `audit_log` no MVP
 **Decisão:** o MVP **não** implementa a tabela `audit_log` nem registra eventos estruturados de domínio (`create_teacher`, `enroll_student`, `delete_activity`, `grade_evaluation`, `login_success`, etc.). O sistema mantém apenas:
 - Log de erros do PHP (padrão da hospedagem + `storage/logs/error.log`).
