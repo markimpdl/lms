@@ -782,6 +782,53 @@ Independente.
 
 ---
 
+## F13 — Login + reset com seletor de tenant para email compartilhado
+
+> **Adicionado em 2026-04-25** durante review com PO. Não estava no roadmap original — surgiu da pergunta "como o sistema se comporta se um aluno está em 2 cursos de tenants diferentes?". Materializa operacionalmente a previsão de ADR-026 (mesmo email em N tenants).
+
+### Contexto
+ADR-026 já permite que o mesmo email exista como aluno em tenants distintos (são contas separadas com PKs distintos, senhas próprias, XP/conquistas/ranking isolados). **Mas o código atual não suporta o fluxo na prática:**
+- `AuthController::authenticate` faz `WHERE email = ? LIMIT 1` — só a primeira row é testada
+- `/forgot` envia 1 email com 1 token apontando pra essa primeira row
+- Resultado: a 2ª conta fica inacessível pelo login e o reset não consegue alcançar
+
+### Decisão consolidada (ADR-032)
+- **Login:** `AuthController::authenticate` testa `password_verify` contra **todas** as rows com aquele email
+  - Exatamente 1 bate → login direto (caso comum hoje, sem mudança de UX)
+  - 2+ batem (mesma senha em tenants distintos) → UI nova de **seletor de tenant** pede ao aluno escolher qual contexto entrar
+  - 0 batem → "credenciais inválidas" (igual hoje)
+- **Reset:** `/forgot` continua com resposta genérica. Quando há 2+ contas com aquele email, **1 email só** é enviado contendo lista de tenants, cada um com seu próprio token. Reset numa conta não afeta as outras.
+
+### Por que não compartilhar senha entre tenants
+Avaliada e rejeitada. Compartilhar senha (1 user row + N:N com tenants) quebraria ADR-026 — se senha vaza num tenant, vaza nos outros. Refactor de 20+ callsites que assumem `users.tenant_id` como source-of-truth + reescrita de XP/ranking/conquistas/notif. Custo desproporcional pra cenário marginal (1 tenant em prod hoje). Ver ADR-032.
+
+### Schema
+**Zero mudança.** A UK `email_tenant_key` (ADR-026) já permite N rows por email. `password_resets.user_id` já está na PK e suporta tokens por conta nativamente.
+
+### Critérios de aceite (top-level)
+- [ ] `AuthController::authenticate` aceita múltiplas rows com mesmo email; testa password_verify em cada
+- [ ] Login direto quando exatamente 1 conta valida (caso comum)
+- [ ] UI nova de seletor de tenant quando 2+ contas validam (label = nome do professor + nome do tenant pra desambiguar)
+- [ ] `/forgot` busca todas as contas com aquele email; gera N tokens em `password_resets` (1 por user_id)
+- [ ] Template de email `reset.*.php` aceita lista `[{tenant_name, teacher_name, token}]` e renderiza loop quando há 2+
+- [ ] Caso 1 conta apenas: comportamento idêntico ao atual (sem regressão)
+- [ ] i18n PT/EN das chaves novas (label do seletor, header da lista no email)
+- [ ] Mobile: seletor de tenant legível em 360px
+
+### Tamanho
+**M-G** — épico próprio (~3 stories):
+1. **Login multi-conta** (M) — backend + UI seletor de tenant
+2. **Reset com lista de tenants no email** (M) — backend + template
+3. **Polish + i18n + mobile** (P)
+
+### Dependências
+Independente. Não bloqueado por nenhum dos épicos pendentes (E19, E20). Pode entrar em qualquer momento, idealmente quando aparecer 2º tenant em prod (hoje só há 1 — cenário marginal).
+
+### Doc dedicado futuro
+Não necessário (escopo pequeno, ADR-032 já documenta a decisão).
+
+---
+
 # Resumo de épicos sugeridos
 
 | Épico | Features | Ordem | Tamanho |
@@ -793,8 +840,9 @@ Independente.
 | **E19 — Modos de progressão** | F7 | 5º | 3-4 stories M |
 | **E20 — Quiz** | F8 | 6º | 6-8 stories M-P (épico próprio) |
 | **E21 — Notificações configuráveis** | F9 | 7º | 2-3 stories M-P |
+| **E22 — Auth multi-conta** (cross-tenant) | F13 | 8º (sob demanda — quando aparecer 2º tenant) | 3 stories M-P |
 
-**Total estimado:** ~28-37 stories distribuídas em 7 épicos.
+**Total estimado:** ~31-40 stories distribuídas em 8 épicos. E22 é demand-driven (não bloqueia outros épicos; entra quando o cenário de email compartilhado virar real).
 
 ---
 
