@@ -4,6 +4,63 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.18.0] — 2026-04-26
+
+Décima oitava release. Escopo: **Epic E20 inteiro — Quiz em atividades e avaliações** (7 stories) + 1 fix de "etapa de feedback" pego em smoke. Adiciona um tipo novo de atividade/avaliação: quiz com múltipla escolha (1 correta), nota auto-calculada via soma de pesos, snapshot write-once por submissão. **Encerra o roadmap pós-MVP planejado** — resta apenas E22 (cross-tenant auth) demand-driven.
+
+### Novas funcionalidades
+
+#### Epic E20 — Quiz em atividades e avaliações
+
+- **Schema + 3 models** (E20-01, #274): 3 tabelas novas — `quizzes` (polimórfico via `owner_type` + `owner_id`, com `show_answers` flag), `quiz_questions` (text + `weight DECIMAL(4,2)` + position; CHECK 0–10), `quiz_options` (text + `is_correct` + position). 2 ENUMs expandidos: `activities.type` ganha `'quiz'`; `evaluations.type` (coluna nova) `ENUM('projeto','quiz') DEFAULT 'projeto'`. 2 colunas snapshot: `activity_submissions.quiz_snapshot JSON NULL`, `evaluation_submissions.quiz_snapshot JSON NULL`. Models PHP `Quiz`/`QuizQuestion`/`QuizOption` com multi-tenant + `Quiz::findFullById` retornando estrutura aninhada (questions[].options[]) usada por form, render do aluno e snapshot builder. ALTERs idempotentes pra bases legadas.
+- **Form do professor com Alpine.js** (E20-02, #275): UI dinâmica em `teacher_quiz_form.php` (partial reusada por activity/quiz e evaluation/quiz). Função `quizForm()` Alpine com state `questions[]` + `showAnswers`, getters `weightSum`/`weightSumOk`, métodos `addQuestion`/`removeQuestion`/`addOption`/`removeOption`. Validação client-side: soma exata de pesos = 10.00 (botão Salvar disabled se ≠). Server-side em `TeacherQuizController`: validate (mín 1 questão, mín 2 opções, exatamente 1 correta, weight 0–10, soma 10.00 com tolerância 0.001) + saveBulk em transação (DELETE+INSERT, cascade apaga opções automaticamente). 2 routes novas. Activity::TYPES + Evaluation::TYPES com novas constantes. Evaluation form ganha select de tipo + JS toggle do bloco PDF; new.php redireciona pra `/quiz` quando type=quiz.
+- **UI do aluno + cálculo + snapshot** (E20-03 + E20-04, #276): combinados num PR — fortemente acoplados. `QuizSubmissionService` puro com `validateAnswers` + `buildSnapshot` (JSON com structure + answers) + `calculateGrade` (soma de pesos das corretas, clamp 0-10, 1 decimal). Partial `student_quiz_form.php` renderiza questões + opções (radios), modo readOnly pra snapshot pós-submit. 2 handlers thin (`quiz_handler.php`) delegados de `/student/{activity,evaluation}/show.php` quando type=quiz; fluxo projeto/codigo preservado. Atividade-quiz: ganha XP por entregar (sem retry, nota informativa). Avaliação-quiz: regras idênticas a projeto — `grade ≥ 6` aprova, `grade ≥ 8` libera XP, `grade < 6` aluno aguarda retry do professor. Hooks de conquistas best-effort.
+- **Gabarito condicional** (E20-05, #277): quando aluno revisita URL pós-submit E `show_answers=1` no snapshot, opções ganham marcação visual — **correta** = badge verde; **sua escolha errada** = badge vermelho + line-through. Demais opções neutras (não revela negativas se aluno não escolheu). `show_answers=0` (default): aluno só vê nota. Lê do snapshot, não do quiz atual — preserva decisão original.
+- **Retry pelo professor + nova attempt** (E20-06, #278): student `quiz_handler.php` detecta `retry_allowed=1` → libera form pra re-submit; novo INSERT com `attempt+1` + `is_current=1`. Quiz **atual** carregado (não snapshot antigo) — spec F8: próxima tentativa usa quiz atual. Teacher `submission_quiz.php` delegate de `submission.php` quando type=quiz: form simplificado (só toggle `retry_allowed`), nota auto-calculada exibida read-only, quiz com gabarito sempre visível pro professor. Notif `retry_enabled` em transição off→on. Grade ≥ 6 bloqueia retry server-side.
+- **Polish — activity redirect + edit hint + mobile** (E20-07, #279): activity `new.php` redireciona pra `/teacher/activity/{id}/quiz` quando type=quiz; skip do fanout `activity_new` (atividade sem questões = inutilizável). Activity `_form.php` em modo edit com type=quiz: hint info + botão "Editar questões". Mobile <576px: paddings reduzidos, badges stacked vertical pra texto longo não estourar.
+
+### Correções
+
+- **Atividade-quiz auto-graded sem etapa de feedback manual** (#280): reportado pelo PO em smoke. Avaliação-quiz já fechava `feedback_at=NOW()` no submit (E20-04) + handler do professor sem feedback form (E20-06), mas atividade-quiz tinha 2 gaps: (a) `quiz_handler.php` student-side INSERT não setava `feedback_at` → UI mostrava "aguardando correção" no `/student/cu`; (b) teacher `submission-review.php` ainda renderizava form de feedback (textarea obrigatório). Fix: `INSERT` agora seta `feedback_at=NOW()` (marca como já-revisada via auto-grade); branch `type=quiz` em `submission-review.php` delega pra `submission-review-quiz.php` (handler novo) que renderiza snapshot + nota + zero form de feedback + nota explicativa "Quiz é auto-corrigido — a nota é o feedback". Ambos quiz-tipos agora não passam por feedback manual em nenhum ponto.
+
+### Mudanças internas / Tooling
+
+- **`package.json`** bumpado para 0.18.0.
+
+### Convenções consolidadas nesta janela
+
+- **Polimorfismo via `(owner_type, owner_id)`** — UK composta dá unicidade clara; queries diretas. Mesma convenção do `xp_events.source_type`/`source_id` histórico.
+- **Snapshot JSON write-once** — preservar visão original mesmo se a fonte (quiz atual) mudar depois. Útil em qualquer cenário "professor edita conteúdo já entregue por aluno".
+- **DELETE+INSERT bulk em transação** — pra estruturas filhas variáveis (questões, opções), apagar tudo + reinserir é mais simples que diff-based. Cascade do schema cuida das filhas.
+- **Handler delegate por type via `require + return`** — `if (type === 'X') { require handler.php; return; }` mantém o show.php principal limpo + isola lógica do tipo. Padrão repetido 4x em E20: student/{activity,evaluation}/show.php → quiz_handler; teacher/activity/submission-review.php → submission-review-quiz; teacher/evaluation/submission.php → submission_quiz.
+- **Auto-graded ⇒ `feedback_at=NOW()` no submit** — campo `feedback_at` historicamente significa "professor revisou"; pra fluxos auto-graded onde a nota É o feedback, gravar NOW imediatamente preserva semântica downstream (ADR-027 trava aluno + UI não mostra "aguardando").
+- **Reusar partial em modo readOnly + show_answers forçado pra professor** — `student_quiz_form.php` serve aluno (interativo) E professor (visualizando snapshot). 1 partial, 2 contextos, sem bifurcação.
+
+### Pendências de schema
+
+**Aplicar antes de smoke em prod (já feito conforme confirmação do PO):**
+
+```sql
+-- E20-01: quizzes + quiz_questions + quiz_options + 2 ALTERs em activities/evaluations.type + 2 colunas quiz_snapshot
+-- (já em install/schema.sql — rodar o arquivo inteiro absorve via
+-- CREATE TABLE IF NOT EXISTS + ALTER condicional via PREPARE/EXECUTE +
+-- MODIFY COLUMN idempotente do activities.type)
+```
+
+### Pendências (herdadas, ainda abertas)
+
+- **`JUDGE0_KEY` em prod**: endpoint responde 503 amigável até o PO configurar.
+- **C# sem syntax highlight no CodeMirror 6** — plain text funciona; nice-to-have futuro.
+- **Cross-tenant smoke** ainda parcial — só 1 tenant em prod (F13/E22 demand-driven aguarda 2º tenant).
+
+### Roadmap pós-MVP — status
+
+**Concluído:** E15, E16, E17, E18, E19, E20, E21 — 7 dos 8 épicos planejados (F1–F12 todos entregues).
+
+**Aberto demand-driven:** E22 (F13) — cross-tenant auth flow. Fica adormecido até aparecer 2º tenant em prod.
+
+[0.18.0]: https://github.com/markimpdl/lms/releases/tag/v0.18.0
+
 ## [0.17.0] — 2026-04-26
 
 Décima sétima release. Escopo: **Epic E19 inteiro — Modos de progressão (sequencial vs livre)** (4 stories) + 2 fixes pegos em smoke + docs de F13 (E22) no roadmap. Adiciona controle por curso da ordem em que o aluno avança: CCs/UCs sequenciais vs livres, atividades sequenciais vs livres, avaliação só após todas as atividades.
