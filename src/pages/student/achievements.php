@@ -77,18 +77,22 @@ ob_start();
     <div>
         <span class="lms-dashboard-eyebrow"><?= e(__t('achievements.eyebrow')) ?></span>
         <h1 class="lms-dashboard-title"><?= e(__t('achievements.title')) ?></h1>
-        <p class="lms-dashboard-subtitle">
-            <?= e(__t('achievements.unlocked_count', [
-                'done'  => (string) $unlockedCount,
-                'total' => (string) $totalCount,
-            ])) ?>
-        </p>
+        <p class="lms-dashboard-subtitle"><?= e(__t('achievements.subtitle')) ?></p>
+    </div>
+    <div class="lms-achievements-counter" aria-live="polite">
+        <span class="lms-achievements-counter__numbers">
+            <strong><?= (int) $unlockedCount ?></strong> / <?= (int) $totalCount ?>
+        </span>
+        <span class="lms-achievements-counter__label">
+            <?= e(__t('achievements.unlocked_label')) ?>
+        </span>
     </div>
 </header>
 
 <?php if ($items === []): ?>
     <div class="lms-dashboard-empty">
         <p class="lms-dashboard-empty__title"><?= e(__t('achievements.empty')) ?></p>
+        <p class="lms-dashboard-empty__hint"><?= e(__t('achievements.empty_hint')) ?></p>
     </div>
 <?php else: ?>
     <div class="lms-achievements-grid">

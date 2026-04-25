@@ -1110,10 +1110,13 @@ return [
     'ranking.link.course_ranking' => 'Course ranking',
     'ranking.back_to_course'      => '← Back to course',
 
-    // Achievements (E18-05)
+    // Achievements (E18-05 + E18-07)
     'achievements.title'          => 'Achievements',
     'achievements.eyebrow'        => 'GAMIFICATION',
+    'achievements.subtitle'       => 'Unlock milestones along your learning journey.',
     'achievements.empty'          => 'No achievements available yet.',
+    'achievements.empty_hint'     => 'Wait for your teacher to publish courses and activities.',
     'achievements.unlocked_count' => ':done of :total achievements unlocked',
+    'achievements.unlocked_label' => 'unlocked',
     'achievements.unlocked_at'    => 'Unlocked on :date',
 ];
