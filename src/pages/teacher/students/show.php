@@ -25,8 +25,10 @@ if ($student === null) {
 
 $errors = [];
 $old = [
-    'name'     => (string) $student['name'],
-    'language' => (string) $student['language'],
+    'name'        => (string) $student['name'],
+    'language'    => (string) $student['language'],
+    'gender'      => (string) $student['gender'],
+    'id_document' => (string) ($student['id_document'] ?? ''),
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -39,8 +41,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $old = [
-        'name'     => (string) ($_POST['name']     ?? $old['name']),
-        'language' => (string) ($_POST['language'] ?? $old['language']),
+        'name'        => (string) ($_POST['name']        ?? $old['name']),
+        'language'    => (string) ($_POST['language']    ?? $old['language']),
+        'gender'      => (string) ($_POST['gender']      ?? $old['gender']),
+        'id_document' => trim((string) ($_POST['id_document'] ?? $old['id_document'])),
     ];
 
     $errors = TeacherStudentsController::update($studentId, $old);
@@ -173,6 +177,30 @@ ob_start();
                 </select>
                 <?php if (isset($errors['language'])): ?>
                     <div class="invalid-feedback"><?= e(__t($errors['language'])) ?></div>
+                <?php endif; ?>
+            </div>
+
+            <div class="mb-3">
+                <label for="f-gender" class="form-label"><?= e(__t('students.form.gender')) ?></label>
+                <select name="gender" id="f-gender" required
+                        class="form-select form-select-lg<?= isset($errors['gender']) ? ' is-invalid' : '' ?>">
+                    <option value="male"   <?= $old['gender'] === 'male'   ? 'selected' : '' ?>><?= e(__t('students.form.gender.male')) ?></option>
+                    <option value="female" <?= $old['gender'] === 'female' ? 'selected' : '' ?>><?= e(__t('students.form.gender.female')) ?></option>
+                </select>
+                <?php if (isset($errors['gender'])): ?>
+                    <div class="invalid-feedback"><?= e(__t($errors['gender'])) ?></div>
+                <?php endif; ?>
+            </div>
+
+            <div class="mb-3">
+                <label for="f-id-doc" class="form-label"><?= e(__t('students.form.id_document')) ?></label>
+                <input type="text" name="id_document" id="f-id-doc" inputmode="numeric"
+                       pattern="[0-9]{1,30}" maxlength="30" autocomplete="off"
+                       class="form-control form-control-lg<?= isset($errors['id_document']) ? ' is-invalid' : '' ?>"
+                       value="<?= e($old['id_document']) ?>">
+                <div class="form-text"><?= e(__t('students.form.id_document.help')) ?></div>
+                <?php if (isset($errors['id_document'])): ?>
+                    <div class="invalid-feedback"><?= e(__t($errors['id_document'])) ?></div>
                 <?php endif; ?>
             </div>
 

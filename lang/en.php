@@ -726,6 +726,16 @@ return [
     'students.form.err.email_taken_by_staff'=> 'That email already belongs to a teacher or administrator. Use another one.',
     'students.form.err.password_min'        => 'Password must be at least 8 characters.',
     'students.form.err.language'            => 'Invalid language.',
+    'students.form.err.gender_required'     => 'Please select a gender.',
+    'students.form.err.id_document_format'  => 'Document must contain only digits (up to 30 characters).',
+
+    // Gender + ID document (E16-01)
+    'students.form.gender'         => 'Gender',
+    'students.form.gender.choose'  => 'Select…',
+    'students.form.gender.male'    => 'Male',
+    'students.form.gender.female'  => 'Female',
+    'students.form.id_document'    => 'ID document',
+    'students.form.id_document.help' => 'Digits only, no mask (optional).',
 
     'students.created'               => 'Student :name created successfully.',
     'students.edit.title'            => 'Edit student',
