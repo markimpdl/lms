@@ -476,3 +476,97 @@ main { flex: 1 0 auto; }
     font-size: 12px;
     color: #9CA3AF;
 }
+
+/* ============================================================
+   /teacher/settings/notifications — matriz de toggles (E21-03 + fix #247)
+   Render unico: desktop = 3 colunas (label / sino / email);
+   mobile <768px = 1 coluna empilhada com label da celula visivel.
+   ============================================================ */
+
+.lms-notif-matrix {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.lms-notif-matrix__header {
+    display: grid;
+    grid-template-columns: 1fr 110px 110px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #DEE2E6;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6B7280;
+}
+
+.lms-notif-matrix__col-channel {
+    text-align: center;
+}
+
+.lms-notif-matrix__row {
+    display: grid;
+    grid-template-columns: 1fr 110px 110px;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #F3F4F6;
+}
+
+.lms-notif-matrix__row:last-child {
+    border-bottom: none;
+}
+
+.lms-notif-matrix__label {
+    font-weight: 500;
+    color: #1F2937;
+}
+
+.lms-notif-matrix__cell {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    cursor: pointer;
+    min-height: 32px;
+}
+
+.lms-notif-matrix__cell .form-check-input {
+    margin: 0;
+    cursor: pointer;
+    width: 1.25em;
+    height: 1.25em;
+}
+
+/* Em desktop o label da celula fica oculto — coluna do header ja indica. */
+.lms-notif-matrix__cell-label {
+    display: none;
+    margin-right: 8px;
+    color: #4B5563;
+    font-size: 14px;
+}
+
+/* Mobile: empilha em 1 coluna. Header some, cada celula mostra seu label
+   inline pra nao ficar so o checkbox boiando. */
+@media (max-width: 767.98px) {
+    .lms-notif-matrix__header {
+        display: none;
+    }
+    .lms-notif-matrix__row {
+        grid-template-columns: 1fr;
+        gap: 6px;
+        padding: 14px 0;
+    }
+    .lms-notif-matrix__label {
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+    .lms-notif-matrix__cell {
+        justify-content: flex-start;
+        padding: 6px 0;
+    }
+    .lms-notif-matrix__cell-label {
+        display: inline;
+    }
+}
