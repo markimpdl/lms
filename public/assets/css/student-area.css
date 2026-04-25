@@ -297,6 +297,70 @@ body.lms-student-area .lms-student-main {
     flex-shrink: 0;
 }
 
+/* Card de Conquistas no ProfileSidebar (E18-06). Mesma paleta dos blocos
+   XP/Ranking; 3 miniaturas icon-only + CTA full-width "Ver todas". */
+.lms-achievements-block {
+    background: #FAFAFA;
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.lms-achievements-block__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.lms-achievements-block__eyebrow {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--lms-neutral-500);
+}
+
+.lms-achievements-block__items {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lms-achievements-block__item {
+    flex: 1;
+    aspect-ratio: 1 / 1;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    line-height: 1;
+}
+
+.lms-achievements-block__item.is-unlocked {
+    background: linear-gradient(135deg, var(--lms-primary-1), var(--lms-primary-2));
+    color: #fff;
+    box-shadow: 0 4px 10px -4px rgba(99, 102, 241, 0.4);
+}
+
+.lms-achievements-block__item.is-placeholder {
+    background: var(--lms-neutral-100);
+    color: var(--lms-neutral-300);
+    border: 1px dashed var(--lms-neutral-200);
+}
+
+.lms-achievements-block__empty {
+    margin: 0;
+    font-size: 12px;
+    color: var(--lms-neutral-500);
+    text-align: center;
+    line-height: 1.4;
+}
+
 .lms-xp-bar {
     position: relative;
     height: 6px;

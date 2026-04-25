@@ -114,6 +114,50 @@ function student_progression_check(int $studentId, int $tenantId, int $cuId): vo
 }
 
 /**
+ * Últimas conquistas desbloqueadas pelo aluno no tenant, ordenadas por
+ * `unlocked_at DESC`. Usado pelo card "Conquistas" no ProfileSidebar
+ * (E18-06) — 3 miniaturas + link "Ver todas". Engole Throwable.
+ *
+ * Retorna `[{id, code, icon_key, name, unlocked_at}]` com `name` já
+ * resolvido pra língua atual.
+ *
+ * @return list<array{id:int,code:string,icon_key:string,name:string,unlocked_at:string}>
+ */
+function student_recent_achievements(int $studentId, int $tenantId, int $limit = 3): array
+{
+    if ($studentId <= 0 || $tenantId <= 0 || $limit <= 0) {
+        return [];
+    }
+    try {
+        $stmt = Database::pdo()->prepare(
+            'SELECT a.id, a.code, a.icon_key, a.name_pt, a.name_en, sa.unlocked_at
+               FROM student_achievements sa
+               JOIN achievements a ON a.id = sa.achievement_id
+              WHERE sa.student_user_id = ? AND sa.tenant_id = ?
+              ORDER BY sa.unlocked_at DESC
+              LIMIT ' . $limit
+        );
+        $stmt->execute([$studentId, $tenantId]);
+        $rows = $stmt->fetchAll();
+    } catch (\Throwable) {
+        return [];
+    }
+
+    $lang = current_lang();
+    $out  = [];
+    foreach ($rows as $r) {
+        $out[] = [
+            'id'          => (int) $r['id'],
+            'code'        => (string) $r['code'],
+            'icon_key'    => (string) $r['icon_key'],
+            'name'        => (string) ($lang === 'pt' ? $r['name_pt'] : $r['name_en']),
+            'unlocked_at' => (string) $r['unlocked_at'],
+        ];
+    }
+    return $out;
+}
+
+/**
  * URL do avatar default do aluno (E17-04). Combina `tenants.avatar_style`
  * (config do professor) com `users.gender` (cadastrado em E16-01) pra
  * produzir o path do SVG em `public/assets/avatars/`.

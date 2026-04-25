@@ -1059,9 +1059,12 @@ return [
     'sidebar.next_rank_xp' => ':xp XP',
     'sidebar.max_rank'     => 'Max level reached',
     'sidebar.no_rank'      => 'No rank configured for your tenant',
-    'sidebar.position'     => 'POSITION',
-    'sidebar.no_position'  => 'No ranking yet',
-    'sidebar.see_ranking'  => 'See ranking',
+    'sidebar.position'         => 'POSITION',
+    'sidebar.no_position'      => 'No ranking yet',
+    'sidebar.see_ranking'      => 'See ranking',
+    'sidebar.achievements'     => 'ACHIEVEMENTS',
+    'sidebar.see_achievements' => 'See all →',
+    'sidebar.no_achievements'  => 'Start studying to unlock',
 
     // Navbar — primary link (E9-03)
     'nav.primary_aria' => 'Primary navigation',

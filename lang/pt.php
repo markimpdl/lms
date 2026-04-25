@@ -1060,9 +1060,12 @@ return [
     'sidebar.next_rank_xp' => ':xp XP',
     'sidebar.max_rank'     => 'Nível máximo atingido',
     'sidebar.no_rank'      => 'Sem patente cadastrada no seu tenant',
-    'sidebar.position'     => 'POSIÇÃO',
-    'sidebar.no_position'  => 'Sem ranking ainda',
-    'sidebar.see_ranking'  => 'Ver ranking',
+    'sidebar.position'         => 'POSIÇÃO',
+    'sidebar.no_position'      => 'Sem ranking ainda',
+    'sidebar.see_ranking'      => 'Ver ranking',
+    'sidebar.achievements'     => 'CONQUISTAS',
+    'sidebar.see_achievements' => 'Ver todas →',
+    'sidebar.no_achievements'  => 'Comece a estudar pra desbloquear',
 
     // Navbar — link primário (E9-03)
     'nav.primary_aria' => 'Navegação principal',
