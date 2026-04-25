@@ -4,6 +4,57 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.17.0] — 2026-04-26
+
+Décima sétima release. Escopo: **Epic E19 inteiro — Modos de progressão (sequencial vs livre)** (4 stories) + 2 fixes pegos em smoke + docs de F13 (E22) no roadmap. Adiciona controle por curso da ordem em que o aluno avança: CCs/UCs sequenciais vs livres, atividades sequenciais vs livres, avaliação só após todas as atividades.
+
+### Novas funcionalidades
+
+#### Epic E19 — Modos de progressão
+
+- **Schema + form do professor com 3 toggles** (E19-01, #259): 3 colunas novas em `courses` — `cc_mode ENUM('sequential','free') NOT NULL DEFAULT 'sequential'` (controla CCs e UCs dentro de CC), `activity_mode ENUM('sequential','free') NOT NULL DEFAULT 'sequential'` (controla atividades dentro de UC), `eval_after_activities TINYINT(1) NOT NULL DEFAULT 1` (avaliação só libera após todas atividades). Defaults sequenciais — cursos legados ganham comportamento sequencial via ALTER idempotente. Form de criar/editar curso ganha 3 toggles via partial DRY (`course_progression_fields.php`) reusada em `new.php` + `edit.php`. `Course::create/update` + `TeacherCoursesController::validate` (whitelist server-side dos ENUMs). 11 chaves PT/EN.
+- **Helper `course_progression_state` + visibilidade na page do curso** (E19-02, #260): helper novo em `helpers.php` (~140 linhas) calcula status de cada CC e UC — `current`, `next`, `hidden`, `completed`, `free` — considerando `cc_mode`. Em `cc_mode='free'`: tudo `'free'`. Em `cc_mode='sequential'`: caminha CCs em ordem; primeira não-completa = `current`; imediatamente após = `next`; demais = `hidden`. Mesma lógica recursivamente nas UCs dentro da CC current. `current_cc_name` / `current_cu_name` referenciados nos overlays "Conclua [X] primeiro". Page `/student/course/{id}` filtra `hidden` no loop, propaga status pros partials. `student_cc_section.php` ganha overlay quando `next` (CC inteira blureada, inner units não renderizados). `unit_card.php` vira `<div>` (sem link) quando `next`, com overlay e tag dinâmica como defesa em profundidade. CSS scoped `.lms-cc-section--locked` + `.lms-unit-card--locked`.
+- **Atividades sequenciais + gate `eval_after_activities`** (E19-03, #261): em `/student/cu/{id}`, quando `activity_mode='sequential'`: caminha cards em ordem; primeira sem submissão = `current`; próxima = `next`; demais = `hidden`. "Concluída" pra fins de progressão = tem submissão (mesmo sem feedback) — não bloqueia o aluno enquanto o professor demora pra corrigir. Quando `eval_after_activities=1` + qualquer atividade pendente: assessment card marcado como `eval_locked` (UX preventiva). `activity_card.php` aceita `$progressionStatus` + `$activityLockedByName`; CTA suprimida quando lock. Gate server-side em `/student/evaluation/{id}` cobre GET e POST: se `eval_after_activities=1` e atividade pendente → flash + redirect 303 pra `/student/cu/{id}`.
+- **URL gates anti-bypass + mobile polish** (E19-04, #262): defesa em profundidade contra aluno colando URL direta de UC/atividade ocultas no browser. Gate em `/student/cu/{id}`: verifica `cu_status` via `course_progression_state` quando `cc_mode='sequential'` — `hidden`/`next` → flash + redirect. Gate em `/student/activity/{id}` em 2 etapas (CU acessível + atividade acessível). Skip ambos quando o respectivo modo é `'free'`. 2 chaves PT/EN novas (`progression.cu_locked`, `progression.activity_locked`). Mobile <576px: font-size 12px + padding 10px nos overlays — texto longo cabe em 360px.
+
+### Correções
+
+- **`SELECT` explícitos não retornavam `cc_mode`/`activity_mode`/`eval_after_activities`** (#263): bug crítico do E19 — `Course::findForTenant` e `StudentCurriculum::forStudent` continuaram com SELECTs antigos após a adição das 3 colunas (E19-01). Sintoma 1: form de editar curso renderizava sempre defaults `'sequential'`/`'sequential'`/checked porque `$course['cc_mode'] ?? 'sequential'` caía no fallback (a key não existia no array). Salvar funcionava (UPDATE persistia OK), reload mostrava default — **reportado pelo PO em smoke**. Sintoma 2 (mais grave): aluno em curso `cc_mode='free'` via SEMPRE comportamento sequencial. Helper `course_progression_state` recebia `$course` sem `cc_mode`, fallback `'sequential'` sempre vencia. Cursos configurados pra livre estavam efetivamente travados em sequencial pro aluno desde o merge do E19-02. URL gates de E19-04 também afetados. Fix: adiciona as 3 colunas em ambos SELECTs (e GROUP BY no `findForTenant`); propaga as 3 keys no tree builder do `StudentCurriculum::forStudent`. **Lição**: ao adicionar coluna a uma tabela, auditar TODOS os SELECTs explícitos (find/list/queries inline) que leem dela — convenção do projeto é listar colunas, não `SELECT *`.
+- **`StudentProgress::coursePercent` inflava o % do curso pulando CUs vazias** (#264): bug pré-existente exposto pelo smoke do E19. Banner hero da page do curso (`/student/course/{id}`) sempre incluiu todas as CUs no average (vazias contam como 0% via `cuPercent`). Dashboard `/student` ("Meus cursos") delegava pra `coursePercent` que tinha um filtro `if (activities_total === 0 && has_evaluation === 0) continue` — pulava CUs vazias do average. Em curso com qualquer CU vazia (placeholder, em construção), as duas formulas divergiam — dashboard mostrava % otimista. Caso ressalva: quando todas as CUs com conteúdo estão 100% + curso tem CUs vazias, dashboard reportava 100%/`'completed'` mesmo com curso pedagogicamente incompleto. **Consequência colateral grave**: `AchievementsService::countCompletedCourses` delega pra `courseStatus` → unlock prematuro de `course_completed_*`. Aluno desbloqueava conquista de "concluiu 1 curso" sem ter realmente concluído. Fix: simplifica `coursePercent` pra somar % de todas as CUs / count total. Spec original (doc/10) ficou obsoleto — overriden pela judgment do PO alinhando dashboard ao banner. Por ADR-018, conquistas já desbloqueadas não foram revogadas (PO confirmou).
+
+### Documentação
+
+- **ADR-032 + F13 (E22) — cross-tenant auth flow** (#253): documentação do caminho de evolução pro caso de aluno com email em múltiplos tenants. ADR-026 já permitia (UK `email_tenant_key`) mas o auth atual usa `LIMIT 1` e não suporta o cenário. ADR-032 consolida a decisão: login multi-conta com seletor de tenant quando 2+ contas validam; reset envia 1 email único com lista de tenants e tokens separados. Trade-off "1 user row + N:N com tenants" considerado e rejeitado (quebraria ADR-026). F13 entrou no roadmap pós-MVP como E22 demand-driven (entra quando 2º tenant aparecer em prod). Sem código.
+
+### Mudanças internas / Tooling
+
+- **`package.json`** bumpado para 0.17.0.
+
+### Convenções consolidadas nesta janela
+
+- **Auditar SELECTs explícitos ao adicionar colunas** — registrado como feedback memory após o bug #263. Grep por `FROM <tabela>` antes de fechar épico que adiciona colunas. Vale pra models (`find*`, `list*`), services, queries inline em pages, e tree builders / array constructors que materializam o resultado.
+- **Defesa em profundidade pra UI restritiva** — quando UI esconde/blureia conteúdo, sempre adicionar gate server-side correspondente nas URLs diretas. Padrão dos URL gates de E19-04: redireciona com flash em vez de 403/404 — deixa o aluno informado sem expor estrutura.
+- **PO judgment overrides spec** — quando a spec (doc/10) e a percepção do PO em hands-on smoke divergem, vence o PO. Atualizar a spec depois (ADR ou doc/10 inline) pra registrar a evolução.
+- **Empty CU = 0% que conta na média** (override de doc/10) — curso com CU vazia "não está completo" é a leitura correta. Empty CU é gap pedagógico, não fica fora da contagem.
+
+### Pendências de schema
+
+**Aplicar antes de smoke em prod (já feito conforme confirmação do PO):**
+
+```sql
+-- E19-01: 3 colunas novas em courses (cc_mode, activity_mode, eval_after_activities)
+-- (já em install/schema.sql — rodar o arquivo inteiro absorve via
+-- ALTER condicional + PREPARE/EXECUTE no bloco de migrações)
+```
+
+### Pendências (herdadas, ainda abertas)
+
+- **`JUDGE0_KEY` em prod**: endpoint responde 503 amigável até o PO configurar.
+- **C# sem syntax highlight no CodeMirror 6** — plain text funciona; nice-to-have futuro.
+- **Cross-tenant smoke** ainda parcial — só 1 tenant em prod (F13/E22 demand-driven aguarda 2º tenant).
+
+[0.17.0]: https://github.com/markimpdl/lms/releases/tag/v0.17.0
+
 ## [0.16.0] — 2026-04-25
 
 Décima sexta release. Escopo: **Epic E21 inteiro — Notificações configuráveis pelo professor** (4 stories) + 1 fix de bug visual reportado em smoke. Adiciona controle por tenant sobre quais eventos disparam sino e/ou email pros alunos. Reduz ruído em turmas grandes e prepara terreno pro Quiz (E20) que vai adicionar mais eventos ao catálogo.

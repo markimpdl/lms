@@ -162,6 +162,19 @@
 **Impacto no schema:** `users.tenant_id INT NULL` (FK para `tenants`). `role='student'` exige `tenant_id NOT NULL`; `role='teacher'` e `role='super_admin'` exigem `tenant_id IS NULL` (o vínculo do professor ao tenant continua via `tenants.owner_user_id`). Unicidade: coluna gerada `email_tenant_key = CONCAT(email, ':', COALESCE(tenant_id, 0))` com `UNIQUE (email_tenant_key)`, garantindo: (a) email único entre teachers+super-admins; (b) email único entre alunos do mesmo tenant; (c) email livre entre alunos de tenants distintos.
 **Consequência para remoção:** remover um aluno **é** apagar a conta — ele não pode "sair de um tenant" e ficar em outro, porque só está em um.
 
+### ADR-032 — Login + reset multi-conta para email compartilhado entre tenants
+**Decisão:** quando o mesmo email existe como aluno em N tenants distintos (cenário previsto por ADR-026), o fluxo de auth opera assim:
+- **Login:** `AuthController::authenticate` testa `password_verify` contra **todas** as rows com aquele email. Se exatamente 1 bate → login direto (compatível com fluxo atual). Se 2+ batem (mesma senha em tenants distintos) → UI de seletor de tenant pede ao aluno escolher qual contexto entrar; sessão associa ao `users.id` específico.
+- **Reset de senha:** `/forgot` continua respondendo genericamente (não vaza enumeração). Quando há 2+ contas com aquele email, o sistema envia **um único email** contendo lista de tenants, cada um com seu próprio token de reset (apontando pro `users.id` daquela conta). Reset numa conta **não afeta** as outras.
+
+**Por quê:** ADR-026 deliberadamente isolou tenants ("não há consentimento implícito para compartilhar dados do aluno entre tenants"). Manter senha por conta preserva esse isolamento — se senha vaza num tenant, não vaza nos outros. Mover a desambiguação pro **email** é privacy-friendly: o email é canal autenticado (só o dono recebe), evita enumeração de tenants pela UI pública (`/forgot` → "qual tenant?" exporia se um email existe ou não em determinado tenant).
+
+**Impacto no schema:** zero. A UK `email_tenant_key` (ADR-026) já permite N rows por email; `password_resets.user_id` já está na PK e suporta tokens por conta nativamente. Mudança fica na app: `AuthController::authenticate`, `pages/forgot.php`, `pages/reset.php` (não muda — token já é per-user), templates `templates/emails/reset.*.php` (renderiza loop), e UI nova de seletor de tenant no login quando ambíguo.
+
+**Trade-off considerado e descartado:** alternativa "1 user row + relação N:N com tenants" (mesma senha resetando todos os tenants em cascata) foi avaliada e rejeitada — quebraria ADR-026, exigiria refactor de 20+ callsites que assumem `users.tenant_id` como source-of-truth + reescrita de XP/ranking/conquistas/notificações que dependem dessa premissa. Custo desproporcional pra um cenário marginal (até hoje 1 tenant em prod).
+
+**Materialização:** ver `doc/15-roadmap-pos-mvp.md` F13 (épico futuro E22, fora do roadmap original — adicionado em 2026-04-25).
+
 ## Pendências em aberto
 
 Nenhuma no momento. Novas dúvidas ou decisões a revisar devem ser adicionadas aqui à medida que aparecerem.

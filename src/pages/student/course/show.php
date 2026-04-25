@@ -92,6 +92,10 @@ foreach ($course['ccs'] as $cc) {
 $overallPct = $overallCount > 0 ? (int) round($overallSum / $overallCount) : 0;
 $ccCount    = count($course['ccs']);
 
+// E19-02: estado de progressão (visibilidade) de cada CC e UC.
+// Em cc_mode='free' tudo vem como 'free' (sem mudança de UI).
+$progression = course_progression_state($course, $studentId);
+
 $page_title = $courseName;
 
 ob_start();
@@ -128,6 +132,16 @@ ob_start();
                 $ccPercent   = (int) $entry['percent'];
                 $ccUnitsDone = (int) $entry['units_done'];
                 $ccUnitsTot  = (int) $entry['units_tot'];
+
+                // E19-02: filtra CC oculta + injeta status no escopo do partial.
+                $ccStatus = $progression['cc_status'][(int) $cc['id']] ?? 'free';
+                if ($ccStatus === 'hidden') {
+                    continue;
+                }
+                $ccLockedByName = $progression['current_cc_name']; // p/ overlay quando 'next'
+                $cuStatusMap    = $progression['cu_status'];
+                $cuLockedByName = $progression['current_cu_name'];
+
                 require LMS_ROOT . '/src/templates/partials/student_cc_section.php';
             ?>
         <?php endforeach; ?>

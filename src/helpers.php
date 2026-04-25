@@ -114,6 +114,144 @@ function student_progression_check(int $studentId, int $tenantId, int $cuId): vo
 }
 
 /**
+ * Calcula o estado de progressão (visibilidade) de cada CC e UC do
+ * curso pro aluno (E19-02). Considera `courses.cc_mode`.
+ *
+ * Status possíveis por CC e por UC:
+ *  - 'current'   — ponto atual; renderiza nítido + navegável
+ *  - 'next'      — próximo na fila; renderiza com blur + overlay "Conclua X primeiro"
+ *  - 'hidden'    — após o 'next'; não renderizado
+ *  - 'completed' — concluído; renderiza nítido
+ *  - 'free'      — modo livre (cc_mode='free'); renderiza nítido sem regras
+ *
+ * `current_cc_name` é o nome da CC atual (referenciado no overlay da
+ * próxima CC: "Conclua [current_cc_name] primeiro"). Análogo para UC
+ * em `current_cu_name`.
+ *
+ * @param array $course estrutura retornada por `StudentCurriculum::forStudentCourse`
+ * @return array{cc_status:array<int,string>, cu_status:array<int,string>, current_cc_name:?string, current_cu_name:?string}
+ */
+function course_progression_state(array $course, int $studentId): array
+{
+    $ccMode        = (string) ($course['cc_mode'] ?? 'sequential');
+    $ccs           = $course['ccs'] ?? [];
+    $ccStatus      = [];
+    $cuStatus      = [];
+    $currentCcName = null;
+    $currentCuName = null;
+
+    if ($ccMode === 'free') {
+        foreach ($ccs as $cc) {
+            $ccStatus[(int) $cc['id']] = 'free';
+            foreach ($cc['cus'] ?? [] as $cu) {
+                $cuStatus[(int) $cu['id']] = 'free';
+            }
+        }
+        return [
+            'cc_status'       => $ccStatus,
+            'cu_status'       => $cuStatus,
+            'current_cc_name' => null,
+            'current_cu_name' => null,
+        ];
+    }
+
+    // CC sem CUs nunca é "completa" — vira current se vier antes.
+    $isCcComplete = static function (array $cc, int $sid): bool {
+        $cus = $cc['cus'] ?? [];
+        if ($cus === []) {
+            return false;
+        }
+        foreach ($cus as $cu) {
+            $st = student_cu_status((int) $cu['id'], $sid);
+            if (($st['status'] ?? '') !== 'completed') {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    $foundCurrent   = false;
+    $markNextAsNext = false;
+    foreach ($ccs as $cc) {
+        $ccId = (int) $cc['id'];
+
+        if ($markNextAsNext) {
+            $ccStatus[$ccId] = 'next';
+            $markNextAsNext  = false;
+            continue;
+        }
+        if ($foundCurrent) {
+            $ccStatus[$ccId] = 'hidden';
+            continue;
+        }
+        if ($isCcComplete($cc, $studentId)) {
+            $ccStatus[$ccId] = 'completed';
+        } else {
+            $ccStatus[$ccId] = 'current';
+            $currentCcName   = (string) $cc['name'];
+            $foundCurrent    = true;
+            $markNextAsNext  = true;
+        }
+    }
+
+    // CUs:
+    //  - CC 'completed'     → todas CUs 'completed'
+    //  - CC 'next'/'hidden' → todas CUs 'hidden' (CC inteira nem renderiza inner cards)
+    //  - CC 'current'       → regra sequencial entre as CUs
+    foreach ($ccs as $cc) {
+        $ccId = (int) $cc['id'];
+        $st   = $ccStatus[$ccId];
+        $cus  = $cc['cus'] ?? [];
+
+        if ($st === 'completed') {
+            foreach ($cus as $cu) {
+                $cuStatus[(int) $cu['id']] = 'completed';
+            }
+            continue;
+        }
+        if ($st === 'next' || $st === 'hidden') {
+            foreach ($cus as $cu) {
+                $cuStatus[(int) $cu['id']] = 'hidden';
+            }
+            continue;
+        }
+
+        // CC atual: aplica regra sequencial pra suas CUs.
+        $foundCurrentCu   = false;
+        $markNextCuAsNext = false;
+        foreach ($cus as $cu) {
+            $cuId = (int) $cu['id'];
+
+            if ($markNextCuAsNext) {
+                $cuStatus[$cuId]  = 'next';
+                $markNextCuAsNext = false;
+                continue;
+            }
+            if ($foundCurrentCu) {
+                $cuStatus[$cuId] = 'hidden';
+                continue;
+            }
+            $cuStat = student_cu_status($cuId, $studentId);
+            if (($cuStat['status'] ?? '') === 'completed') {
+                $cuStatus[$cuId] = 'completed';
+            } else {
+                $cuStatus[$cuId]  = 'current';
+                $currentCuName    = (string) $cu['name'];
+                $foundCurrentCu   = true;
+                $markNextCuAsNext = true;
+            }
+        }
+    }
+
+    return [
+        'cc_status'       => $ccStatus,
+        'cu_status'       => $cuStatus,
+        'current_cc_name' => $currentCcName,
+        'current_cu_name' => $currentCuName,
+    ];
+}
+
+/**
  * Últimas conquistas desbloqueadas pelo aluno no tenant, ordenadas por
  * `unlocked_at DESC`. Usado pelo card "Conquistas" no ProfileSidebar
  * (E18-06) — 3 miniaturas + link "Ver todas". Engole Throwable.

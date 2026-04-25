@@ -6,22 +6,35 @@ declare(strict_types=1);
  *
  * Renderiza o card de cabeçalho (ícone gradient + eyebrow "CORE COMPETENCE N"
  * + H2 + barra linear de progresso + ProgressRing à direita) seguido da grid
- * de UnitCards. CSs sem CUs mostram mensagem.
+ * de UnitCards. CCs sem CUs mostram mensagem.
  *
  * Espera no escopo:
- *   $cc          array com id, name, cus (lista enriquecida)
- *   $ccIndex     int — numeração 1..N na ordem
- *   $ccPercent   int
- *   $ccUnitsDone int
- *   $ccUnitsTot  int
- *   $gradStart   string (hex) — gradient usado pra cor da CC (igual ao cover)
- *   $gradEnd     string (hex)
- *   $studentId   int — pra cada UnitCard calcular status
+ *   $cc              array com id, name, cus (lista enriquecida)
+ *   $ccIndex         int — numeração 1..N na ordem
+ *   $ccPercent       int
+ *   $ccUnitsDone     int
+ *   $ccUnitsTot      int
+ *   $gradStart       string (hex) — gradient usado pra cor da CC (igual ao cover)
+ *   $gradEnd         string (hex)
+ *   $studentId       int — pra cada UnitCard calcular status
+ *   $ccStatus        string (E19-02) — 'current'|'next'|'completed'|'free'
+ *                    ('hidden' já foi filtrado pelo caller)
+ *   $ccLockedByName  ?string (E19-02) — nome da CC atual; usado no overlay quando $ccStatus='next'
+ *   $cuStatusMap     array<int,string> (E19-02) — mapa cu_id => status
+ *   $cuLockedByName  ?string (E19-02) — nome da CU atual; passado pro unit_card
  */
 
 $gradient = sprintf('linear-gradient(135deg, %s, %s)', $gradStart, $gradEnd);
+$ccStatus = (string) ($ccStatus ?? 'free');
+$ccLockedByName = $ccLockedByName ?? null;
+$ccSectionClass = 'lms-cc-section';
+if ($ccStatus === 'next') {
+    $ccSectionClass .= ' lms-cc-section--locked';
+} elseif ($ccStatus === 'completed') {
+    $ccSectionClass .= ' lms-cc-section--completed';
+}
 ?>
-<section class="lms-cc-section">
+<section class="<?= e($ccSectionClass) ?>">
     <header class="lms-cc-header">
         <div class="lms-cc-header__icon" style="background: <?= e($gradient) ?>;" aria-hidden="true">
             <?= (int) $ccIndex ?>
@@ -53,13 +66,22 @@ $gradient = sprintf('linear-gradient(135deg, %s, %s)', $gradStart, $gradEnd);
         </div>
     </header>
 
-    <?php if ($cc['cus'] === []): ?>
+    <?php if ($ccStatus === 'next'): ?>
+        <div class="lms-cc-section__lock-overlay">
+            <?= e(__t('progression.next_locked', ['name' => (string) ($ccLockedByName ?? '')])) ?>
+        </div>
+    <?php elseif ($cc['cus'] === []): ?>
         <p class="lms-cc-section__empty"><?= e(__t('dashboard.student.cc_empty')) ?></p>
     <?php else: ?>
         <div class="lms-unit-grid">
             <?php foreach ($cc['cus'] as $cuIdx => $unit): ?>
                 <?php
                     $unitIndex = $cuIdx + 1;
+                    // E19-02: status da UC + filtra hidden + injeta locked-by name.
+                    $cuStatus  = $cuStatusMap[(int) $unit['id']] ?? 'free';
+                    if ($cuStatus === 'hidden') {
+                        continue;
+                    }
                     require LMS_ROOT . '/src/templates/partials/unit_card.php';
                 ?>
             <?php endforeach; ?>
