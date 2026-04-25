@@ -104,6 +104,7 @@ ob_start();
             <thead>
                 <tr>
                     <th><?= $sortLink('name', __t('students.col.name')) ?></th>
+                    <th><?= e(__t('students.col.id_document')) ?></th>
                     <th><?= $sortLink('email', __t('students.col.email')) ?></th>
                     <th><?= $sortLink('language', __t('students.col.language')) ?></th>
                     <th><?= $sortLink('active', __t('students.col.status')) ?></th>
@@ -116,11 +117,19 @@ ob_start();
             </thead>
             <tbody>
             <?php foreach ($data['rows'] as $row): ?>
+                <?php $fullName = (string) $row['name']; $shortName = format_short_name($fullName); ?>
                 <tr>
                     <td>
-                        <a href="/teacher/students/<?= (int) $row['id'] ?>" class="fw-semibold text-decoration-none">
-                            <?= e((string) $row['name']) ?>
+                        <a href="/teacher/students/<?= (int) $row['id'] ?>"
+                           class="fw-semibold text-decoration-none"
+                           title="<?= e($fullName) ?>">
+                            <?= e($shortName) ?>
                         </a>
+                    </td>
+                    <td class="small text-muted">
+                        <?= !empty($row['id_document'])
+                            ? e((string) $row['id_document'])
+                            : '<span class="text-muted">—</span>' ?>
                     </td>
                     <td class="text-break"><?= e((string) $row['email']) ?></td>
                     <td><span class="badge text-bg-secondary"><?= e(strtoupper((string) $row['language'])) ?></span></td>

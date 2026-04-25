@@ -686,6 +686,7 @@ return [
     'students.filter.inactive'       => 'Apenas inativos',
     'students.filter.all'            => 'Todos',
     'students.col.name'              => 'Nome',
+    'students.col.id_document'       => 'Documento',
     'students.col.email'             => 'E-mail',
     'students.col.language'          => 'Idioma',
     'students.col.status'            => 'Status',

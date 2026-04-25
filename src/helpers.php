@@ -91,6 +91,25 @@ function student_next_rank(int $studentId, int $tenantId): ?array
 }
 
 /**
+ * Reduz "Marcos Aparecido Ortolani Soares" pra "Marcos Soares" (E16-02).
+ * Usado na listagem `/teacher/students` pra deixar a tabela legível em
+ * telas menores. Aluno com 1 token só (ex.: "Madonna") retorna esse token.
+ * Tooltip no caller preserva acesso ao nome completo no hover.
+ */
+function format_short_name(string $fullName): string
+{
+    $name = trim($fullName);
+    if ($name === '') {
+        return '';
+    }
+    $tokens = preg_split('/\s+/u', $name) ?: [];
+    if (count($tokens) <= 1) {
+        return $name;
+    }
+    return $tokens[0] . ' ' . end($tokens);
+}
+
+/**
  * Posição linear do aluno no ranking geral do tenant (E9-07). Delega pra
  * `RankingService::myPosition` (window 'all', sem filtros). Engole Throwable
  * graciosamente — sidebar mostra "—" se a query falhar (mesmo padrão do
