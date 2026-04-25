@@ -1024,4 +1024,12 @@ return [
     'ranking.pagination.prev'      => 'Anterior',
     'ranking.pagination.next'      => 'Próxima',
     'ranking.pagination.page_x_of_y' => 'Página :x de :y',
+
+    // Ranking — filtros (E9-04)
+    'ranking.filter.aria'        => 'Filtros do ranking',
+    'ranking.filter.group'       => 'Grupo',
+    'ranking.filter.year'        => 'Ano',
+    'ranking.filter.all_groups'  => 'Todos os grupos',
+    'ranking.filter.all_years'   => 'Todos os anos',
+    'ranking.filter.apply'       => 'Filtrar',
 ];

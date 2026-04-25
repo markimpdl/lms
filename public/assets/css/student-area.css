@@ -1394,6 +1394,37 @@ body.lms-student-area .lms-student-main {
 
 body.lms-student-area .lms-ranking-header { margin-bottom: 16px; }
 
+/* Form de filtros (E9-04). Sits between header and table. */
+body.lms-student-area .lms-ranking-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 14px 16px;
+    background: var(--lms-card-bg);
+    border: 1px solid var(--lms-neutral-200);
+    border-radius: var(--lms-radius-inner);
+}
+
+body.lms-student-area .lms-ranking-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 180px;
+}
+
+body.lms-student-area .lms-ranking-filter__label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--lms-neutral-500);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+body.lms-student-area .lms-ranking-filter__submit { align-self: flex-end; }
+
+
 body.lms-student-area .lms-ranking-card {
     background: var(--lms-card-bg);
     border-radius: var(--lms-radius-card);
@@ -1483,4 +1514,7 @@ body.lms-student-area .lms-ranking-xp-unit {
     body.lms-student-area .lms-ranking-table__xp  { width: 90px; }
     body.lms-student-area .lms-ranking-pos { font-size: 16px; }
     body.lms-student-area .lms-ranking-you { margin-left: 4px; padding: 2px 6px; font-size: 10px; }
+    body.lms-student-area .lms-ranking-filters { padding: 12px; }
+    body.lms-student-area .lms-ranking-filter { min-width: 0; width: 100%; }
+    body.lms-student-area .lms-ranking-filter__submit { width: 100%; }
 }
