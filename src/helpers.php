@@ -91,6 +91,46 @@ function student_next_rank(int $studentId, int $tenantId): ?array
 }
 
 /**
+ * Renderiza label legível do período de acesso de uma matrícula (E17-01).
+ *   (null, null) → "imediato → ilimitado"
+ *   ("...", null) → "DD/MM/YYYY → ilimitado"
+ *   (null, "...") → "imediato → DD/MM/YYYY"
+ *   ("...", "...") → "DD/MM/YYYY → DD/MM/YYYY"
+ * Datas formatadas via `format_short_date` (respeita idioma).
+ */
+function format_period_label(?string $startsAt, ?string $endsAt): string
+{
+    $start = ($startsAt !== null && $startsAt !== '')
+        ? format_short_date($startsAt)
+        : __t('enrollments.period.immediate');
+    $end = ($endsAt !== null && $endsAt !== '')
+        ? format_short_date($endsAt)
+        : __t('enrollments.period.unlimited');
+    return $start . ' → ' . $end;
+}
+
+/**
+ * Converte input `<input type="datetime-local">` ("YYYY-MM-DDTHH:MM" ou
+ * "YYYY-MM-DDTHH:MM:SS") em DATETIME do MySQL ("YYYY-MM-DD HH:MM:SS").
+ * Vazio/whitespace → null. Formato inválido → null (caller decide se
+ * isso é erro ou ausência). Usado em E17-01 (período de matrícula) e em
+ * outros forms que aceitem datetime opcional.
+ */
+function parse_datetime_local(?string $val): ?string
+{
+    $val = trim((string) $val);
+    if ($val === '') {
+        return null;
+    }
+    try {
+        $dt = new \DateTimeImmutable($val);
+    } catch (\Exception) {
+        return null;
+    }
+    return $dt->format('Y-m-d H:i:s');
+}
+
+/**
  * Reduz "Marcos Aparecido Ortolani Soares" pra "Marcos Soares" (E16-02).
  * Usado na listagem `/teacher/students` pra deixar a tabela legível em
  * telas menores. Aluno com 1 token só (ex.: "Madonna") retorna esse token.

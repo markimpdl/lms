@@ -230,7 +230,15 @@ ob_start();
             <?php else: ?>
                 <ul class="list-group list-group-flush">
                     <?php foreach ($enrolled['rows'] as $row): ?>
-                        <?php $rowStatus = (string) ($row['status'] ?? 'active'); ?>
+                        <?php
+                            $rowStatus    = (string) ($row['status'] ?? 'active');
+                            $rowStartsAt  = $row['access_starts_at'] ?? null;
+                            $rowEndsAt    = $row['access_ends_at']   ?? null;
+                            $periodLabel  = format_period_label($rowStartsAt, $rowEndsAt);
+                            // datetime-local espera "YYYY-MM-DDTHH:MM"; converter do MySQL DATETIME.
+                            $startsLocal  = $rowStartsAt !== null ? str_replace(' ', 'T', substr((string) $rowStartsAt, 0, 16)) : '';
+                            $endsLocal    = $rowEndsAt   !== null ? str_replace(' ', 'T', substr((string) $rowEndsAt,   0, 16)) : '';
+                        ?>
                         <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
                             <div class="flex-grow-1">
                                 <a href="/teacher/students/<?= (int) $row['student_id'] ?>" class="fw-semibold text-decoration-none">
@@ -242,8 +250,17 @@ ob_start();
                                 <?php endif; ?>
                                 <div class="small text-muted">
                                     <?= e(__t('enrollments.enrolled_at', ['date' => substr((string) $row['enrolled_at'], 0, 10)])) ?>
+                                    · <?= e(__t('enrollments.period.label')) ?>: <?= e($periodLabel) ?>
                                 </div>
                             </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                    data-bs-toggle="modal" data-bs-target="#periodModal"
+                                    data-student-id="<?= (int) $row['student_id'] ?>"
+                                    data-student-name="<?= e((string) $row['name']) ?>"
+                                    data-starts-at="<?= e($startsLocal) ?>"
+                                    data-ends-at="<?= e($endsLocal) ?>">
+                                <?= e(__t('enrollments.action.edit_period')) ?>
+                            </button>
                             <form method="POST"
                                   action="/teacher/courses/<?= (int) $course['id'] ?>/enrollment/<?= (int) $row['student_id'] ?>/status"
                                   class="m-0 d-inline-flex align-items-center gap-2">
@@ -268,6 +285,58 @@ ob_start();
                 (function () {
                     document.querySelectorAll('select.js-enrollment-status').forEach(function (sel) {
                         sel.addEventListener('change', function () { sel.form.submit(); });
+                    });
+                })();
+                </script>
+
+                <!-- Modal único de edição de período (E17-01); populado via show.bs.modal -->
+                <div class="modal fade" id="periodModal" tabindex="-1" aria-hidden="true" aria-labelledby="periodModalTitle">
+                    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+                        <form id="periodForm" method="POST" action="" class="modal-content" novalidate>
+                            <?= csrf_field() ?>
+                            <div class="modal-header">
+                                <h2 class="modal-title h5" id="periodModalTitle">
+                                    <?= e(__t('enrollments.period.modal_title')) ?>
+                                    <small class="text-muted ms-1" id="periodStudentName"></small>
+                                </h2>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= e(__t('common.cancel')) ?>"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row g-3">
+                                    <div class="col-12 col-sm-6">
+                                        <label for="periodStart" class="form-label"><?= e(__t('enrollments.field.access_starts_at')) ?></label>
+                                        <input type="datetime-local" name="access_starts_at" id="periodStart" class="form-control">
+                                    </div>
+                                    <div class="col-12 col-sm-6">
+                                        <label for="periodEnd" class="form-label"><?= e(__t('enrollments.field.access_ends_at')) ?></label>
+                                        <input type="datetime-local" name="access_ends_at" id="periodEnd" class="form-control">
+                                    </div>
+                                </div>
+                                <p class="form-text mt-2 mb-0"><?= e(__t('enrollments.field.access.help')) ?></p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= e(__t('common.cancel')) ?></button>
+                                <button type="submit" class="btn btn-primary"><?= e(__t('common.save')) ?></button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <script>
+                (function () {
+                    var modal = document.getElementById('periodModal');
+                    if (!modal) return;
+                    var form  = document.getElementById('periodForm');
+                    var nameEl = document.getElementById('periodStudentName');
+                    var startEl = document.getElementById('periodStart');
+                    var endEl   = document.getElementById('periodEnd');
+                    modal.addEventListener('show.bs.modal', function (event) {
+                        var btn = event.relatedTarget;
+                        if (!btn) return;
+                        nameEl.textContent = btn.getAttribute('data-student-name') || '';
+                        startEl.value = btn.getAttribute('data-starts-at') || '';
+                        endEl.value   = btn.getAttribute('data-ends-at')   || '';
+                        form.action = '/teacher/courses/<?= (int) $course['id'] ?>/enrollment/' + btn.getAttribute('data-student-id') + '/period';
                     });
                 })();
                 </script>
