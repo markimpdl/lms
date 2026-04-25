@@ -158,6 +158,51 @@ function student_recent_achievements(int $studentId, int $tenantId, int $limit =
 }
 
 /**
+ * Indica se o par (evento, canal) está habilitado pro tenant (E21-01).
+ *
+ * Lê `notification_settings` — linha ausente = enabled (default ON).
+ * Cache estático por request por chave composta `tenantId:event:channel`
+ * pra evitar N queries quando o mesmo par é consultado em loop (ex.: bulk
+ * enrollment, broadcast de novo conteúdo).
+ *
+ * Defensivo: `tenant_id <= 0` retorna true; Throwable → true. O caller
+ * espera bool — degradar pra "enabled" preserva o comportamento atual.
+ *
+ * Não consultado em lugar nenhum ainda; integração no NotificationService
+ * fica em E21-02.
+ */
+function notification_enabled(int $tenantId, string $event, string $channel): bool
+{
+    if ($tenantId <= 0) {
+        return true;
+    }
+
+    static $cache = [];
+    $key = $tenantId . ':' . $event . ':' . $channel;
+    if (array_key_exists($key, $cache)) {
+        return $cache[$key];
+    }
+
+    try {
+        $stmt = Database::pdo()->prepare(
+            'SELECT enabled FROM notification_settings
+              WHERE tenant_id = ? AND event = ? AND channel = ?
+              LIMIT 1'
+        );
+        $stmt->execute([$tenantId, $event, $channel]);
+        $value = $stmt->fetchColumn();
+    } catch (\Throwable) {
+        return $cache[$key] = true;
+    }
+
+    // Linha ausente = enabled (default ON). fetchColumn retorna false sem rows.
+    if ($value === false || $value === null) {
+        return $cache[$key] = true;
+    }
+    return $cache[$key] = ((int) $value === 1);
+}
+
+/**
  * URL do avatar default do aluno (E17-04). Combina `tenants.avatar_style`
  * (config do professor) com `users.gender` (cadastrado em E16-01) pra
  * produzir o path do SVG em `public/assets/avatars/`.
