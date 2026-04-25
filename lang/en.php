@@ -37,6 +37,7 @@ return [
     // Navbar
     'nav.logout'         => 'Log out',
     'nav.profile'        => 'My profile',
+    'nav.settings'       => 'Settings',
     'nav.dashboard'      => 'Go to dashboard',
     'nav.login'          => 'Log in',
     'nav.language.switch_to' => 'Switch language to :target',
@@ -817,6 +818,14 @@ return [
     'enrollment.unavailable.before'      => 'Access available starting :date.',
     'enrollment.unavailable.after'       => 'Access expired on :date.',
     'enrollment.unavailable.generic'     => 'Course access is unavailable at the moment.',
+    // Tenant settings (E17-04).
+    'settings.title'                  => 'Settings',
+    'settings.avatar.title'           => 'Avatar style',
+    'settings.avatar.help'            => 'The chosen style sets the default avatar for your students — combined with the gender registered at signup.',
+    'settings.avatar.style.arabe'     => 'Arab',
+    'settings.avatar.style.ocidental' => 'Western',
+    'settings.success'                => 'Settings updated.',
+    'settings.err.invalid_avatar_style' => 'Invalid avatar style.',
     'enrollments.section.subtitle'           => ':count enrolled course(s)',
     'enrollments.add_button'                 => 'Enroll in course',
     'enrollments.empty'                      => 'This student is not enrolled in any course yet.',

@@ -91,6 +91,48 @@ function student_next_rank(int $studentId, int $tenantId): ?array
 }
 
 /**
+ * URL do avatar default do aluno (E17-04). Combina `tenants.avatar_style`
+ * (config do professor) com `users.gender` (cadastrado em E16-01) pra
+ * produzir o path do SVG em `public/assets/avatars/`.
+ *
+ * Cache estático por request — ProfileSidebar + listagens podem chamar
+ * múltiplas vezes pro mesmo aluno sem onerar o DB.
+ *
+ * Fallback gracioso: aluno sem matrícula/tenant retorna 'arabe-male.svg'.
+ */
+function student_avatar_url(int $studentId): string
+{
+    static $cache = [];
+    if (isset($cache[$studentId])) {
+        return $cache[$studentId];
+    }
+
+    $stmt = Database::pdo()->prepare(
+        'SELECT u.gender, t.avatar_style
+           FROM users u
+           JOIN tenants t ON t.id = u.tenant_id
+          WHERE u.id = ? AND u.role = "student"
+          LIMIT 1'
+    );
+    $stmt->execute([$studentId]);
+    $row = $stmt->fetch();
+
+    $style  = $row !== false ? (string) $row['avatar_style'] : 'arabe';
+    $gender = $row !== false ? (string) $row['gender']       : 'male';
+
+    if (!in_array($style, ['arabe', 'ocidental'], true)) {
+        $style = 'arabe';
+    }
+    if (!in_array($gender, ['male', 'female'], true)) {
+        $gender = 'male';
+    }
+
+    $url = '/assets/avatars/' . $style . '-' . $gender . '.svg';
+    $cache[$studentId] = $url;
+    return $url;
+}
+
+/**
  * Pure logic — disponibilidade de acesso do aluno ao curso (E17-03), dados
  * os 3 campos da matrícula. Usada pela CourseCard (sem 2ª query) e por
  * `enrollment_access_status` (que faz query primeiro).
