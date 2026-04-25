@@ -55,6 +55,12 @@ ob_start();
     <div class="col-12 col-md-10 col-lg-8">
         <h1 class="h4 mb-3"><?= e(__t('settings.title')) ?></h1>
 
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <a href="/teacher/settings/notifications" class="btn btn-outline-primary btn-sm">
+                <?= e(__t('notifications.settings.link')) ?>
+            </a>
+        </div>
+
         <?php if ($errors !== []): ?>
             <div class="alert alert-danger" role="alert">
                 <?= e(__t($errors['avatar_style'] ?? 'students.form.has_errors')) ?>
