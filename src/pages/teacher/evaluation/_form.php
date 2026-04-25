@@ -102,7 +102,8 @@ $maxMb = (int) (EvaluationBriefStorage::maxBytes() / (1024 * 1024));
                         <code><?= e(basename($currentPdfPath)) ?></code>
                     </div>
                 <?php endif; ?>
-                <input type="file" name="pdf" id="f-pdf" accept="application/pdf"
+                <input type="file" name="pdf" id="f-pdf"
+                       accept="application/pdf,application/zip,.pdf,.zip"
                        class="form-control<?= isset($errors['pdf']) ? ' is-invalid' : '' ?>">
                 <div class="form-text">
                     <?= e(__t('evaluations.form.pdf_hint', ['mb' => (string) $maxMb])) ?>
