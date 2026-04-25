@@ -14,6 +14,10 @@ declare(strict_types=1);
  */
 final class Evaluation
 {
+    /** Tipos de avaliação (E20-01). 'projeto' = upload de arquivo (default
+     *  histórico); 'quiz' = múltipla escolha (E20). */
+    public const TYPES = ['projeto', 'quiz'];
+
     /**
      * Retorna avaliação + contexto (cu_id, cc_id, course_id, course_archived).
      * null se não pertence ao tenant.
@@ -24,7 +28,7 @@ final class Evaluation
     {
         $stmt = Database::pdo()->prepare(
             'SELECT e.id, e.tenant_id, e.competence_unit_id, e.title, e.instructions,
-                    e.pdf_path, e.xp_value, e.submission_open,
+                    e.type, e.pdf_path, e.xp_value, e.submission_open,
                     e.created_at, e.updated_at,
                     cc.id AS cc_id, c.id AS course_id, c.archived AS course_archived
                FROM evaluations e
@@ -48,7 +52,7 @@ final class Evaluation
     public static function findByCu(int $cuId, int $tenantId): ?array
     {
         $stmt = Database::pdo()->prepare(
-            'SELECT e.id, e.title, e.pdf_path, e.xp_value, e.submission_open
+            'SELECT e.id, e.title, e.type, e.pdf_path, e.xp_value, e.submission_open
                FROM evaluations e
                JOIN competence_units cu   ON cu.id = e.competence_unit_id
                JOIN core_competencies cc  ON cc.id = cu.core_competency_id
@@ -99,15 +103,16 @@ final class Evaluation
 
             $ins = $pdo->prepare(
                 'INSERT INTO evaluations
-                    (tenant_id, competence_unit_id, title, instructions,
+                    (tenant_id, competence_unit_id, title, instructions, type,
                      pdf_path, xp_value, submission_open)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)'
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
             );
             $ins->execute([
                 $tenantId,
                 $cuId,
                 $data['title'],
                 $data['instructions'] !== '' ? $data['instructions'] : null,
+                $data['type'] ?? 'projeto',
                 $data['pdf_path'],
                 $data['xp_value'],
                 $data['submission_open'] ? 1 : 0,
@@ -136,12 +141,13 @@ final class Evaluation
         if ($data['pdf_path'] !== null) {
             Database::pdo()->prepare(
                 'UPDATE evaluations
-                    SET title = ?, instructions = ?, pdf_path = ?,
+                    SET title = ?, instructions = ?, type = ?, pdf_path = ?,
                         xp_value = ?, submission_open = ?
                   WHERE id = ?'
             )->execute([
                 $data['title'],
                 $data['instructions'] !== '' ? $data['instructions'] : null,
+                $data['type'] ?? 'projeto',
                 $data['pdf_path'],
                 $data['xp_value'],
                 $data['submission_open'] ? 1 : 0,
@@ -150,12 +156,13 @@ final class Evaluation
         } else {
             Database::pdo()->prepare(
                 'UPDATE evaluations
-                    SET title = ?, instructions = ?,
+                    SET title = ?, instructions = ?, type = ?,
                         xp_value = ?, submission_open = ?
                   WHERE id = ?'
             )->execute([
                 $data['title'],
                 $data['instructions'] !== '' ? $data['instructions'] : null,
+                $data['type'] ?? 'projeto',
                 $data['xp_value'],
                 $data['submission_open'] ? 1 : 0,
                 $id,
