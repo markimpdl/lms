@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $studentIds = Enrollment::activeStudentIdsForCourse($courseId, $tenantId);
                 if ($studentIds !== []) {
                     NotificationService::fanout(
-                        'activity_new',
+                        NotificationService::EVENT_ACTIVITY_NEW,
                         $studentIds,
                         $old['title'],
                         null,

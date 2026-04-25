@@ -56,7 +56,7 @@ if ($next === null) {
             $studentIds = Enrollment::activeStudentIdsForCourse($courseId, $tenantId);
             if ($studentIds !== []) {
                 NotificationService::fanout(
-                    'submission_closed',
+                    NotificationService::EVENT_SUBMISSION_CLOSED,
                     $studentIds,
                     (string) $activity['title'],
                     null,
