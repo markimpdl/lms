@@ -999,6 +999,8 @@ return [
     'sidebar.next_rank_xp' => ':xp XP',
     'sidebar.max_rank'     => 'Max level reached',
     'sidebar.no_rank'      => 'No rank configured for your tenant',
+    'sidebar.position'     => 'POSITION',
+    'sidebar.no_position'  => 'No ranking yet',
 
     // Navbar — primary link (E9-03)
     'nav.primary_aria' => 'Primary navigation',
