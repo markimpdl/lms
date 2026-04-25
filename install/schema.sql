@@ -777,6 +777,26 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
+-- [E16-04] user_logins — historico de conexoes bem-sucedidas. Coletado em
+-- AuthController::completeLogin (apos password ok + sessao regenerada).
+-- IP via REMOTE_ADDR ou X-Forwarded-For (primeira entrada se setado);
+-- location preenchido por GeoIPClient (ip-api.com free tier 45req/min,
+-- fallback NULL em falha). Retencao 180 dias via cron purge-old-logins.
+-- Visivel APENAS pelo professor no detalhe do aluno. LGPD note em doc/14.
+CREATE TABLE IF NOT EXISTS user_logins (
+    id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id       BIGINT UNSIGNED NOT NULL,
+    tenant_id     BIGINT UNSIGNED NULL,
+    ip            VARCHAR(45)     NOT NULL,
+    location      VARCHAR(120)    NULL,
+    user_agent    VARCHAR(255)    NULL,
+    logged_in_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_ul_user_recent (user_id, logged_in_at),
+    KEY idx_ul_purge (logged_in_at),
+    CONSTRAINT fk_ul_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- [E16-03] enrollments.status — status do aluno no curso, visivel APENAS pro
 -- professor (active/absent/completed). E so indicativo: nao altera regras de
 -- negocio (XP, progresso, ranking continuam normais). Manual sempre — sem

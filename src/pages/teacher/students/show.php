@@ -69,6 +69,7 @@ if ($resetOnce !== null && (int) ($resetOnce['student_id'] ?? 0) === $studentId)
 
 $isActive = (int) $student['active'] === 1;
 
+$recentLogins = UserLogin::findRecentForUser($studentId);
 $enrollments = Enrollment::listByStudent($studentId, $tenantId);
 $enrolledIds = array_map(static fn(array $e): int => (int) $e['course_id'], $enrollments);
 $availableCourses = array_values(array_filter(
@@ -309,6 +310,51 @@ ob_start();
                         </li>
                     <?php endforeach; ?>
                 </ul>
+            <?php endif; ?>
+        </div>
+
+        <!-- Histórico de conexões (E16-04) -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">
+                <h2 class="h6 mb-0"><?= e(__t('students.logins.title')) ?></h2>
+                <small class="text-muted"><?= e(__t('students.logins.subtitle')) ?></small>
+            </div>
+            <?php if ($recentLogins === []): ?>
+                <div class="card-body text-center text-muted py-4">
+                    <p class="mb-0"><?= e(__t('students.logins.empty')) ?></p>
+                </div>
+            <?php else: ?>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0 small">
+                        <thead class="table-light">
+                            <tr>
+                                <th><?= e(__t('students.logins.col.datetime')) ?></th>
+                                <th><?= e(__t('students.logins.col.ip')) ?></th>
+                                <th class="d-none d-md-table-cell"><?= e(__t('students.logins.col.location')) ?></th>
+                                <th class="d-none d-lg-table-cell"><?= e(__t('students.logins.col.user_agent')) ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($recentLogins as $log): ?>
+                                <tr>
+                                    <td><?= e(format_short_datetime((string) $log['logged_in_at'])) ?></td>
+                                    <td class="text-muted"><code><?= e((string) $log['ip']) ?></code></td>
+                                    <td class="d-none d-md-table-cell text-muted">
+                                        <?= !empty($log['location'])
+                                            ? e((string) $log['location'])
+                                            : '<span class="text-muted">—</span>' ?>
+                                    </td>
+                                    <td class="d-none d-lg-table-cell text-muted small text-truncate" style="max-width: 280px;"
+                                        title="<?= e((string) ($log['user_agent'] ?? '')) ?>">
+                                        <?= !empty($log['user_agent'])
+                                            ? e((string) $log['user_agent'])
+                                            : '<span class="text-muted">—</span>' ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             <?php endif; ?>
         </div>
 
