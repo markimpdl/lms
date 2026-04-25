@@ -37,12 +37,36 @@ final class AuthController
 
     /**
      * Retorna o registro do usuário se email+senha baterem e active=1;
-     * null caso contrário (não distingue entre email errado/senha errada/inativo).
-     * Re-hash oportunista se o cost do bcrypt mudou.
+     * null caso contrário. Wrapper sobre `authenticateAll` que aceita só
+     * o caso 1-conta (preserva contrato pré-E22). Quando o email aparece
+     * em 2+ tenants distintos como aluno (ADR-026 permite), retorna null
+     * — caller deve usar `authenticateAll` pra desambiguar.
+     *
+     * @deprecated Mantido pra backward compat; use authenticateAll.
      */
     public static function authenticate(string $email, string $password): ?array
     {
+        $candidates = self::authenticateAll($email, $password);
+        return count($candidates) === 1 ? $candidates[0] : null;
+    }
+
+    /**
+     * Lista de rows que validaram com aquele email+senha (E22-01 — F13).
+     * Retorna lista vazia em 0 matches, 1 elemento no caso comum, 2+ quando
+     * aluno tem email replicado em N tenants (ADR-026) com a MESMA senha.
+     *
+     * Re-hash oportunista por row — só dispara pra rows que efetivamente
+     * autenticaram (não pode ser pra a row "errada" do ambiente ambíguo).
+     *
+     * @return list<array<string,mixed>>
+     */
+    public static function authenticateAll(string $email, string $password): array
+    {
         $pdo  = Database::pdo();
+        // Sem LIMIT 1 — pode haver N rows quando aluno está em N tenants.
+        // LEFT JOIN tenants pega tenant_id do professor (que tem u.tenant_id NULL
+        // mas é owner via tenants.owner_user_id). Pra aluno, JOIN não bate
+        // (aluno não é owner) → COALESCE cai pra u.tenant_id.
         $stmt = $pdo->prepare(
             'SELECT u.id,
                     COALESCE(t.id, u.tenant_id) AS tenant_id,
@@ -50,26 +74,91 @@ final class AuthController
                     u.name, u.role, u.language, u.active
                FROM users u
                LEFT JOIN tenants t ON t.owner_user_id = u.id AND t.active = 1
-              WHERE u.email = ? LIMIT 1'
+              WHERE u.email = ? AND u.active = 1'
         );
         $stmt->execute([$email]);
-        $user = $stmt->fetch();
+        $rows = $stmt->fetchAll();
 
-        if (!$user || (int) $user['active'] !== 1) {
-            return null;
+        $candidates = [];
+        foreach ($rows as $row) {
+            if (!password_verify($password, (string) $row['password_hash'])) {
+                continue;
+            }
+            // Re-hash oportunista por row autenticada.
+            if (password_needs_rehash($row['password_hash'], PASSWORD_BCRYPT, ['cost' => 12])) {
+                $newHash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+                $pdo->prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+                    ->execute([$newHash, $row['id']]);
+            }
+            $candidates[] = $row;
         }
+        return $candidates;
+    }
 
-        if (!password_verify($password, (string) $user['password_hash'])) {
-            return null;
+    /**
+     * Pra UI do seletor de tenant (E22-01): dado uma lista de user_ids
+     * (validados via authenticateAll + guardados na sessão), retorna
+     * a estrutura de display `[{user_id, tenant_id, tenant_name,
+     * teacher_name}]` pra renderizar os cards.
+     *
+     * Faz 1 query por user (volume baixo — N normalmente é 2-3).
+     *
+     * @param list<int> $userIds
+     * @return list<array{user_id:int, tenant_id:int, tenant_name:string, teacher_name:string}>
+     */
+    public static function tenantPickerDisplay(array $userIds): array
+    {
+        if ($userIds === []) {
+            return [];
         }
+        $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+        $stmt = Database::pdo()->prepare(
+            'SELECT u.id AS user_id, u.tenant_id,
+                    t.name AS tenant_name,
+                    owner.name AS teacher_name
+               FROM users u
+               JOIN tenants t        ON t.id = u.tenant_id AND t.active = 1
+               JOIN users   owner    ON owner.id = t.owner_user_id
+              WHERE u.id IN (' . $placeholders . ')
+                AND u.role = "student"
+              ORDER BY t.name ASC'
+        );
+        $stmt->execute(array_map('intval', $userIds));
+        $rows = $stmt->fetchAll();
 
-        if (password_needs_rehash($user['password_hash'], PASSWORD_BCRYPT, ['cost' => 12])) {
-            $newHash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
-            $pdo->prepare('UPDATE users SET password_hash = ? WHERE id = ?')
-                ->execute([$newHash, $user['id']]);
+        $out = [];
+        foreach ($rows as $r) {
+            $out[] = [
+                'user_id'      => (int) $r['user_id'],
+                'tenant_id'    => (int) $r['tenant_id'],
+                'tenant_name'  => (string) $r['tenant_name'],
+                'teacher_name' => (string) $r['teacher_name'],
+            ];
         }
+        return $out;
+    }
 
-        return $user;
+    /**
+     * Carrega user row completa por id pra `completeLogin` na fase 2 do
+     * seletor (após o aluno escolher qual conta entrar). Defensivo:
+     * inativos retornam null. Mesma estrutura de authenticate (com
+     * tenant_id resolvido via COALESCE).
+     */
+    public static function loadActiveUserById(int $userId): ?array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT u.id,
+                    COALESCE(t.id, u.tenant_id) AS tenant_id,
+                    u.email, u.password_hash, u.password_changed_at,
+                    u.name, u.role, u.language, u.active
+               FROM users u
+               LEFT JOIN tenants t ON t.owner_user_id = u.id AND t.active = 1
+              WHERE u.id = ? AND u.active = 1
+              LIMIT 1'
+        );
+        $stmt->execute([$userId]);
+        $row = $stmt->fetch();
+        return $row === false ? null : $row;
     }
 
     /**

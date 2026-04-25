@@ -33,6 +33,12 @@ return [
     'auth.forgot'        => 'Esqueci minha senha',
     'auth.invalid'       => 'E-mail ou senha inválidos.',
     'auth.forbidden'     => 'Acesso negado.',
+    // Seletor de tenant no login (E22-01) — final em E22-03
+    'auth.login.tenant_picker.title'         => 'Em qual espaço deseja entrar?',
+    'auth.login.tenant_picker.help'          => 'Encontramos sua conta em mais de um tenant. Escolha qual acessar agora.',
+    'auth.login.tenant_picker.teacher_label' => 'Professor',
+    'auth.login.tenant_picker.cancel'        => 'Cancelar e fazer login com outra conta',
+    'auth.login.tenant_picker.expired'       => 'Sessão expirou. Faça login novamente.',
 
     // Navbar
     'nav.logout'         => 'Sair',
