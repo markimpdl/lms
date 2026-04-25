@@ -40,6 +40,78 @@ if (!$availability['available']) {
     header('Location: /student', true, 303);
     exit;
 }
+
+// E19-04: gate server-side anti-bypass via URL direta. Verifica
+// (a) acesso à CU dada o cc_mode, e (b) acesso à atividade dada o
+// activity_mode. Skip ambos quando o respectivo modo é 'free'.
+$courseId = (int) $activity['course_id'];
+$cuId     = (int) $activity['cu_id'];
+$progGateStmt = Database::pdo()->prepare(
+    'SELECT cc_mode, activity_mode FROM courses WHERE id = ? LIMIT 1'
+);
+$progGateStmt->execute([$courseId]);
+$progConf = $progGateStmt->fetch();
+$ccMode       = (string) ($progConf['cc_mode'] ?? 'sequential');
+$activityMode = (string) ($progConf['activity_mode'] ?? 'sequential');
+
+if ($ccMode === 'sequential') {
+    $courseFull = StudentCurriculum::forStudentCourse($studentId, $courseId);
+    if ($courseFull !== null) {
+        $progGate   = course_progression_state($courseFull, $studentId);
+        $cuStatus   = $progGate['cu_status'][$cuId] ?? 'free';
+        if ($cuStatus === 'hidden' || $cuStatus === 'next') {
+            flash('warning', __t('progression.cu_locked'));
+            header('Location: /student/course/' . $courseId, true, 303);
+            exit;
+        }
+    }
+}
+
+if ($activityMode === 'sequential') {
+    // Walk atividades da CU em ordem; identifica status desta atividade.
+    $listForGate = ActivitySubmission::listForStudentInCu($cuId, $studentId);
+    $foundCurrentAct = false;
+    $markNextAct     = false;
+    $myActStatus     = 'free';
+    foreach ($listForGate as $a) {
+        $aId    = (int) $a['id'];
+        $hasSub = $a['submission_id'] !== null;
+
+        if ($markNextAct) {
+            if ($aId === $activityId) {
+                $myActStatus = 'next';
+                break;
+            }
+            $markNextAct = false;
+            continue;
+        }
+        if ($foundCurrentAct) {
+            if ($aId === $activityId) {
+                $myActStatus = 'hidden';
+                break;
+            }
+            continue;
+        }
+        if ($hasSub) {
+            if ($aId === $activityId) {
+                $myActStatus = 'completed';
+                break;
+            }
+        } else {
+            if ($aId === $activityId) {
+                $myActStatus = 'current';
+                break;
+            }
+            $foundCurrentAct = true;
+            $markNextAct     = true;
+        }
+    }
+    if ($myActStatus === 'hidden' || $myActStatus === 'next') {
+        flash('warning', __t('progression.activity_locked'));
+        header('Location: /student/cu/' . $cuId, true, 303);
+        exit;
+    }
+}
 $submission = $ctx['submission'];
 $mutable    = ActivitySubmission::isMutable($submission);
 $isOpen     = (int) $activity['submission_open'] === 1;

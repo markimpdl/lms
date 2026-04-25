@@ -294,9 +294,11 @@ return [
     'courses.form.mode.free'         => 'Livre (qualquer ordem)',
     'courses.form.eval_after_activities.label' => 'Avaliação só libera após todas as atividades entregues',
     'courses.form.eval_after_activities.help'  => 'Quando ativado, aluno precisa enviar todas as atividades da unidade antes de fazer a avaliação.',
-    // Progressão sequencial (E19-02 + E19-03) — final em E19-04
+    // Progressão sequencial (E19-02 + E19-03 + E19-04)
     'progression.next_locked'                  => 'Conclua ":name" primeiro',
     'progression.eval_locked'                  => 'Termine todas as atividades antes de fazer a avaliação',
+    'progression.cu_locked'                    => 'Esta unidade ainda não está disponível.',
+    'progression.activity_locked'              => 'Esta atividade ainda não está disponível.',
     'courses.created'              => 'Curso ":name" criado.',
     'courses.updated'              => 'Curso ":name" atualizado.',
     'courses.archived'             => 'Curso ":name" arquivado.',

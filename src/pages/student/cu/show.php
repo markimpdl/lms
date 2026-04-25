@@ -35,11 +35,13 @@ if ($cu === null) {
 $courseId  = (int) $cu['course_id'];
 
 // E19-03: config de progressão do curso (activity_mode + eval_after_activities).
+// E19-04: tb cc_mode pro gate de URL direta abaixo.
 $courseConfStmt = Database::pdo()->prepare(
-    'SELECT activity_mode, eval_after_activities FROM courses WHERE id = ? LIMIT 1'
+    'SELECT cc_mode, activity_mode, eval_after_activities FROM courses WHERE id = ? LIMIT 1'
 );
 $courseConfStmt->execute([$courseId]);
 $courseConf          = $courseConfStmt->fetch();
+$ccMode              = (string) ($courseConf['cc_mode'] ?? 'sequential');
 $activityMode        = (string) ($courseConf['activity_mode'] ?? 'sequential');
 $evalAfterActivities = (int)    ($courseConf['eval_after_activities'] ?? 1);
 
@@ -49,6 +51,24 @@ if (!$availability['available']) {
     flash('warning', $availability['message'] ?? __t('enrollment.unavailable.generic'));
     header('Location: /student', true, 303);
     exit;
+}
+
+// E19-04: gate server-side anti-bypass via URL direta. Aluno digitando
+// /student/cu/{id} de uma CU oculta/próxima é redirecionado pra page do
+// curso com mensagem. Defesa em profundidade — UI já oculta/blureia, mas
+// nada impede colar URL no browser. Skip quando cc_mode='free' (helper
+// retorna 'free' pra todos status).
+if ($ccMode === 'sequential') {
+    $courseFull = StudentCurriculum::forStudentCourse($studentId, $courseId);
+    if ($courseFull !== null) {
+        $progressionGate = course_progression_state($courseFull, $studentId);
+        $myCuStatus      = $progressionGate['cu_status'][$cuId] ?? 'free';
+        if ($myCuStatus === 'hidden' || $myCuStatus === 'next') {
+            flash('warning', __t('progression.cu_locked'));
+            header('Location: /student/course/' . $courseId, true, 303);
+            exit;
+        }
+    }
 }
 $cuName    = (string) $cu['name'];
 $ccName    = (string) $cu['cc_name'];

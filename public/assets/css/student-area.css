@@ -1996,3 +1996,15 @@ body.lms-student-area .lms-activity-card__lock-overlay {
     padding: 12px;
     pointer-events: none;
 }
+
+/* E19-04: mobile fine-tuning dos overlays de progressão. Em telas
+   <576px, o texto "Conclua [nome longo da CC] primeiro" pode estourar —
+   reduzimos font-size e padding pra caber em 360px. */
+@media (max-width: 575.98px) {
+    body.lms-student-area .lms-cc-section__lock-overlay,
+    body.lms-student-area .lms-unit-card__lock-overlay,
+    body.lms-student-area .lms-activity-card__lock-overlay {
+        font-size: 12px;
+        padding: 10px;
+    }
+}
