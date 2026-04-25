@@ -1387,3 +1387,100 @@ body.lms-student-area .lms-student-main {
     .lms-run-panel__frame { height: 320px; }
     .lms-run-panel__pane { padding: 12px 14px; font-size: 12px; }
 }
+
+/* ============================================================
+   Ranking — /student/ranking (E9-03)
+   ============================================================ */
+
+body.lms-student-area .lms-ranking-header { margin-bottom: 16px; }
+
+body.lms-student-area .lms-ranking-card {
+    background: var(--lms-card-bg);
+    border-radius: var(--lms-radius-card);
+    box-shadow: var(--lms-shadow-card);
+    overflow: hidden;
+}
+
+body.lms-student-area .lms-ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+body.lms-student-area .lms-ranking-table thead th {
+    background: var(--lms-neutral-50);
+    color: var(--lms-neutral-500);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--lms-neutral-200);
+}
+
+body.lms-student-area .lms-ranking-table tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--lms-neutral-100);
+    vertical-align: middle;
+}
+
+body.lms-student-area .lms-ranking-table tbody tr:last-child td { border-bottom: none; }
+
+body.lms-student-area .lms-ranking-table tbody tr.is-current {
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.08), rgba(236, 72, 153, 0.04));
+    box-shadow: inset 4px 0 0 var(--lms-primary-1);
+}
+
+body.lms-student-area .lms-ranking-table__pos { width: 80px; }
+body.lms-student-area .lms-ranking-table__xp  { width: 120px; text-align: right; }
+
+body.lms-student-area .lms-ranking-pos {
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    color: var(--lms-neutral-900);
+}
+
+body.lms-student-area .lms-ranking-name {
+    color: var(--lms-neutral-900);
+    font-weight: 600;
+}
+
+body.lms-student-area .lms-ranking-you {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    background: var(--lms-primary-1);
+    color: #fff;
+    border-radius: var(--lms-radius-chip);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+}
+
+body.lms-student-area .lms-ranking-groups { color: var(--lms-neutral-500); font-size: 13px; }
+body.lms-student-area .lms-ranking-muted { color: var(--lms-neutral-300); }
+
+body.lms-student-area .lms-ranking-xp {
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    font-weight: 800;
+    color: var(--lms-neutral-900);
+}
+body.lms-student-area .lms-ranking-xp-unit {
+    margin-left: 4px;
+    color: var(--lms-neutral-500);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+@media (max-width: 575.98px) {
+    body.lms-student-area .lms-ranking-table thead th,
+    body.lms-student-area .lms-ranking-table tbody td { padding: 12px 12px; }
+    body.lms-student-area .lms-ranking-table__pos { width: 60px; }
+    body.lms-student-area .lms-ranking-table__xp  { width: 90px; }
+    body.lms-student-area .lms-ranking-pos { font-size: 16px; }
+    body.lms-student-area .lms-ranking-you { margin-left: 4px; padding: 2px 6px; font-size: 10px; }
+}

@@ -163,6 +163,28 @@ main { flex: 1 0 auto; }
     gap: 16px;
 }
 
+/* Primary nav links (entre brand e right group). margin-right:auto empurra
+   o right group pra borda mantendo o layout [brand][nav] ........ [right]. */
+.lms-navbar__nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-right: auto;
+}
+.lms-navbar__link {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    border-radius: 999px;
+    color: #374151;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 160ms ease, color 160ms ease;
+}
+.lms-navbar__link:hover { background: #F3F4F6; color: #111827; }
+.lms-navbar__link.is-active { background: #EEF2FF; color: #4F46E5; }
+
 /* Language pill */
 .lms-navbar__lang-form { display: inline-flex; }
 .lms-navbar__lang {
@@ -375,6 +397,7 @@ main { flex: 1 0 auto; }
     .lms-navbar__lang { padding: 8px; }
     .lms-navbar__divider { display: none; }
     .lms-navbar__user-name { display: none; }
+    .lms-navbar__link { padding: 6px 10px; font-size: 13px; }
     .lms-bell__dropdown { width: calc(100vw - 16px); right: -8px; }
 }
 
