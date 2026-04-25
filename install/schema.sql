@@ -276,6 +276,7 @@ CREATE TABLE IF NOT EXISTS enrollments (
     last_access_at    DATETIME NULL DEFAULT NULL,
     access_starts_at  DATETIME NULL DEFAULT NULL,
     access_ends_at    DATETIME NULL DEFAULT NULL,
+    blocked_at        DATETIME NULL DEFAULT NULL,
     status            ENUM('active','absent','completed') NOT NULL DEFAULT 'active',
     PRIMARY KEY (id),
     UNIQUE KEY uk_enr_student_course (student_user_id, course_id),
@@ -824,6 +825,24 @@ SET @col_exists := (
 );
 SET @sql := IF(@col_exists = 0,
     'ALTER TABLE enrollments ADD COLUMN access_ends_at DATETIME NULL DEFAULT NULL AFTER access_starts_at',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E17-02] enrollments.blocked_at — bloqueio manual do acesso do aluno ao
+-- curso. NULL = sem bloqueio; DATETIME = bloqueado naquele instante. Reversivel
+-- (professor desbloqueia setando NULL). Bloquear preserva XP/progresso/historico
+-- — diferente de remover, que e DELETE definitivo. Combina com access_starts/ends_at
+-- (E17-01) no gate UI do aluno (E17-03). Aluno NAO ve este campo direto.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'enrollments'
+       AND COLUMN_NAME  = 'blocked_at'
+);
+SET @sql := IF(@col_exists = 0,
+    'ALTER TABLE enrollments ADD COLUMN blocked_at DATETIME NULL DEFAULT NULL AFTER access_ends_at',
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
