@@ -53,15 +53,30 @@ declare(strict_types=1);
                     <?= e(__t('quiz.student.weight_label', ['weight' => number_format((float) ($q['weight'] ?? 0), 2, ',', '')])) ?>
                 </div>
 
+                <?php
+                    // E20-05: gabarito condicional. Só renderiza marcadores
+                    // de correta/errada quando readOnly + show_answers=1.
+                    $showAnswers = $readOnly && (int) ($fullQuiz['show_answers'] ?? 0) === 1;
+                ?>
                 <div class="lms-quiz-options">
                     <?php foreach ($q['options'] ?? [] as $oIdx => $opt): ?>
                         <?php
-                            $oId      = (int) ($opt['id'] ?? 0);
-                            $optText  = (string) ($opt['text'] ?? '');
-                            $isPicked = ($picked !== null && (int) $picked === $oId);
-                            $inputId  = 'q' . $qId . '_o' . $oId;
+                            $oId       = (int) ($opt['id'] ?? 0);
+                            $optText   = (string) ($opt['text'] ?? '');
+                            $isPicked  = ($picked !== null && (int) $picked === $oId);
+                            $isCorrect = (int) ($opt['is_correct'] ?? 0) === 1;
+                            $inputId   = 'q' . $qId . '_o' . $oId;
+
+                            $optClass = 'form-check mb-1 lms-quiz-option';
+                            if ($showAnswers) {
+                                if ($isCorrect) {
+                                    $optClass .= ' lms-quiz-option--correct';
+                                } elseif ($isPicked && !$isCorrect) {
+                                    $optClass .= ' lms-quiz-option--wrong';
+                                }
+                            }
                         ?>
-                        <div class="form-check mb-1">
+                        <div class="<?= e($optClass) ?>">
                             <input type="radio"
                                    class="form-check-input"
                                    name="answers[<?= $qId ?>]"
@@ -71,6 +86,15 @@ declare(strict_types=1);
                                    <?= $readOnly ? 'disabled' : 'required' ?>>
                             <label class="form-check-label" for="<?= e($inputId) ?>">
                                 <?= e($optText) ?>
+                                <?php if ($showAnswers && $isCorrect): ?>
+                                    <span class="lms-quiz-option__badge lms-quiz-option__badge--correct">
+                                        ✓ <?= e(__t('quiz.student.gabarito.correct')) ?>
+                                    </span>
+                                <?php elseif ($showAnswers && $isPicked && !$isCorrect): ?>
+                                    <span class="lms-quiz-option__badge lms-quiz-option__badge--wrong">
+                                        ✗ <?= e(__t('quiz.student.gabarito.your_wrong')) ?>
+                                    </span>
+                                <?php endif; ?>
                             </label>
                         </div>
                     <?php endforeach; ?>
