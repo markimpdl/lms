@@ -1031,4 +1031,8 @@ return [
     'ranking.filter.all_groups'  => 'All groups',
     'ranking.filter.all_years'   => 'All years',
     'ranking.filter.apply'       => 'Apply',
+
+    // Ranking — teacher view (E9-05)
+    'ranking.subtitle.teacher' => 'Monitor student engagement by window, group and year.',
+    'ranking.col.last_event'   => 'Last submission',
 ];

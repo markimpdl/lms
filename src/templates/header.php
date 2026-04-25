@@ -20,11 +20,16 @@ if ($user !== null && ($user['role'] ?? null) !== 'super_admin') {
             <span class="lms-navbar__wordmark">LMS</span>
         </a>
 
-        <?php if ($user !== null && ($user['role'] ?? null) === 'student'): ?>
+        <?php
+        $userRole    = $user !== null ? ($user['role'] ?? null) : null;
+        $rankingHref = $userRole === 'student' ? '/student/ranking'
+                     : ($userRole === 'teacher' ? '/teacher/ranking' : null);
+        ?>
+        <?php if ($rankingHref !== null): ?>
             <?php $currentPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH); ?>
             <nav class="lms-navbar__nav" aria-label="<?= e(__t('nav.primary_aria')) ?>">
-                <a class="lms-navbar__link <?= $currentPath === '/student/ranking' ? 'is-active' : '' ?>"
-                   href="/student/ranking">
+                <a class="lms-navbar__link <?= $currentPath === $rankingHref ? 'is-active' : '' ?>"
+                   href="<?= e($rankingHref) ?>">
                     <?= e(__t('nav.ranking')) ?>
                 </a>
             </nav>
