@@ -829,6 +829,283 @@ Não necessário (escopo pequeno, ADR-032 já documenta a decisão).
 
 ---
 
+## F14 — Quick fixes pós-E20 (smoke do PO)
+
+> **Adicionado em 2026-04-26** após smoke do roadmap principal. PO reportou 2 grupos de gaps menores que não justificam épicos próprios mas precisam ser corrigidos antes do epicovem.
+
+### Contexto
+Bugs/UX rough edges identificados após o roadmap pós-MVP fechar (pré-Actvet roll-out):
+
+**Erro 1 — Upload de avaliação tipo Project só aceita PDF:**
+- Hoje: form de criar avaliação tipo `projeto` aceita só `application/pdf`
+- Esperado: aceitar PDF **ou** ZIP, até 10 MB
+- Justificativa: professor precisa enviar enunciados que incluem múltiplos arquivos (rubricas, datasets) — ZIP cobre.
+- Detalhe: TXT/Word/Excel/PowerPoint **não** estão no escopo final (PO refinou pra só PDF+ZIP após pensar melhor).
+
+**Erro 2 — Falta de redirect e botão "Voltar" em 3 telas:**
+- Após cadastrar avaliação ou atividade, não redireciona pra tela anterior (CU)
+- Form de configurar quiz: idem (volta sem destino claro)
+- 3 telas: `/teacher/cu/{id}/activity/new`, `/teacher/cu/{id}/evaluation/new`, `/teacher/{activity,evaluation}/{id}/quiz`
+
+### Decisões consolidadas (2026-04-26)
+- **Erro 1**: aceitar `pdf` + `zip`. Limite mantido em 10 MB (mesmo do PDF atual). MIME validation via `finfo`. Storage path continua o mesmo (`storage/evaluations/`); só ajustar extension whitelist.
+- **Erro 2**: padronizar redirect 303 para a tela da CU pai (`/teacher/cu/{cuId}`) após cadastro/edição de qualquer um dos 3 forms. Adicionar link "Voltar" no header de cada um, alinhado ao padrão do botão "Cancelar" existente.
+
+### Schema
+**Zero.** Apenas mudança em validação de upload (whitelist) + redirects.
+
+### Tamanho
+**P** — épico curto (1-2 stories):
+1. Upload PDF/ZIP em avaliação tipo projeto (P)
+2. Redirects + botões voltar nas 3 telas (P)
+
+### Dependências
+Independente. Bom candidato pra primeiro épico após E22 (impacto imediato em UX, sem coupling).
+
+---
+
+## F15 — White-label + flag `is_actvet`
+
+> **Adicionado em 2026-04-26**. Atende necessidade real do tenant Actvet recém-criado em prod (segundo tenant). Customização visual (logo + nome) varia por tenant e por contexto Actvet vs não-Actvet.
+
+### Contexto
+Com 2 tenants em prod (genérico + Actvet), a navbar genérica `[L] LMS` não atende:
+- Actvet quer mostrar logo Actvet + nome "Skills Hub"
+- Outros professores querem poder customizar nome + logo (sem usar "Skills Hub" nem logo Actvet)
+
+### Decisões consolidadas (2026-04-26)
+
+#### Flag por tenant
+- Coluna nova `tenants.is_actvet TINYINT(1) NOT NULL DEFAULT 0`
+- Setada pelo super-admin no cadastro do professor (tela `/admin/teachers/new`): toggle "É Actvet?" — padrão **Não**
+
+#### Customização visual
+- `tenants.platform_name VARCHAR(60) NULL` — nome exibido na navbar do tenant. NULL = fallback (LMS pra não-Actvet, Skills Hub pra Actvet)
+- `tenants.logo_path VARCHAR(255) NULL` — path do upload de logo customizado
+
+**Regras:**
+- **Actvet (`is_actvet=1`)**: logo travada como Actvet (built-in em `public/assets/logos/actvet.png` — entregue 2026-04-26; pode virar SVG depois sem mudança de código se renomear); nome editável (default "Skills Hub")
+- **Não-Actvet**: ambos editáveis (logo upload + nome livre); fallback pra `[L] LMS` quando NULL
+- Sempre que o tenant for visto pelo aluno/professor logado → renderiza nome+logo do tenant deles
+
+#### Avatar default
+- Já existe `tenants.avatar_style ENUM('arabe','ocidental')` (E17-04)
+- Mudança: provisioning do tenant Actvet seta default `'arabe'`; não-Actvet segue padrão `'arabe'` atual mas spec do PO sugere mudar pra `'ocidental'` quando não-Actvet
+- Decisão: **default Actvet=`'arabe'`, não-Actvet=`'ocidental'`**. Professor pode mudar via /teacher/settings (já implementado E17-04). Só mudaria o default na criação.
+
+### Schema
+```sql
+ALTER TABLE tenants
+    ADD COLUMN is_actvet     TINYINT(1)   NOT NULL DEFAULT 0 AFTER active,
+    ADD COLUMN platform_name VARCHAR(60)  NULL                AFTER is_actvet,
+    ADD COLUMN logo_path     VARCHAR(255) NULL                AFTER platform_name;
+```
+
+### UI
+
+**Super-admin** (`/admin/teachers/new`):
+- Toggle "É Actvet?" — checkbox simples; padrão off
+
+**Professor** (`/teacher/settings`):
+- Campo "Nome da plataforma" (input text)
+- Campo "Logo" (upload de imagem; só visível se `!is_actvet`)
+- Hint: quando `is_actvet`, mostra "Logo Actvet padrão (não editável)" + thumbnail da logo built-in
+
+**Layout** (navbar):
+- Helper novo `tenant_branding($tenantId): array{name, logo_url}` em `helpers.php` que resolve o branding final
+- `header.php` consume o helper
+
+### Critérios de aceite
+- [ ] Schema migrado (`is_actvet`, `platform_name`, `logo_path`)
+- [ ] Super-admin cadastra professor com toggle Actvet → seta `tenants.is_actvet=1`
+- [ ] Professor não-Actvet em `/teacher/settings` pode alterar nome + upload de logo
+- [ ] Professor Actvet em `/teacher/settings` só altera nome (logo travada)
+- [ ] Navbar exibe nome+logo do tenant pro user logado
+- [ ] Upload de logo: PNG/SVG/JPG até 500KB; finfo MIME validation
+- [ ] Logo Actvet em `public/assets/logos/actvet.png` (asset versionado; entregue 2026-04-26)
+
+### Tamanho
+**M** — épico de ~3-4 stories:
+1. Schema + flag is_actvet no cadastro super-admin (P)
+2. Customização visual no /teacher/settings (M) — upload logo + nome
+3. Helper tenant_branding + render na navbar (P)
+4. Defaults Actvet (avatar_style, platform_name) no provisioning (P)
+
+### Dependências
+Pré-requisito implícito de F16 (LO mode default depende de `is_actvet`) e F17 (opções de report dependem de `is_actvet`). Fazer **antes** de F16/F17.
+
+---
+
+## F16 — Learning outcomes como modo de avaliação alternativo
+
+> **Adicionado em 2026-04-26**. Demanda do PO Actvet: avaliações no modelo "skills competency framework" usam learning outcomes como critérios discretos, com nota por LO.
+
+### Contexto
+Modo atual: professor dá nota 0-10 ao aluno como número único.
+Modo novo (LO): professor define até 5 learning outcomes por UC; ao avaliar, dá nota 0-10 pra cada LO; nota final = média.
+
+### Decisões consolidadas (2026-04-26)
+
+#### Disponibilidade restrita a Actvet (decisão simplificadora)
+**Learning Outcomes só existe em tenants Actvet.** Não-Actvet: `grading_mode` forçado `'grade'` server-side; select escondido no form de curso; conceito de LO não aparece em nenhuma UI. Simplifica regras de validação (menos branches) e reduz superfície de teste.
+
+#### Config por curso
+- Coluna nova `courses.grading_mode ENUM('grade','learning_outcomes') NOT NULL DEFAULT 'grade'`
+- Tenant Actvet (`is_actvet=1`): select aparece no form de curso, **default `'learning_outcomes'`**
+- Tenant não-Actvet: select escondido, valor sempre `'grade'`
+- Professor Actvet pode trocar (mas mudança em curso já com submissões respeitadas requer cuidado — submissões antigas mantêm o modo do momento via snapshot? Decisão: **submissões herdam o modo no momento do feedback**; mudar curso de `grade`→`LO` afeta apenas próximas avaliações, não retro)
+
+#### Learning outcomes por UC
+- Tabela nova `learning_outcomes(id, cu_id, description, position)` — **exatamente 5 por UC** (regra única — só existe em Actvet+LO)
+- Validação no form: rejeita salvar com !=5 LOs cadastrados
+- Cadastro via tela nova `/teacher/cu/{id}/learning-outcomes` (novo) ou inline na page de edição de CU
+
+#### Notas por LO
+- Tabela nova `evaluation_submission_lo_grades(submission_id, lo_id, grade)` — grade DECIMAL(3,1) 0-10
+- Form de feedback do professor (quando curso `grading_mode=LO`): renderiza lista de LOs com input 0-10 cada
+- Backend calcula média + grava em `evaluation_submissions.grade` (mantém compat com queries existentes que leem `.grade`)
+
+#### Quiz × LO
+- Avaliação tipo Quiz **não disponível** quando `grading_mode=LO` — esconde opção no select de tipo. Lógica: quiz é nota auto-calculada; LO exige feedback manual por critério.
+- Atividades-quiz **continuam disponíveis** em LO mode (atividade não tem o conceito de "nota por critério")
+
+#### Aluno
+- Vê só a nota final (idêntico ao modo atual)
+- Tela `/student/evaluation/{id}` mostra "Critérios avaliados" listando os LOs (read-only) — orienta o aluno sobre o que será avaliado **antes** de entregar; após feedback, mostra a nota por LO também (transparência)
+
+### Schema
+```sql
+ALTER TABLE courses
+    ADD COLUMN grading_mode ENUM('grade','learning_outcomes') NOT NULL DEFAULT 'grade'
+        AFTER eval_after_activities;
+
+CREATE TABLE IF NOT EXISTS learning_outcomes (
+    id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    cu_id       BIGINT UNSIGNED NOT NULL,
+    description VARCHAR(500)    NOT NULL,
+    position    INT UNSIGNED    NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    KEY idx_lo_cu (cu_id, position),
+    CONSTRAINT fk_lo_cu FOREIGN KEY (cu_id) REFERENCES competence_units(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS evaluation_submission_lo_grades (
+    submission_id BIGINT UNSIGNED NOT NULL,
+    lo_id         BIGINT UNSIGNED NOT NULL,
+    grade         DECIMAL(3,1)    NOT NULL,
+    PRIMARY KEY (submission_id, lo_id),
+    KEY idx_eslg_lo (lo_id),
+    CONSTRAINT fk_eslg_sub FOREIGN KEY (submission_id) REFERENCES evaluation_submissions(id) ON DELETE CASCADE,
+    CONSTRAINT fk_eslg_lo  FOREIGN KEY (lo_id)         REFERENCES learning_outcomes(id)       ON DELETE CASCADE,
+    CONSTRAINT chk_eslg_grade CHECK (grade >= 0.0 AND grade <= 10.0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+### Tamanho
+**G** — épico de ~5-6 stories:
+1. Schema + LearningOutcome model + grading_mode em courses (P)
+2. Form do professor pra cadastrar LOs por UC (até 5) (M)
+3. Form de feedback adapta — lista LOs com input/LO + média auto (M)
+4. Esconder Quiz no select de tipo quando LO mode (P)
+5. Tela do aluno mostra "Critérios avaliados" + nota/LO pós-feedback (M)
+6. Polish + i18n + mobile (P)
+
+### Dependências
+**F15 (E24)** — defaults dependem de `is_actvet`.
+
+### Doc dedicado futuro
+`doc/18-learning-outcomes.md` se virar complexo durante implementação.
+
+---
+
+## F17 — Reports (PDF gerado pós-feedback)
+
+> **Adicionado em 2026-04-26**. Demanda do PO Actvet: gerar PDF formal de cada avaliação após o feedback. **Disponível apenas em tenants Actvet com curso em modo Learning Outcomes** (decisão simplificadora — `'custom'` removido do MVP).
+
+### Contexto
+Após o professor dar feedback numa avaliação (com todas as 5 notas de LO lançadas), gerar PDF de "Report" formal com layout institucional. Disponível **apenas pro professor** (não pro aluno). Re-submit do aluno regenera o PDF.
+
+### Decisões consolidadas (2026-04-26)
+
+#### Disponibilidade restrita
+**Reports só existem em tenants Actvet com curso `grading_mode='learning_outcomes'`.** Casos fora desse cenário: `report_mode` forçado `'disabled'` server-side, select escondido no form de curso. Reduz combinações.
+
+#### Config por curso
+- Coluna nova `courses.report_mode ENUM('disabled','skill_hub') NOT NULL DEFAULT 'disabled'`
+- **Tenant Actvet + LO mode**: select aparece com 2 opções (`disabled`, `skill_hub`)
+- **Outros casos**: select escondido, valor sempre `'disabled'`
+- ENUM preparado pra ganhar `'emirates_skills'` em iteração futura sem migration drástica (só ALTER MODIFY do ENUM, idempotente como já fazemos com activities.type)
+
+#### Templates
+- **Built-in** versionados no repo:
+  ```
+  public/assets/report-templates/
+  └── skill_hub/
+      ├── template.html        (vindo do CU_SKILL_HUB.htm entregue 2026-04-26)
+      └── images/
+          ├── image001.png
+          └── image002.png
+  ```
+- Sintaxe de variáveis: `{{VAR_NAME}}` UPPER_SNAKE, simples — sem listas/loops (decisão consolidada com PO)
+- HTML "Save as Web Page, Filtered" do Word funciona direto; `<img src=>` ajustados pra path relativo `images/...`
+- `'emirates_skills'` futuro: mesma estrutura `report-templates/emirates_skills/template.html` + `images/`
+
+#### Geração
+- Lib: **dompdf** (Composer dependency nova) — runs em PHP puro, sem dependências externas no server
+- Variáveis substituídas via `str_replace` antes de mandar pro dompdf
+- PDF gravado em `storage/reports/eval_{evalId}_student_{studentId}_attempt_{N}.pdf`
+- Path persistido em `evaluation_submissions.report_pdf_path VARCHAR(500) NULL`
+
+#### Variáveis (catálogo do template Skill Hub — UPPER_SNAKE)
+| Variável | Conteúdo | Notas |
+|---|---|---|
+| `{{NAME_COURSE}}` | `courses.name` | aparece 2x no template |
+| `{{NAME_STUDENT}}` | `users.name` (aluno) | |
+| `{{NAME_UC}}` | `competence_units.name` | |
+| `{{WORKLOAD_UC}}` | `competence_units.workload_hours` | formato `30h` |
+| `{{AVG_LEARN}}` | média dos 5 LO scores × 10 | inteiro quando exato; 1 decimal só se necessário (ex.: `85` ou `85,2`) |
+| `{{LEARN_1_NAME}}` … `{{LEARN_5_NAME}}` | `learning_outcomes[N].description` | sempre 5 (Actvet+LO obriga) |
+| `{{LEARN_1_SCORE}}` … `{{LEARN_5_SCORE}}` | `evaluation_submission_lo_grades.grade` × 10 | inteiro sempre (DECIMAL(3,1) × 10 = inteiro) |
+
+Variáveis fora do catálogo no template = não substituídas (ficam literais no PDF — feedback visível pra debug).
+
+#### Trigger
+- Geração disparada **só após** os 5 LOs terem nota (validação anterior à chamada do service)
+- Re-submit do aluno + nova rodada de feedback → regenera PDF (sobrescreve `report_pdf_path`)
+- `report_mode=disabled` → não gera
+- Trigger NÃO dispara enquanto pelo menos 1 LO estiver sem nota
+
+#### Acesso
+- Link "Baixar report" na tela `/teacher/evaluation/{id}/submission/{sid}` apenas
+- Aluno NÃO vê em nenhum lugar
+- Endpoint dedicado `/teacher/evaluation/{id}/submission/{sid}/report.pdf` valida ownership + serve o arquivo
+
+### Schema
+```sql
+ALTER TABLE courses
+    ADD COLUMN report_mode ENUM('disabled','skill_hub') NOT NULL DEFAULT 'disabled' AFTER grading_mode;
+
+ALTER TABLE evaluation_submissions
+    ADD COLUMN report_pdf_path VARCHAR(500) NULL AFTER quiz_snapshot;
+```
+
+### Tamanho
+**M-G** — épico de ~4-5 stories (escopo reduzido pela remoção de custom):
+1. Schema + composer require dompdf + assets do template Skill Hub copiados pra `public/assets/report-templates/skill_hub/` (P)
+2. `ReportService::generate(submissionId)` — lê snapshot LO, formata variáveis (×10, workload, etc.), substitui no template, renderiza PDF (M)
+3. Config no curso (select report_mode visível só em Actvet+LO) (P)
+4. Trigger pós-último-LO + serve endpoint pro professor (M)
+5. Polish + i18n (P)
+
+### Dependências
+**F15 (E24)** — visibilidade depende de `is_actvet`.
+**F16 (E25)** — depende inteiramente do modo LO (5 LOs + grades por LO).
+
+### Doc dedicado futuro
+`doc/19-reports.md` se a lista de variáveis crescer ou os templates ficarem complexos.
+
+---
+
 # Resumo de épicos sugeridos
 
 | Épico | Features | Ordem | Tamanho |
@@ -840,18 +1117,23 @@ Não necessário (escopo pequeno, ADR-032 já documenta a decisão).
 | **E19 — Modos de progressão** | F7 | 5º | 3-4 stories M |
 | **E20 — Quiz** | F8 | 6º | 6-8 stories M-P (épico próprio) |
 | **E21 — Notificações configuráveis** | F9 | 7º | 2-3 stories M-P |
-| **E22 — Auth multi-conta** (cross-tenant) | F13 | 8º (sob demanda — quando aparecer 2º tenant) | 3 stories M-P |
+| **E22 — Auth multi-conta** (cross-tenant) | F13 | 8º — **ATIVADO em 2026-04-26** (2º tenant criado em prod) | 3 stories M-P |
+| **E23 — Quick fixes UX** | F14 | 9º | 1-2 stories P |
+| **E24 — White-label + flag is_actvet** | F15 | 10º | 3-4 stories M-P |
+| **E25 — Learning Outcomes** (Actvet-only) | F16 | 11º — depende de E24 | 5-6 stories M-P |
+| **E26 — Reports** (Actvet+LO only) | F17 | 12º — depende de E25 | 4-5 stories M-P |
 
-**Total estimado:** ~31-40 stories distribuídas em 8 épicos. E22 é demand-driven (não bloqueia outros épicos; entra quando o cenário de email compartilhado virar real).
+**Total estimado:** ~45-55 stories distribuídas em 12 épicos. F1–F12 (E15–E21) já entregues em prod. E22 ativo agora; E23–E26 entram em sequência.
 
 ---
 
 # Pendências e dúvidas remanescentes
 
-Nenhuma. Todas as 30+ perguntas críticas levantadas foram respondidas pelo PO em 2026-04-25.
+Nenhuma. Decisões F1–F13 consolidadas em 2026-04-25; F14–F17 consolidadas em 2026-04-26 com PO Actvet.
 
 # Próximos passos
 
-1. **PO escolhe ordem de execução** — sugestão acima (E15 → E16 → ...) ou custom.
-2. Quando um épico for ativado, rodar `/story-breakdown` sobre a seção correspondente deste doc pra materializar como issues no GitHub.
-3. F5 e F8 ganham docs dedicados (`doc/16-conquistas.md`, `doc/17-quiz.md`) na ativação dos épicos respectivos.
+1. ✅ E15–E21 + F12 entregues entre 2026-04-25 e 2026-04-26 (releases v0.10.0–v0.18.0)
+2. **E22 ativado** em 2026-04-26 com 2º tenant em prod — primeiro a entrar nesta janela
+3. **E23 → E24 → E25 → E26** em sequência (cada um abre PR de release MINOR no fim)
+4. F5 e F8 ganharam (ou ganham) docs dedicados (`doc/16-conquistas.md`, `doc/17-quiz.md`) se necessário; F16/F17 podem ganhar `doc/18-learning-outcomes.md` e `doc/19-reports.md` se a complexidade justificar.
