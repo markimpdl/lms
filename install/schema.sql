@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS tenants (
     owner_user_id   BIGINT UNSIGNED NOT NULL,
     name            VARCHAR(150) NOT NULL,
     active          TINYINT(1) NOT NULL DEFAULT 1,
+    avatar_style    ENUM('arabe','ocidental') NOT NULL DEFAULT 'arabe',
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
@@ -269,12 +270,15 @@ CREATE TABLE IF NOT EXISTS evaluation_submissions (
 -- 13. enrollments
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS enrollments (
-    id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    student_user_id BIGINT UNSIGNED NOT NULL,
-    course_id       BIGINT UNSIGNED NOT NULL,
-    enrolled_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    last_access_at  DATETIME NULL DEFAULT NULL,
-    status          ENUM('active','absent','completed') NOT NULL DEFAULT 'active',
+    id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    student_user_id   BIGINT UNSIGNED NOT NULL,
+    course_id         BIGINT UNSIGNED NOT NULL,
+    enrolled_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_access_at    DATETIME NULL DEFAULT NULL,
+    access_starts_at  DATETIME NULL DEFAULT NULL,
+    access_ends_at    DATETIME NULL DEFAULT NULL,
+    blocked_at        DATETIME NULL DEFAULT NULL,
+    status            ENUM('active','absent','completed') NOT NULL DEFAULT 'active',
     PRIMARY KEY (id),
     UNIQUE KEY uk_enr_student_course (student_user_id, course_id),
     KEY idx_enr_course (course_id),
@@ -796,6 +800,72 @@ CREATE TABLE IF NOT EXISTS user_logins (
     KEY idx_ul_purge (logged_in_at),
     CONSTRAINT fk_ul_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- [E17-04] tenants.avatar_style — estilo do avatar default dos alunos do
+-- tenant. ENUM('arabe','ocidental'); 'arabe' default por causa do contexto
+-- principal (EAU). Combina com users.gender (E16-01) pra compor o asset SVG
+-- final em public/assets/avatars/{style}-{gender}.svg via helper
+-- student_avatar_url.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'tenants'
+       AND COLUMN_NAME  = 'avatar_style'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE tenants ADD COLUMN avatar_style ENUM('arabe','ocidental') NOT NULL DEFAULT 'arabe' AFTER active",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E17-01] enrollments.access_starts_at + access_ends_at — periodo opcional
+-- de acesso do aluno ao curso. NULL no inicio = imediato; NULL no fim =
+-- ilimitado. Usado pelo gate /student/* (E17-03) que combina com blocked_at
+-- (E17-02) pra renderizar o curso como "indisponivel".
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'enrollments'
+       AND COLUMN_NAME  = 'access_starts_at'
+);
+SET @sql := IF(@col_exists = 0,
+    'ALTER TABLE enrollments ADD COLUMN access_starts_at DATETIME NULL DEFAULT NULL AFTER last_access_at',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'enrollments'
+       AND COLUMN_NAME  = 'access_ends_at'
+);
+SET @sql := IF(@col_exists = 0,
+    'ALTER TABLE enrollments ADD COLUMN access_ends_at DATETIME NULL DEFAULT NULL AFTER access_starts_at',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E17-02] enrollments.blocked_at — bloqueio manual do acesso do aluno ao
+-- curso. NULL = sem bloqueio; DATETIME = bloqueado naquele instante. Reversivel
+-- (professor desbloqueia setando NULL). Bloquear preserva XP/progresso/historico
+-- — diferente de remover, que e DELETE definitivo. Combina com access_starts/ends_at
+-- (E17-01) no gate UI do aluno (E17-03). Aluno NAO ve este campo direto.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'enrollments'
+       AND COLUMN_NAME  = 'blocked_at'
+);
+SET @sql := IF(@col_exists = 0,
+    'ALTER TABLE enrollments ADD COLUMN blocked_at DATETIME NULL DEFAULT NULL AFTER access_ends_at',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- [E16-03] enrollments.status — status do aluno no curso, visivel APENAS pro
 -- professor (active/absent/completed). E so indicativo: nao altera regras de

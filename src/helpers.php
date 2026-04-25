@@ -91,6 +91,161 @@ function student_next_rank(int $studentId, int $tenantId): ?array
 }
 
 /**
+ * URL do avatar default do aluno (E17-04). Combina `tenants.avatar_style`
+ * (config do professor) com `users.gender` (cadastrado em E16-01) pra
+ * produzir o path do SVG em `public/assets/avatars/`.
+ *
+ * Cache estático por request — ProfileSidebar + listagens podem chamar
+ * múltiplas vezes pro mesmo aluno sem onerar o DB.
+ *
+ * Fallback gracioso: aluno sem matrícula/tenant retorna 'arabe-male.svg'.
+ */
+function student_avatar_url(int $studentId): string
+{
+    static $cache = [];
+    if (isset($cache[$studentId])) {
+        return $cache[$studentId];
+    }
+
+    $stmt = Database::pdo()->prepare(
+        'SELECT u.gender, t.avatar_style
+           FROM users u
+           JOIN tenants t ON t.id = u.tenant_id
+          WHERE u.id = ? AND u.role = "student"
+          LIMIT 1'
+    );
+    $stmt->execute([$studentId]);
+    $row = $stmt->fetch();
+
+    $style  = $row !== false ? (string) $row['avatar_style'] : 'arabe';
+    $gender = $row !== false ? (string) $row['gender']       : 'male';
+
+    if (!in_array($style, ['arabe', 'ocidental'], true)) {
+        $style = 'arabe';
+    }
+    if (!in_array($gender, ['male', 'female'], true)) {
+        $gender = 'male';
+    }
+
+    $url = '/assets/avatars/' . $style . '-' . $gender . '.svg';
+    $cache[$studentId] = $url;
+    return $url;
+}
+
+/**
+ * Pure logic — disponibilidade de acesso do aluno ao curso (E17-03), dados
+ * os 3 campos da matrícula. Usada pela CourseCard (sem 2ª query) e por
+ * `enrollment_access_status` (que faz query primeiro).
+ *
+ * Retorna array com `available:bool`, e quando false: `reason` em
+ * `'blocked' | 'before' | 'after'` + `message` já traduzida.
+ *
+ * @return array{available:bool, reason?:string, message?:string}
+ */
+function enrollment_availability(?string $accessStartsAt, ?string $accessEndsAt, ?string $blockedAt): array
+{
+    if ($blockedAt !== null && $blockedAt !== '') {
+        return [
+            'available' => false,
+            'reason'    => 'blocked',
+            'message'   => __t('enrollment.unavailable.blocked'),
+        ];
+    }
+    $now = time();
+    if ($accessStartsAt !== null && $accessStartsAt !== '') {
+        $startTs = strtotime($accessStartsAt);
+        if ($startTs !== false && $now < $startTs) {
+            return [
+                'available' => false,
+                'reason'    => 'before',
+                'message'   => __t('enrollment.unavailable.before', ['date' => format_short_date($accessStartsAt)]),
+            ];
+        }
+    }
+    if ($accessEndsAt !== null && $accessEndsAt !== '') {
+        $endTs = strtotime($accessEndsAt);
+        if ($endTs !== false && $now > $endTs) {
+            return [
+                'available' => false,
+                'reason'    => 'after',
+                'message'   => __t('enrollment.unavailable.after', ['date' => format_short_date($accessEndsAt)]),
+            ];
+        }
+    }
+    return ['available' => true];
+}
+
+/**
+ * Disponibilidade de acesso do aluno ao curso (E17-03). Faz query na
+ * `enrollments` e delega pra `enrollment_availability`. Retorna
+ * `['available' => false, 'reason' => 'no_enrollment']` se aluno não
+ * tem matrícula no curso (caller decide se redireciona ou 404).
+ *
+ * Usada nos gates de `/student/course/{id}` e sub-rotas (cu, activity,
+ * evaluation). Pra listagem `/student` (My Courses), prefira
+ * `enrollment_availability` direto sobre dados já fetched.
+ */
+function enrollment_access_status(int $studentId, int $courseId): array
+{
+    $stmt = Database::pdo()->prepare(
+        'SELECT access_starts_at, access_ends_at, blocked_at
+           FROM enrollments
+          WHERE student_user_id = ? AND course_id = ?
+          LIMIT 1'
+    );
+    $stmt->execute([$studentId, $courseId]);
+    $row = $stmt->fetch();
+    if ($row === false) {
+        return ['available' => false, 'reason' => 'no_enrollment'];
+    }
+    return enrollment_availability(
+        $row['access_starts_at'],
+        $row['access_ends_at'],
+        $row['blocked_at']
+    );
+}
+
+/**
+ * Renderiza label legível do período de acesso de uma matrícula (E17-01).
+ *   (null, null) → "imediato → ilimitado"
+ *   ("...", null) → "DD/MM/YYYY → ilimitado"
+ *   (null, "...") → "imediato → DD/MM/YYYY"
+ *   ("...", "...") → "DD/MM/YYYY → DD/MM/YYYY"
+ * Datas formatadas via `format_short_date` (respeita idioma).
+ */
+function format_period_label(?string $startsAt, ?string $endsAt): string
+{
+    $start = ($startsAt !== null && $startsAt !== '')
+        ? format_short_date($startsAt)
+        : __t('enrollments.period.immediate');
+    $end = ($endsAt !== null && $endsAt !== '')
+        ? format_short_date($endsAt)
+        : __t('enrollments.period.unlimited');
+    return $start . ' → ' . $end;
+}
+
+/**
+ * Converte input `<input type="datetime-local">` ("YYYY-MM-DDTHH:MM" ou
+ * "YYYY-MM-DDTHH:MM:SS") em DATETIME do MySQL ("YYYY-MM-DD HH:MM:SS").
+ * Vazio/whitespace → null. Formato inválido → null (caller decide se
+ * isso é erro ou ausência). Usado em E17-01 (período de matrícula) e em
+ * outros forms que aceitem datetime opcional.
+ */
+function parse_datetime_local(?string $val): ?string
+{
+    $val = trim((string) $val);
+    if ($val === '') {
+        return null;
+    }
+    try {
+        $dt = new \DateTimeImmutable($val);
+    } catch (\Exception) {
+        return null;
+    }
+    return $dt->format('Y-m-d H:i:s');
+}
+
+/**
  * Reduz "Marcos Aparecido Ortolani Soares" pra "Marcos Soares" (E16-02).
  * Usado na listagem `/teacher/students` pra deixar a tabela legível em
  * telas menores. Aluno com 1 token só (ex.: "Madonna") retorna esse token.

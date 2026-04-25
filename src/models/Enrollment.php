@@ -27,6 +27,7 @@ final class Enrollment
     {
         $sql = <<<SQL
             SELECT e.id AS enrollment_id, e.enrolled_at,
+                   e.access_starts_at, e.access_ends_at,
                    c.id AS course_id, c.name, c.year, c.language,
                    c.archived, c.archived_at
               FROM enrollments e
@@ -81,7 +82,8 @@ final class Enrollment
         // da query de COUNT acima, repetindo $tenantId nas duas posições.
         $sql = <<<SQL
             SELECT u.id AS student_id, u.name, u.email, u.language, u.active,
-                   e.enrolled_at, e.status
+                   e.enrolled_at, e.status,
+                   e.access_starts_at, e.access_ends_at, e.blocked_at
               FROM enrollments e
               JOIN users   u ON u.id = e.student_user_id
               JOIN courses c ON c.id = e.course_id
@@ -117,8 +119,13 @@ final class Enrollment
      *   'student_inactive' — aluno existe no tenant mas está desativado
      *   'course_archived'  — curso existe no tenant mas está arquivado
      */
-    public static function create(int $studentId, int $courseId, int $tenantId): string
-    {
+    public static function create(
+        int $studentId,
+        int $courseId,
+        int $tenantId,
+        ?string $accessStartsAt = null,
+        ?string $accessEndsAt = null
+    ): string {
         $pdo = Database::pdo();
 
         // Validação composta em uma query só — evita race.
@@ -146,13 +153,151 @@ final class Enrollment
 
         // INSERT IGNORE absorve a UK (student_user_id, course_id) e torna a
         // operação idempotente: re-matricular o mesmo aluno no mesmo curso
-        // é no-op silencioso, sem SQLSTATE 23000.
+        // é no-op silencioso, sem SQLSTATE 23000. Período (E17-01) entra na
+        // primeira matrícula; pra alterar depois usar `updatePeriod`.
         $pdo->prepare(
-            'INSERT IGNORE INTO enrollments (student_user_id, course_id)
-                  VALUES (?, ?)'
-        )->execute([$studentId, $courseId]);
+            'INSERT IGNORE INTO enrollments
+                (student_user_id, course_id, access_starts_at, access_ends_at)
+             VALUES (?, ?, ?, ?)'
+        )->execute([$studentId, $courseId, $accessStartsAt, $accessEndsAt]);
 
         return 'ok';
+    }
+
+    /**
+     * Toggle do bloqueio de acesso (E17-02). Se `blocked_at IS NULL`, seta
+     * `NOW()`; senão, volta a NULL. Reversível. Preserva XP, progresso,
+     * histórico — só impede acesso enquanto setado. Ownership via JOIN duplo.
+     *
+     * @return bool|null true=blocked, false=unblocked, null=cross-tenant ou
+     *                   matrícula inexistente.
+     */
+    public static function toggleBlock(int $studentId, int $courseId, int $tenantId): ?bool
+    {
+        $pdo = Database::pdo();
+
+        // Lê estado atual com ownership check no SELECT
+        $stmt = $pdo->prepare(
+            'SELECT e.blocked_at
+               FROM enrollments e
+               JOIN users   u ON u.id = e.student_user_id
+               JOIN courses c ON c.id = e.course_id
+              WHERE e.student_user_id = ?
+                AND e.course_id = ?
+                AND u.tenant_id = ?
+                AND c.tenant_id = ?
+                AND u.role = "student"
+              LIMIT 1'
+        );
+        $stmt->execute([$studentId, $courseId, $tenantId, $tenantId]);
+        $current = $stmt->fetchColumn();
+        if ($current === false) {
+            return null;
+        }
+
+        $newValue = $current === null ? date('Y-m-d H:i:s') : null;
+        $update = $pdo->prepare(
+            'UPDATE enrollments e
+                JOIN users   u ON u.id = e.student_user_id
+                JOIN courses c ON c.id = e.course_id
+                SET e.blocked_at = ?
+              WHERE e.student_user_id = ?
+                AND e.course_id = ?
+                AND u.tenant_id = ?
+                AND c.tenant_id = ?'
+        );
+        $update->execute([$newValue, $studentId, $courseId, $tenantId, $tenantId]);
+
+        return $newValue !== null;
+    }
+
+    /**
+     * Remove matrícula com confirmação por digitação (E17-02). Valida que o
+     * `expectedEmail` bate com o email do aluno antes do DELETE — padrão E3-05.
+     * NÃO apaga `xp_events` daquele curso (preserva histórico).
+     *
+     * @return string 'ok' | 'not_found' | 'email_mismatch'
+     */
+    public static function deleteWithConfirm(
+        int $studentId,
+        int $courseId,
+        int $tenantId,
+        string $expectedEmail
+    ): string {
+        $pdo = Database::pdo();
+
+        // Lookup do email com ownership check
+        $stmt = $pdo->prepare(
+            'SELECT u.email
+               FROM enrollments e
+               JOIN users   u ON u.id = e.student_user_id
+               JOIN courses c ON c.id = e.course_id
+              WHERE e.student_user_id = ?
+                AND e.course_id = ?
+                AND u.tenant_id = ?
+                AND c.tenant_id = ?
+                AND u.role = "student"
+              LIMIT 1'
+        );
+        $stmt->execute([$studentId, $courseId, $tenantId, $tenantId]);
+        $email = $stmt->fetchColumn();
+        if ($email === false) {
+            return 'not_found';
+        }
+        if ((string) $email !== $expectedEmail) {
+            return 'email_mismatch';
+        }
+
+        // DELETE limpo — `xp_events.course_id` permanece intacto (FK não cascateia
+        // via enrollment; cascade vem por user/course em outras hipóteses).
+        $del = $pdo->prepare(
+            'DELETE e FROM enrollments e
+               JOIN users   u ON u.id = e.student_user_id
+               JOIN courses c ON c.id = e.course_id
+              WHERE e.student_user_id = ?
+                AND e.course_id = ?
+                AND u.tenant_id = ?
+                AND c.tenant_id = ?'
+        );
+        $del->execute([$studentId, $courseId, $tenantId, $tenantId]);
+
+        return 'ok';
+    }
+
+    /**
+     * Atualiza período de acesso do aluno no curso (E17-01). Aceita NULL pra
+     * limpar (volta a "imediato/ilimitado"). Validação `start < end` quando
+     * ambos preenchidos é responsabilidade do caller. Ownership via JOIN duplo.
+     *
+     * @return bool true se alguma linha foi atualizada.
+     */
+    public static function updatePeriod(
+        int $studentId,
+        int $courseId,
+        int $tenantId,
+        ?string $accessStartsAt,
+        ?string $accessEndsAt
+    ): bool {
+        $stmt = Database::pdo()->prepare(
+            'UPDATE enrollments e
+                JOIN users   u ON u.id = e.student_user_id
+                JOIN courses c ON c.id = e.course_id
+                SET e.access_starts_at = ?, e.access_ends_at = ?
+              WHERE e.student_user_id = ?
+                AND e.course_id = ?
+                AND u.tenant_id = ?
+                AND c.tenant_id = ?
+                AND u.role = "student"'
+        );
+        $stmt->execute([
+            $accessStartsAt,
+            $accessEndsAt,
+            $studentId,
+            $courseId,
+            $tenantId,
+            $tenantId,
+        ]);
+        return $stmt->rowCount() > 0;
     }
 
     /**

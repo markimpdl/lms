@@ -301,6 +301,9 @@ final class Course
                 c.archived          AS course_archived,
                 e.enrolled_at       AS enrolled_at,
                 e.last_access_at    AS last_access_at,
+                e.access_starts_at  AS access_starts_at,
+                e.access_ends_at    AS access_ends_at,
+                e.blocked_at        AS blocked_at,
                 u.name              AS instructor_name,
                 (SELECT COUNT(*)
                    FROM competence_units cu

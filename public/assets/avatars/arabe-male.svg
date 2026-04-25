@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Arab male avatar">
+  <defs>
+    <clipPath id="cm-clip"><circle cx="128" cy="128" r="128"/></clipPath>
+  </defs>
+  <g clip-path="url(#cm-clip)">
+    <!-- background -->
+    <rect width="256" height="256" fill="#EEF2FF"/>
+
+    <!-- shoulders / kandura body (white) -->
+    <path d="M16 256 Q16 200 64 184 Q92 178 128 178 Q164 178 192 184 Q240 200 240 256 Z"
+          fill="#FFFFFF" stroke="#E5E7EB" stroke-width="2"/>
+
+    <!-- neck -->
+    <rect x="116" y="158" width="24" height="28" fill="#D2A47A"/>
+
+    <!-- face -->
+    <ellipse cx="128" cy="124" rx="48" ry="56" fill="#D2A47A"/>
+
+    <!-- beard / lower face shading -->
+    <path d="M86 138 Q128 178 170 138 Q160 168 128 172 Q96 168 86 138 Z"
+          fill="#3D2817" opacity="0.85"/>
+
+    <!-- mustache -->
+    <path d="M104 138 Q128 148 152 138 Q146 132 128 134 Q110 132 104 138 Z"
+          fill="#3D2817" opacity="0.9"/>
+
+    <!-- eyes -->
+    <circle cx="110" cy="120" r="4" fill="#1F2937"/>
+    <circle cx="146" cy="120" r="4" fill="#1F2937"/>
+
+    <!-- eyebrows -->
+    <path d="M100 108 Q110 102 120 108" stroke="#1F2937" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M136 108 Q146 102 156 108" stroke="#1F2937" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+    <!-- keffiyeh (white head drape) — descends each side of face -->
+    <path d="M70 96 Q66 60 128 50 Q190 60 186 96 L186 156 Q186 180 168 188 L168 110 Q160 88 128 86 Q96 88 88 110 L88 188 Q70 180 70 156 Z"
+          fill="#FFFFFF" stroke="#E5E7EB" stroke-width="2"/>
+
+    <!-- agal (black double band on top) -->
+    <ellipse cx="128" cy="64" rx="62" ry="10" fill="none" stroke="#1F2937" stroke-width="5"/>
+    <ellipse cx="128" cy="60" rx="58" ry="7" fill="none" stroke="#1F2937" stroke-width="3"/>
+  </g>
+</svg>

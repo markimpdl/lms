@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Western male avatar">
+  <defs>
+    <clipPath id="om-clip"><circle cx="128" cy="128" r="128"/></clipPath>
+  </defs>
+  <g clip-path="url(#om-clip)">
+    <!-- background -->
+    <rect width="256" height="256" fill="#E0F2FE"/>
+
+    <!-- shirt / shoulders (medium blue) -->
+    <path d="M16 256 Q16 200 64 184 Q92 178 128 178 Q164 178 192 184 Q240 200 240 256 Z"
+          fill="#3B82F6"/>
+
+    <!-- collar v -->
+    <path d="M108 184 L128 200 L148 184 Q140 178 128 178 Q116 178 108 184 Z" fill="#FFFFFF" opacity="0.9"/>
+
+    <!-- neck -->
+    <rect x="116" y="160" width="24" height="28" fill="#F5C9A0"/>
+
+    <!-- face -->
+    <ellipse cx="128" cy="124" rx="48" ry="56" fill="#F5C9A0"/>
+
+    <!-- hair (short, brown, top + slight sides) -->
+    <path d="M80 110 Q72 76 128 64 Q184 76 176 110 Q172 96 156 90 Q142 86 128 88 Q114 86 100 90 Q84 96 80 110 Z"
+          fill="#5B3A1F"/>
+
+    <!-- ears -->
+    <ellipse cx="80" cy="128" rx="6" ry="10" fill="#F5C9A0"/>
+    <ellipse cx="176" cy="128" rx="6" ry="10" fill="#F5C9A0"/>
+
+    <!-- eyes -->
+    <circle cx="110" cy="120" r="4" fill="#1F2937"/>
+    <circle cx="146" cy="120" r="4" fill="#1F2937"/>
+
+    <!-- eyebrows -->
+    <path d="M100 108 Q110 102 120 108" stroke="#3D2817" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M136 108 Q146 102 156 108" stroke="#3D2817" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+    <!-- subtle smile -->
+    <path d="M114 150 Q128 156 142 150" stroke="#3D2817" stroke-width="2" fill="none" stroke-linecap="round"/>
+  </g>
+</svg>

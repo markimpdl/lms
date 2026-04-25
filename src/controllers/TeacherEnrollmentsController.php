@@ -19,8 +19,12 @@ final class TeacherEnrollmentsController
      * Aceita `course_ids[]` como array de inteiros; cada curso é validado
      * individualmente (um erro não aborta os demais).
      */
-    public static function enrollMany(int $studentId, array $courseIds): void
-    {
+    public static function enrollMany(
+        int $studentId,
+        array $courseIds,
+        ?string $accessStartsAt = null,
+        ?string $accessEndsAt = null
+    ): void {
         $tenantId = current_tenant_id();
         if ($tenantId === null) {
             http_response_code(403);
@@ -35,7 +39,10 @@ final class TeacherEnrollmentsController
             exit;
         }
 
-        $stats = self::enrollBulk($studentId, $courseIds, $tenantId);
+        // Período (E17-01) — quando o professor preenche, vale pra TODOS os
+        // cursos selecionados nesse POST. Pra editar individualmente depois,
+        // usar o endpoint dedicado em /teacher/courses/{id}/enrollment/.../period.
+        $stats = self::enrollBulk($studentId, $courseIds, $tenantId, $accessStartsAt, $accessEndsAt);
 
         if ($stats['ok'] > 0) {
             flash('success', __t('enrollments.created_count', ['count' => $stats['ok']]));
@@ -95,8 +102,13 @@ final class TeacherEnrollmentsController
      *
      * @return array{ok:int,course_archived:int,student_inactive:int,wrong_tenant:int}
      */
-    public static function enrollBulk(int $studentId, array $courseIds, int $tenantId): array
-    {
+    public static function enrollBulk(
+        int $studentId,
+        array $courseIds,
+        int $tenantId,
+        ?string $accessStartsAt = null,
+        ?string $accessEndsAt = null
+    ): array {
         $stats = ['ok' => 0, 'course_archived' => 0, 'student_inactive' => 0, 'wrong_tenant' => 0];
         foreach ($courseIds as $cid) {
             $cid = (int) $cid;
@@ -107,7 +119,7 @@ final class TeacherEnrollmentsController
             // notifica no primeiro caso (E10-05). `Enrollment::create` usa
             // INSERT IGNORE e retorna 'ok' pros dois.
             $wasEnrolled = Enrollment::isEnrolled($studentId, $cid);
-            $result      = Enrollment::create($studentId, $cid, $tenantId);
+            $result      = Enrollment::create($studentId, $cid, $tenantId, $accessStartsAt, $accessEndsAt);
             $stats[$result] = ($stats[$result] ?? 0) + 1;
 
             if ($result === 'ok' && !$wasEnrolled) {

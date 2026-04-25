@@ -29,6 +29,16 @@ if ($course === null) {
     return;
 }
 
+// Gate de disponibilidade (E17-03): bloqueio manual / fora da janela de
+// acesso → flash + redirect pra /student. Aluno sem matrícula já caiu
+// em 404 acima.
+$availability = enrollment_access_status($studentId, $courseId);
+if (!$availability['available']) {
+    flash('warning', $availability['message'] ?? __t('enrollment.unavailable.generic'));
+    header('Location: /student', true, 303);
+    exit;
+}
+
 Enrollment::touchLastAccess($studentId, $courseId);
 
 $archived    = (int) $course['course_archived'] === 1;

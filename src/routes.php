@@ -54,6 +54,7 @@ return [
         '/teacher/ranks'        => ['file' => '/src/pages/teacher/ranks/index.php',    'role' => 'teacher'],
         '/teacher/ranks/save'   => ['file' => '/src/pages/teacher/ranks/save.php',     'role' => 'teacher'],
         '/teacher/ranking'      => ['file' => '/src/pages/teacher/ranking.php',        'role' => 'teacher'],
+        '/teacher/settings'     => ['file' => '/src/pages/teacher/settings/index.php', 'role' => 'teacher'],
         '/student'             => ['file' => '/src/pages/dashboard/student.php',     'role' => 'student'],
         '/student/ranking'     => ['file' => '/src/pages/student/ranking.php',       'role' => 'student'],
     ],
@@ -106,6 +107,21 @@ return [
         ],
         '#^/teacher/courses/(\d+)/enrollment/(\d+)/status$#' => [
             'file'   => '/src/pages/teacher/courses/enrollment-status.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'student_id'],
+        ],
+        '#^/teacher/courses/(\d+)/enrollment/(\d+)/period$#' => [
+            'file'   => '/src/pages/teacher/courses/enrollment-period.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'student_id'],
+        ],
+        '#^/teacher/courses/(\d+)/enrollment/(\d+)/block$#' => [
+            'file'   => '/src/pages/teacher/courses/enrollment-block.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'student_id'],
+        ],
+        '#^/teacher/courses/(\d+)/enrollment/(\d+)/remove$#' => [
+            'file'   => '/src/pages/teacher/courses/enrollment-remove.php',
             'role'   => 'teacher',
             'params' => ['id', 'student_id'],
         ],

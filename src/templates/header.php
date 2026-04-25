@@ -69,6 +69,9 @@ if ($user !== null && ($user['role'] ?? null) !== 'super_admin') {
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="/profile"><?= e(__t('nav.profile')) ?></a></li>
+                        <?php if (($user['role'] ?? null) === 'teacher'): ?>
+                            <li><a class="dropdown-item" href="/teacher/settings"><?= e(__t('nav.settings')) ?></a></li>
+                        <?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
                         <li>
                             <form method="post" action="/logout" class="m-0">

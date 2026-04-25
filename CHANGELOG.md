@@ -4,6 +4,41 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.14.0] — 2026-04-25
+
+Décima quarta release. Escopo: **Epic E17 inteiro — Acesso ao curso e identidade visual** (5 stories) + 1 chore de UX. Adiciona controle fino do acesso do aluno ao curso (período, bloqueio, remoção) com gate visível pra ele, e identidade visual via 4 SVGs de avatar configuráveis por tenant.
+
+### Novas funcionalidades
+
+#### Epic E17 — Acesso ao curso e identidade visual
+
+- **Período de matrícula com start/end opcionais** (E17-01, #219): 2 colunas novas em `enrollments` — `access_starts_at` e `access_ends_at`, ambos `DATETIME NULL`. NULL no início = imediato; NULL no fim = ilimitado. Forms (`enrollModal` em `/teacher/students/{id}` e roster do curso) com `<input type="datetime-local">`. Roster mostra label "imediato → ilimitado" / "DD/MM → DD/MM" via helper novo `format_period_label`. Edição via modal único populado por `show.bs.modal`. Helper novo `parse_datetime_local` valida formato. Server-side rejeita `start >= end`.
+- **Bloquear/remover acesso ao curso** (E17-02, #220): coluna nova `enrollments.blocked_at DATETIME NULL` — bloqueio reversível que preserva XP/progresso/histórico. Remoção é DELETE definitivo, mas `xp_events` permanecem (PO confirmou). 2 endpoints novos (`/enrollment/{sid}/block` toggle + `/remove` com confirm-by-typing do email). Roster ganha botões "Bloquear/Desbloquear" + "Remover" + badge "Bloqueado em DD/MM" quando ativo. Reusa `delete_confirm_modal.php` já incluído na page.
+- **Curso indisponível pro aluno** (E17-03, #221): aluno agora vê claramente quando o curso está bloqueado/fora da janela. Helpers novos `enrollment_availability` (pure logic) + `enrollment_access_status` (com query). `Course::listForStudentWithProgress` traz os 3 campos pra CourseCard renderizar disabled state inline (sem 2ª query). Card desabilitado: opacity .7, cover em grayscale, badge "Indisponível", mensagem do motivo, sem CTA, não-clicável. Gates em 4 show.php (course/cu/activity/evaluation) — flash + redirect 303 pra `/student`. 3 motivos: `blocked` / `before` / `after` com data interpolada.
+- **Avatar default por tenant** (E17-04, #222): primeira config global do tenant — `tenants.avatar_style ENUM('arabe','ocidental') NOT NULL DEFAULT 'arabe'`. 4 SVGs em `public/assets/avatars/` (~2KB cada) gerados pelo agente: `arabe-male.svg` (kandura+keffiyeh+agal), `arabe-female.svg` (hijab), `ocidental-male.svg` (cabelo curto casual), `ocidental-female.svg` (cabelo longo casual). Helper novo `student_avatar_url(int): string` com cache estático por request — combina `users.gender` (E16-01) + `tenants.avatar_style` (E17-04). Página nova `/teacher/settings` com 2 cards-radio + preview. Link "Configurações" no dropdown user (só pra teacher). PO pode substituir os 4 assets sem mexer em código se a qualidade não bater.
+- **Avatares no ProfileSidebar e ranking** (E17-05, #223): `ProfileSidebar` substitui o quadrado-com-inicial por `<img>` 104x104 redondo com `object-fit: cover`. Removida computação morta de `$initial`. Linhas de ranking (`/student/ranking` + `/teacher/ranking`) ganham avatar 32x32 à esquerda do nome em desktop, oculto em mobile via `d-none d-md-inline-block`. Lazy loading nas listagens. CSS `.lms-ranking-avatar` em `app.css` sem scope — funciona nos 2 contextos (Bootstrap default OU student-area).
+
+### Mudanças internas / Tooling
+
+- **Nome curto + tooltip aplicado em mais 2 lugares** (#224): roster do curso (`/teacher/courses/{id}`) e card "Students without recent access" no dashboard do professor. Reusa `format_short_name` (helper de E16-02). Lista "Submissões recentes" mantida com nome completo intencional — contexto unilínear onde o nome ajuda a identificar o aluno mais rápido.
+- **`package.json`** bumpado para 0.14.0.
+
+### Convenções consolidadas nesta janela
+
+- **Helpers `pure logic` + `wrapper com query`** — par `enrollment_availability` (3 params, sem DB) + `enrollment_access_status` (query + delega) cobre 2 contextos: listagem (com dados já fetched, zero query extra) e gates (com 1 query). Padrão reusável.
+- **Avatar via composição (`{style}-{gender}.svg`)** — combinação de 2 colunas em duas tabelas (`tenants.avatar_style` + `users.gender`) gera 4 paths estáticos. Sem upload de avatar custom no MVP.
+- **Cache estático em helpers que iteram sobre listas longas** — `student_avatar_url` cacheia por `studentId` no request pra evitar N queries em listagens de ranking.
+- **`delete_confirm_modal.php` reusável** — quando uma page já inclui o partial pra outra exclusão (ex.: deletar curso), botões adicionais usam o **mesmo modal** apontando `data-action-url` pra outro endpoint. Evita duplicar modal.
+- **Geração de assets SVG pelo agente como entregável** — 4 ilustrações flat de ~2KB cada com estrutura consistente (bg circular pastel + ombros + face + features mínimas + acessório distintivo). PO pode substituir sem mexer em código.
+
+### Pendências (herdadas, ainda abertas)
+
+- **`JUDGE0_KEY` em prod**: endpoint responde 503 amigável até o PO configurar.
+- **C# sem syntax highlight no CodeMirror 6** — plain text funciona; nice-to-have futuro.
+- **Cross-tenant smoke** ainda parcial — só 1 tenant em prod.
+
+[0.14.0]: https://github.com/markimpdl/lms/releases/tag/v0.14.0
+
 ## [0.13.0] — 2026-04-25
 
 Décima terceira release. Escopo: **Epic E16 inteiro — Fundamentos do aluno** (4 stories) + 1 chore de deploy. Adiciona atributos de gestão ao aluno (sexo, doc identificação, status no curso) e auditoria de acesso (histórico de conexões com geo-IP). Backfill silencioso de alunos legados como `gender = 'male'`.

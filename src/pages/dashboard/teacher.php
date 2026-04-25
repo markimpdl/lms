@@ -131,9 +131,12 @@ ob_start();
                 <?php else: ?>
                     <ul class="list-group list-group-flush">
                         <?php foreach ($inactive as $s): ?>
+                            <?php $sFullName = (string) $s['name']; ?>
                             <li class="list-group-item">
-                                <a href="/teacher/students/<?= (int) $s['id'] ?>" class="fw-semibold text-decoration-none">
-                                    <?= e((string) $s['name']) ?>
+                                <a href="/teacher/students/<?= (int) $s['id'] ?>"
+                                   class="fw-semibold text-decoration-none"
+                                   title="<?= e($sFullName) ?>">
+                                    <?= e(format_short_name($sFullName)) ?>
                                 </a>
                                 <div class="small text-muted">
                                     <?= e((string) $s['email']) ?>
