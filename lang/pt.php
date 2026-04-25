@@ -523,6 +523,7 @@ return [
     'quiz.teacher.approved_note'        => 'Aluno foi aprovado (nota ≥ 6,0). Não é possível liberar nova tentativa.',
     'quiz.teacher.no_snapshot'          => 'Snapshot da submissão não está disponível.',
     'quiz.teacher.saved'                => 'Configuração salva.',
+    'quiz.teacher.activity_no_feedback_note' => 'Quiz é auto-corrigido — não há etapa de feedback manual. A nota acima é o feedback.',
     'evaluations.deleted'               => 'Avaliação ":name" excluída.',
     'evaluations.status.open'           => 'Entrega aberta',
     'evaluations.status.closed'         => 'Entrega fechada',
