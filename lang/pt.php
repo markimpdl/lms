@@ -1111,10 +1111,13 @@ return [
     'ranking.link.course_ranking' => 'Ranking do curso',
     'ranking.back_to_course'      => '← Voltar ao curso',
 
-    // Conquistas (E18-05)
+    // Conquistas (E18-05 + E18-07)
     'achievements.title'          => 'Conquistas',
     'achievements.eyebrow'        => 'GAMIFICAÇÃO',
+    'achievements.subtitle'       => 'Desbloqueie marcos ao longo da sua jornada de aprendizado.',
     'achievements.empty'          => 'Nenhuma conquista disponível ainda.',
+    'achievements.empty_hint'     => 'Aguarde o seu professor disponibilizar cursos e atividades.',
     'achievements.unlocked_count' => ':done de :total conquistas desbloqueadas',
+    'achievements.unlocked_label' => 'desbloqueadas',
     'achievements.unlocked_at'    => 'Desbloqueado em :date',
 ];
