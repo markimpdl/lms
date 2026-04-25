@@ -509,6 +509,8 @@ return [
     'quiz.student.activity_grade_note'  => 'Nota informativa — atividade dá XP por entregar.',
     'quiz.student.err.unanswered'       => 'Selecione uma opção.',
     'quiz.student.err.invalid_option'   => 'Opção inválida.',
+    'quiz.student.gabarito.correct'     => 'Correta',
+    'quiz.student.gabarito.your_wrong'  => 'Sua escolha (incorreta)',
     'evaluations.deleted'               => 'Avaliação ":name" excluída.',
     'evaluations.status.open'           => 'Entrega aberta',
     'evaluations.status.closed'         => 'Entrega fechada',

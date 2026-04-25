@@ -509,6 +509,8 @@ return [
     'quiz.student.activity_grade_note'  => 'Informational grade — activities award XP on submission.',
     'quiz.student.err.unanswered'       => 'Select an option.',
     'quiz.student.err.invalid_option'   => 'Invalid option.',
+    'quiz.student.gabarito.correct'     => 'Correct',
+    'quiz.student.gabarito.your_wrong'  => 'Your choice (incorrect)',
     'evaluations.deleted'               => 'Evaluation ":name" deleted.',
     'evaluations.status.open'           => 'Submissions open',
     'evaluations.status.closed'         => 'Submissions closed',
