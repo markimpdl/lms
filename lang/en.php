@@ -1066,6 +1066,7 @@ return [
     // Navbar — primary link (E9-03)
     'nav.primary_aria' => 'Primary navigation',
     'nav.ranking'      => 'Ranking',
+    'nav.achievements' => 'Achievements',
 
     // Ranking (E9-03)
     'ranking.title'                => 'Ranking',
@@ -1105,4 +1106,11 @@ return [
     'ranking.scope.tenant'        => 'TENANT RANKING',
     'ranking.link.course_ranking' => 'Course ranking',
     'ranking.back_to_course'      => '← Back to course',
+
+    // Achievements (E18-05)
+    'achievements.title'          => 'Achievements',
+    'achievements.eyebrow'        => 'GAMIFICATION',
+    'achievements.empty'          => 'No achievements available yet.',
+    'achievements.unlocked_count' => ':done of :total achievements unlocked',
+    'achievements.unlocked_at'    => 'Unlocked on :date',
 ];

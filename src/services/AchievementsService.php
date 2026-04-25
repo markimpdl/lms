@@ -507,6 +507,32 @@ final class AchievementsService
         return $available;
     }
 
+    /**
+     * Retorna mapa `[achievement_id => unlocked_at]` (datetime MySQL) das
+     * conquistas que o aluno já desbloqueou no tenant. Usado pela tela
+     * `/student/achievements` (E18-05) pra colorir cards e exibir data.
+     *
+     * @return array<int, string>
+     */
+    public static function unlockedForStudent(int $studentId, int $tenantId): array
+    {
+        if ($studentId <= 0 || $tenantId <= 0) {
+            return [];
+        }
+        $stmt = Database::pdo()->prepare(
+            'SELECT achievement_id, unlocked_at
+               FROM student_achievements
+              WHERE student_user_id = ? AND tenant_id = ?'
+        );
+        $stmt->execute([$studentId, $tenantId]);
+
+        $map = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $map[(int) $row['achievement_id']] = (string) $row['unlocked_at'];
+        }
+        return $map;
+    }
+
     // ============================================================
     // Helpers do estado do tenant + detectores pontuais
     // ============================================================
