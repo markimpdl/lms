@@ -1896,3 +1896,71 @@ body.lms-student-area .lms-achievements-counter__label {
         font-size: 20px;
     }
 }
+
+/* ============================================================
+   Modos de progressao (E19-02): blur + overlay nos estados 'next'
+   ------------------------------------------------------------
+   .lms-cc-section--locked    — CC inteira bloqueada (cc_mode=sequential)
+   .lms-unit-card--locked     — UC bloqueada dentro da CC atual
+   Ambas aplicam filter:blur + opacity reduzida no conteudo, e tem
+   um overlay sobreposto com a mensagem "Conclua X primeiro".
+   ============================================================ */
+
+body.lms-student-area .lms-cc-section--locked {
+    position: relative;
+    overflow: hidden;
+}
+body.lms-student-area .lms-cc-section--locked .lms-cc-header {
+    filter: blur(2px);
+    opacity: 0.55;
+    pointer-events: none;
+    user-select: none;
+}
+body.lms-student-area .lms-cc-section__lock-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(1px);
+    color: var(--lms-neutral-900);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    text-align: center;
+    padding: 12px 20px;
+    pointer-events: none;
+}
+
+body.lms-student-area .lms-unit-card--locked {
+    position: relative;
+    overflow: hidden;
+    cursor: not-allowed;
+}
+body.lms-student-area .lms-unit-card--locked > *:not(.lms-unit-card__lock-overlay) {
+    filter: blur(2px);
+    opacity: 0.5;
+    pointer-events: none;
+    user-select: none;
+}
+body.lms-student-area .lms-unit-card__lock-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(1px);
+    color: var(--lms-neutral-900);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    line-height: 1.3;
+    text-align: center;
+    padding: 12px;
+    pointer-events: none;
+}
+
+/* Estado completed mantem visual padrao — o badge de status do unit_card
+   e o percent=100 ja indicam visualmente. Sem regras adicionais. */
