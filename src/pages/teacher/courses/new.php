@@ -8,10 +8,13 @@ declare(strict_types=1);
 
 $errors = [];
 $old = [
-    'name'        => '',
-    'description' => '',
-    'year'        => (int) date('Y'),
-    'language'    => current_user()['language'] ?? 'pt',
+    'name'                  => '',
+    'description'           => '',
+    'year'                  => (int) date('Y'),
+    'language'              => current_user()['language'] ?? 'pt',
+    'cc_mode'               => 'sequential',
+    'activity_mode'         => 'sequential',
+    'eval_after_activities' => 1,
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -24,10 +27,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $old = [
-        'name'        => (string) ($_POST['name']        ?? ''),
-        'description' => (string) ($_POST['description'] ?? ''),
-        'year'        => (int)    ($_POST['year']        ?? 0),
-        'language'    => (string) ($_POST['language']    ?? 'pt'),
+        'name'                  => (string) ($_POST['name']        ?? ''),
+        'description'           => (string) ($_POST['description'] ?? ''),
+        'year'                  => (int)    ($_POST['year']        ?? 0),
+        'language'              => (string) ($_POST['language']    ?? 'pt'),
+        'cc_mode'               => (string) ($_POST['cc_mode']      ?? 'sequential'),
+        'activity_mode'         => (string) ($_POST['activity_mode'] ?? 'sequential'),
+        'eval_after_activities' => !empty($_POST['eval_after_activities']) ? 1 : 0,
     ];
 
     $errors = TeacherCoursesController::create($old);
@@ -97,6 +103,8 @@ ob_start();
                     <?php endif; ?>
                 </div>
             </div>
+
+            <?php require LMS_ROOT . '/src/templates/partials/course_progression_fields.php'; ?>
 
             <div class="d-flex flex-wrap gap-2">
                 <button type="submit" class="btn btn-primary btn-lg">

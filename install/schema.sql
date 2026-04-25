@@ -93,16 +93,19 @@ CREATE TABLE IF NOT EXISTS settings (
 -- 4. courses
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS courses (
-    id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    tenant_id    BIGINT UNSIGNED NOT NULL,
-    name         VARCHAR(150) NOT NULL,
-    description  TEXT NULL,
-    year         SMALLINT UNSIGNED NOT NULL,
-    language     ENUM('pt','en') NOT NULL DEFAULT 'pt',
-    archived     TINYINT(1) NOT NULL DEFAULT 0,
-    archived_at  DATETIME NULL,
-    created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    id                   BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tenant_id            BIGINT UNSIGNED NOT NULL,
+    name                 VARCHAR(150) NOT NULL,
+    description          TEXT NULL,
+    year                 SMALLINT UNSIGNED NOT NULL,
+    language             ENUM('pt','en') NOT NULL DEFAULT 'pt',
+    archived             TINYINT(1) NOT NULL DEFAULT 0,
+    archived_at          DATETIME NULL,
+    cc_mode              ENUM('sequential','free') NOT NULL DEFAULT 'sequential',
+    activity_mode        ENUM('sequential','free') NOT NULL DEFAULT 'sequential',
+    eval_after_activities TINYINT(1) NOT NULL DEFAULT 1,
+    created_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_courses_tenant_year (tenant_id, year),
     KEY idx_courses_tenant_archived (tenant_id, archived),
@@ -1005,6 +1008,50 @@ SET @col_exists := (
 );
 SET @sql := IF(@col_exists = 0,
     "ALTER TABLE enrollments ADD COLUMN status ENUM('active','absent','completed') NOT NULL DEFAULT 'active' AFTER last_access_at",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E19-01] courses.cc_mode + activity_mode + eval_after_activities — modos
+-- de progressao por curso (F7). Default sequencial pra todos os cursos
+-- existentes — professor pode trocar pra 'free' se preferir o comportamento
+-- antigo (tudo nitido). Schema docs: doc/15-roadmap-pos-mvp.md F7 + ADRs em
+-- doc/14 (sem ADR dedicado — decisao consolidada do PO em 2026-04-25).
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'courses'
+       AND COLUMN_NAME  = 'cc_mode'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE courses ADD COLUMN cc_mode ENUM('sequential','free') NOT NULL DEFAULT 'sequential' AFTER archived_at",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'courses'
+       AND COLUMN_NAME  = 'activity_mode'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE courses ADD COLUMN activity_mode ENUM('sequential','free') NOT NULL DEFAULT 'sequential' AFTER cc_mode",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'courses'
+       AND COLUMN_NAME  = 'eval_after_activities'
+);
+SET @sql := IF(@col_exists = 0,
+    'ALTER TABLE courses ADD COLUMN eval_after_activities TINYINT(1) NOT NULL DEFAULT 1 AFTER activity_mode',
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
