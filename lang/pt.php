@@ -1032,4 +1032,8 @@ return [
     'ranking.filter.all_groups'  => 'Todos os grupos',
     'ranking.filter.all_years'   => 'Todos os anos',
     'ranking.filter.apply'       => 'Filtrar',
+
+    // Ranking — visão do professor (E9-05)
+    'ranking.subtitle.teacher' => 'Acompanhe o engajamento dos alunos por janela, grupo e ano.',
+    'ranking.col.last_event'   => 'Última entrega',
 ];
