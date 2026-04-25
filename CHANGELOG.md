@@ -4,6 +4,61 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.19.0] — 2026-04-26
+
+Décima nona release. Escopo: **Epic E22 inteiro — Cross-tenant auth flow** (3 stories, F13) + extensão do roadmap pós-MVP (F14–F17 documentados, E23–E26 com issues criadas). Ativado por **2º tenant criado em prod (Actvet)** em 2026-04-26 — mesmo email entre tenants distintos passa a funcionar ponta-a-ponta.
+
+### Novas funcionalidades
+
+#### Epic E22 — Cross-tenant auth flow
+
+- **Login multi-conta com seletor de tenant** (E22-01, #291): `AuthController::authenticate` deprecado em favor de `authenticateAll(email, password): list<array>` que busca todas as rows ativas com aquele email e testa `password_verify` em cada (re-hash oportunista por row autenticada). `tenantPickerDisplay(userIds)` retorna estrutura `[{user_id, tenant_id, tenant_name, teacher_name}]` pra renderizar cards. `loadActiveUserById` pra completeLogin na fase 2. `login.php` em 2 fases: credenciais (sem `LIMIT 1`) → seletor quando ambíguo (2+ rows com a mesma senha). Sessão `pending_login_candidates` com TTL 5min; cancelar via `/login?cancel=picker`; sessão expirada força refazer login. ADR-026 (UK `email_tenant_key`) já permitia o cenário multi-conta — esse PR fecha o gap operacional.
+- **Reset com lista de tenants no email** (E22-02, #292): `requestPasswordReset` itera todas rows ativas (sem `LIMIT 1`); rate limit individual (3 tokens/hora por user_id, skip por user); cada row gera token próprio em `password_resets` (PK existente já suporta). `enrichResetAccountsWithTenant` faz JOIN pra obter `tenant_name` + `teacher_name` (owner) por user_id. `sendResetEmail` refatorada pra aceitar lista — N=1 idêntico ao pré-E22 (1 botão); N=2+ renderiza intro multi + cards inline (border + spacing + tenant_name destacado + teacher em pequeno + botão próprio). Idioma do email = primeira conta (defensivo). `/forgot` continua com resposta genérica — não vaza enumeração de tenants.
+- **Polish: tenant picker mobile + a11y + copy** (E22-03, #293): aria-label no form do picker; classes scoped `.lms-tenant-picker__{card,name,teacher}` em `app.css` com min-height consistente (70px desktop, 60px mobile), hover sutil (`translateY(-1px)`), outline focus-visible pra navegação por teclado, fix de contraste no hover (teacher line vira branco semi-transparente contra bg azul btn-outline). "Cancelar" simplificado pra `btn-link btn-sm text-muted` (antes verbose "Cancelar e fazer login com outra conta"). Copy refinado: "tenant" → "espaço" (jargão técnico → vocabulário do produto); título "espaço" → "conta" pra ficar mais claro pro aluno.
+
+### Documentação
+
+- **F14–F17 + E23–E26 documentados** (#282): com 2º tenant criado em prod (Actvet), PO listou rodada de demandas Actvet-específicas. 4 features novas no roadmap pós-MVP estendido:
+  - **F14/E23 — Quick fixes UX**: avaliação tipo Project aceita PDF + ZIP até 10MB; redirects pós-cadastro de avaliação/atividade/quiz pra `/teacher/cu/{id}` + botões "Voltar" nos 3 forms (P, 1-2 stories)
+  - **F15/E24 — White-label + flag `is_actvet`**: super-admin marca tenant como Actvet; logo + nome platform customizáveis (Actvet: logo travada, default "Skills Hub"; outros: livre, fallback `[L] LMS`); avatar default por contexto Actvet (M, 3-4 stories)
+  - **F16/E25 — Learning Outcomes (Actvet-only)**: modo de avaliação alternativo a "nota". Decisão simplificadora: LO **só existe** em tenants Actvet; não-Actvet forçado a `grading_mode='grade'` (UI esconde). Quando LO: exatamente 5 LOs por UC; nota final = média das 5; Quiz não disponível pra avaliação em LO mode (G, 5-6 stories)
+  - **F17/E26 — Reports (Actvet+LO only)**: PDF gerado pós-feedback. Decisão simplificadora: ENUM `('disabled','skill_hub')` no MVP — `'custom'` removido; `'emirates_skills'` preparado pra futuro. Template Skill Hub entregue pelo PO em 2026-04-26 (`template_reports/CU_SKILL_HUB.htm`). Variáveis UPPER_SNAKE simples (sem listas/loops): `{{NAME_COURSE}}`, `{{LEARN_X_NAME}}`, etc. Notas ×10 (LO scores inteiro; AVG_LEARN com 1 decimal só se necessário). Lib: dompdf (M-G, 4-5 stories)
+
+### Mudanças internas / Tooling
+
+- **`package.json`** bumpado para 0.19.0.
+- **Issues criadas no GitHub:** Épico E22 (#283) + 3 stories (#284, #285, #286); placeholders dos épicos E23 (#287), E24 (#288), E25 (#289), E26 (#290) — sem stories ainda; serão materializados na ativação de cada épico.
+
+### Convenções consolidadas nesta janela
+
+- **Wrapper backward-compat pra refactor de método público** — `AuthController::authenticate` deprecado mas mantido como wrapper sobre `authenticateAll`. Sem quebra no único callsite (login.php) que migrou de uma vez. Padrão útil quando contrato muda de "1 elemento" pra "lista de elementos".
+- **Mesmo email em N tenants** (ADR-026 já permitia em 2026-04-25) — fluxo end-to-end (login + reset) só passou a funcionar com E22. Lição: quando uma decisão arquitetural permite cenário X mas o código operacional ainda assume "X não acontece", flagar pra future epic ao invés de deixar implícito (foi o que ADR-032 fez em 2026-04-25, antecipando a ativação E22).
+- **Email HTML com cards inline-styled** — pra emails que precisam renderizar em Outlook/Gmail, inline styles em vez de classes CSS. Reusa paleta Bootstrap (`#0d6efd`, etc.) pra coerência com a UI principal.
+- **Copy sem jargão técnico** — "tenant" só é usado em código/docs internos; UI pro aluno usa "espaço" (ou "conta" no contexto do picker). Acumulado de feedback do PO ao longo de várias releases.
+
+### Pendências de schema
+
+**Zero.** Schema existente (`email_tenant_key` UK + `password_resets.user_id` em PK) já suportava o cenário multi-conta nativamente. Mudança foi puramente no app layer.
+
+### Pendências (herdadas, ainda abertas)
+
+- **`JUDGE0_KEY` em prod**: endpoint responde 503 amigável até o PO configurar.
+- **C# sem syntax highlight no CodeMirror 6** — plain text funciona; nice-to-have futuro.
+
+### Roadmap pós-MVP estendido — status
+
+**Concluído (8 épicos):** E15, E16, E17, E18, E19, E20, E21, **E22** (F1–F13 todos entregues).
+
+**Em fila** (4 épicos com issues criadas, sem stories ainda):
+- E23 (F14) — Quick fixes UX (PDF+ZIP + redirects + Voltar)
+- E24 (F15) — White-label + flag `is_actvet`
+- E25 (F16) — Learning Outcomes (Actvet-only)
+- E26 (F17) — Reports (Actvet+LO only)
+
+**Ordem decidida:** E23 → E24 → E25 → E26 (E25 depende de E24; E26 depende de E25).
+
+[0.19.0]: https://github.com/markimpdl/lms/releases/tag/v0.19.0
+
 ## [0.18.0] — 2026-04-26
 
 Décima oitava release. Escopo: **Epic E20 inteiro — Quiz em atividades e avaliações** (7 stories) + 1 fix de "etapa de feedback" pego em smoke. Adiciona um tipo novo de atividade/avaliação: quiz com múltipla escolha (1 correta), nota auto-calculada via soma de pesos, snapshot write-once por submissão. **Encerra o roadmap pós-MVP planejado** — resta apenas E22 (cross-tenant auth) demand-driven.

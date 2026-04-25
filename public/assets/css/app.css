@@ -570,3 +570,44 @@ main { flex: 1 0 auto; }
         display: inline;
     }
 }
+
+/* ============================================================
+   Tenant picker no login (E22-01 + polish E22-03)
+   ============================================================ */
+
+.lms-tenant-picker__card {
+    min-height: 70px;       /* consistent height entre cards de tenant_name longo/curto */
+    transition: transform 120ms ease;
+}
+.lms-tenant-picker__card:hover {
+    transform: translateY(-1px);
+}
+.lms-tenant-picker__card:focus-visible {
+    outline: 2px solid var(--bs-primary, #0d6efd);
+    outline-offset: 2px;
+}
+
+.lms-tenant-picker__name {
+    margin-bottom: 0.25rem;
+    font-size: 1rem;
+}
+
+.lms-tenant-picker__teacher {
+    color: #6c757d; /* text-muted base */
+}
+
+/* No hover/focus do btn-outline-primary, o teacher fica branco semi
+   transparente pra preservar contraste contra o bg azul. */
+.lms-tenant-picker__card:hover .lms-tenant-picker__teacher,
+.lms-tenant-picker__card:focus .lms-tenant-picker__teacher,
+.lms-tenant-picker__card:active .lms-tenant-picker__teacher {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* Mobile <576px: cards um pouco mais compactos. */
+@media (max-width: 575.98px) {
+    .lms-tenant-picker__card {
+        min-height: 60px;
+        padding: 0.75rem 1rem;
+    }
+}

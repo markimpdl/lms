@@ -33,6 +33,13 @@ return [
     'auth.forgot'        => 'Esqueci minha senha',
     'auth.invalid'       => 'E-mail ou senha inválidos.',
     'auth.forbidden'     => 'Acesso negado.',
+    // Seletor de tenant no login (E22-01) — final em E22-03
+    'auth.login.tenant_picker.title'         => 'Em qual conta deseja entrar?',
+    'auth.login.tenant_picker.help'          => 'Encontramos sua conta em mais de um espaço. Escolha qual acessar agora.',
+    'auth.login.tenant_picker.aria'          => 'Selecione a conta para entrar',
+    'auth.login.tenant_picker.teacher_label' => 'Professor',
+    'auth.login.tenant_picker.cancel'        => 'Cancelar',
+    'auth.login.tenant_picker.expired'       => 'Sessão expirou. Faça login novamente.',
 
     // Navbar
     'nav.logout'         => 'Sair',
@@ -234,6 +241,9 @@ return [
     'email.reset.subject'   => 'LMS — redefinição de senha',
     'email.reset.greeting'  => 'Olá, :name',
     'email.reset.intro'     => 'Recebemos uma solicitação para redefinir a senha da sua conta. Clique no botão abaixo (ou copie o link para o navegador):',
+    'email.reset.multi_intro' => 'Encontramos sua conta em mais de um espaço. Cada uma tem sua própria senha — clique no botão correspondente ao espaço que deseja redefinir:',
+    'email.reset.account_default_label' => 'Sua conta',
+    'email.reset.teacher_label' => 'Professor: :name',
     'email.reset.cta'       => 'Redefinir senha',
     'email.reset.expires'   => 'Este link expira em :hours hora(s) e só pode ser usado uma vez.',
     'email.reset.disregard' => 'Se não foi você que solicitou, ignore este email — sua senha atual segue válida.',

@@ -33,6 +33,13 @@ return [
     'auth.forgot'        => 'Forgot my password',
     'auth.invalid'       => 'Invalid e-mail or password.',
     'auth.forbidden'     => 'Access denied.',
+    // Tenant picker on login (E22-01) — final in E22-03
+    'auth.login.tenant_picker.title'         => 'Which account do you want to enter?',
+    'auth.login.tenant_picker.help'          => 'We found your account in more than one space. Choose which one to access now.',
+    'auth.login.tenant_picker.aria'          => 'Pick the account to sign in',
+    'auth.login.tenant_picker.teacher_label' => 'Teacher',
+    'auth.login.tenant_picker.cancel'        => 'Cancel',
+    'auth.login.tenant_picker.expired'       => 'Session expired. Please sign in again.',
 
     // Navbar
     'nav.logout'         => 'Log out',
@@ -234,6 +241,9 @@ return [
     'email.reset.subject'   => 'LMS — password reset',
     'email.reset.greeting'  => 'Hello, :name',
     'email.reset.intro'     => 'We received a request to reset your account password. Click the button below (or copy the link into your browser):',
+    'email.reset.multi_intro' => 'We found your account in more than one space. Each has its own password — click the button matching the space you want to reset:',
+    'email.reset.account_default_label' => 'Your account',
+    'email.reset.teacher_label' => 'Teacher: :name',
     'email.reset.cta'       => 'Reset password',
     'email.reset.expires'   => 'This link expires in :hours hour(s) and can only be used once.',
     'email.reset.disregard' => 'If you did not request this, please ignore this email — your current password remains valid.',
