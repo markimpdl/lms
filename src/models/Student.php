@@ -55,7 +55,7 @@ final class Student
         // 'all' não filtra por active.
 
         if ($q !== '') {
-            $where[] = '(u.name LIKE :q OR u.email LIKE :q)';
+            $where[] = '(u.name LIKE :q OR u.email LIKE :q OR u.id_document LIKE :q)';
             $params[':q'] = '%' . $q . '%';
         }
         $whereSql = implode(' AND ', $where);
