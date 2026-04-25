@@ -104,6 +104,11 @@ return [
             'role'   => 'teacher',
             'params' => ['course_id'],
         ],
+        '#^/teacher/courses/(\d+)/enrollment/(\d+)/status$#' => [
+            'file'   => '/src/pages/teacher/courses/enrollment-status.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'student_id'],
+        ],
         '#^/teacher/cc/(\d+)/rename$#' => [
             'file'   => '/src/pages/teacher/cc/rename.php',
             'role'   => 'teacher',

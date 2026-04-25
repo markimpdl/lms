@@ -230,7 +230,8 @@ ob_start();
             <?php else: ?>
                 <ul class="list-group list-group-flush">
                     <?php foreach ($enrolled['rows'] as $row): ?>
-                        <li class="list-group-item d-flex align-items-center gap-2">
+                        <?php $rowStatus = (string) ($row['status'] ?? 'active'); ?>
+                        <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
                             <div class="flex-grow-1">
                                 <a href="/teacher/students/<?= (int) $row['student_id'] ?>" class="fw-semibold text-decoration-none">
                                     <?= e((string) $row['name']) ?>
@@ -243,9 +244,33 @@ ob_start();
                                     <?= e(__t('enrollments.enrolled_at', ['date' => substr((string) $row['enrolled_at'], 0, 10)])) ?>
                                 </div>
                             </div>
+                            <form method="POST"
+                                  action="/teacher/courses/<?= (int) $course['id'] ?>/enrollment/<?= (int) $row['student_id'] ?>/status"
+                                  class="m-0 d-inline-flex align-items-center gap-2">
+                                <?= csrf_field() ?>
+                                <label class="small text-muted mb-0 d-none d-md-inline" for="es-<?= (int) $row['student_id'] ?>">
+                                    <?= e(__t('enrollment.status.label')) ?>:
+                                </label>
+                                <select id="es-<?= (int) $row['student_id'] ?>"
+                                        name="status"
+                                        class="form-select form-select-sm js-enrollment-status"
+                                        aria-label="<?= e(__t('enrollment.status.label')) ?>">
+                                    <option value="active"    <?= $rowStatus === 'active'    ? 'selected' : '' ?>><?= e(__t('enrollment.status.active')) ?></option>
+                                    <option value="absent"    <?= $rowStatus === 'absent'    ? 'selected' : '' ?>><?= e(__t('enrollment.status.absent')) ?></option>
+                                    <option value="completed" <?= $rowStatus === 'completed' ? 'selected' : '' ?>><?= e(__t('enrollment.status.completed')) ?></option>
+                                </select>
+                            </form>
                         </li>
                     <?php endforeach; ?>
                 </ul>
+
+                <script>
+                (function () {
+                    document.querySelectorAll('select.js-enrollment-status').forEach(function (sel) {
+                        sel.addEventListener('change', function () { sel.form.submit(); });
+                    });
+                })();
+                </script>
 
                 <?php if ($enrolled['total_pages'] > 1): ?>
                     <nav aria-label="pagination" class="p-2">
