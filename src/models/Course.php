@@ -106,6 +106,7 @@ final class Course
             SELECT
                 c.id, c.tenant_id, c.name, c.description, c.year, c.language,
                 c.archived, c.archived_at, c.created_at, c.updated_at,
+                c.cc_mode, c.activity_mode, c.eval_after_activities,
                 COUNT(DISTINCT cc.id) AS cc_count,
                 COUNT(DISTINCT cu.id) AS cu_count
             FROM courses c
@@ -113,7 +114,8 @@ final class Course
             LEFT JOIN competence_units  cu ON cu.core_competency_id = cc.id
             WHERE c.id = :id AND c.tenant_id = :tid
             GROUP BY c.id, c.tenant_id, c.name, c.description, c.year, c.language,
-                     c.archived, c.archived_at, c.created_at, c.updated_at
+                     c.archived, c.archived_at, c.created_at, c.updated_at,
+                     c.cc_mode, c.activity_mode, c.eval_after_activities
             LIMIT 1
             SQL;
         $stmt = Database::pdo()->prepare($sql);
