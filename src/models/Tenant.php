@@ -42,4 +42,37 @@ final class Tenant
 
         return null;
     }
+
+    /**
+     * Retorna o tenant pelo id, ou null. Útil pra páginas de config que
+     * precisam ler `avatar_style` e outros campos sem reconstruir query.
+     *
+     * @return array<string,mixed>|null
+     */
+    public static function findById(int $tenantId): ?array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT id, owner_user_id, name, active, avatar_style, created_at, updated_at
+               FROM tenants WHERE id = ? LIMIT 1'
+        );
+        $stmt->execute([$tenantId]);
+        $row = $stmt->fetch();
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * Atualiza o estilo do avatar do tenant (E17-04). Whitelist obrigatória
+     * — caller já valida, mas defensivo aqui também.
+     */
+    public static function updateAvatarStyle(int $tenantId, string $style): bool
+    {
+        if (!in_array($style, ['arabe', 'ocidental'], true)) {
+            return false;
+        }
+        $stmt = Database::pdo()->prepare(
+            'UPDATE tenants SET avatar_style = ? WHERE id = ?'
+        );
+        $stmt->execute([$style, $tenantId]);
+        return $stmt->rowCount() > 0;
+    }
 }

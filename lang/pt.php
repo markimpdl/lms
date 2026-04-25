@@ -37,6 +37,7 @@ return [
     // Navbar
     'nav.logout'         => 'Sair',
     'nav.profile'        => 'Meu perfil',
+    'nav.settings'       => 'Configurações',
     'nav.dashboard'      => 'Ir para o painel',
     'nav.login'          => 'Entrar',
     'nav.language.switch_to' => 'Mudar idioma para :target',
@@ -819,6 +820,14 @@ return [
     'enrollment.unavailable.before'      => 'Acesso liberado a partir de :date.',
     'enrollment.unavailable.after'       => 'Acesso expirou em :date.',
     'enrollment.unavailable.generic'     => 'Acesso ao curso indisponível no momento.',
+    // Configurações do tenant (E17-04).
+    'settings.title'                  => 'Configurações',
+    'settings.avatar.title'           => 'Estilo dos avatares',
+    'settings.avatar.help'            => 'O estilo escolhido define o avatar default dos seus alunos no painel — combinado com o sexo informado no cadastro.',
+    'settings.avatar.style.arabe'     => 'Árabe',
+    'settings.avatar.style.ocidental' => 'Ocidental',
+    'settings.success'                => 'Configurações atualizadas.',
+    'settings.err.invalid_avatar_style' => 'Estilo de avatar inválido.',
     'enrollments.add_button'                 => 'Matricular em curso',
     'enrollments.empty'                      => 'Este aluno ainda não está matriculado em nenhum curso.',
     'enrollments.enrolled_at'                => 'Matriculado em :date',

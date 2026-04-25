@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Western female avatar">
+  <defs>
+    <clipPath id="of-clip"><circle cx="128" cy="128" r="128"/></clipPath>
+  </defs>
+  <g clip-path="url(#of-clip)">
+    <!-- background -->
+    <rect width="256" height="256" fill="#FFE4E6"/>
+
+    <!-- top / shoulders (warm tone) -->
+    <path d="M16 256 Q16 200 64 184 Q92 178 128 178 Q164 178 192 184 Q240 200 240 256 Z"
+          fill="#EC4899"/>
+
+    <!-- long hair behind shoulders -->
+    <path d="M48 256 Q44 180 60 130 Q72 90 128 70 Q184 90 196 130 Q212 180 208 256 L196 256 Q200 200 188 160 Q176 130 128 124 Q80 130 68 160 Q56 200 60 256 Z"
+          fill="#3D2417"/>
+
+    <!-- neck -->
+    <rect x="116" y="160" width="24" height="22" fill="#F2C9A0"/>
+
+    <!-- face -->
+    <ellipse cx="128" cy="124" rx="46" ry="54" fill="#F2C9A0"/>
+
+    <!-- hair top (covers crown + a bit of forehead) -->
+    <path d="M80 110 Q70 60 128 56 Q186 60 176 110 Q170 88 154 80 Q140 76 128 80 Q116 76 102 80 Q86 88 80 110 Z"
+          fill="#3D2417"/>
+
+    <!-- hair sides falling next to face -->
+    <path d="M82 120 Q72 160 84 200 L72 200 Q60 160 70 110 Z" fill="#3D2417"/>
+    <path d="M174 120 Q184 160 172 200 L184 200 Q196 160 186 110 Z" fill="#3D2417"/>
+
+    <!-- ears (peeking) -->
+    <ellipse cx="80" cy="130" rx="5" ry="8" fill="#F2C9A0"/>
+    <ellipse cx="176" cy="130" rx="5" ry="8" fill="#F2C9A0"/>
+
+    <!-- eyes -->
+    <ellipse cx="112" cy="122" rx="3" ry="4" fill="#1F2937"/>
+    <ellipse cx="144" cy="122" rx="3" ry="4" fill="#1F2937"/>
+
+    <!-- eyelashes -->
+    <path d="M106 118 L118 116" stroke="#1F2937" stroke-width="2" stroke-linecap="round"/>
+    <path d="M138 116 L150 118" stroke="#1F2937" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- eyebrows -->
+    <path d="M102 108 Q112 103 122 108" stroke="#3D2417" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M134 108 Q144 103 154 108" stroke="#3D2417" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+    <!-- subtle lips -->
+    <path d="M118 152 Q128 158 138 152" stroke="#C2456A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  </g>
+</svg>
