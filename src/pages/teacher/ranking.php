@@ -206,7 +206,12 @@ ob_start();
                     <?php foreach ($rows as $row): ?>
                         <tr>
                             <td><strong>#<?= (int) $row['position'] ?></strong></td>
-                            <td><?= e($row['name']) ?></td>
+                            <td>
+                                <img src="<?= e(student_avatar_url((int) $row['student_id'])) ?>"
+                                     class="lms-ranking-avatar d-none d-md-inline-block me-2"
+                                     alt="" width="32" height="32" loading="lazy">
+                                <?= e($row['name']) ?>
+                            </td>
                             <td class="d-none d-md-table-cell text-muted small">
                                 <?= $row['group_names'] !== '' ? e($row['group_names']) : '<span class="text-muted">—</span>' ?>
                             </td>

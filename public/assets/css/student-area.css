@@ -144,14 +144,8 @@ body.lms-student-area .lms-student-main {
     border-radius: 50%;
     border: 3px solid var(--lms-avatar-color, var(--lms-muted));
     background: linear-gradient(135deg, #6366F1, #8B5CF6);
-    color: #fff;
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-weight: 800;
-    font-size: 40px;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    object-fit: cover;
+    display: block;
     box-shadow: 0 8px 20px -6px rgba(99, 102, 241, 0.35);
 }
 
