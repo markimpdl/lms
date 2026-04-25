@@ -14,8 +14,12 @@ declare(strict_types=1);
  * `grade >= 6` (nota que aprova a CU — E7-03). `tem_avaliacao` = existe
  * linha em `evaluations` para a CU (ADR-007 garante no máximo 1).
  *
- * Uma CU sem atividades e sem avaliação é "não avaliável" e conta 0% mas
- * também NÃO é incluída na média do curso (ver `coursePercent`).
+ * Uma CU sem atividades e sem avaliação retorna 0% e **conta na média
+ * do curso** (puxa pra baixo). Decisão consolidada com o PO em 2026-04-25
+ * sobre o reporte de divergência entre dashboard e banner do curso —
+ * banner já incluía todas as CUs no average; dashboard agora alinha.
+ * Substitui a regra anterior de doc/10 que excluía "não avaliáveis"
+ * da média (regra original gerava % otimista vs realidade percebida).
  */
 final class StudentProgress
 {
@@ -67,39 +71,32 @@ final class StudentProgress
     }
 
     /**
-     * % do curso pro aluno. Média das % das CUs "avaliáveis" (as que têm
-     * atividades ou avaliação). CUs sem atividades e sem avaliação são
-     * ignoradas (doc/10).
+     * % do curso pro aluno. Média simples das % de **todas** as CUs do
+     * curso. CUs sem atividades e sem avaliação retornam 0% via
+     * `cuPercent` e contam na média (puxam pra baixo). Decisão consolidada
+     * com o PO em 2026-04-26 alinhando o dashboard ao banner do curso —
+     * ver comentário do header da classe.
      */
     public static function coursePercent(int $courseId, int $studentId): int
     {
-        $pdo = Database::pdo();
-
-        $stmt = $pdo->prepare(
-            'SELECT cu.id AS cu_id,
-                    (SELECT COUNT(*) FROM activities a
-                      WHERE a.competence_unit_id = cu.id) AS activities_total,
-                    (SELECT COUNT(*) FROM evaluations ev
-                      WHERE ev.competence_unit_id = cu.id) AS has_evaluation
+        $stmt = Database::pdo()->prepare(
+            'SELECT cu.id AS cu_id
                FROM competence_units cu
                JOIN core_competencies cc ON cc.id = cu.core_competency_id
               WHERE cc.course_id = ?'
         );
         $stmt->execute([$courseId]);
 
-        $sum       = 0;
-        $evaluable = 0;
+        $sum   = 0;
+        $count = 0;
         foreach ($stmt->fetchAll() as $row) {
-            if ((int) $row['activities_total'] === 0 && (int) $row['has_evaluation'] === 0) {
-                continue;
-            }
             $sum += self::cuPercent((int) $row['cu_id'], $studentId);
-            $evaluable++;
+            $count++;
         }
-        if ($evaluable === 0) {
+        if ($count === 0) {
             return 0;
         }
-        return (int) round($sum / $evaluable);
+        return (int) round($sum / $count);
     }
 
     /**
