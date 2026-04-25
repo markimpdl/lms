@@ -727,6 +727,16 @@ return [
     'students.form.err.email_taken_by_staff'=> 'Esse email já pertence a um professor ou administrador. Use outro.',
     'students.form.err.password_min'        => 'Senha precisa ter ao menos 8 caracteres.',
     'students.form.err.language'            => 'Idioma inválido.',
+    'students.form.err.gender_required'     => 'Selecione um sexo.',
+    'students.form.err.id_document_format'  => 'Documento deve conter apenas números (até 30 dígitos).',
+
+    // Sexo + doc identificação (E16-01)
+    'students.form.gender'         => 'Sexo',
+    'students.form.gender.choose'  => 'Selecione…',
+    'students.form.gender.male'    => 'Masculino',
+    'students.form.gender.female'  => 'Feminino',
+    'students.form.id_document'    => 'Doc. identificação',
+    'students.form.id_document.help' => 'Apenas números, sem máscara (opcional).',
 
     'students.created'               => 'Aluno :name cadastrado com sucesso.',
     'students.edit.title'            => 'Editar aluno',

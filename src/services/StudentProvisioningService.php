@@ -21,7 +21,7 @@ final class StudentProvisioningService
     public const PASS_MIN = 8;
 
     /**
-     * @param array<string,string> $input Chaves: name, email, password, language.
+     * @param array<string,string> $input Chaves: name, email, password, language, gender, id_document.
      *
      * @return array{
      *   errors:  array<string,string>,
@@ -30,10 +30,12 @@ final class StudentProvisioningService
      */
     public static function create(int $tenantId, array $input): array
     {
-        $name  = trim((string) ($input['name']     ?? ''));
-        $email = strtolower(trim((string) ($input['email'] ?? '')));
-        $pass  = (string)      ($input['password'] ?? '');
-        $lang  = (string)      ($input['language'] ?? '');
+        $name   = trim((string) ($input['name']        ?? ''));
+        $email  = strtolower(trim((string) ($input['email'] ?? '')));
+        $pass   = (string)      ($input['password']    ?? '');
+        $lang   = (string)      ($input['language']    ?? '');
+        $gender = (string)      ($input['gender']      ?? '');
+        $idDoc  = trim((string) ($input['id_document'] ?? ''));
 
         $errors = [];
         if (mb_strlen($name) < self::NAME_MIN || mb_strlen($name) > self::NAME_MAX) {
@@ -47,6 +49,12 @@ final class StudentProvisioningService
         }
         if ($lang !== 'pt' && $lang !== 'en') {
             $errors['language'] = 'students.form.err.language';
+        }
+        if ($gender !== 'male' && $gender !== 'female') {
+            $errors['gender'] = 'students.form.err.gender_required';
+        }
+        if ($idDoc !== '' && preg_match('/^[0-9]{1,30}$/', $idDoc) !== 1) {
+            $errors['id_document'] = 'students.form.err.id_document_format';
         }
         if ($errors !== []) {
             return ['errors' => $errors, 'student' => null];
@@ -86,6 +94,8 @@ final class StudentProvisioningService
                 'email'         => $email,
                 'password_hash' => $hash,
                 'language'      => $lang,
+                'gender'        => $gender,
+                'id_document'   => $idDoc !== '' ? $idDoc : null,
             ]);
         } catch (PDOException $e) {
             // Rede de segurança: race entre o SELECT de email e o INSERT.

@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS users (
     password_changed_at   DATETIME NULL,
     last_login_at         DATETIME NULL,
     name                  VARCHAR(150) NOT NULL,
+    gender                ENUM('male','female') NOT NULL DEFAULT 'male',
+    id_document           VARCHAR(30)  NULL DEFAULT NULL,
     role                  ENUM('super_admin','teacher','student') NOT NULL,
     language              ENUM('pt','en') NOT NULL DEFAULT 'pt',
     active                TINYINT(1) NOT NULL DEFAULT 1,
@@ -736,6 +738,39 @@ SET @col_exists := (
 );
 SET @sql := IF(@col_exists = 0,
     'ALTER TABLE enrollments ADD COLUMN last_access_at DATETIME NULL DEFAULT NULL AFTER enrolled_at',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E16-01] users.gender — sexo do aluno (obrigatorio no form do professor;
+-- usado para escolher avatar default no F11/E17). DEFAULT 'male' cobre o
+-- backfill silencioso de alunos legados, alinhado com a decisao do PO em
+-- 2026-04-25 (so havia 1 aluno legado em prod, conforme `doc/15` F3).
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'users'
+       AND COLUMN_NAME  = 'gender'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE users ADD COLUMN gender ENUM('male','female') NOT NULL DEFAULT 'male' AFTER name",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E16-01] users.id_document — doc de identificacao do aluno (so digitos,
+-- max 30 chars). Opcional; professor preenche depois manualmente quando
+-- legado. Sem mascara visual — input free-form numerico, validacao server-side.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'users'
+       AND COLUMN_NAME  = 'id_document'
+);
+SET @sql := IF(@col_exists = 0,
+    'ALTER TABLE users ADD COLUMN id_document VARCHAR(30) NULL DEFAULT NULL AFTER gender',
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;

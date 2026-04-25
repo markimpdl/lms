@@ -73,6 +73,7 @@ final class Student
         $sql = <<<SQL
             SELECT
                 u.id, u.name, u.email, u.language, u.active,
+                u.gender, u.id_document,
                 u.created_at, u.last_login_at,
                 COUNT(DISTINCT e.course_id) AS enrollments_count,
                 COUNT(DISTINCT gm.group_id) AS groups_count
@@ -81,6 +82,7 @@ final class Student
             LEFT JOIN group_members gm ON gm.student_user_id = u.id
             WHERE {$whereSql}
             GROUP BY u.id, u.name, u.email, u.language, u.active,
+                     u.gender, u.id_document,
                      u.created_at, u.last_login_at
             ORDER BY {$sortCol} {$dir}, u.id DESC
             LIMIT :limit OFFSET :offset
@@ -113,6 +115,7 @@ final class Student
         $sql = <<<SQL
             SELECT
                 u.id, u.tenant_id, u.name, u.email, u.language, u.active,
+                u.gender, u.id_document,
                 u.created_at, u.last_login_at,
                 COUNT(DISTINCT e.course_id) AS enrollments_count,
                 COUNT(DISTINCT gm.group_id) AS groups_count
@@ -121,6 +124,7 @@ final class Student
             LEFT JOIN group_members gm ON gm.student_user_id = u.id
             WHERE u.id = ? AND u.tenant_id = ? AND u.role = 'student'
             GROUP BY u.id, u.tenant_id, u.name, u.email, u.language, u.active,
+                     u.gender, u.id_document,
                      u.created_at, u.last_login_at
             LIMIT 1
             SQL;
@@ -158,36 +162,52 @@ final class Student
      * Insere aluno já com hash pronto. Retorna o id. Caller (service) garante
      * validações de input e colisão de email com teacher/super_admin (ADR-026).
      *
-     * @param array{name:string, email:string, password_hash:string, language:string} $data
+     * `gender` é obrigatório (E16-01); `id_document` opcional (NULL quando vazio).
+     *
+     * @param array{
+     *   name:string, email:string, password_hash:string, language:string,
+     *   gender:string, id_document:?string
+     * } $data
      */
     public static function create(int $tenantId, array $data): int
     {
         $stmt = Database::pdo()->prepare(
-            'INSERT INTO users (tenant_id, email, password_hash, name, role, language, active)
-                  VALUES (?, ?, ?, ?, "student", ?, 1)'
+            'INSERT INTO users
+                (tenant_id, email, password_hash, name, gender, id_document, role, language, active)
+             VALUES (?, ?, ?, ?, ?, ?, "student", ?, 1)'
         );
         $stmt->execute([
             $tenantId,
             $data['email'],
             $data['password_hash'],
             $data['name'],
+            $data['gender'],
+            $data['id_document'] ?? null,
             $data['language'],
         ]);
         return (int) Database::pdo()->lastInsertId();
     }
 
     /**
-     * Atualiza nome/idioma. Email é imutável (ADR-021) — não aceitar no input.
+     * Atualiza nome/idioma/sexo/doc. Email é imutável (ADR-021) — não aceitar
+     * no input. `gender` obrigatório; `id_document` aceita string vazia (vira NULL).
      *
-     * @param array{name:string, language:string} $data
+     * @param array{name:string, language:string, gender:string, id_document:?string} $data
      */
     public static function update(int $id, int $tenantId, array $data): bool
     {
         $stmt = Database::pdo()->prepare(
-            'UPDATE users SET name = ?, language = ?
+            'UPDATE users SET name = ?, language = ?, gender = ?, id_document = ?
               WHERE id = ? AND tenant_id = ? AND role = "student"'
         );
-        $stmt->execute([$data['name'], $data['language'], $id, $tenantId]);
+        $stmt->execute([
+            $data['name'],
+            $data['language'],
+            $data['gender'],
+            $data['id_document'] ?? null,
+            $id,
+            $tenantId,
+        ]);
         return $stmt->rowCount() > 0;
     }
 
