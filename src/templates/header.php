@@ -20,6 +20,21 @@ if ($user !== null && ($user['role'] ?? null) !== 'super_admin') {
             <span class="lms-navbar__wordmark">LMS</span>
         </a>
 
+        <?php
+        $userRole    = $user !== null ? ($user['role'] ?? null) : null;
+        $rankingHref = $userRole === 'student' ? '/student/ranking'
+                     : ($userRole === 'teacher' ? '/teacher/ranking' : null);
+        ?>
+        <?php if ($rankingHref !== null): ?>
+            <?php $currentPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH); ?>
+            <nav class="lms-navbar__nav" aria-label="<?= e(__t('nav.primary_aria')) ?>">
+                <a class="lms-navbar__link <?= $currentPath === $rankingHref ? 'is-active' : '' ?>"
+                   href="<?= e($rankingHref) ?>">
+                    <?= e(__t('nav.ranking')) ?>
+                </a>
+            </nav>
+        <?php endif; ?>
+
         <div class="lms-navbar__right">
             <?php if ($user !== null): ?>
                 <form method="post" action="/settings/language" class="lms-navbar__lang-form m-0">
@@ -64,18 +79,16 @@ if ($user !== null && ($user['role'] ?? null) !== 'super_admin') {
                     </ul>
                 </div>
             <?php else: ?>
-                <form method="get" action="" class="lms-navbar__lang-form m-0">
-                    <input type="hidden" name="lang" value="<?= e($otherLang) ?>">
-                    <button type="submit" class="lms-navbar__lang">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                        </svg>
-                        <span class="lms-navbar__lang-label">
-                            <?= e(__t('common.language')) ?>: <strong><?= e(strtoupper($lang)) ?></strong>
-                        </span>
-                    </button>
-                </form>
+                <a href="<?= e(lang_url($otherLang)) ?>" class="lms-navbar__lang"
+                   aria-label="<?= e(__t('nav.language.switch_to', ['target' => strtoupper($otherLang)])) ?>">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                    <span class="lms-navbar__lang-label">
+                        <?= e(__t('common.language')) ?>: <strong><?= e(strtoupper($lang)) ?></strong>
+                    </span>
+                </a>
                 <a class="btn btn-primary btn-sm ms-2" href="/login"><?= e(__t('nav.login')) ?></a>
             <?php endif; ?>
         </div>

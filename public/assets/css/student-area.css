@@ -241,6 +241,31 @@ body.lms-student-area .lms-student-main {
     color: var(--lms-neutral-900);
 }
 
+/* Posicao no ranking (E9-07). Mesma estrutura visual do header (eyebrow
+   esquerda, valor direita). Valor e link clicavel pra /student/ranking. */
+.lms-xp-position {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: -4px;
+}
+
+.lms-xp-position__link {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800;
+    font-size: 16px;
+    color: var(--lms-primary-1);
+    text-decoration: none;
+    transition: color 160ms ease;
+}
+.lms-xp-position__link:hover { color: var(--lms-primary-2); }
+
+.lms-xp-position__link--empty {
+    color: var(--lms-neutral-300);
+    cursor: default;
+}
+
 .lms-xp-star {
     color: var(--lms-warning);
     flex-shrink: 0;
@@ -1386,4 +1411,168 @@ body.lms-student-area .lms-student-main {
 @media (max-width: 575.98px) {
     .lms-run-panel__frame { height: 320px; }
     .lms-run-panel__pane { padding: 12px 14px; font-size: 12px; }
+}
+
+/* ============================================================
+   Ranking — /student/ranking (E9-03)
+   ============================================================ */
+
+body.lms-student-area .lms-ranking-header { margin-bottom: 16px; }
+
+/* Link "Ver ranking do curso" abaixo do hero da Course page (E9-06). */
+body.lms-student-area .lms-course-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0 4px;
+}
+body.lms-student-area .lms-course-actions__link {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 14px;
+    border-radius: var(--lms-radius-chip);
+    background: var(--lms-card-bg);
+    border: 1px solid var(--lms-neutral-200);
+    color: var(--lms-neutral-700);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: background 160ms ease, border-color 160ms ease;
+}
+body.lms-student-area .lms-course-actions__link:hover {
+    background: var(--lms-neutral-50);
+    border-color: var(--lms-neutral-300);
+}
+
+/* Link "← Voltar ao curso" no subtitle do header de ranking por curso. */
+body.lms-student-area .lms-ranking-back {
+    color: var(--lms-primary-1);
+    text-decoration: none;
+    font-weight: 600;
+}
+body.lms-student-area .lms-ranking-back:hover { text-decoration: underline; }
+
+/* Form de filtros (E9-04). Sits between header and table. */
+body.lms-student-area .lms-ranking-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 14px 16px;
+    background: var(--lms-card-bg);
+    border: 1px solid var(--lms-neutral-200);
+    border-radius: var(--lms-radius-inner);
+}
+
+body.lms-student-area .lms-ranking-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 180px;
+}
+
+body.lms-student-area .lms-ranking-filter__label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--lms-neutral-500);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+body.lms-student-area .lms-ranking-filter__submit { align-self: flex-end; }
+
+
+body.lms-student-area .lms-ranking-card {
+    background: var(--lms-card-bg);
+    border-radius: var(--lms-radius-card);
+    box-shadow: var(--lms-shadow-card);
+    overflow: hidden;
+}
+
+body.lms-student-area .lms-ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+body.lms-student-area .lms-ranking-table thead th {
+    background: var(--lms-neutral-50);
+    color: var(--lms-neutral-500);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--lms-neutral-200);
+}
+
+body.lms-student-area .lms-ranking-table tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--lms-neutral-100);
+    vertical-align: middle;
+}
+
+body.lms-student-area .lms-ranking-table tbody tr:last-child td { border-bottom: none; }
+
+body.lms-student-area .lms-ranking-table tbody tr.is-current {
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.08), rgba(236, 72, 153, 0.04));
+    box-shadow: inset 4px 0 0 var(--lms-primary-1);
+}
+
+body.lms-student-area .lms-ranking-table__pos { width: 80px; }
+body.lms-student-area .lms-ranking-table__xp  { width: 120px; text-align: right; }
+
+body.lms-student-area .lms-ranking-pos {
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    color: var(--lms-neutral-900);
+}
+
+body.lms-student-area .lms-ranking-name {
+    color: var(--lms-neutral-900);
+    font-weight: 600;
+}
+
+body.lms-student-area .lms-ranking-you {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    background: var(--lms-primary-1);
+    color: #fff;
+    border-radius: var(--lms-radius-chip);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+}
+
+body.lms-student-area .lms-ranking-groups { color: var(--lms-neutral-500); font-size: 13px; }
+body.lms-student-area .lms-ranking-muted { color: var(--lms-neutral-300); }
+
+body.lms-student-area .lms-ranking-xp {
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    font-weight: 800;
+    color: var(--lms-neutral-900);
+}
+body.lms-student-area .lms-ranking-xp-unit {
+    margin-left: 4px;
+    color: var(--lms-neutral-500);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+@media (max-width: 575.98px) {
+    body.lms-student-area .lms-ranking-table thead th,
+    body.lms-student-area .lms-ranking-table tbody td { padding: 12px 12px; }
+    body.lms-student-area .lms-ranking-table__pos { width: 60px; }
+    body.lms-student-area .lms-ranking-table__xp  { width: 90px; }
+    body.lms-student-area .lms-ranking-pos { font-size: 16px; }
+    body.lms-student-area .lms-ranking-you { margin-left: 4px; padding: 2px 6px; font-size: 10px; }
+    body.lms-student-area .lms-ranking-filters { padding: 12px; }
+    body.lms-student-area .lms-ranking-filter { min-width: 0; width: 100%; }
+    body.lms-student-area .lms-ranking-filter__submit { width: 100%; }
 }

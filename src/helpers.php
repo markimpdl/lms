@@ -91,6 +91,26 @@ function student_next_rank(int $studentId, int $tenantId): ?array
 }
 
 /**
+ * Posição linear do aluno no ranking geral do tenant (E9-07). Delega pra
+ * `RankingService::myPosition` (window 'all', sem filtros). Engole Throwable
+ * graciosamente — sidebar mostra "—" se a query falhar (mesmo padrão do
+ * `Enrollment::touchLastAccess` em E14: tracking silencioso jamais derruba a UI).
+ *
+ * Sem cache no MVP (decisão consolidada do PO no #10).
+ */
+function student_ranking_position(int $studentId, int $tenantId): ?int
+{
+    if ($studentId <= 0 || $tenantId <= 0) {
+        return null;
+    }
+    try {
+        return RankingService::myPosition($studentId, $tenantId, 'all', []);
+    } catch (\Throwable) {
+        return null;
+    }
+}
+
+/**
  * Nome do curso acessado mais recentemente pelo aluno (via
  * `enrollments.last_access_at`, E14-00). Usado como subtítulo no
  * ProfileSidebar. null quando o aluno nunca abriu curso ou não tem
@@ -219,6 +239,23 @@ function current_lang(): string
 
     $resolved = in_array($candidate, $supported, true) ? $candidate : 'pt';
     return $resolved;
+}
+
+/**
+ * URL do path atual com `?lang=X` mergeado no query string existente.
+ * Usada pelo switcher de idioma ANÔNIMO (header.php) pra não matar
+ * params como `?token=XYZ` em `/reset`. Para usuário logado, o POST
+ * pra /settings/language já preserva via HTTP_REFERER.
+ */
+function lang_url(string $lang): string
+{
+    $path = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
+    if ($path === '') {
+        $path = '/';
+    }
+    $params = array_merge($_GET, ['lang' => $lang]);
+    $qs = http_build_query($params);
+    return $qs === '' ? $path : ($path . '?' . $qs);
 }
 
 /**

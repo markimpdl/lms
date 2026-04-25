@@ -1000,4 +1000,49 @@ return [
     'sidebar.next_rank_xp' => ':xp XP',
     'sidebar.max_rank'     => 'Nível máximo atingido',
     'sidebar.no_rank'      => 'Sem patente cadastrada no seu tenant',
+    'sidebar.position'     => 'POSIÇÃO',
+    'sidebar.no_position'  => 'Sem ranking ainda',
+
+    // Navbar — link primário (E9-03)
+    'nav.primary_aria' => 'Navegação principal',
+    'nav.ranking'      => 'Ranking',
+
+    // Ranking (E9-03)
+    'ranking.title'                => 'Ranking',
+    'ranking.eyebrow'              => 'GAMIFICAÇÃO',
+    'ranking.subtitle'             => 'Veja sua posição no ranking de XP do seu tenant.',
+    'ranking.window.aria'          => 'Janela do ranking',
+    'ranking.window.all'           => 'Geral',
+    'ranking.window.7d'            => 'Últimos 7 dias',
+    'ranking.window.30d'           => 'Últimos 30 dias',
+    'ranking.col.position'         => 'Posição',
+    'ranking.col.name'             => 'Aluno',
+    'ranking.col.groups'           => 'Grupos',
+    'ranking.col.xp'               => 'XP',
+    'ranking.you'                  => 'Você',
+    'ranking.empty'                => 'Sem ranking ainda.',
+    'ranking.empty_hint'           => 'Quando os alunos começarem a entregar atividades e avaliações, o ranking aparece aqui.',
+    'ranking.pagination.aria'      => 'Paginação do ranking',
+    'ranking.pagination.prev'      => 'Anterior',
+    'ranking.pagination.next'      => 'Próxima',
+    'ranking.pagination.page_x_of_y' => 'Página :x de :y',
+
+    // Ranking — filtros (E9-04)
+    'ranking.filter.aria'        => 'Filtros do ranking',
+    'ranking.filter.group'       => 'Grupo',
+    'ranking.filter.year'        => 'Ano',
+    'ranking.filter.all_groups'  => 'Todos os grupos',
+    'ranking.filter.all_years'   => 'Todos os anos',
+    'ranking.filter.apply'       => 'Filtrar',
+
+    // Ranking — visão do professor (E9-05)
+    'ranking.subtitle.teacher' => 'Acompanhe o engajamento dos alunos por janela, grupo e ano.',
+    'ranking.col.last_event'   => 'Última entrega',
+
+    // Ranking — escopo por curso (E9-06)
+    'ranking.title.course'        => 'Ranking · :name',
+    'ranking.scope.course'        => 'RANKING DO CURSO',
+    'ranking.scope.tenant'        => 'RANKING DO TENANT',
+    'ranking.link.course_ranking' => 'Ranking do curso',
+    'ranking.back_to_course'      => '← Voltar ao curso',
 ];

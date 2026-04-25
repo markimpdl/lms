@@ -999,4 +999,49 @@ return [
     'sidebar.next_rank_xp' => ':xp XP',
     'sidebar.max_rank'     => 'Max level reached',
     'sidebar.no_rank'      => 'No rank configured for your tenant',
+    'sidebar.position'     => 'POSITION',
+    'sidebar.no_position'  => 'No ranking yet',
+
+    // Navbar — primary link (E9-03)
+    'nav.primary_aria' => 'Primary navigation',
+    'nav.ranking'      => 'Ranking',
+
+    // Ranking (E9-03)
+    'ranking.title'                => 'Ranking',
+    'ranking.eyebrow'              => 'GAMIFICATION',
+    'ranking.subtitle'             => 'See your XP position across your tenant.',
+    'ranking.window.aria'          => 'Ranking window',
+    'ranking.window.all'           => 'Overall',
+    'ranking.window.7d'            => 'Last 7 days',
+    'ranking.window.30d'           => 'Last 30 days',
+    'ranking.col.position'         => 'Rank',
+    'ranking.col.name'             => 'Student',
+    'ranking.col.groups'           => 'Groups',
+    'ranking.col.xp'               => 'XP',
+    'ranking.you'                  => 'You',
+    'ranking.empty'                => 'No ranking yet.',
+    'ranking.empty_hint'           => 'Once students start submitting activities and evaluations, the ranking will show up here.',
+    'ranking.pagination.aria'      => 'Ranking pagination',
+    'ranking.pagination.prev'      => 'Previous',
+    'ranking.pagination.next'      => 'Next',
+    'ranking.pagination.page_x_of_y' => 'Page :x of :y',
+
+    // Ranking — filters (E9-04)
+    'ranking.filter.aria'        => 'Ranking filters',
+    'ranking.filter.group'       => 'Group',
+    'ranking.filter.year'        => 'Year',
+    'ranking.filter.all_groups'  => 'All groups',
+    'ranking.filter.all_years'   => 'All years',
+    'ranking.filter.apply'       => 'Apply',
+
+    // Ranking — teacher view (E9-05)
+    'ranking.subtitle.teacher' => 'Monitor student engagement by window, group and year.',
+    'ranking.col.last_event'   => 'Last submission',
+
+    // Ranking — course scope (E9-06)
+    'ranking.title.course'        => 'Ranking · :name',
+    'ranking.scope.course'        => 'COURSE RANKING',
+    'ranking.scope.tenant'        => 'TENANT RANKING',
+    'ranking.link.course_ranking' => 'Course ranking',
+    'ranking.back_to_course'      => '← Back to course',
 ];
