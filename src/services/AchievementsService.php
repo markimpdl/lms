@@ -101,6 +101,12 @@ final class AchievementsService
                 return self::pontualIds(['notification_read']);
 
             case 'rank_first_promotion':
+                // Hook (E18-04) chama após qualquer XP award — só desbloqueia
+                // se aluno realmente já saiu da patente inicial. Defensivo
+                // contra hooks que disparem sem verificar antes.
+                if (!self::hasBeenPromoted($studentId, $tenantId)) {
+                    return [];
+                }
                 return self::pontualIds(['rank_first_promotion']);
 
             case 'course_started':

@@ -94,6 +94,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
 
         if ($result['status'] === 'ok') {
+            // Conquistas (E18-04). Best-effort.
+            try {
+                AchievementsService::evaluateForEvent(
+                    $studentId, $tenantId, 'evaluation_graded',
+                    ['grade' => $gradeVal]
+                );
+                AchievementsService::evaluateForEvent($studentId, $tenantId, 'rank_first_promotion');
+                student_progression_check($studentId, $tenantId, (int) $evaluation['cu_id']);
+            } catch (\Throwable) {
+                // swallow
+            }
+
             // Fanouts E10-04 — 1 destinatário (aluno autor da submissão). Idioma
             // do email via `courses.language` usando courseId da avaliação.
             $courseId = (int) $evaluation['course_id'];

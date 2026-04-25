@@ -39,7 +39,15 @@ if (!$availability['available']) {
     exit;
 }
 
-Enrollment::touchLastAccess($studentId, $courseId);
+$wasFirstAccess = Enrollment::touchLastAccess($studentId, $courseId);
+if ($wasFirstAccess) {
+    // Conquistas (E18-04): primeiro acesso ao curso desbloqueia "course_started".
+    try {
+        AchievementsService::evaluateForEvent($studentId, $tenantId, 'course_started');
+    } catch (\Throwable) {
+        // swallow
+    }
+}
 
 $archived    = (int) $course['course_archived'] === 1;
 $courseName  = (string) $course['course_name'];

@@ -43,7 +43,17 @@ if ($notification === null) {
     return;
 }
 
-Notification::markRead($id, $uid);
+if (Notification::markRead($id, $uid)) {
+    // Conquistas (E18-04): primeira notificação lida desbloqueia.
+    $tenantId = $user['tenant_id'] !== null ? (int) $user['tenant_id'] : 0;
+    if ($tenantId > 0) {
+        try {
+            AchievementsService::evaluateForEvent($uid, $tenantId, 'notification_read');
+        } catch (\Throwable) {
+            // swallow
+        }
+    }
+}
 
 // Aceita só path interno (começa com `/` mas NÃO `//`, que seria
 // protocol-relative e redirecionaria pra domínio externo).

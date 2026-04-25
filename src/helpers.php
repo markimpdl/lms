@@ -91,6 +91,29 @@ function student_next_rank(int $studentId, int $tenantId): ?array
 }
 
 /**
+ * Cascata de checks de conquistas após mudança de progressão (E18-04).
+ * Chamado depois de `XpEvents::awardActivity` ou `EvaluationSubmissionService::grade`
+ * — pontos onde a conclusão de UC pode mudar. Engole Throwable: falha de
+ * unlock jamais derruba o fluxo principal (mesmo padrão E14).
+ *
+ * Idempotente: cada `evaluateForEvent` filtra já-desbloqueados antes do
+ * INSERT IGNORE. Chamar em situação que não muda nada = no-op.
+ *
+ * Recebe `$cuId` por completude semântica do contexto, mas o service
+ * recomputa contagens globais — não usa o cuId diretamente.
+ */
+function student_progression_check(int $studentId, int $tenantId, int $cuId): void
+{
+    try {
+        AchievementsService::evaluateForEvent($studentId, $tenantId, 'uc_completed');
+        AchievementsService::evaluateForEvent($studentId, $tenantId, 'cc_completed');
+        AchievementsService::evaluateForEvent($studentId, $tenantId, 'course_completed');
+    } catch (\Throwable) {
+        // best-effort
+    }
+}
+
+/**
  * URL do avatar default do aluno (E17-04). Combina `tenants.avatar_style`
  * (config do professor) com `users.gender` (cadastrado em E16-01) pra
  * produzir o path do SVG em `public/assets/avatars/`.
