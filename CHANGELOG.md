@@ -4,6 +4,28 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.12.0] — 2026-04-25
+
+Décima segunda release. Escopo: **Epic E15 inteiro — UX e fundamentos pós-MVP** (2 stories pequenas) + materialização do roadmap pós-MVP em `doc/15`. Primeira release abrindo a fase pós-MVP, com 7 épicos novos (E15-E21) já priorizados pelo PO.
+
+### Novas funcionalidades
+
+#### Epic E15 — UX e fundamentos
+- **Login redireciona direto pro dashboard** (E15-01, #199): `/` faz `header('Location: ...')` + `exit` quando há sessão válida, baseado no papel via `AuthController::dashboardFor` (já existente). Remove o clique extra "Welcome → Go to dashboard" que existia. Anônimo continua vendo a home com botão de login. Removido o branch `else` de markup que ficou inalcançável.
+- **Card de Ranking separado no ProfileSidebar** (E15-02, #200): refatora o sidebar movendo `#posição` de dentro do `lms-xp-block` (ficou poluído em E9-07 / #193) pra card próprio `.lms-ranking-block` abaixo, com eyebrow "POSIÇÃO" + valor `#N` (ou "—" pra aluno zero XP) + CTA outline-primary full-width "Ver ranking" → `/student/ranking`. Mesmo design language do XP block (`#FAFAFA` bg, radius 14px).
+
+### Mudanças internas / Tooling
+
+- **`doc/15-roadmap-pos-mvp.md`** (#195): doc agregador com 12 funcionalidades pós-MVP (F1-F12) aprovadas pelo PO em 2026-04-25 — login redirect, card ranking, cadastro com sexo+doc, acesso ao curso (período/bloqueio/avatar default), conquistas, status no curso, sequencial vs livre, quiz, notif config, histórico de conexões, avatares no painel, listagem teacher/students. ~810 linhas, 7 épicos sugeridos (E15-E21).
+- **`package.json`** bumpado para 0.12.0.
+
+### Pendências (herdadas, ainda abertas)
+- **`JUDGE0_KEY` em prod**: endpoint responde 503 amigável até o PO configurar.
+- **C# sem syntax highlight no CodeMirror 6** — plain text funciona; nice-to-have futuro.
+- **Cross-tenant smoke** ainda parcial — só 1 tenant em prod.
+
+[0.12.0]: https://github.com/markimpdl/lms/releases/tag/v0.12.0
+
 ## [0.11.0] — 2026-04-25
 
 Décima primeira release. Escopo: **Epic E9 inteiro — Rankings de gamificação**. O XP que vinha sendo acumulado em `xp_events` desde o E6/E7 agora ganha uma cara: aluno vê sua posição absoluta no header lateral, abre uma tela cheia de ranking com 3 janelas (Geral / 7d / 30d), filtra por grupo e ano civil, e tem rota dedicada por curso. Professor ganha visão equivalente com coluna extra de "última entrega" pra identificar engajamento e risco. Zero schema change — tudo derivado do `xp_events` + `groups` + `users` existentes.

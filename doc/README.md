@@ -23,6 +23,7 @@ Esta pasta é o ponto de entrada para entender o projeto. Cada arquivo é curto 
 | 12 | [Modelo de dados](12-modelo-de-dados.md) | Rascunho de tabelas |
 | 13 | [Integrações](13-integracoes.md) | Judge0, SMTP, embeds |
 | 14 | [Decisões e pendências](14-decisoes-e-pendencias.md) | ADRs curtos, dúvidas abertas |
+| 15 | [Roadmap pós-MVP](15-roadmap-pos-mvp.md) | F1-F12 — próximas funcionalidades aprovadas pelo PO |
 | 99 | [Pendências técnicas](99-pendencias-tecnicas.md) | Checklist de validações/config para o deploy |
 
 ## Como usar
