@@ -99,6 +99,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
         if ($action === 'created') {
             XpEvents::awardActivity($studentId, $activityId);
+
+            // Conquistas (E18-04). Best-effort — falha aqui não derruba a entrega.
+            try {
+                AchievementsService::evaluateForEvent($studentId, $tenantId, 'activity_submitted');
+                AchievementsService::evaluateForEvent($studentId, $tenantId, 'rank_first_promotion');
+                student_progression_check($studentId, $tenantId, (int) $activity['cu_id']);
+            } catch (\Throwable) {
+                // swallow
+            }
         }
         flash('success', __t($action === 'created' ? 'submissions.submitted' : 'submissions.updated'));
         header('Location: /student/activity/' . $activityId, true, 303);

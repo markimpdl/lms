@@ -378,18 +378,31 @@ final class Enrollment
      * Silencioso em erro (aluno sem matrícula, course_id inválido): retorna
      * void porque não vale travar a página só porque o tracking falhou.
      */
-    public static function touchLastAccess(int $studentId, int $courseId): void
+    public static function touchLastAccess(int $studentId, int $courseId): bool
     {
         try {
-            Database::pdo()
-                ->prepare(
-                    'UPDATE enrollments
-                        SET last_access_at = NOW()
-                      WHERE student_user_id = ? AND course_id = ?'
-                )
-                ->execute([$studentId, $courseId]);
+            $pdo = Database::pdo();
+
+            // Detecta se é a primeira vez que o aluno abre o curso (E18-04
+            // "course_started" achievement). Lê estado atual antes do UPDATE.
+            $stmt = $pdo->prepare(
+                'SELECT last_access_at FROM enrollments
+                  WHERE student_user_id = ? AND course_id = ? LIMIT 1'
+            );
+            $stmt->execute([$studentId, $courseId]);
+            $current = $stmt->fetchColumn();
+            $isFirstTime = $current === null || $current === false;
+
+            $pdo->prepare(
+                'UPDATE enrollments
+                    SET last_access_at = NOW()
+                  WHERE student_user_id = ? AND course_id = ?'
+            )->execute([$studentId, $courseId]);
+
+            return $isFirstTime;
         } catch (\Throwable) {
-            // Loga? Por ora só swallow — o tracking é melhoria, não essencial.
+            // Tracking é melhoria — falha não derruba a UI nem os hooks.
+            return false;
         }
     }
 
