@@ -91,6 +91,79 @@ function student_next_rank(int $studentId, int $tenantId): ?array
 }
 
 /**
+ * Pure logic — disponibilidade de acesso do aluno ao curso (E17-03), dados
+ * os 3 campos da matrícula. Usada pela CourseCard (sem 2ª query) e por
+ * `enrollment_access_status` (que faz query primeiro).
+ *
+ * Retorna array com `available:bool`, e quando false: `reason` em
+ * `'blocked' | 'before' | 'after'` + `message` já traduzida.
+ *
+ * @return array{available:bool, reason?:string, message?:string}
+ */
+function enrollment_availability(?string $accessStartsAt, ?string $accessEndsAt, ?string $blockedAt): array
+{
+    if ($blockedAt !== null && $blockedAt !== '') {
+        return [
+            'available' => false,
+            'reason'    => 'blocked',
+            'message'   => __t('enrollment.unavailable.blocked'),
+        ];
+    }
+    $now = time();
+    if ($accessStartsAt !== null && $accessStartsAt !== '') {
+        $startTs = strtotime($accessStartsAt);
+        if ($startTs !== false && $now < $startTs) {
+            return [
+                'available' => false,
+                'reason'    => 'before',
+                'message'   => __t('enrollment.unavailable.before', ['date' => format_short_date($accessStartsAt)]),
+            ];
+        }
+    }
+    if ($accessEndsAt !== null && $accessEndsAt !== '') {
+        $endTs = strtotime($accessEndsAt);
+        if ($endTs !== false && $now > $endTs) {
+            return [
+                'available' => false,
+                'reason'    => 'after',
+                'message'   => __t('enrollment.unavailable.after', ['date' => format_short_date($accessEndsAt)]),
+            ];
+        }
+    }
+    return ['available' => true];
+}
+
+/**
+ * Disponibilidade de acesso do aluno ao curso (E17-03). Faz query na
+ * `enrollments` e delega pra `enrollment_availability`. Retorna
+ * `['available' => false, 'reason' => 'no_enrollment']` se aluno não
+ * tem matrícula no curso (caller decide se redireciona ou 404).
+ *
+ * Usada nos gates de `/student/course/{id}` e sub-rotas (cu, activity,
+ * evaluation). Pra listagem `/student` (My Courses), prefira
+ * `enrollment_availability` direto sobre dados já fetched.
+ */
+function enrollment_access_status(int $studentId, int $courseId): array
+{
+    $stmt = Database::pdo()->prepare(
+        'SELECT access_starts_at, access_ends_at, blocked_at
+           FROM enrollments
+          WHERE student_user_id = ? AND course_id = ?
+          LIMIT 1'
+    );
+    $stmt->execute([$studentId, $courseId]);
+    $row = $stmt->fetch();
+    if ($row === false) {
+        return ['available' => false, 'reason' => 'no_enrollment'];
+    }
+    return enrollment_availability(
+        $row['access_starts_at'],
+        $row['access_ends_at'],
+        $row['blocked_at']
+    );
+}
+
+/**
  * Renderiza label legível do período de acesso de uma matrícula (E17-01).
  *   (null, null) → "imediato → ilimitado"
  *   ("...", null) → "DD/MM/YYYY → ilimitado"

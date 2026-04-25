@@ -33,6 +33,14 @@ if ($ctx === null) {
 }
 
 $evaluation = $ctx['evaluation'];
+
+// Gate de disponibilidade do curso (E17-03).
+$availability = enrollment_access_status($studentId, (int) $evaluation['course_id']);
+if (!$availability['available']) {
+    flash('warning', $availability['message'] ?? __t('enrollment.unavailable.generic'));
+    header('Location: /student', true, 303);
+    exit;
+}
 $current    = $ctx['current'];
 $tenantId   = (int) $evaluation['tenant_id'];
 $isOpen     = (int) $evaluation['submission_open'] === 1;
