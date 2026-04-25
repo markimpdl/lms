@@ -34,10 +34,11 @@ return [
     'auth.invalid'       => 'Invalid e-mail or password.',
     'auth.forbidden'     => 'Access denied.',
     // Tenant picker on login (E22-01) — final in E22-03
-    'auth.login.tenant_picker.title'         => 'Which space do you want to enter?',
-    'auth.login.tenant_picker.help'          => 'We found your account in more than one tenant. Choose which one to access now.',
+    'auth.login.tenant_picker.title'         => 'Which account do you want to enter?',
+    'auth.login.tenant_picker.help'          => 'We found your account in more than one space. Choose which one to access now.',
+    'auth.login.tenant_picker.aria'          => 'Pick the account to sign in',
     'auth.login.tenant_picker.teacher_label' => 'Teacher',
-    'auth.login.tenant_picker.cancel'        => 'Cancel and sign in with another account',
+    'auth.login.tenant_picker.cancel'        => 'Cancel',
     'auth.login.tenant_picker.expired'       => 'Session expired. Please sign in again.',
 
     // Navbar

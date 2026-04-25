@@ -153,23 +153,24 @@ ob_start();
                         <?= e(__t('auth.login.tenant_picker.help')) ?>
                     </p>
 
-                    <form method="POST" action="/login" novalidate>
+                    <form method="POST" action="/login" novalidate
+                          aria-label="<?= e(__t('auth.login.tenant_picker.aria')) ?>">
                         <?= csrf_field() ?>
-                        <div class="d-grid gap-2 mb-3">
+                        <div class="d-grid gap-2 mb-3 lms-tenant-picker">
                             <?php foreach ($pickerCards as $card): ?>
                                 <button type="submit"
                                         name="selected_user_id"
                                         value="<?= (int) $card['user_id'] ?>"
-                                        class="btn btn-outline-primary text-start py-3">
-                                    <strong class="d-block"><?= e($card['tenant_name']) ?></strong>
-                                    <small class="text-muted">
+                                        class="btn btn-outline-primary text-start py-3 lms-tenant-picker__card">
+                                    <strong class="d-block lms-tenant-picker__name"><?= e($card['tenant_name']) ?></strong>
+                                    <small class="lms-tenant-picker__teacher">
                                         <?= e(__t('auth.login.tenant_picker.teacher_label')) ?>:
                                         <?= e($card['teacher_name']) ?>
                                     </small>
                                 </button>
                             <?php endforeach; ?>
                         </div>
-                        <a href="/login?cancel=picker" class="btn btn-link w-100">
+                        <a href="/login?cancel=picker" class="btn btn-link btn-sm w-100 text-muted">
                             <?= e(__t('auth.login.tenant_picker.cancel')) ?>
                         </a>
                     </form>
