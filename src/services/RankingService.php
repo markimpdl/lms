@@ -35,6 +35,9 @@ final class RankingService
      *   }>,
      *   total:int
      * }
+     *
+     * IMPORTANTE: Caller deve escapar `name` e `group_names` com `e()` antes de
+     * renderizá-las em HTML (responsabilidade do controller/view, não do service).
      */
     public static function compute(
         int $tenantId,
@@ -47,7 +50,7 @@ final class RankingService
             throw new InvalidArgumentException('tenantId must be positive');
         }
         if (!in_array($window, self::WINDOWS, true)) {
-            throw new InvalidArgumentException("invalid window: {$window}");
+            throw new InvalidArgumentException('invalid window: must be one of ' . implode(', ', self::WINDOWS));
         }
 
         $page    = max(1, $page);
@@ -141,7 +144,7 @@ final class RankingService
             return null;
         }
         if (!in_array($window, self::WINDOWS, true)) {
-            throw new InvalidArgumentException("invalid window: {$window}");
+            throw new InvalidArgumentException('invalid window: must be one of ' . implode(', ', self::WINDOWS));
         }
 
         $f = self::normaliseFilters($filters);
