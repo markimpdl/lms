@@ -241,29 +241,61 @@ body.lms-student-area .lms-student-main {
     color: var(--lms-neutral-900);
 }
 
-/* Posicao no ranking (E9-07). Mesma estrutura visual do header (eyebrow
-   esquerda, valor direita). Valor e link clicavel pra /student/ranking. */
-.lms-xp-position {
+/* Card separado de Ranking (E15-02). Fica abaixo do XP block dentro do
+   .lms-sidebar-card. Eyebrow + valor #N na linha de cima, CTA outline-primary
+   full-width abaixo. */
+.lms-ranking-block {
+    background: #FAFAFA;
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.lms-ranking-block__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    margin-top: -4px;
 }
 
-.lms-xp-position__link {
+.lms-ranking-block__eyebrow {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--lms-neutral-500);
+}
+
+.lms-ranking-block__value {
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-weight: 800;
-    font-size: 16px;
+    font-size: 20px;
+    color: var(--lms-primary-1);
+    line-height: 1;
+}
+
+.lms-ranking-block__value--empty { color: var(--lms-neutral-300); }
+
+.lms-ranking-block__cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 14px;
+    border: 1px solid var(--lms-primary-1);
+    border-radius: var(--lms-radius-chip);
+    background: transparent;
     color: var(--lms-primary-1);
     text-decoration: none;
-    transition: color 160ms ease;
+    font-size: 13px;
+    font-weight: 700;
+    transition: background 160ms ease, color 160ms ease;
 }
-.lms-xp-position__link:hover { color: var(--lms-primary-2); }
-
-.lms-xp-position__link--empty {
-    color: var(--lms-neutral-300);
-    cursor: default;
+.lms-ranking-block__cta:hover {
+    background: var(--lms-primary-1);
+    color: #fff;
 }
 
 .lms-xp-star {

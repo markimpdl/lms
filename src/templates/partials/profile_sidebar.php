@@ -99,18 +99,6 @@ if ($nextRank !== null) {
                 <span class="lms-xp-total"><?= number_format($totalXp, 0, ',', '.') ?></span>
             </div>
 
-            <div class="lms-xp-position">
-                <span class="lms-xp-eyebrow"><?= e(__t('sidebar.position')) ?></span>
-                <?php if ($position !== null): ?>
-                    <a href="/student/ranking" class="lms-xp-position__link">
-                        #<?= (int) $position ?>
-                    </a>
-                <?php else: ?>
-                    <span class="lms-xp-position__link lms-xp-position__link--empty"
-                          title="<?= e(__t('sidebar.no_position')) ?>">—</span>
-                <?php endif; ?>
-            </div>
-
             <?php if ($rank !== null): ?>
                 <div class="lms-xp-bar" aria-hidden="true">
                     <div class="lms-xp-bar__fill"></div>
@@ -131,6 +119,21 @@ if ($nextRank !== null) {
                     </div>
                 <?php endif; ?>
             <?php endif; ?>
+        </div>
+
+        <div class="lms-ranking-block">
+            <div class="lms-ranking-block__header">
+                <span class="lms-ranking-block__eyebrow"><?= e(__t('sidebar.position')) ?></span>
+                <?php if ($position !== null): ?>
+                    <span class="lms-ranking-block__value">#<?= (int) $position ?></span>
+                <?php else: ?>
+                    <span class="lms-ranking-block__value lms-ranking-block__value--empty"
+                          title="<?= e(__t('sidebar.no_position')) ?>">—</span>
+                <?php endif; ?>
+            </div>
+            <a href="/student/ranking" class="lms-ranking-block__cta">
+                <?= e(__t('sidebar.see_ranking')) ?>
+            </a>
         </div>
     </div>
 </aside>
