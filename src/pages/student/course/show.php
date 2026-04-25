@@ -20,6 +20,7 @@ if ($user === null || ($user['role'] ?? '') !== 'student') {
 }
 
 $studentId = (int) $user['id'];
+$tenantId  = (int) ($user['tenant_id'] ?? 0);
 $courseId  = (int) ($_REQUEST['id'] ?? 0);
 
 $course = StudentCurriculum::forStudentCourse($studentId, $courseId);
