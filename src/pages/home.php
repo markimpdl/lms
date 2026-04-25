@@ -9,6 +9,14 @@ if (isset($_GET['demo_flash'])) {
 }
 
 $user = current_user();
+
+// Usuário logado vai direto pro dashboard — sem tela intermediária
+// (decisão do PO em 2026-04-25, F1 do roadmap pós-MVP).
+if ($user !== null) {
+    header('Location: ' . AuthController::dashboardFor((string) $user['role']));
+    exit;
+}
+
 $page_title = __t('app.title');
 
 ob_start();
@@ -17,17 +25,10 @@ ob_start();
     <h1 class="display-6"><?= e(__t('app.title')) ?></h1>
     <p class="lead text-muted"><?= e(__t('app.bootstrap_ok', ['tz' => date_default_timezone_get()])) ?></p>
 
-    <?php if ($user === null): ?>
-        <div class="d-flex justify-content-center gap-2 flex-wrap">
-            <a class="btn btn-primary" href="/login"><?= e(__t('auth.login')) ?></a>
-            <a class="btn btn-outline-secondary" href="?demo_flash=1"><?= e(__t('app.demo_flash_btn')) ?></a>
-        </div>
-    <?php else: ?>
-        <p class="mt-3"><?= e(__t('common.welcome')) ?>, <strong><?= e($user['name']) ?></strong>.</p>
-        <a class="btn btn-primary" href="<?= e(AuthController::dashboardFor($user['role'])) ?>">
-            <?= e(__t('nav.dashboard')) ?>
-        </a>
-    <?php endif; ?>
+    <div class="d-flex justify-content-center gap-2 flex-wrap">
+        <a class="btn btn-primary" href="/login"><?= e(__t('auth.login')) ?></a>
+        <a class="btn btn-outline-secondary" href="?demo_flash=1"><?= e(__t('app.demo_flash_btn')) ?></a>
+    </div>
 </div>
 <?php
 $page_content = ob_get_clean();
