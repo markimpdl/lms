@@ -1001,6 +1001,7 @@ return [
     'sidebar.no_rank'      => 'No rank configured for your tenant',
     'sidebar.position'     => 'POSITION',
     'sidebar.no_position'  => 'No ranking yet',
+    'sidebar.see_ranking'  => 'See ranking',
 
     // Navbar — primary link (E9-03)
     'nav.primary_aria' => 'Primary navigation',
