@@ -4,6 +4,52 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.15.0] — 2026-04-25
+
+Décima quinta release. Escopo: **Epic E18 inteiro — Conquistas (medalhas)** (7 stories). Adiciona um sistema de conquistas paralelo ao XP — 57 medalhas em 8 famílias, desbloqueio event-driven via hooks nos 9 pontos de origem, recompute defensivo on-demand, tela `/student/achievements` com grid responsivo + card no ProfileSidebar do aluno.
+
+### Novas funcionalidades
+
+#### Epic E18 — Conquistas
+
+- **Schema + seed das 57 conquistas iniciais** (E18-01, #227): 2 tabelas novas — `achievements` (catálogo: code UK, family, threshold NULL, icon_key, name_pt, name_en, sort_order) e `student_achievements` (desbloqueios por aluno × tenant, PK composta, FK CASCADE). Seed de 57 conquistas via `INSERT IGNORE` em 8 famílias: 11 `uc_completed`, 6 `cc_completed`, 6 `course_completed`, 15 `activity_submitted`, 10 `evaluation_submitted`, 3 `*_max_grade`, 3 `eval_grade_X_percent`, 3 pontuais (`notification_read`, `rank_first_promotion`, `course_started`). `icon_key` consistente por família mapeando Bootstrap Icons. **Não dão XP** (ADR-002); são medalhas paralelas. `code` é UK natural — NUNCA renomear (quebraria desbloqueios existentes).
+- **AchievementsService engine event-driven** (E18-02, #228): `evaluateForEvent($studentId, $tenantId, $eventCode, $context = []): list<int>` — retorna ids efetivamente desbloqueados (filtra já-desbloqueados via `INSERT IGNORE` bulk + composite PK). 12 eventos suportados mapeando 8 famílias + 3 pontuais. Decisão técnica: separação de `evaluation_submitted` (envio) e `evaluation_graded` (com `context.grade`) — cada hook responsável por exatamente 1 dimensão. Helpers privados: `familyIdsUpToThreshold`, `evalPercentIds`, `pontualIds`, `insertNewUnlocks`, `countActivitySubmissions`, `countEvaluationSubmissions`, `countCompleted{UCs,CCs,Courses}`.
+- **evaluateAll defensivo + availableForTenant** (E18-03, #229): `evaluateAll($studentId, $tenantId)` recompute total cobrindo as 9 origens (5 count-based, eval_grade via `bestEvaluationGrade`, 3 pontuais inferidos do estado atual). Roda no carregamento da tela como rede de segurança contra hooks que falharam silenciosamente. `availableForTenant($tenantId)` filtra catálogo pelo alcançável dado o estado do tenant — não mostra "Concluiu 5 cursos" em tenant com 1 curso. Helpers de detecção: `tenantStats` (6 counts em 1 chamada), `bestEvaluationGrade`, `hasUCWithMaxGrade` (EXISTS+JOIN+COUNT), `hasCCWithMaxGrade`/`hasCourseWithMaxGrade` (recursivos), `hasReadAnyNotification`, `hasOpenedAnyCourse`, `hasBeenPromoted` (compara total_xp com xp_min do 2º rank).
+- **Hooks dos 9 eventos** (E18-04, #230): instrumentação dos 9 pontos de origem disparando `evaluateForEvent` best-effort (try/catch \Throwable). Origens: `activity_submitted` em `student/activity/show.php`, `evaluation_submitted` em `student/evaluation/show.php`, `evaluation_graded` em `teacher/evaluation/submission.php` (com `context.grade`), `notification_read` em `notifications/mark-read.php` + `mark-all-read.php`, `course_started` em `student/course/show.php` (após `Enrollment::touchLastAccess` retornar primeiro acesso), `rank_first_promotion` disparado nos hooks de XP, e helper `student_progression_check` em `helpers.php` que dispara cascade `uc_completed → cc_completed → course_completed`. `Enrollment::touchLastAccess` mudou de `void` pra `bool` retornando "primeiro acesso?". Decisão: hooks NÃO computam `context.max_grade` — fica diferido pro `evaluateAll` na próxima visita à `/student/achievements`.
+- **Página `/student/achievements` + grid responsivo** (E18-05, #231): rota nova com `role=student`. `evaluateAll` roda na entrada como rede de segurança. `availableForTenant` filtra catálogo. `unlockedForStudent($studentId, $tenantId)` (método novo no service) retorna mapa `[id => unlocked_at]`. Página renderiza header com totalizador + grid 4/3/2/1 cols por breakpoint. Cards com ícone Bootstrap Icons + badge de nível sobreposto (1, 5, 100 ou ✓ pra pontuais) + nome + data de desbloqueio. Estado: `is-unlocked` com gradiente por família (10 paletas distintas) ou `is-locked` em cinza (`opacity: 0.45 + grayscale(0.85)`). Ordenação: desbloqueadas (mais recente primeiro) → bloqueadas (sort_order). Bootstrap Icons CDN (1.11.3) carregado condicional ao `body.lms-student-area`. Link "Conquistas" no navbar do aluno (entre logo e Ranking).
+- **Card "Conquistas" no ProfileSidebar** (E18-06, #232): bloco novo `.lms-achievements-block` entre `.lms-xp-block` e `.lms-ranking-block`. Helper `student_recent_achievements($studentId, $tenantId, $limit = 3)` em `helpers.php` (defensivo, engole Throwable). 3 miniaturas das últimas desbloqueadas (gradient indigo→pink) + CTA "Ver todas →" pra `/student/achievements`. Vagas restantes quando aluno tem < 3 → placeholder neutro (`bi-circle` cinza dashed-border). Quando 0 → texto "Comece a estudar pra desbloquear".
+- **Polish final** (E18-07, #233): subtitle motivacional separado do contador na tela. Contador agora é um chip destacado (gradient indigo→pink) no canto direito do header com números grandes + label "desbloqueadas". Empty state ganhou hint do POV do aluno. Cards com `line-clamp: 3` + `min-height: 54px` — evita overflow visual em nomes longos como "Concluiu 100 unidades de competência"; cards mantêm altura uniforme. Mobile <576px com padding/ícone (38px)/badge (22x22)/chip menores.
+
+### Mudanças internas / Tooling
+
+- **`package.json`** bumpado para 0.15.0.
+
+### Convenções consolidadas nesta janela
+
+- **Hooks event-driven + evaluateAll defensivo** — padrão "best-effort no caminho rápido + recompute total na entrada da tela" cobre falhas silenciosas sem onerar o caminho crítico. Aplica-se a outros sistemas onde idempotência é barata.
+- **Família + threshold como modelo de catálogo escalável** — adicionar conquista nova = 1 linha SQL. Volume `INSERT IGNORE` absorve UK em re-run; `code` como chave natural permite versionamento sem quebrar histórico.
+- **`unlockedForStudent` separado de `evaluateAll`** — separar leitura (com datas) de escrita (com ids) deixa cada método com contrato claro. Reuso barato.
+- **Bootstrap Icons CDN condicional ao student-area** — não polui páginas do professor/admin que usam SVGs inline. Stylesheet só carrega quando `body.lms-student-area` está ativo.
+- **`is-unlocked` com gradiente por família vs uma paleta única** — 10 paletas dão sinal visual rápido por família sem precisar ler o nome. Mantém consistência com o design system do student-area.
+
+### Pendências de schema
+
+**Aplicar antes de smoke em prod (já feito conforme confirmação do PO):**
+
+```sql
+-- E18-01: achievements + student_achievements + seed das 57
+-- (já em install/schema.sql — rodar o arquivo inteiro absorve via
+-- CREATE TABLE IF NOT EXISTS + INSERT IGNORE)
+```
+
+### Pendências (herdadas, ainda abertas)
+
+- **`JUDGE0_KEY` em prod**: endpoint responde 503 amigável até o PO configurar.
+- **C# sem syntax highlight no CodeMirror 6** — plain text funciona; nice-to-have futuro.
+- **Cross-tenant smoke** ainda parcial — só 1 tenant em prod.
+
+[0.15.0]: https://github.com/markimpdl/lms/releases/tag/v0.15.0
+
 ## [0.14.0] — 2026-04-25
 
 Décima quarta release. Escopo: **Epic E17 inteiro — Acesso ao curso e identidade visual** (5 stories) + 1 chore de UX. Adiciona controle fino do acesso do aluno ao curso (período, bloqueio, remoção) com gate visível pra ele, e identidade visual via 4 SVGs de avatar configuráveis por tenant.
