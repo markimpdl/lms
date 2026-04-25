@@ -34,6 +34,15 @@ if ($cu === null) {
 
 $courseId  = (int) $cu['course_id'];
 
+// E19-03: config de progressão do curso (activity_mode + eval_after_activities).
+$courseConfStmt = Database::pdo()->prepare(
+    'SELECT activity_mode, eval_after_activities FROM courses WHERE id = ? LIMIT 1'
+);
+$courseConfStmt->execute([$courseId]);
+$courseConf          = $courseConfStmt->fetch();
+$activityMode        = (string) ($courseConf['activity_mode'] ?? 'sequential');
+$evalAfterActivities = (int)    ($courseConf['eval_after_activities'] ?? 1);
+
 // Gate de disponibilidade do curso (E17-03).
 $availability = enrollment_access_status($studentId, $courseId);
 if (!$availability['available']) {
@@ -103,19 +112,52 @@ foreach ($activitiesRaw as $a) {
     }
 
     $activitiesCards[] = [
-        'url'           => '/student/activity/' . (int) $a['id'],
-        'type_label'    => __t('activities.type.' . (string) $a['type']),
-        'title'         => (string) $a['title'],
-        'description'   => null,
-        'xp_value'      => $xpVal,
-        'state'         => $state,
-        'progress'      => $progress,
-        'grade'         => null,
-        'cta_label'     => $ctaKey !== null ? __t($ctaKey) : null,
-        'cta_variant'   => $ctaVariant,
-        'is_assessment' => false,
-        'accent'        => null,
+        'url'             => '/student/activity/' . (int) $a['id'],
+        'type_label'      => __t('activities.type.' . (string) $a['type']),
+        'title'           => (string) $a['title'],
+        'description'     => null,
+        'xp_value'        => $xpVal,
+        'state'           => $state,
+        'progress'        => $progress,
+        'grade'           => null,
+        'cta_label'       => $ctaKey !== null ? __t($ctaKey) : null,
+        'cta_variant'     => $ctaVariant,
+        'is_assessment'   => false,
+        'accent'          => null,
+        'has_submission'  => $hasSub,
     ];
+}
+
+// E19-03: progressão sequencial nas atividades.
+//   "Concluída" pra fins de progressão = TEM submissão (mesmo sem feedback).
+//   Não bloqueia o aluno enquanto o professor demora pra corrigir.
+$currentActivityName = null;
+if ($activityMode === 'sequential') {
+    $foundCurrentActivity   = false;
+    $markNextActivityAsNext = false;
+    foreach ($activitiesCards as $i => $card) {
+        if ($markNextActivityAsNext) {
+            $activitiesCards[$i]['progression_status'] = 'next';
+            $markNextActivityAsNext = false;
+            continue;
+        }
+        if ($foundCurrentActivity) {
+            $activitiesCards[$i]['progression_status'] = 'hidden';
+            continue;
+        }
+        if (!empty($card['has_submission'])) {
+            $activitiesCards[$i]['progression_status'] = 'completed';
+        } else {
+            $activitiesCards[$i]['progression_status'] = 'current';
+            $currentActivityName = (string) $card['title'];
+            $foundCurrentActivity   = true;
+            $markNextActivityAsNext = true;
+        }
+    }
+} else {
+    foreach ($activitiesCards as $i => $card) {
+        $activitiesCards[$i]['progression_status'] = 'free';
+    }
 }
 
 // Avaliação + estado.
@@ -170,6 +212,22 @@ if ($evaluation !== null) {
         'is_assessment' => true,
         'accent'        => 'linear-gradient(135deg, #F59E0B, #EF4444)',
     ];
+
+    // E19-03: gate visual da avaliação quando eval_after_activities=1 e
+    // tem qualquer atividade SEM submissão. Aluno tentando clicar leva 403
+    // (gate server-side em /student/evaluation/{id}); aqui é UX preventiva.
+    if ($evalAfterActivities === 1) {
+        $hasPending = false;
+        foreach ($activitiesCards as $card) {
+            if (empty($card['has_submission'])) {
+                $hasPending = true;
+                break;
+            }
+        }
+        if ($hasPending) {
+            $assessmentCard['progression_status'] = 'eval_locked';
+        }
+    }
 }
 
 // Anexos.
@@ -260,7 +318,15 @@ ob_start();
     ?>
     <div class="lms-activity-list">
         <?php foreach ($activitiesCards as $card): ?>
-            <?php require LMS_ROOT . '/src/templates/partials/activity_card.php'; ?>
+            <?php
+                // E19-03: filtra hidden + propaga locked-by name pro partial.
+                $progressionStatus    = $card['progression_status'] ?? 'free';
+                if ($progressionStatus === 'hidden') {
+                    continue;
+                }
+                $activityLockedByName = $currentActivityName;
+                require LMS_ROOT . '/src/templates/partials/activity_card.php';
+            ?>
         <?php endforeach; ?>
     </div>
 </section>
@@ -276,7 +342,9 @@ ob_start();
         require LMS_ROOT . '/src/templates/partials/section_header.php';
     ?>
     <?php
-        $card = $assessmentCard;
+        $card                 = $assessmentCard;
+        $progressionStatus    = $card['progression_status'] ?? 'free';
+        $activityLockedByName = null; // overlay da avaliação usa msg própria
         require LMS_ROOT . '/src/templates/partials/activity_card.php';
     ?>
 </section>

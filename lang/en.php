@@ -294,8 +294,9 @@ return [
     'courses.form.mode.free'         => 'Free (any order)',
     'courses.form.eval_after_activities.label' => 'Evaluation unlocks only after all activities are submitted',
     'courses.form.eval_after_activities.help'  => 'When enabled, the student must submit all unit activities before taking the evaluation.',
-    // Sequential progression (E19-02) — final in E19-04
+    // Sequential progression (E19-02 + E19-03) — final in E19-04
     'progression.next_locked'                  => 'Complete ":name" first',
+    'progression.eval_locked'                  => 'Complete all activities before taking the evaluation',
     'courses.created'              => 'Course ":name" created.',
     'courses.updated'              => 'Course ":name" updated.',
     'courses.archived'             => 'Course ":name" archived.',
