@@ -152,16 +152,13 @@ main { flex: 1 0 auto; }
     line-height: 1;
     box-shadow: 0 4px 10px -4px rgba(99, 102, 241, 0.5);
 }
-.lms-navbar__logo--branded {
-    /* Slot 34x34 do .lms-navbar__logo preservado; logo entra como background
-       contained pra não estourar e respeitar aspect ratio. */
-    background-color: #fff;
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: contain;
-    box-shadow: none;
-    color: transparent;
-    border: 1px solid #E5E7EB;
+.lms-navbar__logo-img {
+    /* Altura controlada; largura proporcional ao aspect ratio nativo da
+       imagem. !important blinda contra eventual regra global de img. */
+    display: block;
+    height: 48px !important;
+    width: auto !important;
+    max-width: none !important;
 }
 .lms-navbar__wordmark {
     font-weight: 800;
