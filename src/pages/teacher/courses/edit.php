@@ -36,6 +36,7 @@ $old = [
     'activity_mode'         => (string) ($course['activity_mode'] ?? 'sequential'),
     'eval_after_activities' => (int)    ($course['eval_after_activities'] ?? 1),
     'grading_mode'          => (string) ($course['grading_mode'] ?? 'grade'),
+    'report_mode'           => (string) ($course['report_mode']  ?? 'disabled'),
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isArchived) {
@@ -56,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isArchived) {
         'activity_mode'         => (string) ($_POST['activity_mode'] ?? 'sequential'),
         'eval_after_activities' => !empty($_POST['eval_after_activities']) ? 1 : 0,
         'grading_mode'          => (string) ($_POST['grading_mode']  ?? ($isActvet ? 'learning_outcomes' : 'grade')),
+        'report_mode'           => (string) ($_POST['report_mode']   ?? 'disabled'),
     ];
 
     $errors = TeacherCoursesController::update($courseId, $old);

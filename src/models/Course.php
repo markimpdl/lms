@@ -106,7 +106,8 @@ final class Course
             SELECT
                 c.id, c.tenant_id, c.name, c.description, c.year, c.language,
                 c.archived, c.archived_at, c.created_at, c.updated_at,
-                c.cc_mode, c.activity_mode, c.eval_after_activities, c.grading_mode,
+                c.cc_mode, c.activity_mode, c.eval_after_activities,
+                c.grading_mode, c.report_mode,
                 COUNT(DISTINCT cc.id) AS cc_count,
                 COUNT(DISTINCT cu.id) AS cu_count
             FROM courses c
@@ -115,7 +116,8 @@ final class Course
             WHERE c.id = :id AND c.tenant_id = :tid
             GROUP BY c.id, c.tenant_id, c.name, c.description, c.year, c.language,
                      c.archived, c.archived_at, c.created_at, c.updated_at,
-                     c.cc_mode, c.activity_mode, c.eval_after_activities, c.grading_mode
+                     c.cc_mode, c.activity_mode, c.eval_after_activities,
+                     c.grading_mode, c.report_mode
             LIMIT 1
             SQL;
         $stmt = Database::pdo()->prepare($sql);
@@ -151,14 +153,14 @@ final class Course
     }
 
     /**
-     * @param array{name:string, description:?string, year:int, language:string, cc_mode:string, activity_mode:string, eval_after_activities:int, grading_mode:string} $data
+     * @param array{name:string, description:?string, year:int, language:string, cc_mode:string, activity_mode:string, eval_after_activities:int, grading_mode:string, report_mode:string} $data
      */
     public static function create(int $tenantId, array $data): int
     {
         $stmt = Database::pdo()->prepare(
             'INSERT INTO courses
-                (tenant_id, name, description, year, language, cc_mode, activity_mode, eval_after_activities, grading_mode)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                (tenant_id, name, description, year, language, cc_mode, activity_mode, eval_after_activities, grading_mode, report_mode)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $tenantId,
@@ -170,12 +172,13 @@ final class Course
             $data['activity_mode'],
             $data['eval_after_activities'],
             $data['grading_mode'],
+            $data['report_mode'],
         ]);
         return (int) Database::pdo()->lastInsertId();
     }
 
     /**
-     * @param array{name:string, description:?string, year:int, language:string, cc_mode:string, activity_mode:string, eval_after_activities:int, grading_mode:string} $data
+     * @param array{name:string, description:?string, year:int, language:string, cc_mode:string, activity_mode:string, eval_after_activities:int, grading_mode:string, report_mode:string} $data
      */
     public static function update(int $courseId, int $tenantId, array $data): bool
     {
@@ -183,7 +186,7 @@ final class Course
             'UPDATE courses SET
                 name = ?, description = ?, year = ?, language = ?,
                 cc_mode = ?, activity_mode = ?, eval_after_activities = ?,
-                grading_mode = ?
+                grading_mode = ?, report_mode = ?
               WHERE id = ? AND tenant_id = ?'
         );
         $stmt->execute([
@@ -195,6 +198,7 @@ final class Course
             $data['activity_mode'],
             $data['eval_after_activities'],
             $data['grading_mode'],
+            $data['report_mode'],
             $courseId,
             $tenantId,
         ]);

@@ -317,6 +317,11 @@ return [
     'courses.form.grading_mode.help'                   => 'Como o professor dá nota nas avaliações deste curso. "Nota única" usa 0-10. "Learning Outcomes" exige 5 critérios por unidade, com nota por critério (média = nota final).',
     'courses.form.grading_mode.option.grade'           => 'Nota única (0-10)',
     'courses.form.grading_mode.option.learning_outcomes' => 'Learning Outcomes (5 critérios por unidade)',
+    // Report mode (E26-03) — Actvet+LO only
+    'courses.form.report_mode.label'             => 'Report PDF',
+    'courses.form.report_mode.help'              => 'Quando habilitado, gera um PDF formal de cada avaliação após o feedback do professor (todas as 5 notas de critério lançadas). Apenas o professor vê o PDF.',
+    'courses.form.report_mode.option.disabled'   => 'Desabilitado',
+    'courses.form.report_mode.option.skill_hub'  => 'Skills Hub (template padrão)',
 
     // Learning Outcomes — cadastro por CU (E25-02)
     'learning_outcomes.title'        => 'Learning Outcomes',

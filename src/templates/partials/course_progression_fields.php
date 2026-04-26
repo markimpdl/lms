@@ -1,17 +1,22 @@
 <?php
 /**
  * Partial: campos de modos de progressão do curso (E19-01) +
- * grading_mode (E25-01, condicional).
+ * grading_mode (E25-01) + report_mode (E26-03), ambos condicionais.
  *
  * Espera variáveis no escopo do caller:
  *   $old      array com keys 'cc_mode', 'activity_mode',
- *             'eval_after_activities', e 'grading_mode' (opcional)
+ *             'eval_after_activities', 'grading_mode' e 'report_mode'
+ *             (todos opcionais)
  *   $errors   array (pode estar vazio)
- *   $isActvet bool (opcional, default false) — controla visibilidade do
- *             select grading_mode
+ *   $isActvet bool (opcional, default false) — controla visibilidade dos
+ *             selects de grading_mode e report_mode
+ *
+ * Reatividade Alpine: o select de grading_mode é fonte de truth pra
+ * mostrar/esconder o report_mode (que só faz sentido em LO mode).
  */
 ?>
-<fieldset class="border rounded p-3 mb-3">
+<fieldset class="border rounded p-3 mb-3"
+          <?php if (!empty($isActvet)): ?>x-data="{ gradingMode: '<?= e((string) ($old['grading_mode'] ?? 'grade')) ?>' }"<?php endif; ?>>
     <legend class="form-label fw-semibold fs-6 px-2 mb-2 w-auto float-none">
         <?= e(__t('courses.form.progression.title')) ?>
     </legend>
@@ -72,7 +77,8 @@
             <label for="f-grading-mode" class="form-label">
                 <?= e(__t('courses.form.grading_mode.label')) ?>
             </label>
-            <select name="grading_mode" id="f-grading-mode" class="form-select">
+            <select name="grading_mode" id="f-grading-mode" class="form-select"
+                    x-model="gradingMode">
                 <option value="grade" <?= ($old['grading_mode'] ?? 'grade') === 'grade' ? 'selected' : '' ?>>
                     <?= e(__t('courses.form.grading_mode.option.grade')) ?>
                 </option>
@@ -81,6 +87,21 @@
                 </option>
             </select>
             <div class="form-text"><?= e(__t('courses.form.grading_mode.help')) ?></div>
+        </div>
+
+        <div class="mt-3" x-show="gradingMode === 'learning_outcomes'" x-cloak>
+            <label for="f-report-mode" class="form-label">
+                <?= e(__t('courses.form.report_mode.label')) ?>
+            </label>
+            <select name="report_mode" id="f-report-mode" class="form-select">
+                <option value="disabled" <?= ($old['report_mode'] ?? 'disabled') === 'disabled' ? 'selected' : '' ?>>
+                    <?= e(__t('courses.form.report_mode.option.disabled')) ?>
+                </option>
+                <option value="skill_hub" <?= ($old['report_mode'] ?? 'disabled') === 'skill_hub' ? 'selected' : '' ?>>
+                    <?= e(__t('courses.form.report_mode.option.skill_hub')) ?>
+                </option>
+            </select>
+            <div class="form-text"><?= e(__t('courses.form.report_mode.help')) ?></div>
         </div>
     <?php endif; ?>
 </fieldset>
