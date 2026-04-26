@@ -262,7 +262,6 @@ ob_start();
                         <a href="/teacher/evaluation/<?= $evaluationId ?>/submission/<?= $studentId ?>/report.pdf"
                            target="_blank" rel="noopener"
                            class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>
                             <?= e(__t('evaluations.grade.report_download')) ?>
                         </a>
                     <?php endif; ?>
