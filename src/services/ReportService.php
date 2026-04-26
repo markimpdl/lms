@@ -66,6 +66,7 @@ final class ReportService
         $templatePath = LMS_ROOT . self::REL_TEMPLATE_DIR . '/template.html';
         $template     = @file_get_contents($templatePath);
         if ($template === false) {
+            error_log('[ReportService] Template file not found at ' . $templatePath);
             return ['status' => 'render_failed', 'error_key' => 'reports.err.template_missing'];
         }
 
