@@ -147,9 +147,11 @@ function isExcluded(relPath) {
             return false;
         }
     }
-    const parts = relPath.split(/[\\/]/);
     for (const ex of EXCLUDE_PATHS) {
-        if (parts[0] === ex) return true;
+        // Suporta multi-segmento: "vendor/mpdf" matcheia "vendor/mpdf"
+        // e "vendor/mpdf/foo/bar". Single-segmento (".git") tambem cobre
+        // ".git/objects/..." pelo mesmo prefix-match.
+        if (posixPath === ex || posixPath.startsWith(ex + "/")) return true;
     }
     for (const re of EXCLUDE_PATTERNS) {
         if (re.test(posixPath)) return true;
