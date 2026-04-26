@@ -152,7 +152,7 @@ final class EvaluationSubmissionService
         string $feedback,
         bool $retryAllowed
     ): array {
-        return Database::tx(
+        $result = Database::tx(
             static function (PDO $pdo) use (
                 $submissionId, $tenantId, $loGrades, $feedback, $retryAllowed
             ): array {
@@ -177,6 +177,27 @@ final class EvaluationSubmissionService
                 ) + ['average' => $average];
             }
         );
+
+        // E26-04: trigger pós-último-LO. Best-effort — falha do dompdf NÃO
+        // afeta o feedback (que já foi commitado). ReportService valida
+        // sozinho se o curso é elegível (Actvet + LO + report_mode=skill_hub
+        // + 5 grades), retornando 'not_eligible'/'not_ready' silenciosamente.
+        if (($result['status'] ?? '') === 'ok') {
+            try {
+                $report = ReportService::generate($submissionId);
+                if (($report['status'] ?? '') === 'ok' && isset($report['path'])) {
+                    Database::pdo()->prepare(
+                        'UPDATE evaluation_submissions SET report_pdf_path = ? WHERE id = ?'
+                    )->execute([(string) $report['path'], $submissionId]);
+                    $result['report_path'] = (string) $report['path'];
+                }
+            } catch (\Throwable $e) {
+                error_log('[gradeByLo] ReportService trigger failed for submission '
+                    . $submissionId . ': ' . $e->getMessage());
+            }
+        }
+
+        return $result;
     }
 
     /**

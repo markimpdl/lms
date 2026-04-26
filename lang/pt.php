@@ -317,6 +317,11 @@ return [
     'courses.form.grading_mode.help'                   => 'Como o professor dá nota nas avaliações deste curso. "Nota única" usa 0-10. "Learning Outcomes" exige 5 critérios por unidade, com nota por critério (média = nota final).',
     'courses.form.grading_mode.option.grade'           => 'Nota única (0-10)',
     'courses.form.grading_mode.option.learning_outcomes' => 'Learning Outcomes (5 critérios por unidade)',
+    // Report mode (E26-03) — Actvet+LO only
+    'courses.form.report_mode.label'             => 'Report PDF',
+    'courses.form.report_mode.help'              => 'Quando habilitado, gera um PDF formal de cada avaliação após o feedback do professor (todas as 5 notas de critério lançadas). Apenas o professor vê o PDF.',
+    'courses.form.report_mode.option.disabled'   => 'Desabilitado',
+    'courses.form.report_mode.option.skill_hub'  => 'Skills Hub (template padrão)',
 
     // Learning Outcomes — cadastro por CU (E25-02)
     'learning_outcomes.title'        => 'Learning Outcomes',
@@ -629,6 +634,14 @@ return [
     'evaluations.grade.err.lo_uc_not_ready'   => 'Esta unidade ainda não tem 5 critérios cadastrados. Cadastre antes de corrigir.',
     'evaluations.grade.lo_uc_not_ready_title' => 'Faltam critérios cadastrados',
     'evaluations.grade.lo_uc_not_ready_help'  => 'O curso usa Learning Outcomes mas esta unidade ainda não tem 5 critérios. Cadastre antes de corrigir esta avaliação.',
+    // Report PDF download (E26-04)
+    'evaluations.grade.report_download'        => 'Baixar Report',
+    // Erros do ReportService (E26) — usados como error_key no retorno do
+    // service (best-effort; hoje vai pra log apenas, futuros callers podem
+    // exibir).
+    'reports.err.template_missing'             => 'Template do report não encontrado.',
+    'reports.err.outdir_missing'               => 'Diretório de reports indisponível.',
+    'reports.err.render'                       => 'Falha ao gerar o PDF do report.',
 
     // Listagem de submissões (E7-04)
     'evaluations.submissions.page_title'   => 'Entregas — :name',

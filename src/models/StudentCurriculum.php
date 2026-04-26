@@ -45,7 +45,7 @@ final class StudentCurriculum
         $sql = <<<SQL
             SELECT c.id  AS course_id, c.name AS course_name, c.archived AS course_archived,
                    c.language AS course_language,
-                   c.cc_mode, c.activity_mode, c.eval_after_activities, c.grading_mode,
+                   c.cc_mode, c.activity_mode, c.eval_after_activities, c.grading_mode, c.report_mode,
                    e.enrolled_at AS enrolled_at,
                    cc.id AS cc_id,     cc.name AS cc_name,     cc.position AS cc_position,
                    cu.id AS cu_id,     cu.name AS cu_name,     cu.position AS cu_position,
@@ -87,6 +87,7 @@ final class StudentCurriculum
                     'activity_mode'         => (string) ($row['activity_mode'] ?? 'sequential'),
                     'eval_after_activities' => (int)    ($row['eval_after_activities'] ?? 1),
                     'grading_mode'          => (string) ($row['grading_mode'] ?? 'grade'),
+                    'report_mode'           => (string) ($row['report_mode'] ?? 'disabled'),
                     'enrolled_at'           => (string) $row['enrolled_at'],
                     'ccs'                   => [],
                 ];

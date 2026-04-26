@@ -1,6 +1,9 @@
 # Pasta de exemplos copiados de outros projetos — NUNCA versionar
 examples/
 
+# Working dir do PO (templates originais antes de migrarem pra public/assets/) — NUNCA versionar
+template_reports/
+
 # Configs locais com segredos
 .env
 .env.*
@@ -9,6 +12,7 @@ examples/
 config/env.php
 .mcp.json
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
 
 # Uploads de produção (alunos enviam arquivos lá) — pasta criada pelo installer
 storage/uploads/
@@ -24,6 +28,11 @@ storage/logs/*
 storage/cache/*
 !storage/cache/.gitkeep
 !storage/cache/.htaccess
+
+# Reports PDF gerados (E26) — versionar só .gitkeep e .htaccess
+storage/reports/*
+!storage/reports/.gitkeep
+!storage/reports/.htaccess
 
 # Dependências
 /vendor/

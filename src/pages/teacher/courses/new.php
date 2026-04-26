@@ -20,6 +20,7 @@ $old = [
     'activity_mode'         => 'sequential',
     'eval_after_activities' => 1,
     'grading_mode'          => $isActvet ? 'learning_outcomes' : 'grade',
+    'report_mode'           => 'disabled',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -40,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'activity_mode'         => (string) ($_POST['activity_mode'] ?? 'sequential'),
         'eval_after_activities' => !empty($_POST['eval_after_activities']) ? 1 : 0,
         'grading_mode'          => (string) ($_POST['grading_mode'] ?? ($isActvet ? 'learning_outcomes' : 'grade')),
+        'report_mode'           => (string) ($_POST['report_mode']  ?? 'disabled'),
     ];
 
     $errors = TeacherCoursesController::create($old);

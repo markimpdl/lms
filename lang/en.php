@@ -317,6 +317,11 @@ return [
     'courses.form.grading_mode.help'                   => 'How the teacher grades this course. "Single grade" uses 0-10. "Learning Outcomes" requires 5 criteria per unit, with a grade per criterion (average = final grade).',
     'courses.form.grading_mode.option.grade'           => 'Single grade (0-10)',
     'courses.form.grading_mode.option.learning_outcomes' => 'Learning Outcomes (5 criteria per unit)',
+    // Report mode (E26-03) — Actvet+LO only
+    'courses.form.report_mode.label'             => 'Report PDF',
+    'courses.form.report_mode.help'              => 'When enabled, generates a formal PDF after the teacher gives full feedback (all 5 criterion grades). Only the teacher sees the PDF.',
+    'courses.form.report_mode.option.disabled'   => 'Disabled',
+    'courses.form.report_mode.option.skill_hub'  => 'Skills Hub (default template)',
 
     // Learning Outcomes — per-CU registration (E25-02)
     'learning_outcomes.title'        => 'Learning Outcomes',
@@ -629,6 +634,13 @@ return [
     'evaluations.grade.err.lo_uc_not_ready'   => 'This unit does not have 5 criteria registered yet. Register them before grading.',
     'evaluations.grade.lo_uc_not_ready_title' => 'Criteria not registered',
     'evaluations.grade.lo_uc_not_ready_help'  => 'The course uses Learning Outcomes but this unit has no 5 criteria registered. Register them before grading this evaluation.',
+    // Report PDF download (E26-04)
+    'evaluations.grade.report_download'        => 'Download Report',
+    // ReportService errors (E26) — used as error_key in the service return
+    // (best-effort; today goes to log only, future callers may display).
+    'reports.err.template_missing'             => 'Report template not found.',
+    'reports.err.outdir_missing'               => 'Reports directory unavailable.',
+    'reports.err.render'                       => 'Failed to generate the report PDF.',
 
     // Submissions list (E7-04)
     'evaluations.submissions.page_title'   => 'Submissions — :name',

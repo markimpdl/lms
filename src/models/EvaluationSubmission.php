@@ -128,8 +128,8 @@ final class EvaluationSubmission
         }
 
         $stmt = Database::pdo()->prepare(
-            'SELECT id, attempt, filename, stored_path, quiz_snapshot, grade, feedback,
-                    feedback_at, retry_allowed, is_current, created_at
+            'SELECT id, attempt, filename, stored_path, quiz_snapshot, report_pdf_path,
+                    grade, feedback, feedback_at, retry_allowed, is_current, created_at
                FROM evaluation_submissions
               WHERE evaluation_id = ? AND student_user_id = ?
               ORDER BY attempt DESC'

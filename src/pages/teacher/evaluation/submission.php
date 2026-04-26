@@ -257,15 +257,24 @@ ob_start();
                 <h2 class="h6 mb-0">
                     <?= e(__t('evaluations.grade.current_submission', ['n' => (string) $current['attempt']])) ?>
                 </h2>
-                <?php if ($current['feedback_at'] !== null): ?>
-                    <span class="badge text-bg-success">
-                        <?= e(__t('evaluations.grade.already_graded')) ?>
-                    </span>
-                <?php else: ?>
-                    <span class="badge text-bg-warning">
-                        <?= e(__t('evaluations.grade.awaiting')) ?>
-                    </span>
-                <?php endif; ?>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <?php if (!empty($current['report_pdf_path'])): ?>
+                        <a href="/teacher/evaluation/<?= $evaluationId ?>/submission/<?= $studentId ?>/report.pdf"
+                           target="_blank" rel="noopener"
+                           class="btn btn-sm btn-outline-primary">
+                            <?= e(__t('evaluations.grade.report_download')) ?>
+                        </a>
+                    <?php endif; ?>
+                    <?php if ($current['feedback_at'] !== null): ?>
+                        <span class="badge text-bg-success">
+                            <?= e(__t('evaluations.grade.already_graded')) ?>
+                        </span>
+                    <?php else: ?>
+                        <span class="badge text-bg-warning">
+                            <?= e(__t('evaluations.grade.awaiting')) ?>
+                        </span>
+                    <?php endif; ?>
+                </div>
             </div>
             <div class="card-body">
                 <dl class="row mb-0 small">
