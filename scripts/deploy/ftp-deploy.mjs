@@ -61,6 +61,11 @@ const EXCLUDE_PATHS = [
     "scripts",
     "CLAUDE.md",
     "README.md",
+    // mPDF empacota ~94MB de TTFs (E30-01) — auto-deploy via FTPS
+    // throttled levaria 30+ min e satura a conexão. Atualizacao do
+    // mPDF em prod é evento raro (composer require novo) e o PO sobe
+    // manualmente via FileZilla quando acontecer.
+    "vendor/mpdf",
 ];
 
 // ── Subpastas que VOLTAM a ser permitidas mesmo quando o pai está
