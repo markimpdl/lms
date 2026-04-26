@@ -229,11 +229,11 @@ A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** du
 ## Pendências externas (bloqueiam stories específicas)
 
 ### Judge0 RapidAPI
-- Plano **gratuito** (ADR-029). Precisa de `JUDGE0_HOST` e `JUDGE0_KEY` em `config/env.php`.
+- Plano **gratuito** (ADR-029). Credenciais em `config/env.php` (gitignored).
 - **Bloqueia:** E8 (compilador online).
 
 ### FTPS Hostinger cPanel
-- Credenciais necessárias: `FTP_HOST`, `FTP_USER`, `FTP_PASSWORD`, `FTP_REMOTE_ROOT=/public_html`, `FTP_SECURE=true`, `FTP_ALLOW_SELF_SIGNED=true`.
+- Credenciais e configurações em `config/env.php` (gitignored). Ver `.env.example` para referência.
 - **Bloqueia:** E13-03 (script de deploy incremental).
 
 ### cPanel — seleção de versão PHP
