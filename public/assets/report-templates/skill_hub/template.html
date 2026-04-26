@@ -2,34 +2,298 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Assessment Report - bisect</title>
+<title>Assessment Report</title>
 <style>
-    @page { size: A4; margin: 18mm; }
-    body { font-family: dejavusans, sans-serif; font-size: 10pt; color: #15365F; }
-    h1 { font-size: 22pt; text-align: center; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 8mm; }
-    th, td { border: 0.5pt solid #15365F; padding: 3mm; font-size: 9pt; }
-    th { background: #15365F; color: #fff; }
+    /* mPDF v8.3 tem bug com 'size: A4' keyword (vai pra 200+ paginas).
+       Usar dimensoes mm explicitas. */
+    @page {
+        size: 210mm 297mm;
+        margin: 18mm 18mm 18mm 18mm;
+    }
+    body {
+        font-family: dejavusans, sans-serif;
+        color: #15365F;
+        font-size: 9pt;
+        line-height: 1.4;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Cover wrapper — img inline (sem position:absolute) */
+    .cover-img {
+        display: block;
+        width: 174mm;
+        height: auto;
+        margin: 0 auto;
+    }
+    .cover-overlay {
+        text-align: center;
+        margin-top: 6mm;
+    }
+    .cover-overlay h1 {
+        font-family: dejavusansb, sans-serif;
+        font-size: 22pt;
+        font-weight: bold;
+        color: #15365F;
+        margin: 0 0 4mm 0;
+    }
+    .cover-overlay .course {
+        font-size: 11pt;
+        font-weight: bold;
+        color: #15365F;
+        margin: 0;
+    }
+
+    /* Header pg2 */
+    .doc-header {
+        width: 100%;
+        margin-bottom: 6mm;
+        border-collapse: collapse;
+    }
+    .doc-header td {
+        vertical-align: top;
+        border: none;
+        padding: 0;
+    }
+    .doc-header__label {
+        font-size: 8pt;
+        color: #15365F;
+        font-weight: bold;
+    }
+    .doc-header__brand {
+        text-align: right;
+        font-size: 9pt;
+        color: #15365F;
+        font-weight: bold;
+        letter-spacing: 0.5pt;
+    }
+
+    .doc-title {
+        text-align: center;
+        font-family: dejavusansb, sans-serif;
+        font-size: 22pt;
+        font-weight: bold;
+        color: #15365F;
+        margin: 4mm 0 6mm 0;
+        letter-spacing: 1pt;
+    }
+
+    .skill-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 4mm;
+    }
+    .skill-table td {
+        padding: 3mm 2mm;
+        border-top: 0.5pt solid #15365F;
+        border-bottom: 0.5pt solid #15365F;
+        font-size: 9pt;
+    }
+    .skill-table .skill-label {
+        font-weight: bold;
+        color: #15365F;
+        width: 22mm;
+    }
+    .skill-table .skill-value {
+        color: #15365F;
+    }
+
+    .description {
+        text-align: justify;
+        font-size: 9pt;
+        color: #15365F;
+        margin: 4mm 0 6mm 0;
+        line-height: 1.45;
+    }
+
+    .section-title {
+        text-align: center;
+        font-family: dejavusansb, sans-serif;
+        font-size: 12pt;
+        font-weight: bold;
+        color: #15365F;
+        margin: 4mm 0 2mm 0;
+        letter-spacing: 0.5pt;
+    }
+
+    table.results {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 4mm;
+    }
+    table.results thead th {
+        background: #15365F;
+        color: #FFFFFF;
+        font-family: dejavusansb, sans-serif;
+        font-size: 8.5pt;
+        font-weight: bold;
+        padding: 3mm 2mm;
+        text-align: center;
+        border: 0.5pt solid #15365F;
+    }
+    table.results tbody td {
+        padding: 3mm 2mm;
+        border: 0.5pt solid #15365F;
+        font-size: 9pt;
+        color: #15365F;
+        vertical-align: middle;
+    }
+    table.results tbody td.lo-num {
+        width: 8mm;
+        text-align: center;
+        font-weight: bold;
+    }
+    table.results tbody td.score {
+        width: 32mm;
+        text-align: center;
+        font-weight: bold;
+    }
+    table.results tbody td.workload {
+        width: 32mm;
+        text-align: center;
+    }
+
+    .doc-footer {
+        font-size: 7.5pt;
+        color: #15365F;
+        margin-top: 12mm;
+    }
+    .doc-footer hr {
+        border: none;
+        border-top: 0.6pt solid #15365F;
+        margin: 0 0 2mm 0;
+    }
+    .doc-footer table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .doc-footer td {
+        border: none;
+        padding: 0;
+        font-size: 7.5pt;
+        color: #15365F;
+    }
+    .doc-footer .col-l { text-align: left; width: 33%; }
+    .doc-footer .col-c { text-align: center; width: 34%; }
+    .doc-footer .col-r { text-align: right; width: 33%; }
 </style>
 </head>
 <body>
 
-<h1>ASSESSMENT REPORT — bisect test</h1>
+<!-- Pagina 1 (capa) -->
+<img class="cover-img" src="images/image001.png" alt="">
+<div class="cover-overlay">
+    <h1>Assessment Report</h1>
+    <p class="course">{{NAME_COURSE}}</p>
+</div>
 
-<p><strong>Course:</strong> {{NAME_COURSE}}</p>
-<p><strong>Student:</strong> {{NAME_STUDENT}}</p>
-<p><strong>UC:</strong> {{NAME_UC}} ({{WORKLOAD_UC}})</p>
-<p><strong>Average:</strong> {{AVG_LEARN}}</p>
+<pagebreak />
 
-<h2>Learning Outcomes</h2>
-<table>
-    <tr><th>#</th><th>Description</th><th>Score</th></tr>
-    <tr><td>1</td><td>{{LEARN_1_NAME}}</td><td>{{LEARN_1_SCORE}}</td></tr>
-    <tr><td>2</td><td>{{LEARN_2_NAME}}</td><td>{{LEARN_2_SCORE}}</td></tr>
-    <tr><td>3</td><td>{{LEARN_3_NAME}}</td><td>{{LEARN_3_SCORE}}</td></tr>
-    <tr><td>4</td><td>{{LEARN_4_NAME}}</td><td>{{LEARN_4_SCORE}}</td></tr>
-    <tr><td>5</td><td>{{LEARN_5_NAME}}</td><td>{{LEARN_5_SCORE}}</td></tr>
+<!-- Pagina 2 (conteudo) -->
+<table class="doc-header">
+    <tr>
+        <td style="width: 60%;">
+            <span class="doc-header__label">Competence Unit Assessment Report</span><br>
+            <span class="doc-header__label">{{NAME_COURSE}}</span>
+        </td>
+        <td class="doc-header__brand" style="width: 40%;">
+            ACTVET &nbsp;|&nbsp; Skills Hub
+        </td>
+    </tr>
 </table>
+
+<h1 class="doc-title">ASSESSMENT REPORT</h1>
+
+<table class="skill-table">
+    <tr>
+        <td class="skill-label">Skill:</td>
+        <td class="skill-value" colspan="3">{{NAME_COURSE}}</td>
+    </tr>
+    <tr>
+        <td class="skill-label">Student:</td>
+        <td class="skill-value" style="width: 60mm;">{{NAME_STUDENT}}</td>
+        <td class="skill-label" style="width: 30mm;">SH Student ID:</td>
+        <td class="skill-value"></td>
+    </tr>
+</table>
+
+<p class="description">
+    This assessment records the learner's achievement against the Learning Outcomes for this Competence Unit. The final Competence Unit result is calculated based on the average performance across all Learning Outcomes. In addition, the report tracks the learner's attendance and records the training hours allocated to each Learning Outcome.
+</p>
+
+<h2 class="section-title">COMPETENCE UNIT RESULTS</h2>
+<table class="results">
+    <thead>
+        <tr>
+            <th>COMPETENCE UNIT ID/DESCRIPTION</th>
+            <th style="width: 32mm;">HOURS OF TRAINING</th>
+            <th style="width: 32mm;">PERFORMANCE</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>{{NAME_UC}}</td>
+            <td class="workload">{{WORKLOAD_UC}}</td>
+            <td class="score">{{AVG_LEARN}}</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2 class="section-title">LEARNING OUTCOMES RESULTS BREAKDOWN</h2>
+<table class="results">
+    <thead>
+        <tr>
+            <th colspan="2">LEARNING OUTCOME ID/DESCRIPTION</th>
+            <th style="width: 32mm;">PERFORMANCE</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="lo-num">1.</td>
+            <td>{{LEARN_1_NAME}}</td>
+            <td class="score">{{LEARN_1_SCORE}}</td>
+        </tr>
+        <tr>
+            <td class="lo-num">2.</td>
+            <td>{{LEARN_2_NAME}}</td>
+            <td class="score">{{LEARN_2_SCORE}}</td>
+        </tr>
+        <tr>
+            <td class="lo-num">3.</td>
+            <td>{{LEARN_3_NAME}}</td>
+            <td class="score">{{LEARN_3_SCORE}}</td>
+        </tr>
+        <tr>
+            <td class="lo-num">4.</td>
+            <td>{{LEARN_4_NAME}}</td>
+            <td class="score">{{LEARN_4_SCORE}}</td>
+        </tr>
+        <tr>
+            <td class="lo-num">5.</td>
+            <td>{{LEARN_5_NAME}}</td>
+            <td class="score">{{LEARN_5_SCORE}}</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="doc-footer">
+    <hr>
+    <table>
+        <tr>
+            <td class="col-l">
+                <strong>Date: January 2026</strong><br>
+                Skills for a sustainable future.
+            </td>
+            <td class="col-c">
+                <strong>Version: 1.0</strong><br>
+                &copy; Skills Department
+            </td>
+            <td class="col-r">
+                1
+            </td>
+        </tr>
+    </table>
+</div>
 
 </body>
 </html>
