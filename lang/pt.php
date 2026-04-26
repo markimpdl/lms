@@ -123,6 +123,13 @@ return [
     'profile.updated'                 => 'Perfil atualizado.',
     'profile.password_changed'        => 'Senha alterada com sucesso.',
     'profile.theme.saved'             => 'Tema atualizado.',
+    // Aba "Aparência" no /profile do aluno (E27-02)
+    'profile.tab_theme'               => 'Aparência',
+    'profile.theme.help'              => 'Escolha como o sistema deve aparecer pra você. A preferência é salva e respeitada em qualquer dispositivo.',
+    'profile.theme.option.light'      => 'Claro',
+    'profile.theme.option.light_hint' => 'Fundo claro com tons suaves (padrão).',
+    'profile.theme.option.dark'       => 'Escuro',
+    'profile.theme.option.dark_hint'  => 'Fundo escuro com bom contraste — útil em ambientes com pouca luz.',
     'profile.error.name'              => 'Informe um nome entre 1 e 150 caracteres.',
     'profile.error.language'          => 'Idioma inválido.',
     'profile.error.current_wrong'     => 'Senha atual incorreta.',

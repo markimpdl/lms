@@ -123,6 +123,13 @@ return [
     'profile.updated'                 => 'Profile updated.',
     'profile.password_changed'        => 'Password changed successfully.',
     'profile.theme.saved'             => 'Theme updated.',
+    // "Appearance" tab in /profile for students (E27-02)
+    'profile.tab_theme'               => 'Appearance',
+    'profile.theme.help'              => 'Choose how the system looks for you. The preference is saved and respected on any device.',
+    'profile.theme.option.light'      => 'Light',
+    'profile.theme.option.light_hint' => 'Light background with soft tones (default).',
+    'profile.theme.option.dark'       => 'Dark',
+    'profile.theme.option.dark_hint'  => 'Dark background with good contrast — useful in low-light environments.',
     'profile.error.name'              => 'Enter a name between 1 and 150 characters.',
     'profile.error.language'          => 'Invalid language.',
     'profile.error.current_wrong'     => 'Current password is incorrect.',
