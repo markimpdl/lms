@@ -80,6 +80,11 @@ return [
     'teacher.groups.eyebrow'    => 'People management',
     'teacher.settings.eyebrow'  => 'Settings',
 
+    // Hero pattern eyebrows in admin pages (E29-03)
+    'admin.dashboard.eyebrow'   => 'Administration',
+    'admin.teachers.eyebrow'    => 'Teacher management',
+    'admin.settings.eyebrow'    => 'Settings',
+
     'dashboard.student.title'        => 'My courses',
     'dashboard.student.welcome'      => 'Welcome, :name.',
     'dashboard.student.no_courses'   => 'You are not enrolled in any course yet.',
