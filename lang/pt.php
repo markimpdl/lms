@@ -617,6 +617,17 @@ return [
     'evaluations.grade.err.feedback_too_long' => 'Feedback tem mais de 4000 caracteres.',
     'evaluations.grade.err.not_current' => 'Só a tentativa atual pode ser corrigida.',
 
+    // Feedback por LO (E25-03)
+    'evaluations.grade.lo_mode_title'        => 'Critérios avaliados',
+    'evaluations.grade.lo_mode_help'         => 'Dê uma nota 0-10 para cada critério. A média será gravada como nota final.',
+    'evaluations.grade.lo_field_n'           => 'Critério :n',
+    'evaluations.grade.lo_average_label'     => 'Nota final (média)',
+    'evaluations.grade.err.lo_grade_required' => 'Informe a nota.',
+    'evaluations.grade.err.lo_grade_range'    => 'Nota deve estar entre 0,0 e 10,0.',
+    'evaluations.grade.err.lo_uc_not_ready'   => 'Esta unidade ainda não tem 5 critérios cadastrados. Cadastre antes de corrigir.',
+    'evaluations.grade.lo_uc_not_ready_title' => 'Faltam critérios cadastrados',
+    'evaluations.grade.lo_uc_not_ready_help'  => 'O curso usa Learning Outcomes mas esta unidade ainda não tem 5 critérios. Cadastre antes de corrigir esta avaliação.',
+
     // Listagem de submissões (E7-04)
     'evaluations.submissions.page_title'   => 'Entregas — :name',
     'evaluations.submissions.summary'      => ':total aluno(s) · :pending aguardando correção · :approved aprovado(s)',

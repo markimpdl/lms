@@ -617,6 +617,17 @@ return [
     'evaluations.grade.err.feedback_too_long' => 'Feedback is longer than 4000 characters.',
     'evaluations.grade.err.not_current' => 'Only the current attempt can be graded.',
 
+    // Feedback by LO (E25-03)
+    'evaluations.grade.lo_mode_title'        => 'Assessed criteria',
+    'evaluations.grade.lo_mode_help'         => 'Grade each criterion 0-10. The average will be saved as the final grade.',
+    'evaluations.grade.lo_field_n'           => 'Criterion :n',
+    'evaluations.grade.lo_average_label'     => 'Final grade (average)',
+    'evaluations.grade.err.lo_grade_required' => 'Grade is required.',
+    'evaluations.grade.err.lo_grade_range'    => 'Grade must be between 0.0 and 10.0.',
+    'evaluations.grade.err.lo_uc_not_ready'   => 'This unit does not have 5 criteria registered yet. Register them before grading.',
+    'evaluations.grade.lo_uc_not_ready_title' => 'Criteria not registered',
+    'evaluations.grade.lo_uc_not_ready_help'  => 'The course uses Learning Outcomes but this unit has no 5 criteria registered. Register them before grading this evaluation.',
+
     // Submissions list (E7-04)
     'evaluations.submissions.page_title'   => 'Submissions — :name',
     'evaluations.submissions.summary'      => ':total student(s) · :pending awaiting grading · :approved approved',
