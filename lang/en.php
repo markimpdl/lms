@@ -484,7 +484,7 @@ return [
     'evaluations.type.projeto'          => 'Project (PDF or ZIP upload)',
     'evaluations.type.quiz'             => 'Quiz (multiple choice)',
     'evaluations.form.type'             => 'Type',
-    'evaluations.form.type_hint'        => 'Project: student uploads a PDF for manual grading. Quiz: multiple-choice questions with automatic grading.',
+    'evaluations.form.type_hint'        => 'Project: student uploads a PDF or ZIP for manual grading. Quiz: multiple-choice questions with automatic grading.',
     'evaluations.form.err.type'         => 'Invalid evaluation type.',
     'evaluations.form.quiz_hint'        => 'This is a Quiz-type evaluation.',
     'evaluations.form.quiz_edit_btn'    => 'Edit questions',
