@@ -1106,6 +1106,82 @@ ALTER TABLE evaluation_submissions
 
 ---
 
+## F18 — Dark mode (preferência por aluno)
+
+> **Adicionado em 2026-04-26**. Demanda do PO pós-release v0.21.0. Preferência visual do aluno — não é setting de tenant.
+
+### Contexto
+Hoje a `lms-student-area` usa `#F8F7FB` como background fixo + tons claros nos cards. Em ambientes com pouca luz ou pra alunos que preferem dark mode, falta uma alternativa. Setting é por **aluno** (não por tenant) — cada aluno escolhe.
+
+### Escopo
+- Coluna nova `users.theme ENUM('light','dark') NOT NULL DEFAULT 'light'` (ou setting separado em settings table — decisão técnica durante o épico)
+- Toggle em `/profile` (próximo ao language switcher) ou em settings dedicado do aluno
+- CSS: variantes dark dos tokens existentes (`--lms-card-bg`, `--lms-neutral-*`, `--lms-shadow-card`, etc. em `student-area.css`); aplicar via class no `<body>` (`lms-theme-dark`) ou via `data-theme` attribute
+- Componentes que precisam revisão visual em dark: cards, sidebar, achievement icons, ranking grid, course card, course progress bar
+- Preferência **persiste** entre sessões (não é toggle effêmero); `$_SESSION['user']['theme']` sincronizado com DB
+
+### Restrições
+- Apenas para aluno no MVP (professor/super-admin ficam light)
+- Sem auto-detecção via `prefers-color-scheme` no MVP (decisão explícita do user)
+- Sem por-tenant override (preferência sempre do aluno)
+
+### Tamanho
+**M** — épico de ~3-4 stories: schema + persistência, toggle UI, CSS dark variant dos componentes student-area, smoke + i18n.
+
+---
+
+## F19 — Patentes informativas no ranking
+
+> **Adicionado em 2026-04-26**. Demanda do PO pós-release v0.21.0. Ranking hoje mostra só nome + XP; faltam patentes pra contexto.
+
+### Contexto
+A grid de ranking (em `/student/ranking` e `/teacher/ranking`) lista alunos com posição + nome + XP. As patentes (`ranks` por tenant — E18) já existem e cada aluno tem uma patente atual (via `Rank::findCurrentByXp(totalXp)`). Mostrá-las inline na grid contextualiza melhor o ranking.
+
+### Escopo
+- Adicionar coluna "Patente" na grid de ranking (tabela desktop) e badge no card mobile
+- Renderiza nome da patente + cor (já vem com `rank.color_hex`) — pequeno pill colorido
+- Hover/title com xp_min..xp_max da patente (opcional)
+- Quando aluno não tem patente (XP=0 ou sem patentes cadastradas no tenant), mostra `—` ou esconde a coluna
+- Performance: ranking já consulta XP por aluno; adicionar patente não deve adicionar query por linha — pré-computar via JOIN ou sub-select
+
+### Restrições
+- Não-Actvet: comportamento padrão (mostra patente)
+- Actvet com modo LO: comportamento idêntico (patente é independente do modo de avaliação)
+- Mobile: patente entra como segunda linha do card ou badge ao lado do nome — decidir no design
+
+### Tamanho
+**P** — épico de ~1-2 stories. Apenas mudança de UI + 1 query (ou JOIN) a mais no listing.
+
+---
+
+## F20 — Identidade visual student-area pra teacher e super-admin
+
+> **Adicionado em 2026-04-26**. Demanda do PO pós-release v0.21.0. Hoje só o aluno tem o visual moderno (Inter + Plus Jakarta + cards arredondados + gradientes). Professor e super-admin usam Bootstrap padrão "feio".
+
+### Contexto
+A `lms-student-area` (E14-01) introduziu identidade visual rica: fonte Inter + Plus Jakarta Sans, fundo `#F8F7FB`, cards com `border-radius: 16px`, sombras suaves, eyebrow uppercase + título grande, sidebar 300px sticky. Todos os painéis student usam isso. Já painéis teacher (`/teacher/courses/*`, `/admin/teachers/*`) usam Bootstrap default — inconsistente e visualmente menos polido.
+
+### Escopo
+- Estender o pattern visual da `lms-student-area` pra teacher e super-admin
+- Decisão de arquitetura: criar variantes (`lms-teacher-area`, `lms-admin-area`) que reusam tokens CSS comuns OU promover `lms-student-area` pra `lms-app-area` (genérica) com sidebar opcional por papel
+- Sidebar do professor: shortcuts pra cursos ativos, métricas resumidas (alunos ativos, atividades pendentes de feedback) — equivalente do que aluno vê de XP/conquistas
+- Sidebar do super-admin: contagem de tenants ativos, alunos totais, atividade recente — equivalente
+- Migração gradual de páginas: começar pelas mais visíveis (`/teacher`, `/admin`, `/teacher/courses`, `/admin/teachers`) e ir cobrindo o resto
+- Manter os atuais que herdam `<main class="container py-4">` durante a transição (não quebrar)
+
+### Restrições
+- Não regredir o que já funciona (formulários, tabelas, modais existentes)
+- Mobile: sidebars do prof/admin precisam empilhar como a do aluno (`@media max-width: 767.98px`)
+- i18n: copy nova só pra eyebrows + títulos das páginas (a maior parte do conteúdo já é i18n)
+
+### Tamanho
+**G** — épico grande (~6-10 stories M). Pode ser quebrado em sub-épicos por papel: F20a (teacher area), F20b (admin area). Visual + sidebar contextual + migração página a página.
+
+### Doc dedicado futuro
+`doc/20-identidade-visual.md` se a decisão de arquitetura (variantes vs promoção genérica) virar complexa.
+
+---
+
 # Resumo de épicos sugeridos
 
 | Épico | Features | Ordem | Tamanho |
@@ -1119,21 +1195,24 @@ ALTER TABLE evaluation_submissions
 | **E21 — Notificações configuráveis** | F9 | 7º | 2-3 stories M-P |
 | **E22 — Auth multi-conta** (cross-tenant) | F13 | 8º — **ATIVADO em 2026-04-26** (2º tenant criado em prod) | 3 stories M-P |
 | **E23 — Quick fixes UX** | F14 | 9º | 1-2 stories P |
-| **E24 — White-label + flag is_actvet** | F15 | 10º | 3-4 stories M-P |
+| **E24 — White-label + flag is_actvet** | F15 | 10º — **ENTREGUE em 2026-04-26** (v0.21.0) | 4 stories M-P |
 | **E25 — Learning Outcomes** (Actvet-only) | F16 | 11º — depende de E24 | 5-6 stories M-P |
 | **E26 — Reports** (Actvet+LO only) | F17 | 12º — depende de E25 | 4-5 stories M-P |
+| **E27 — Dark mode** (preferência aluno) | F18 | 13º | 3-4 stories M |
+| **E28 — Patentes no ranking** | F19 | 14º | 1-2 stories P |
+| **E29 — Identidade visual unificada** (teacher + admin) | F20 | 15º | 6-10 stories M (épico G) |
 
-**Total estimado:** ~45-55 stories distribuídas em 12 épicos. F1–F12 (E15–E21) já entregues em prod. E22 ativo agora; E23–E26 entram em sequência.
+**Total estimado:** ~55-70 stories distribuídas em 15 épicos. F1–F15 entregues em prod (E15–E24). E25 → E29 em sequência.
 
 ---
 
 # Pendências e dúvidas remanescentes
 
-Nenhuma. Decisões F1–F13 consolidadas em 2026-04-25; F14–F17 consolidadas em 2026-04-26 com PO Actvet.
+Nenhuma. Decisões F1–F13 consolidadas em 2026-04-25; F14–F17 consolidadas em 2026-04-26 com PO Actvet; F18–F20 adicionadas pós-release v0.21.0 (mesmo dia).
 
 # Próximos passos
 
-1. ✅ E15–E21 + F12 entregues entre 2026-04-25 e 2026-04-26 (releases v0.10.0–v0.18.0)
-2. **E22 ativado** em 2026-04-26 com 2º tenant em prod — primeiro a entrar nesta janela
-3. **E23 → E24 → E25 → E26** em sequência (cada um abre PR de release MINOR no fim)
-4. F5 e F8 ganharam (ou ganham) docs dedicados (`doc/16-conquistas.md`, `doc/17-quiz.md`) se necessário; F16/F17 podem ganhar `doc/18-learning-outcomes.md` e `doc/19-reports.md` se a complexidade justificar.
+1. ✅ E15–E24 entregues entre 2026-04-25 e 2026-04-26 (releases v0.10.0–v0.21.0)
+2. **E25 ativado a seguir** (Learning Outcomes Actvet-only) — primeira story = schema + LO model + grading_mode em courses
+3. **E25 → E26 → E27 → E28 → E29** em sequência (cada um abre PR de release MINOR no fim)
+4. Docs dedicados futuros: `doc/18-learning-outcomes.md` (F16), `doc/19-reports.md` (F17), `doc/20-identidade-visual.md` (F20) se a complexidade justificar.
