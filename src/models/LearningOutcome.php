@@ -81,4 +81,25 @@ final class LearningOutcome
         $stmt->execute([$cuId]);
         return (int) $stmt->fetchColumn();
     }
+
+    /**
+     * Retorna mapa lo_id => grade pra uma submissão (E25-03). Vazio se
+     * ainda não há feedback gravado por LO.
+     *
+     * @return array<int,float>
+     */
+    public static function findGradesBySubmission(int $submissionId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT lo_id, grade
+               FROM evaluation_submission_lo_grades
+              WHERE submission_id = ?'
+        );
+        $stmt->execute([$submissionId]);
+        $out = [];
+        foreach ($stmt->fetchAll() as $r) {
+            $out[(int) $r['lo_id']] = (float) $r['grade'];
+        }
+        return $out;
+    }
 }

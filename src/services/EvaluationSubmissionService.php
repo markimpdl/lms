@@ -124,46 +124,115 @@ final class EvaluationSubmissionService
             static function (PDO $pdo) use (
                 $submissionId, $tenantId, $grade, $feedback, $retryAllowed
             ): array {
-                $stmt = $pdo->prepare(
-                    'SELECT s.id, s.evaluation_id, s.student_user_id, s.is_current
-                       FROM evaluation_submissions s
-                       JOIN evaluations e ON e.id = s.evaluation_id
-                      WHERE s.id = ? AND e.tenant_id = ?
-                      LIMIT 1'
-                );
-                $stmt->execute([$submissionId, $tenantId]);
-                $sub = $stmt->fetch();
-                if ($sub === false) {
-                    return ['status' => 'not_found'];
-                }
-                if ((int) $sub['is_current'] !== 1) {
-                    return ['status' => 'not_current'];
-                }
-
-                $retryEffective = ($grade >= 6.0) ? 0 : ($retryAllowed ? 1 : 0);
-
-                $pdo->prepare(
-                    'UPDATE evaluation_submissions
-                        SET grade = ?, feedback = ?,
-                            feedback_at = CURRENT_TIMESTAMP,
-                            retry_allowed = ?
-                      WHERE id = ?'
-                )->execute([$grade, $feedback, $retryEffective, $submissionId]);
-
-                $xpAwarded = false;
-                if ($grade >= 8.0) {
-                    $xpAwarded = XpEvents::awardEvaluation(
-                        (int) $sub['student_user_id'],
-                        (int) $sub['evaluation_id']
-                    );
-                }
-
-                return [
-                    'status'          => 'ok',
-                    'retry_effective' => $retryEffective,
-                    'xp_awarded'      => $xpAwarded,
-                ];
+                return self::applyGrade($pdo, $submissionId, $tenantId, $grade, $feedback, $retryAllowed);
             }
         );
+    }
+
+    /**
+     * Variante por Learning Outcome (E25-03). Recebe nota 0-10 por LO, grava
+     * em `evaluation_submission_lo_grades` (REPLACE — refazer correção é
+     * idempotente), calcula média e delega pro mesmo `applyGrade` que o
+     * fluxo `grade()` clássico — preserva todas as regras (clamp ≥ 6 desativa
+     * retry, ≥ 8 credita XP idempotente).
+     *
+     * Caller responsável por:
+     *  - Garantir que `$loGrades` tem exatamente 5 entradas (regra do épico)
+     *  - Garantir que cada `loId` pertence à CU da avaliação (gate na page)
+     *  - Garantir tenant Actvet + curso LO mode (gate na page)
+     *
+     * @param array<int,float> $loGrades mapa loId => grade (0..10)
+     *
+     * @return array{status:string, retry_effective?:int, xp_awarded?:bool, average?:float}
+     */
+    public static function gradeByLo(
+        int $submissionId,
+        int $tenantId,
+        array $loGrades,
+        string $feedback,
+        bool $retryAllowed
+    ): array {
+        return Database::tx(
+            static function (PDO $pdo) use (
+                $submissionId, $tenantId, $loGrades, $feedback, $retryAllowed
+            ): array {
+                // REPLACE INTO simplifica: refazer correção sobrescreve sem
+                // precisar DELETE explícito. PK composite garante 1 row por LO.
+                $insert = $pdo->prepare(
+                    'REPLACE INTO evaluation_submission_lo_grades (submission_id, lo_id, grade)
+                          VALUES (?, ?, ?)'
+                );
+                $sum = 0.0;
+                foreach ($loGrades as $loId => $g) {
+                    $insert->execute([$submissionId, (int) $loId, (float) $g]);
+                    $sum += (float) $g;
+                }
+
+                // Média com 1 decimal (DECIMAL(3,1) na tabela). PHP round()
+                // half-up — consistente com o que MySQL faria pra DECIMAL.
+                $average = round($sum / max(1, count($loGrades)), 1);
+
+                return self::applyGrade(
+                    $pdo, $submissionId, $tenantId, $average, $feedback, $retryAllowed
+                ) + ['average' => $average];
+            }
+        );
+    }
+
+    /**
+     * Lógica core comum a `grade()` e `gradeByLo()`: valida ownership,
+     * aplica clamp do retry, UPDATE da submissão, credita XP se ≥ 8.
+     * Roda dentro de uma transação aberta pelo caller — não abre `tx`
+     * própria.
+     *
+     * @return array{status:string, retry_effective?:int, xp_awarded?:bool}
+     */
+    private static function applyGrade(
+        PDO $pdo,
+        int $submissionId,
+        int $tenantId,
+        float $grade,
+        string $feedback,
+        bool $retryAllowed
+    ): array {
+        $stmt = $pdo->prepare(
+            'SELECT s.id, s.evaluation_id, s.student_user_id, s.is_current
+               FROM evaluation_submissions s
+               JOIN evaluations e ON e.id = s.evaluation_id
+              WHERE s.id = ? AND e.tenant_id = ?
+              LIMIT 1'
+        );
+        $stmt->execute([$submissionId, $tenantId]);
+        $sub = $stmt->fetch();
+        if ($sub === false) {
+            return ['status' => 'not_found'];
+        }
+        if ((int) $sub['is_current'] !== 1) {
+            return ['status' => 'not_current'];
+        }
+
+        $retryEffective = ($grade >= 6.0) ? 0 : ($retryAllowed ? 1 : 0);
+
+        $pdo->prepare(
+            'UPDATE evaluation_submissions
+                SET grade = ?, feedback = ?,
+                    feedback_at = CURRENT_TIMESTAMP,
+                    retry_allowed = ?
+              WHERE id = ?'
+        )->execute([$grade, $feedback, $retryEffective, $submissionId]);
+
+        $xpAwarded = false;
+        if ($grade >= 8.0) {
+            $xpAwarded = XpEvents::awardEvaluation(
+                (int) $sub['student_user_id'],
+                (int) $sub['evaluation_id']
+            );
+        }
+
+        return [
+            'status'          => 'ok',
+            'retry_effective' => $retryEffective,
+            'xp_awarded'      => $xpAwarded,
+        ];
     }
 }

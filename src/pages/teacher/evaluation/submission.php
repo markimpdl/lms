@@ -48,11 +48,30 @@ if ((string) ($evaluation['type'] ?? 'projeto') === 'quiz') {
     return;
 }
 
+// E25-03: curso em LO mode renderiza UI alternativa (5 inputs por LO,
+// média auto = nota final). Caso de borda: UC sem 5 LOs cadastrados
+// (curso virou LO depois) — exibe alerta com link pro cadastro.
+$isLoMode  = (string) ($evaluation['grading_mode'] ?? 'grade') === 'learning_outcomes';
+$cuId      = (int) $evaluation['cu_id'];
+$loList    = $isLoMode ? LearningOutcome::findByCu($cuId) : [];
+$loReady   = $isLoMode && count($loList) === 5;
+$loGradesExisting = ($isLoMode && $loReady)
+    ? LearningOutcome::findGradesBySubmission((int) $current['id'])
+    : [];
+
 $old = [
     'grade'         => $current['grade']         !== null ? (string) $current['grade']   : '',
     'feedback'      => $current['feedback']      !== null ? (string) $current['feedback'] : '',
     'retry_allowed' => (int) ($current['retry_allowed'] ?? 0) === 1,
+    // E25-03: array indexado por loId com nota como string (vazio se primeiro feedback)
+    'lo_grades'     => [],
 ];
+foreach ($loList as $lo) {
+    $loId = (int) $lo['id'];
+    $old['lo_grades'][$loId] = isset($loGradesExisting[$loId])
+        ? (string) $loGradesExisting[$loId]
+        : '';
+}
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -64,23 +83,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         return;
     }
 
+    // LO mode com UC sem 5 LOs: bloqueia POST com alerta.
+    if ($isLoMode && !$loReady) {
+        flash('danger', __t('evaluations.grade.err.lo_uc_not_ready'));
+        header('Location: /teacher/evaluation/' . $evaluationId . '/submission/' . $studentId);
+        return;
+    }
+
     $rawGrade    = trim((string) ($_POST['grade']    ?? ''));
     $rawFeedback = trim((string) ($_POST['feedback'] ?? ''));
     $rawRetry    = isset($_POST['retry_allowed']);
+
+    // E25-03: em LO mode, lê 5 inputs nomeados lo_grade[<lo_id>] e calcula
+    // a média (substitui o input único de grade).
+    $loGradesByLo = [];
+    if ($isLoMode && $loReady) {
+        $rawLoGrades = is_array($_POST['lo_grade'] ?? null) ? $_POST['lo_grade'] : [];
+        foreach ($loList as $lo) {
+            $loId = (int) $lo['id'];
+            $val  = trim((string) ($rawLoGrades[$loId] ?? ''));
+            $loGradesByLo[$loId] = $val;
+        }
+    }
 
     $old = [
         'grade'         => $rawGrade,
         'feedback'      => $rawFeedback,
         'retry_allowed' => $rawRetry,
+        'lo_grades'     => $loGradesByLo !== [] ? $loGradesByLo : ($old['lo_grades'] ?? []),
     ];
 
-    $normalized = str_replace(',', '.', $rawGrade);
-    if ($normalized === '' || !is_numeric($normalized)) {
-        $errors['grade'] = 'evaluations.grade.err.grade_required';
+    if ($isLoMode && $loReady) {
+        // Valida cada nota por LO; ignora `grade` clássico (não vai pro UI)
+        $loGradesParsed = [];
+        foreach ($loGradesByLo as $loId => $raw) {
+            $normalized = str_replace(',', '.', $raw);
+            if ($normalized === '' || !is_numeric($normalized)) {
+                $errors['lo_grade_' . $loId] = 'evaluations.grade.err.lo_grade_required';
+                continue;
+            }
+            $g = (float) $normalized;
+            if ($g < 0.0 || $g > 10.0) {
+                $errors['lo_grade_' . $loId] = 'evaluations.grade.err.lo_grade_range';
+                continue;
+            }
+            $loGradesParsed[$loId] = $g;
+        }
     } else {
-        $gradeVal = (float) $normalized;
-        if ($gradeVal < 0.0 || $gradeVal > 10.0) {
-            $errors['grade'] = 'evaluations.grade.err.grade_range';
+        $normalized = str_replace(',', '.', $rawGrade);
+        if ($normalized === '' || !is_numeric($normalized)) {
+            $errors['grade'] = 'evaluations.grade.err.grade_required';
+        } else {
+            $gradeVal = (float) $normalized;
+            if ($gradeVal < 0.0 || $gradeVal > 10.0) {
+                $errors['grade'] = 'evaluations.grade.err.grade_range';
+            }
         }
     }
 
@@ -91,14 +148,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($errors === []) {
-        $gradeVal = (float) $normalized;
-        $result = EvaluationSubmissionService::grade(
-            (int) $current['id'],
-            $tenantId,
-            $gradeVal,
-            $rawFeedback,
-            $rawRetry
-        );
+        if ($isLoMode && $loReady) {
+            $result = EvaluationSubmissionService::gradeByLo(
+                (int) $current['id'],
+                $tenantId,
+                $loGradesParsed,
+                $rawFeedback,
+                $rawRetry
+            );
+            $gradeVal = (float) ($result['average'] ?? 0);
+        } else {
+            $gradeVal = (float) $normalized;
+            $result = EvaluationSubmissionService::grade(
+                (int) $current['id'],
+                $tenantId,
+                $gradeVal,
+                $rawFeedback,
+                $rawRetry
+            );
+        }
 
         if ($result['status'] === 'ok') {
             // Conquistas (E18-04). Best-effort.
@@ -227,35 +295,97 @@ ob_start();
             </div>
         <?php endif; ?>
 
+        <?php if ($isLoMode && !$loReady): ?>
+            <div class="alert alert-warning" role="alert">
+                <strong><?= e(__t('evaluations.grade.lo_uc_not_ready_title')) ?></strong>
+                <p class="mb-2 mt-1 small"><?= e(__t('evaluations.grade.lo_uc_not_ready_help')) ?></p>
+                <a href="/teacher/cu/<?= $cuId ?>/learning-outcomes" class="btn btn-sm btn-warning">
+                    <?= e(__t('learning_outcomes.edit_link')) ?>
+                </a>
+            </div>
+        <?php endif; ?>
+
         <form method="POST" action="/teacher/evaluation/<?= $evaluationId ?>/submission/<?= $studentId ?>"
-              class="card card-body shadow-sm mb-3" novalidate>
+              class="card card-body shadow-sm mb-3" novalidate
+              <?php if ($isLoMode && $loReady): ?>x-data="{
+                  grades: <?= e(json_encode(array_map(static fn($v) => (string) $v, $old['lo_grades']), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE)) ?>,
+                  get average() {
+                      const vals = Object.values(this.grades).map(v => parseFloat(String(v).replace(',', '.'))).filter(n => !Number.isNaN(n));
+                      if (vals.length === 0) return '—';
+                      const sum = vals.reduce((a, b) => a + b, 0);
+                      return (sum / vals.length).toFixed(1).replace('.', ',');
+                  }
+              }"<?php endif; ?>>
             <?= csrf_field() ?>
 
-            <div class="row g-3">
-                <div class="col-12 col-md-4 mb-3">
-                    <label for="f-grade" class="form-label"><?= e(__t('evaluations.grade.field_grade')) ?></label>
-                    <input type="number" name="grade" id="f-grade"
-                           class="form-control form-control-lg<?= isset($errors['grade']) ? ' is-invalid' : '' ?>"
-                           value="<?= e((string) $old['grade']) ?>"
-                           min="0" max="10" step="0.1" required>
-                    <div class="form-text">
-                        <?= e(__t('evaluations.grade.field_grade_hint')) ?>
+            <?php if ($isLoMode && $loReady): ?>
+                <h2 class="h6 mb-2"><?= e(__t('evaluations.grade.lo_mode_title')) ?></h2>
+                <p class="text-muted small mb-3"><?= e(__t('evaluations.grade.lo_mode_help')) ?></p>
+
+                <?php foreach ($loList as $i => $lo): $loId = (int) $lo['id']; ?>
+                    <div class="row g-2 align-items-start mb-3">
+                        <div class="col-12 col-md-9">
+                            <label for="f-lo-<?= $loId ?>" class="form-label small fw-semibold mb-1">
+                                <?= e(__t('evaluations.grade.lo_field_n', ['n' => (string) ($i + 1)])) ?>
+                            </label>
+                            <p class="small mb-0"><?= e((string) $lo['description']) ?></p>
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <input type="number" name="lo_grade[<?= $loId ?>]" id="f-lo-<?= $loId ?>"
+                                   x-model="grades[<?= $loId ?>]"
+                                   class="form-control form-control-lg<?= isset($errors['lo_grade_' . $loId]) ? ' is-invalid' : '' ?>"
+                                   value="<?= e((string) ($old['lo_grades'][$loId] ?? '')) ?>"
+                                   min="0" max="10" step="0.1" required>
+                            <?php if (isset($errors['lo_grade_' . $loId])): ?>
+                                <div class="invalid-feedback"><?= e(__t($errors['lo_grade_' . $loId])) ?></div>
+                            <?php endif; ?>
+                        </div>
                     </div>
-                    <?php if (isset($errors['grade'])): ?>
-                        <div class="invalid-feedback"><?= e(__t($errors['grade'])) ?></div>
-                    <?php endif; ?>
-                </div>
-                <div class="col-12 col-md-8 mb-3 d-flex align-items-end">
-                    <div class="form-check" id="retry-group">
-                        <input class="form-check-input" type="checkbox" id="f-retry" name="retry_allowed" value="1"
-                               <?= $old['retry_allowed'] ? 'checked' : '' ?>>
-                        <label class="form-check-label" for="f-retry">
-                            <?= e(__t('evaluations.grade.field_retry')) ?>
-                        </label>
-                        <div class="form-text"><?= e(__t('evaluations.grade.field_retry_hint')) ?></div>
+                <?php endforeach; ?>
+
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label fw-semibold"><?= e(__t('evaluations.grade.lo_average_label')) ?></label>
+                        <div class="form-control form-control-lg bg-light text-center fw-bold" x-text="average">—</div>
+                    </div>
+                    <div class="col-12 col-md-8 mb-2">
+                        <div class="form-check" id="retry-group">
+                            <input class="form-check-input" type="checkbox" id="f-retry" name="retry_allowed" value="1"
+                                   <?= $old['retry_allowed'] ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="f-retry">
+                                <?= e(__t('evaluations.grade.field_retry')) ?>
+                            </label>
+                            <div class="form-text"><?= e(__t('evaluations.grade.field_retry_hint')) ?></div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            <?php else: ?>
+                <div class="row g-3">
+                    <div class="col-12 col-md-4 mb-3">
+                        <label for="f-grade" class="form-label"><?= e(__t('evaluations.grade.field_grade')) ?></label>
+                        <input type="number" name="grade" id="f-grade"
+                               class="form-control form-control-lg<?= isset($errors['grade']) ? ' is-invalid' : '' ?>"
+                               value="<?= e((string) $old['grade']) ?>"
+                               min="0" max="10" step="0.1" required>
+                        <div class="form-text">
+                            <?= e(__t('evaluations.grade.field_grade_hint')) ?>
+                        </div>
+                        <?php if (isset($errors['grade'])): ?>
+                            <div class="invalid-feedback"><?= e(__t($errors['grade'])) ?></div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="col-12 col-md-8 mb-3 d-flex align-items-end">
+                        <div class="form-check" id="retry-group">
+                            <input class="form-check-input" type="checkbox" id="f-retry" name="retry_allowed" value="1"
+                                   <?= $old['retry_allowed'] ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="f-retry">
+                                <?= e(__t('evaluations.grade.field_retry')) ?>
+                            </label>
+                            <div class="form-text"><?= e(__t('evaluations.grade.field_retry_hint')) ?></div>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
 
             <div class="mb-3">
                 <label for="f-feedback" class="form-label"><?= e(__t('evaluations.grade.field_feedback')) ?></label>
