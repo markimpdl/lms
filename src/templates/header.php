@@ -27,7 +27,9 @@ $brandLogo = $brand['logo_url'] ?? null;
     <div class="lms-navbar__inner">
         <a class="lms-navbar__brand" href="/" aria-label="<?= e(__t('app.title')) ?>">
             <?php if ($brandLogo !== null): ?>
-                <img class="lms-navbar__logo-img" src="<?= e($brandLogo) ?>" alt="" aria-hidden="true">
+                <span class="lms-navbar__logo lms-navbar__logo--branded"
+                      style="background-image: url('<?= e($brandLogo) ?>')"
+                      aria-hidden="true"></span>
             <?php else: ?>
                 <span class="lms-navbar__logo" aria-hidden="true">L</span>
             <?php endif; ?>
