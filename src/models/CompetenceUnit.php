@@ -92,7 +92,8 @@ final class CompetenceUnit
     {
         $stmt = Database::pdo()->prepare(
             'SELECT cu.id, cu.core_competency_id, cu.name, cu.position,
-                    cc.course_id, c.archived AS course_archived
+                    cc.course_id, c.archived AS course_archived,
+                    c.grading_mode AS course_grading_mode
                FROM competence_units cu
                JOIN core_competencies cc ON cc.id = cu.core_competency_id
                JOIN courses c ON c.id = cc.course_id AND c.tenant_id = ?

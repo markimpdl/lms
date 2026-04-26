@@ -317,6 +317,19 @@ return [
     'courses.form.grading_mode.help'                   => 'How the teacher grades this course. "Single grade" uses 0-10. "Learning Outcomes" requires 5 criteria per unit, with a grade per criterion (average = final grade).',
     'courses.form.grading_mode.option.grade'           => 'Single grade (0-10)',
     'courses.form.grading_mode.option.learning_outcomes' => 'Learning Outcomes (5 criteria per unit)',
+
+    // Learning Outcomes — per-CU registration (E25-02)
+    'learning_outcomes.title'        => 'Learning Outcomes',
+    'learning_outcomes.breadcrumb'   => 'Criteria',
+    'learning_outcomes.help'         => 'Register exactly 5 criteria to be assessed in this unit. The teacher gives a 0-10 grade for each during feedback; the average becomes the evaluation final grade.',
+    'learning_outcomes.field_n'      => 'Criterion :n',
+    'learning_outcomes.placeholder'  => 'Describe what the student must demonstrate...',
+    'learning_outcomes.err.required' => 'This criterion is required.',
+    'learning_outcomes.err.too_long' => 'Each criterion must be at most 500 characters.',
+    'learning_outcomes.has_errors'   => 'Please fix the highlighted fields.',
+    'learning_outcomes.success'      => 'Criteria updated.',
+    'learning_outcomes.edit_link'    => 'Edit criteria',
+
     // Sequential progression (E19-02 + E19-03 + E19-04)
     'progression.next_locked'                  => 'Complete ":name" first',
     'progression.eval_locked'                  => 'Complete all activities before taking the evaluation',
