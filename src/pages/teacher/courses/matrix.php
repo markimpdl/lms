@@ -98,10 +98,10 @@ ob_start();
 <div x-data="{
     groupFilter: 'all',
     onlyActive: true,
-    studentGroups: <?= $studentGroupsJson ?>,
-    studentActive: <?= $studentActiveJson ?>,
-    studentIds: <?= $studentIdsJson ?>,
-    cellStatus: <?= $cellStatusJson ?>,
+    studentGroups: <?= htmlspecialchars($studentGroupsJson, ENT_QUOTES, 'UTF-8') ?>,
+    studentActive: <?= htmlspecialchars($studentActiveJson, ENT_QUOTES, 'UTF-8') ?>,
+    studentIds: <?= htmlspecialchars($studentIdsJson, ENT_QUOTES, 'UTF-8') ?>,
+    cellStatus: <?= htmlspecialchars($cellStatusJson, ENT_QUOTES, 'UTF-8') ?>,
     matches(id) {
         if (this.onlyActive && this.studentActive[id] !== 1) return false;
         if (this.groupFilter === 'all') return true;
@@ -200,7 +200,7 @@ ob_start();
                                     <td class="text-center p-1">
                                         <a href="/teacher/cu/<?= $cuId ?>" class="d-inline-block text-decoration-none">
                                             <span class="d-inline-block px-2 py-1 rounded <?= e($bg) ?>" style="min-width:44px; font-weight:600">
-                                                <?= $percent ?>%
+                                                <?= e((string) $percent) ?>%
                                             </span>
                                         </a>
                                     </td>
@@ -213,7 +213,7 @@ ob_start();
                                                                          : 'bg-light text-muted');
                                     ?>
                                     <span class="d-inline-block px-2 py-1 rounded <?= e($avgBg) ?>" style="min-width:52px; font-weight:700">
-                                        <?= $avg ?>%
+                                        <?= e((string) $avg) ?>%
                                     </span>
                                 </td>
                             </tr>
