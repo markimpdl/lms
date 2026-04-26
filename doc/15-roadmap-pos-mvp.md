@@ -1182,6 +1182,38 @@ A `lms-student-area` (E14-01) introduziu identidade visual rica: fonte Inter + P
 
 ---
 
+## F21 — Refazer template Skills Hub em HTML/CSS limpo
+
+> **Adicionado em 2026-04-26**, pós-release v0.23.0. A v1 do template (gerada via Word "Save as Web Page Filtered") usa marcação MSO-específica (`<!--[if gte mso 9]>`, VML, fontes Calibri/Arial sem fallback no dompdf, tabelas sem larguras explícitas) e renderiza visualmente diferente do Word original. O pipeline de Reports (`ReportService` + trigger + endpoint + segurança) está OK; só o template precisa de outra rodada.
+
+### Contexto
+PO entregou referências em `template_reports/`:
+- `CU_SKILL_HUB_WORD.docx` — fonte original
+- `CU_SKILL_HUB_PDF.pdf` — render alvo (PDF exportado pelo Word)
+- `CU_SKILL_HUB.htm` + `CU_SKILL_HUB_files/` — versão MSO atual (descartar após E30)
+
+A v1 (atual) não foi assumida como "fiel ao Word" desde o início — `Save as HTML Filtered` é o caminho de menor esforço pra sair do Word, não o de melhor render no dompdf. Ficou explícito após smoke real do PO.
+
+### Escopo
+- Reescrever `public/assets/report-templates/skill_hub/template.html` à mão, fiel ao `CU_SKILL_HUB_PDF.pdf` (referência visual)
+- HTML semântico + CSS dompdf-friendly (sem MSO, sem float complexo, sem fonte exótica — usar DejaVu Sans / Sans-serif)
+- Manter o **contrato de variáveis** (`{{NAME_*}}`, `{{WORKLOAD_UC}}`, `{{AVG_LEARN}}`, `{{LEARN_X_NAME}}`, `{{LEARN_X_SCORE}}`) — `ReportService` não muda
+- Validar pixel-by-pixel vs PDF de referência
+- Se mesmo após reescrever HTML clean houver gaps de fontes / layout que dompdf não cobre, considerar **swap dompdf → mPDF** (lib similar mas melhor com tabelas complexas)
+- **Backfill** das submissions já corrigidas: re-executar `ReportService::generate` em loop pra todas com `report_pdf_path` setado, sobrescrevendo PDFs antigos com layout novo
+
+### Tamanho
+**M** — 1 story só:
+1. Reescrever template + validar contra PDF de referência + (condicional) swap pra mPDF + backfill de PDFs antigos
+
+### Dependências
+**E26 (#290)** — pipeline já existe; só troca o template + opcional swap de lib.
+
+### Doc dedicado futuro
+`doc/19-reports.md` (já existe, criado em E26-05) ganha seção "Template v2" com decisões de fontes/CSS/lib quando E30 fechar.
+
+---
+
 # Resumo de épicos sugeridos
 
 | Épico | Features | Ordem | Tamanho |
@@ -1201,14 +1233,15 @@ A `lms-student-area` (E14-01) introduziu identidade visual rica: fonte Inter + P
 | **E27 — Dark mode** (preferência aluno) | F18 | 13º | 3-4 stories M |
 | **E28 — Patentes no ranking** | F19 | 14º | 1-2 stories P |
 | **E29 — Identidade visual unificada** (teacher + admin) | F20 | 15º | 6-10 stories M (épico G) |
+| **E30 — Refazer template Skills Hub** | F21 | 16º — depende de E26 | 1 story M |
 
-**Total estimado:** ~55-70 stories distribuídas em 15 épicos. F1–F15 entregues em prod (E15–E24). E25 → E29 em sequência.
+**Total estimado:** ~56-71 stories distribuídas em 16 épicos. F1–F17 entregues em prod (E15–E26). E27 → E30 em sequência.
 
 ---
 
 # Pendências e dúvidas remanescentes
 
-Nenhuma. Decisões F1–F13 consolidadas em 2026-04-25; F14–F17 consolidadas em 2026-04-26 com PO Actvet; F18–F20 adicionadas pós-release v0.21.0 (mesmo dia).
+Nenhuma. Decisões F1–F13 consolidadas em 2026-04-25; F14–F17 consolidadas em 2026-04-26 com PO Actvet; F18–F20 adicionadas pós-release v0.21.0 (mesmo dia); F21 adicionada pós-release v0.23.0 (mesmo dia, após smoke real do PO revelar gap de fidelidade do template MSO).
 
 # Próximos passos
 
