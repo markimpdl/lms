@@ -247,17 +247,13 @@ final class ReportService
             throw new \RuntimeException('Failed to create mPDF temp dir: ' . $tempDir);
         }
 
+        // Config minimo. Defaults do mPDF: A4 portrait UTF-8 com margens
+        // 15/15/16/16mm e font dejavusans. Setting demais opcoes em iter
+        // anterior causou bug: BleedBox/TrimBox zerados, 1 char por
+        // pagina (200+ paginas no PDF). Margens/font definidas no @page
+        // do template (CSS) em vez de aqui.
         $mpdf = new Mpdf([
-            'mode'              => 'utf-8',
-            'format'            => 'A4',
-            'orientation'       => 'P',
-            'tempDir'           => $tempDir,
-            'default_font'      => 'dejavusans',
-            'default_font_size' => 10,
-            'margin_left'       => 15,
-            'margin_right'      => 15,
-            'margin_top'        => 15,
-            'margin_bottom'     => 15,
+            'tempDir' => $tempDir,
         ]);
         $mpdf->SetBasePath($templateDir . '/');
         $mpdf->WriteHTML($html);
