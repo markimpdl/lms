@@ -52,6 +52,7 @@ const EXCLUDE_PATHS = [
     "doc",
     "memory",
     "examples",
+    "template_reports",     // working dir do PO (templates pre-migracao)
     "node_modules",
     "package.json",
     "package-lock.json",

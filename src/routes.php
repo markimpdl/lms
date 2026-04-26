@@ -30,6 +30,7 @@ return [
 
     'authenticated' => [
         '/profile'                      => '/src/pages/profile.php',
+        '/profile/theme'                => '/src/pages/profile/theme.php',
         '/notifications'                => '/src/pages/notifications/index.php',
         '/notifications/mark-read'      => '/src/pages/notifications/mark-read.php',
         '/notifications/mark-all-read'  => '/src/pages/notifications/mark-all-read.php',

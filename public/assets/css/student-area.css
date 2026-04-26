@@ -198,7 +198,7 @@ body.lms-student-area .lms-student-main {
 
 /* XP block */
 .lms-xp-block {
-    background: #FAFAFA;
+    background: var(--lms-neutral-100);
     border-radius: 14px;
     padding: 14px;
     display: flex;
@@ -239,7 +239,7 @@ body.lms-student-area .lms-student-main {
    .lms-sidebar-card. Eyebrow + valor #N na linha de cima, CTA outline-primary
    full-width abaixo. */
 .lms-ranking-block {
-    background: #FAFAFA;
+    background: var(--lms-neutral-100);
     border-radius: 14px;
     padding: 14px;
     display: flex;
@@ -300,7 +300,7 @@ body.lms-student-area .lms-student-main {
 /* Card de Conquistas no ProfileSidebar (E18-06). Mesma paleta dos blocos
    XP/Ranking; 3 miniaturas icon-only + CTA full-width "Ver todas". */
 .lms-achievements-block {
-    background: #FAFAFA;
+    background: var(--lms-neutral-100);
     border-radius: 14px;
     padding: 14px;
     display: flex;
@@ -781,7 +781,7 @@ body.lms-student-area .lms-student-main {
  * (não sobrescreve). Porcentagem escura pra contrastar com o branco. */
 .lms-course-hero__ring .lms-progress-ring__label {
     color: var(--lms-neutral-900);
-    font-size: 20px;
+    font-size: 17px;
 }
 
 .lms-cc-list { display: flex; flex-direction: column; gap: 32px; }
@@ -2096,4 +2096,404 @@ body.lms-student-area .lms-quiz-question__text {
         margin-top: 4px;
         margin-left: 0;
     }
+}
+
+/* ============================================================
+   Dark mode (E27-03 — F18)
+   ------------------------------------------------------------
+   Ativado por `body.lms-student-area.lms-theme-dark` (set em
+   layout.php quando current_user_theme()==='dark').
+
+   Estratégia: sobrescrever os tokens neutrais (page-bg, card-bg,
+   neutral-*) e ajustar shadows. Cores semânticas (success/warning/
+   danger/primary/violet) ficam inalteradas pra preservar identidade
+   visual do design — apenas suas variantes "tint" trocam pra fundos
+   escuros translúcidos.
+
+   Componentes que usam Bootstrap classes (`bg-white`, `text-muted`,
+   `card`, `alert-*`) precisam override explícito porque não consomem
+   nossos tokens.
+   ============================================================ */
+
+body.lms-student-area.lms-theme-dark {
+    /* Tokens neutrais — invertidos */
+    --lms-page-bg:        #0F172A;  /* slate-900 — fundo da página */
+    --lms-card-bg:        #1E293B;  /* slate-800 — cards */
+
+    --lms-neutral-900:    #F9FAFB;  /* texto principal — agora claro */
+    --lms-neutral-700:    #E5E7EB;  /* texto regular */
+    --lms-neutral-500:    #9CA3AF;  /* texto muted */
+    --lms-neutral-300:    #4B5563;  /* borders sutis */
+    --lms-neutral-200:    #374151;  /* borders mais sutis */
+    --lms-neutral-100:    #1F2937;  /* bg sutil */
+    --lms-neutral-50:     #111827;  /* bg muito sutil */
+
+    --lms-muted:          #94A3B8;
+    --lms-muted-dark:     #CBD5E1;  /* invertido */
+    --lms-muted-tint:     #1E293B;  /* slate-800 — bg em vez de tint claro */
+
+    /* Tints semânticos: trocados por fundos escuros translúcidos
+       pra manter visibilidade do badge/alerta sem ofuscar texto */
+    --lms-success-tint:   rgba(16, 185, 129, 0.18);
+    --lms-warning-tint:   rgba(245, 158, 11, 0.18);
+    --lms-danger-tint:    rgba(239, 68, 68, 0.18);
+    --lms-violet-tint:    rgba(139, 92, 246, 0.18);
+
+    /* Shadows mais visíveis em dark (mais opacas) */
+    --lms-shadow-card:        0 1px 2px rgba(0, 0, 0, 0.4);
+    --lms-shadow-card-hover:  0 18px 40px -18px rgba(0, 0, 0, 0.6);
+    --lms-shadow-card-indigo: 0 10px 24px -8px rgba(99, 102, 241, 0.4);
+}
+
+/* Overrides Bootstrap — classes que não consomem nossos tokens */
+body.lms-student-area.lms-theme-dark .card,
+body.lms-student-area.lms-theme-dark .lms-sidebar-card,
+body.lms-student-area.lms-theme-dark .lms-achievement-card,
+body.lms-student-area.lms-theme-dark .lms-ranking-card,
+body.lms-student-area.lms-theme-dark .lms-dashboard-empty {
+    background-color: var(--lms-card-bg);
+    color: var(--lms-neutral-700);
+    border-color: var(--lms-neutral-200);
+}
+
+body.lms-student-area.lms-theme-dark .bg-white,
+body.lms-student-area.lms-theme-dark .bg-light {
+    background-color: var(--lms-card-bg) !important;
+    color: var(--lms-neutral-700);
+}
+
+body.lms-student-area.lms-theme-dark .text-muted {
+    color: var(--lms-neutral-500) !important;
+}
+
+body.lms-student-area.lms-theme-dark .text-body {
+    color: var(--lms-neutral-700) !important;
+}
+
+/* Inputs — precisam fundo escuro + texto claro */
+body.lms-student-area.lms-theme-dark .form-control,
+body.lms-student-area.lms-theme-dark .form-select {
+    background-color: var(--lms-neutral-100);
+    color: var(--lms-neutral-700);
+    border-color: var(--lms-neutral-300);
+}
+body.lms-student-area.lms-theme-dark .form-control::placeholder {
+    color: var(--lms-neutral-500);
+}
+body.lms-student-area.lms-theme-dark .form-control:focus,
+body.lms-student-area.lms-theme-dark .form-select:focus {
+    background-color: var(--lms-neutral-100);
+    color: var(--lms-neutral-700);
+    border-color: var(--lms-primary-1);
+}
+
+/* Tables (rankings, listas) */
+body.lms-student-area.lms-theme-dark .table {
+    --bs-table-bg:           transparent;
+    --bs-table-color:        var(--lms-neutral-700);
+    --bs-table-border-color: var(--lms-neutral-200);
+    --bs-table-striped-bg:   var(--lms-neutral-100);
+    --bs-table-striped-color: var(--lms-neutral-700);
+    --bs-table-hover-bg:     var(--lms-neutral-100);
+    --bs-table-hover-color:  var(--lms-neutral-900);
+}
+body.lms-student-area.lms-theme-dark .table-light {
+    --bs-table-bg:    var(--lms-neutral-100);
+    --bs-table-color: var(--lms-neutral-700);
+}
+
+/* Alerts: Bootstrap alert-info/warning/etc usam bg-*-subtle que fica
+   muito claro em dark; usamos os tints translúcidos definidos acima */
+body.lms-student-area.lms-theme-dark .alert-success {
+    background-color: var(--lms-success-tint);
+    color: #6EE7B7;
+    border-color: var(--lms-success-dark);
+}
+body.lms-student-area.lms-theme-dark .alert-warning {
+    background-color: var(--lms-warning-tint);
+    color: #FCD34D;
+    border-color: var(--lms-warning-dark);
+}
+body.lms-student-area.lms-theme-dark .alert-danger {
+    background-color: var(--lms-danger-tint);
+    color: #FCA5A5;
+    border-color: var(--lms-danger-dark);
+}
+body.lms-student-area.lms-theme-dark .alert-info {
+    background-color: var(--lms-violet-tint);
+    color: #C4B5FD;
+    border-color: var(--lms-violet-dark);
+}
+
+/* Badges Bootstrap *-subtle ficariam invisíveis em dark; ajusta pros tints */
+body.lms-student-area.lms-theme-dark .bg-success-subtle {
+    background-color: var(--lms-success-tint) !important;
+    color: #6EE7B7 !important;
+}
+body.lms-student-area.lms-theme-dark .bg-warning-subtle {
+    background-color: var(--lms-warning-tint) !important;
+    color: #FCD34D !important;
+}
+body.lms-student-area.lms-theme-dark .bg-danger-subtle {
+    background-color: var(--lms-danger-tint) !important;
+    color: #FCA5A5 !important;
+}
+body.lms-student-area.lms-theme-dark .bg-info-subtle {
+    background-color: var(--lms-violet-tint) !important;
+    color: #C4B5FD !important;
+}
+body.lms-student-area.lms-theme-dark .bg-secondary-subtle {
+    background-color: var(--lms-neutral-100) !important;
+    color: var(--lms-neutral-500) !important;
+}
+
+/* Borders subtle (border-success-subtle etc) */
+body.lms-student-area.lms-theme-dark .border-success-subtle { border-color: var(--lms-success-dark) !important; }
+body.lms-student-area.lms-theme-dark .border-warning-subtle { border-color: var(--lms-warning-dark) !important; }
+body.lms-student-area.lms-theme-dark .border-danger-subtle  { border-color: var(--lms-danger-dark)  !important; }
+body.lms-student-area.lms-theme-dark .border-info-subtle    { border-color: var(--lms-violet-dark)  !important; }
+body.lms-student-area.lms-theme-dark .border-secondary-subtle { border-color: var(--lms-neutral-200) !important; }
+
+/* Conteúdo HTML rendido (TinyMCE output) — ler texto sobre fundo escuro */
+body.lms-student-area.lms-theme-dark .content-render,
+body.lms-student-area.lms-theme-dark .content-render p,
+body.lms-student-area.lms-theme-dark .content-render li {
+    color: var(--lms-neutral-700);
+}
+body.lms-student-area.lms-theme-dark .content-render a {
+    color: #818CF8;  /* indigo-400 */
+}
+body.lms-student-area.lms-theme-dark .content-render pre {
+    background-color: var(--lms-neutral-50);
+    color: var(--lms-neutral-700);
+}
+body.lms-student-area.lms-theme-dark .content-render blockquote {
+    border-left-color: var(--lms-neutral-300);
+    color: var(--lms-neutral-500);
+}
+
+/* Links default */
+body.lms-student-area.lms-theme-dark a {
+    color: #818CF8;
+}
+body.lms-student-area.lms-theme-dark a:hover {
+    color: #A5B4FC;
+}
+
+/* List-group (ex.: histórico de tentativas) */
+body.lms-student-area.lms-theme-dark .list-group-item {
+    background-color: var(--lms-card-bg);
+    color: var(--lms-neutral-700);
+    border-color: var(--lms-neutral-200);
+}
+
+/* Breadcrumbs */
+body.lms-student-area.lms-theme-dark .breadcrumb-item.active {
+    color: var(--lms-neutral-500);
+}
+
+/* Headings: já herdam color do body via CSS root */
+body.lms-student-area.lms-theme-dark h1,
+body.lms-student-area.lms-theme-dark h2,
+body.lms-student-area.lms-theme-dark h3,
+body.lms-student-area.lms-theme-dark h4,
+body.lms-student-area.lms-theme-dark .h1,
+body.lms-student-area.lms-theme-dark .h2,
+body.lms-student-area.lms-theme-dark .h3,
+body.lms-student-area.lms-theme-dark .h4 {
+    color: var(--lms-neutral-900);
+}
+
+/* Navbar (E27-04 fix): tinha bg #fff hardcoded em app.css. Em dark, usa
+   o card-bg pra integrar com o restante. */
+body.lms-student-area.lms-theme-dark .lms-navbar {
+    background: var(--lms-card-bg);
+    border-bottom-color: var(--lms-neutral-200);
+}
+body.lms-student-area.lms-theme-dark .lms-navbar__brand,
+body.lms-student-area.lms-theme-dark .lms-navbar__brand:hover,
+body.lms-student-area.lms-theme-dark .lms-navbar__user-name,
+body.lms-student-area.lms-theme-dark .lms-navbar__lang-label,
+body.lms-student-area.lms-theme-dark .lms-navbar__link {
+    color: var(--lms-neutral-700);
+}
+body.lms-student-area.lms-theme-dark .lms-navbar__link:hover {
+    background: var(--lms-neutral-100);
+    color: var(--lms-neutral-900);
+}
+body.lms-student-area.lms-theme-dark .lms-navbar__link.is-active {
+    background: var(--lms-neutral-100);
+    color: var(--lms-primary-1);
+}
+body.lms-student-area.lms-theme-dark .lms-navbar__lang,
+body.lms-student-area.lms-theme-dark .lms-navbar__user-btn {
+    color: var(--lms-neutral-700);
+}
+body.lms-student-area.lms-theme-dark .lms-navbar__lang:hover,
+body.lms-student-area.lms-theme-dark .lms-navbar__user-btn:hover {
+    background: var(--lms-neutral-100);
+}
+body.lms-student-area.lms-theme-dark .lms-navbar__divider {
+    background: var(--lms-neutral-200);
+}
+body.lms-student-area.lms-theme-dark .lms-navbar__logo--branded {
+    background-color: var(--lms-neutral-100);
+    border-color: var(--lms-neutral-200);
+}
+body.lms-student-area.lms-theme-dark .dropdown-menu {
+    background-color: var(--lms-card-bg);
+    border-color: var(--lms-neutral-200);
+}
+body.lms-student-area.lms-theme-dark .dropdown-item {
+    color: var(--lms-neutral-700);
+}
+body.lms-student-area.lms-theme-dark .dropdown-item:hover,
+body.lms-student-area.lms-theme-dark .dropdown-item:focus {
+    background-color: var(--lms-neutral-100);
+    color: var(--lms-neutral-900);
+}
+body.lms-student-area.lms-theme-dark .dropdown-divider {
+    border-top-color: var(--lms-neutral-200);
+}
+
+/* Bootstrap nav-tabs (E27-04 fix): a tab ativa tem bg branco hardcoded
+   pelo Bootstrap; tabs inativas herdam fundo do parent. Em dark
+   precisamos: ativa = card-bg + texto claro + border integrada;
+   inativa = transparente + texto muted. */
+body.lms-student-area.lms-theme-dark .nav-tabs {
+    border-bottom-color: var(--lms-neutral-200);
+}
+body.lms-student-area.lms-theme-dark .nav-tabs .nav-link {
+    color: var(--lms-neutral-500);
+    background-color: transparent;
+    border-color: transparent;
+}
+body.lms-student-area.lms-theme-dark .nav-tabs .nav-link:hover,
+body.lms-student-area.lms-theme-dark .nav-tabs .nav-link:focus {
+    color: var(--lms-neutral-900);
+    border-color: var(--lms-neutral-200);
+}
+body.lms-student-area.lms-theme-dark .nav-tabs .nav-link.active {
+    background-color: var(--lms-card-bg);
+    color: var(--lms-neutral-900);
+    border-color: var(--lms-neutral-200) var(--lms-neutral-200) var(--lms-card-bg);
+}
+
+/* Bootstrap modal (E27-04 fix): default tem bg branco. Sino de
+   notificações abre modal/dropdown com fundo claro. */
+body.lms-student-area.lms-theme-dark .modal-content {
+    background-color: var(--lms-card-bg);
+    color: var(--lms-neutral-700);
+    border-color: var(--lms-neutral-200);
+}
+body.lms-student-area.lms-theme-dark .modal-header {
+    border-bottom-color: var(--lms-neutral-200);
+}
+body.lms-student-area.lms-theme-dark .modal-footer {
+    border-top-color: var(--lms-neutral-200);
+}
+body.lms-student-area.lms-theme-dark .btn-close {
+    /* Bootstrap btn-close usa SVG branco/preto; invert filtra pra ficar visível em dark */
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Sino dropdown (lms-bell__dropdown) — pode ter bg hardcoded */
+body.lms-student-area.lms-theme-dark .lms-bell__dropdown,
+body.lms-student-area.lms-theme-dark .lms-bell__item {
+    background-color: var(--lms-card-bg);
+    color: var(--lms-neutral-700);
+    border-color: var(--lms-neutral-200);
+}
+body.lms-student-area.lms-theme-dark .lms-bell__item:hover {
+    background-color: var(--lms-neutral-100);
+}
+
+/* Progress ring (E27-04 fix): círculo interno (::before) tem bg #fff
+   hardcoded em app.css. Em dark, ring no hero do curso fica branco
+   (ok, é overlay sobre gradient colorido); mas o ::before interno
+   precisa respeitar o tema pro texto da label aparecer. Como o ring
+   no hero é sempre branco/translúcido sobre gradient colorido,
+   forçamos label DARK lá pra ser legível. Em outros lugares (sidebar,
+   course card, CC header), o ::before precisa ser dark pra integrar
+   com card-bg. */
+body.lms-student-area.lms-theme-dark .lms-progress-ring::before {
+    background: var(--lms-card-bg);
+}
+body.lms-student-area.lms-theme-dark .lms-progress-ring__label {
+    color: var(--lms-neutral-700);
+}
+/* Hero do curso: ring é deliberadamente branco translúcido sobre o
+   gradient colorido do hero — forçamos label dark fixo (não depende
+   do tema). E ::before lá fica branco sólido pra contraste. As 2
+   classes `lms-progress-ring` e `lms-course-hero__ring` coexistem no
+   MESMO elemento, então combinamos sem espaço (pass 1 errou usando
+   espaço, que busca descendente). */
+body.lms-student-area.lms-theme-dark .lms-progress-ring.lms-course-hero__ring::before {
+    background: #fff;
+}
+body.lms-student-area.lms-theme-dark .lms-progress-ring.lms-course-hero__ring .lms-progress-ring__label,
+body.lms-student-area.lms-theme-dark .lms-course-hero__ring .lms-progress-ring__label {
+    color: #111827;
+}
+
+/* ── Pass 2 fixes (PO smoke v0.24.0 pre-release) ──────────────── */
+
+/* Sidebar sub-cards (XP, Conquistas, Ranking) ficaram MUITO próximos
+   do card-bg parent — adiciona border explícita pra recriar contorno. */
+body.lms-student-area.lms-theme-dark .lms-xp-block,
+body.lms-student-area.lms-theme-dark .lms-ranking-block,
+body.lms-student-area.lms-theme-dark .lms-achievements-block {
+    border: 1px solid var(--lms-neutral-200);
+}
+
+/* Botão idioma na navbar (.lms-navbar__lang): bg #fff + border #E5E7EB
+   hardcoded em app.css. Pass 1 cobriu só color. */
+body.lms-student-area.lms-theme-dark .lms-navbar__lang {
+    background: var(--lms-neutral-100);
+    border-color: var(--lms-neutral-200);
+}
+body.lms-student-area.lms-theme-dark .lms-navbar__lang:hover {
+    background: var(--lms-neutral-200);
+    border-color: var(--lms-neutral-300);
+}
+
+/* Sino de notificações: itens com cor de texto hardcoded em app.css */
+body.lms-student-area.lms-theme-dark .lms-bell__item-title {
+    color: var(--lms-neutral-900);
+}
+body.lms-student-area.lms-theme-dark .lms-bell__item-text {
+    color: var(--lms-neutral-500);
+}
+body.lms-student-area.lms-theme-dark .lms-bell__item-time {
+    color: var(--lms-neutral-500);
+}
+body.lms-student-area.lms-theme-dark .lms-bell__item {
+    border-bottom-color: var(--lms-neutral-200);
+}
+body.lms-student-area.lms-theme-dark .lms-bell__item--unread {
+    background: rgba(139, 92, 246, 0.12);  /* violet-tint translúcido */
+}
+body.lms-student-area.lms-theme-dark .lms-bell__item-btn:hover {
+    background: var(--lms-neutral-100);
+}
+
+/* Modal title (Bootstrap usa color: inherit; modal-content em dark já
+   tem color claro, mas modal-title pode ter override em algum lugar) */
+body.lms-student-area.lms-theme-dark .modal-title {
+    color: var(--lms-neutral-900);
+}
+
+/* Sino dropdown — título "Notificações" e header (color #111827 hardcoded
+   em app.css; pass 1/2 não cobriram). */
+body.lms-student-area.lms-theme-dark .lms-bell__dropdown-header {
+    border-bottom-color: var(--lms-neutral-200);
+}
+body.lms-student-area.lms-theme-dark .lms-bell__dropdown-title {
+    color: var(--lms-neutral-900);
+}
+body.lms-student-area.lms-theme-dark .lms-bell__empty {
+    color: var(--lms-neutral-500);
+}
+body.lms-student-area.lms-theme-dark .lms-bell__dropdown-footer {
+    border-top-color: var(--lms-neutral-200);
 }
