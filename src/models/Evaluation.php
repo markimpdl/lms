@@ -30,7 +30,8 @@ final class Evaluation
             'SELECT e.id, e.tenant_id, e.competence_unit_id, e.title, e.instructions,
                     e.type, e.pdf_path, e.xp_value, e.submission_open,
                     e.created_at, e.updated_at,
-                    cc.id AS cc_id, c.id AS course_id, c.archived AS course_archived
+                    cc.id AS cc_id, c.id AS course_id, c.archived AS course_archived,
+                    c.grading_mode AS course_grading_mode
                FROM evaluations e
                JOIN competence_units cu   ON cu.id = e.competence_unit_id
                JOIN core_competencies cc  ON cc.id = cu.core_competency_id

@@ -24,6 +24,8 @@ if ($evaluation === null) {
 
 $cuId       = (int) $evaluation['competence_unit_id'];
 $isArchived = (int) $evaluation['course_archived'] === 1;
+// E25-04: passa pro _form.php (type é imutável em edit, mas o hint adapta).
+$isLoMode   = (string) ($evaluation['course_grading_mode'] ?? 'grade') === 'learning_outcomes';
 
 $old = [
     'title'           => (string) $evaluation['title'],

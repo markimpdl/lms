@@ -511,6 +511,7 @@ return [
     'evaluations.type.quiz'             => 'Quiz (múltipla escolha)',
     'evaluations.form.type'             => 'Tipo',
     'evaluations.form.type_hint'        => 'Projeto: aluno envia PDF ou ZIP e você corrige manualmente. Quiz: questões de múltipla escolha com nota automática.',
+    'evaluations.form.type_hint_lo'     => 'Curso em modo Learning Outcomes: só Projeto é compatível (Quiz é nota automática e não combina com avaliação por critério).',
     'evaluations.form.err.type'         => 'Tipo de avaliação inválido.',
     'evaluations.form.quiz_hint'        => 'Esta é uma avaliação tipo Quiz.',
     'evaluations.form.quiz_edit_btn'    => 'Editar questões',
@@ -585,6 +586,7 @@ return [
     'evaluations.err.brief_mime'          => 'O arquivo precisa ser PDF ou ZIP.',
     'evaluations.err.brief_no_file'       => 'Nenhum arquivo foi enviado.',
     'evaluations.err.brief_generic'       => 'Não foi possível salvar o arquivo. Tente novamente.',
+    'evaluations.err.quiz_not_in_lo_mode' => 'Quiz não é permitido em cursos com Learning Outcomes.',
     'evaluations.delete.zone'           => 'Excluir avaliação',
     'evaluations.delete.warning'        => 'Esta ação remove a avaliação, o PDF do enunciado, todas as entregas dos alunos e o XP creditado. Não pode ser desfeita.',
 
