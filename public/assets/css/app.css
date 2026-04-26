@@ -447,9 +447,7 @@ main { flex: 1 0 auto; }
     .lms-navbar__lang { padding: 8px; }
     .lms-navbar__divider { display: none; }
     .lms-navbar__user-name { display: none; }
-    .lms-navbar__link { padding: 8px 10px; font-size: 13px; }
-    .lms-navbar__link-text { display: none; }
-    .lms-navbar__link-icon { display: inline-block; }
+    .lms-navbar__nav { display: none; }
     .lms-bell__dropdown { width: calc(100vw - 16px); right: -8px; }
 }
 
