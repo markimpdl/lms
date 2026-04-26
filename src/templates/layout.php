@@ -27,15 +27,25 @@ $extraBody = $body_class   ?? '';
 $lang      = current_lang();
 
 $user             = current_user();
+$role             = $user !== null ? ($user['role'] ?? '') : '';
 $path             = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 // Sidebar do aluno (E14-01) também aparece em /profile pra compor melhor
 // quando o aluno está editando os próprios dados.
 $isStudentArea    = $user !== null
-    && ($user['role'] ?? '') === 'student'
+    && $role === 'student'
     && ($path === '/student'
         || str_starts_with($path, '/student/')
         || $path === '/profile'
         || $path === '/notifications');
+// E29-01: shells visuais pra teacher e admin (sem sidebar). Aplicam
+// fontes + page bg + overrides Bootstrap leves via cascade.
+$isTeacherArea    = $user !== null
+    && $role === 'teacher'
+    && ($path === '/teacher' || str_starts_with($path, '/teacher/'));
+$isAdminArea      = $user !== null
+    && $role === 'super_admin'
+    && ($path === '/admin' || str_starts_with($path, '/admin/'));
+$isThemedArea     = $isStudentArea || $isTeacherArea || $isAdminArea;
 
 $bodyClass = $extraBody;
 if ($isStudentArea) {
@@ -45,6 +55,10 @@ if ($isStudentArea) {
     if (current_user_theme() === 'dark') {
         $bodyClass = trim($bodyClass . ' lms-theme-dark');
     }
+} elseif ($isTeacherArea) {
+    $bodyClass = trim($bodyClass . ' lms-teacher-area');
+} elseif ($isAdminArea) {
+    $bodyClass = trim($bodyClass . ' lms-admin-area');
 }
 ?><!doctype html>
 <html lang="<?= e($lang) ?>">
@@ -56,11 +70,13 @@ if ($isStudentArea) {
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <?php if ($isStudentArea): ?>
+    <?php if ($isThemedArea): ?>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <?php endif; ?>
+    <?php if ($isStudentArea): ?>
         <link rel="stylesheet" href="/assets/css/student-area.css">
     <?php endif; ?>
     <link rel="stylesheet" href="/assets/css/app.css">
