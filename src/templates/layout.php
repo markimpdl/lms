@@ -28,9 +28,11 @@ $lang      = current_lang();
 
 $user             = current_user();
 $path             = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+// Sidebar do aluno (E14-01) também aparece em /profile pra compor melhor
+// quando o aluno está editando os próprios dados.
 $isStudentArea    = $user !== null
     && ($user['role'] ?? '') === 'student'
-    && ($path === '/student' || str_starts_with($path, '/student/'));
+    && ($path === '/student' || str_starts_with($path, '/student/') || $path === '/profile');
 
 $bodyClass = $extraBody;
 if ($isStudentArea) {
