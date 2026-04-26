@@ -195,6 +195,7 @@ ob_start();
                     <tr>
                         <th style="width: 80px;"><?= e(__t('ranking.col.position')) ?></th>
                         <th><?= e(__t('ranking.col.name')) ?></th>
+                        <th class="d-none d-md-table-cell" style="width: 130px;"><?= e(__t('ranking.col.rank')) ?></th>
                         <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.groups')) ?></th>
                         <th class="text-end" style="width: 110px;"><?= e(__t('ranking.col.xp')) ?></th>
                         <th class="d-none d-lg-table-cell" style="width: 140px;">
@@ -204,6 +205,12 @@ ob_start();
                 </thead>
                 <tbody>
                     <?php foreach ($rows as $row): ?>
+                        <?php
+                        $rankName  = $row['rank_name'];
+                        $rankColor = is_string($row['rank_color_hex']) && preg_match('/^#[0-9A-Fa-f]{6}$/', $row['rank_color_hex'])
+                            ? $row['rank_color_hex']
+                            : '#6B7280';
+                        ?>
                         <tr>
                             <td><strong>#<?= (int) $row['position'] ?></strong></td>
                             <td>
@@ -211,6 +218,17 @@ ob_start();
                                      class="lms-ranking-avatar d-none d-md-inline-block me-2"
                                      alt="" width="32" height="32" loading="lazy">
                                 <?= e($row['name']) ?>
+                                <?php if ($rankName !== null): ?>
+                                    <span class="lms-rank-pill lms-rank-pill--inline d-md-none"
+                                          style="background: <?= e($rankColor) ?>"><?= e($rankName) ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="d-none d-md-table-cell">
+                                <?php if ($rankName !== null): ?>
+                                    <span class="lms-rank-pill" style="background: <?= e($rankColor) ?>"><?= e($rankName) ?></span>
+                                <?php else: ?>
+                                    <span class="text-muted" title="<?= e(__t('ranking.no_rank')) ?>">—</span>
+                                <?php endif; ?>
                             </td>
                             <td class="d-none d-md-table-cell text-muted small">
                                 <?= $row['group_names'] !== '' ? e($row['group_names']) : '<span class="text-muted">—</span>' ?>

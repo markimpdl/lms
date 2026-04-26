@@ -209,6 +209,32 @@ main { flex: 1 0 auto; }
     margin-right: 8px;
 }
 
+/* Patente pill no ranking (E28-02). Funciona em /teacher/ranking (Bootstrap)
+   e /student/ranking (student-area). Cor de fundo vem inline via style="" do
+   markup — rank.color_hex e validado server-side como #RRGGBB antes de sair.
+   Texto sempre branco; cores muito pastel ficam ilegiveis (anotar em doc/99
+   se PO reportar). Modificador --inline encolhe pill pra caber ao lado do
+   nome em mobile. */
+.lms-rank-pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: #6B7280;
+    color: #fff;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 18px;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+.lms-rank-pill--inline {
+    margin-left: 6px;
+    padding: 1px 8px;
+    font-size: 10px;
+}
+
 /* Language pill */
 .lms-navbar__lang-form { display: inline-flex; }
 .lms-navbar__lang {
