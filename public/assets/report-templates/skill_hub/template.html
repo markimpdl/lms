@@ -10,6 +10,11 @@
         size: 210mm 297mm;
         margin: 18mm 18mm 18mm 18mm;
     }
+    /* Capa precisa bleed-to-edge: image001 (esquerda) e image002
+       (rodape) tem que tocar as bordas da pagina sem margem branca. */
+    @page :first {
+        margin: 0;
+    }
     body {
         font-family: dejavusans, sans-serif;
         color: #15365F;
@@ -19,28 +24,46 @@
         padding: 0;
     }
 
-    /* Cover wrapper — img inline (sem position:absolute) */
+    /* Cover layout — table 2-col: image001 esquerda (bleed) + texto
+       direita no mesmo nivel vertical. Image002 no rodape em width
+       full (bleed esquerda+direita). @page :first { margin: 0 } cuida
+       do bleed top/left/right. */
+    .cover-table {
+        width: 210mm;
+        border-collapse: collapse;
+        margin: 0;
+    }
+    .cover-table td {
+        border: none;
+        padding: 0;
+        vertical-align: middle;
+    }
     .cover-img {
         display: block;
-        width: 174mm;
-        height: auto;
-        margin: 0 auto;
+        width: 108mm;
+        height: 180mm;
     }
-    .cover-overlay {
-        text-align: center;
-        margin-top: 6mm;
+    .cover-text {
+        padding: 0 18mm 0 12mm;
+        vertical-align: middle;
     }
-    .cover-overlay h1 {
+    .cover-text h1 {
         font-family: dejavusansb, sans-serif;
         font-size: 22pt;
         font-weight: bold;
         color: #15365F;
-        margin: 0 0 4mm 0;
+        margin: 0 0 6mm 0;
     }
-    .cover-overlay .course {
+    .cover-text .course {
         font-size: 11pt;
         font-weight: bold;
         color: #15365F;
+        margin: 0;
+    }
+    .cover-bottom {
+        display: block;
+        width: 210mm;
+        height: auto;
         margin: 0;
     }
 
@@ -180,14 +203,45 @@
 </head>
 <body>
 
-<!-- Pagina 1 (capa) -->
-<img class="cover-img" src="images/image001.png" alt="">
-<div class="cover-overlay">
-    <h1>Assessment Report</h1>
-    <p class="course">{{NAME_COURSE}}</p>
-</div>
+<!-- Footer da pagina de conteudo (definicao + ativacao apos page break).
+     Posicionado automatico na base de cada pagina pelo mPDF. -->
+<htmlpagefooter name="contentFooter">
+    <div class="doc-footer">
+        <hr>
+        <table>
+            <tr>
+                <td class="col-l">
+                    <strong>Date: January 2026</strong><br>
+                    Skills for a sustainable future.
+                </td>
+                <td class="col-c">
+                    <strong>Version: 1.0</strong><br>
+                    &copy; Skills Department
+                </td>
+                <td class="col-r">{PAGENO}</td>
+            </tr>
+        </table>
+    </div>
+</htmlpagefooter>
 
-<pagebreak />
+<!-- Pagina 1 (capa) — bleed-to-edge via @page :first margin:0 -->
+<table class="cover-table">
+    <tr>
+        <td style="width: 108mm;">
+            <img class="cover-img" src="images/image001.png" alt="">
+        </td>
+        <td class="cover-text">
+            <h1>Assessment Report</h1>
+            <p class="course">{{NAME_COURSE}}</p>
+        </td>
+    </tr>
+</table>
+<img class="cover-bottom" src="images/image002.png" alt="">
+
+<pagebreak resetpagenum="1" />
+
+<!-- Ativa o footer DEPOIS do page break (a partir da pagina 2) -->
+<sethtmlpagefooter name="contentFooter" value="on" />
 
 <!-- Pagina 2 (conteudo) -->
 <table class="doc-header">
@@ -275,25 +329,6 @@
         </tr>
     </tbody>
 </table>
-
-<div class="doc-footer">
-    <hr>
-    <table>
-        <tr>
-            <td class="col-l">
-                <strong>Date: January 2026</strong><br>
-                Skills for a sustainable future.
-            </td>
-            <td class="col-c">
-                <strong>Version: 1.0</strong><br>
-                &copy; Skills Department
-            </td>
-            <td class="col-r">
-                1
-            </td>
-        </tr>
-    </table>
-</div>
 
 </body>
 </html>
