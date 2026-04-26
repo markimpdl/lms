@@ -40,7 +40,12 @@ ob_start();
 ?>
 <div class="row justify-content-center">
     <div class="col-12 col-md-10 col-lg-8">
-        <h1 class="h4 mb-3"><?= e(__t('admin.settings.title')) ?></h1>
+        <header class="lms-dashboard-header">
+            <div>
+                <span class="lms-dashboard-eyebrow"><?= e(__t('admin.settings.eyebrow')) ?></span>
+                <h1 class="lms-dashboard-title"><?= e(__t('admin.settings.title')) ?></h1>
+            </div>
+        </header>
 
         <div class="card shadow-sm">
             <div class="card-body">
