@@ -108,6 +108,7 @@ CREATE TABLE IF NOT EXISTS courses (
     activity_mode        ENUM('sequential','free') NOT NULL DEFAULT 'sequential',
     eval_after_activities TINYINT(1) NOT NULL DEFAULT 1,
     grading_mode         ENUM('grade','learning_outcomes') NOT NULL DEFAULT 'grade',
+    report_mode          ENUM('disabled','skill_hub') NOT NULL DEFAULT 'disabled',
     created_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
@@ -272,6 +273,7 @@ CREATE TABLE IF NOT EXISTS evaluation_submissions (
     filename        VARCHAR(255) NULL,
     stored_path     VARCHAR(500) NULL,
     quiz_snapshot   JSON NULL DEFAULT NULL,
+    report_pdf_path VARCHAR(500) NULL DEFAULT NULL,
     grade           DECIMAL(3,1) NULL,
     feedback        TEXT NULL,
     feedback_at     DATETIME NULL DEFAULT NULL,
@@ -1251,6 +1253,40 @@ SET @col_exists := (
 );
 SET @sql := IF(@col_exists = 0,
     "ALTER TABLE courses ADD COLUMN grading_mode ENUM('grade','learning_outcomes') NOT NULL DEFAULT 'grade' AFTER eval_after_activities",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E26-01] courses.report_mode — habilitar geracao de PDF Report pos-feedback.
+-- 'disabled' default (sem PDF); 'skill_hub' usa template entregue pelo PO em
+-- public/assets/report-templates/skill_hub/. Restrito a Actvet+LO via UI;
+-- defesa server-side forca 'disabled' fora desse cenario. ENUM preparado pra
+-- ganhar 'emirates_skills' em iteracao futura.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'courses'
+       AND COLUMN_NAME  = 'report_mode'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE courses ADD COLUMN report_mode ENUM('disabled','skill_hub') NOT NULL DEFAULT 'disabled' AFTER grading_mode",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E26-01] evaluation_submissions.report_pdf_path — path relativo a LMS_ROOT
+-- do PDF gerado pos-feedback (storage/reports/eval_X_student_Y_attempt_N.pdf).
+-- NULL antes da geracao ou em report_mode=disabled. Re-correcao sobrescreve.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'evaluation_submissions'
+       AND COLUMN_NAME  = 'report_pdf_path'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE evaluation_submissions ADD COLUMN report_pdf_path VARCHAR(500) NULL DEFAULT NULL AFTER quiz_snapshot",
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
