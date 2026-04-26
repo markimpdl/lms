@@ -192,6 +192,8 @@ main { flex: 1 0 auto; }
 }
 .lms-navbar__link:hover { background: #F3F4F6; color: #111827; }
 .lms-navbar__link.is-active { background: #EEF2FF; color: #4F46E5; }
+.lms-navbar__link-icon { display: none; font-size: 18px; line-height: 1; }
+.lms-navbar__link-text { display: inline; }
 
 /* Avatar nas linhas de ranking (E17-05). Funciona em /teacher/ranking
    (Bootstrap default) e /student/ranking (override em student-area.css
@@ -419,7 +421,9 @@ main { flex: 1 0 auto; }
     .lms-navbar__lang { padding: 8px; }
     .lms-navbar__divider { display: none; }
     .lms-navbar__user-name { display: none; }
-    .lms-navbar__link { padding: 6px 10px; font-size: 13px; }
+    .lms-navbar__link { padding: 8px 10px; font-size: 13px; }
+    .lms-navbar__link-text { display: none; }
+    .lms-navbar__link-icon { display: inline-block; }
     .lms-bell__dropdown { width: calc(100vw - 16px); right: -8px; }
 }
 

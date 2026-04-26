@@ -45,14 +45,18 @@ $brandLogo = $brand['logo_url'] ?? null;
             <nav class="lms-navbar__nav" aria-label="<?= e(__t('nav.primary_aria')) ?>">
                 <?php if ($rankingHref !== null): ?>
                     <a class="lms-navbar__link <?= $currentPath === $rankingHref ? 'is-active' : '' ?>"
-                       href="<?= e($rankingHref) ?>">
-                        <?= e(__t('nav.ranking')) ?>
+                       href="<?= e($rankingHref) ?>"
+                       aria-label="<?= e(__t('nav.ranking')) ?>">
+                        <i class="bi bi-trophy lms-navbar__link-icon" aria-hidden="true"></i>
+                        <span class="lms-navbar__link-text"><?= e(__t('nav.ranking')) ?></span>
                     </a>
                 <?php endif; ?>
                 <?php if ($achievementsHref !== null): ?>
                     <a class="lms-navbar__link <?= $currentPath === $achievementsHref ? 'is-active' : '' ?>"
-                       href="<?= e($achievementsHref) ?>">
-                        <?= e(__t('nav.achievements')) ?>
+                       href="<?= e($achievementsHref) ?>"
+                       aria-label="<?= e(__t('nav.achievements')) ?>">
+                        <i class="bi bi-award lms-navbar__link-icon" aria-hidden="true"></i>
+                        <span class="lms-navbar__link-text"><?= e(__t('nav.achievements')) ?></span>
                     </a>
                 <?php endif; ?>
             </nav>
