@@ -122,6 +122,7 @@ return [
     'profile.change_password'         => 'Change password',
     'profile.updated'                 => 'Profile updated.',
     'profile.password_changed'        => 'Password changed successfully.',
+    'profile.theme.saved'             => 'Theme updated.',
     'profile.error.name'              => 'Enter a name between 1 and 150 characters.',
     'profile.error.language'          => 'Invalid language.',
     'profile.error.current_wrong'     => 'Current password is incorrect.',

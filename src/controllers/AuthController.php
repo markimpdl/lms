@@ -71,7 +71,7 @@ final class AuthController
             'SELECT u.id,
                     COALESCE(t.id, u.tenant_id) AS tenant_id,
                     u.email, u.password_hash, u.password_changed_at,
-                    u.name, u.role, u.language, u.active
+                    u.name, u.role, u.language, u.theme, u.active
                FROM users u
                LEFT JOIN tenants t ON t.owner_user_id = u.id AND t.active = 1
               WHERE u.email = ? AND u.active = 1'
@@ -150,7 +150,7 @@ final class AuthController
             'SELECT u.id,
                     COALESCE(t.id, u.tenant_id) AS tenant_id,
                     u.email, u.password_hash, u.password_changed_at,
-                    u.name, u.role, u.language, u.active
+                    u.name, u.role, u.language, u.theme, u.active
                FROM users u
                LEFT JOIN tenants t ON t.owner_user_id = u.id AND t.active = 1
               WHERE u.id = ? AND u.active = 1
@@ -185,6 +185,7 @@ final class AuthController
             'name'                => (string) $user['name'],
             'role'                => (string) $user['role'],
             'language'            => (string) ($user['language'] ?? 'pt'),
+            'theme'               => (string) ($user['theme']    ?? 'light'),
             'password_changed_at' => $user['password_changed_at'] ?? null,
         ];
 
