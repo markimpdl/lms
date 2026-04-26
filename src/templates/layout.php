@@ -32,7 +32,10 @@ $path             = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_P
 // quando o aluno está editando os próprios dados.
 $isStudentArea    = $user !== null
     && ($user['role'] ?? '') === 'student'
-    && ($path === '/student' || str_starts_with($path, '/student/') || $path === '/profile');
+    && ($path === '/student'
+        || str_starts_with($path, '/student/')
+        || $path === '/profile'
+        || $path === '/notifications');
 
 $bodyClass = $extraBody;
 if ($isStudentArea) {
