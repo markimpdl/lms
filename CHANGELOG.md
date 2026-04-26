@@ -4,6 +4,43 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.21.0] — 2026-04-26
+
+Vigésima primeira release. Escopo: **Epic E24 inteiro — White-label + flag `is_actvet`** (4 stories, F15) + 1 feature CRUD complementar (botão "Excluir logo") + 6 fixes UX/bug acumulados durante a janela. Habilita customização visual por professor e estabelece a flag pré-requisito de E25 (LO) e E26 (Reports).
+
+### Novas funcionalidades
+
+#### Epic E24 — White-label + flag `is_actvet`
+
+- **Schema + flag is_actvet no cadastro/edição de professor (super-admin)** (E24-01, #302): 3 colunas novas em `tenants` (`is_actvet TINYINT(1) DEFAULT 0`, `platform_name VARCHAR(60) NULL`, `logo_path VARCHAR(255) NULL`) — CREATE TABLE + ALTERs idempotentes via `PREPARE/EXECUTE` (padrão E17-04). Toggle "É Actvet?" em `/admin/teachers/{new,edit}`; submit cria/atualiza via `Tenant::setIsActvet`; badge "Actvet" na listagem (tabela + cards mobile) e no resumo do edit. Auditoria de SELECTs explícitos: `Tenant::findById`, `TeacherAdmin::list/findById` agora trazem `is_actvet`. Backfill de produção feito via UI (sem SQL manual). 3 chaves i18n PT/EN.
+- **Helper `tenant_branding()` + render na navbar** (E24-02, #303): novo helper em `src/helpers.php` (cache estático por request, padrão `student_avatar_url`) resolve nome+logo a renderizar. Actvet trava logo built-in `/assets/logos/actvet.png` + nome `'Skills Hub'` (ou `platform_name` se setado). Não-Actvet usa upload em `/uploads/logos/<basename>` ou cai no fallback i18n `branding.default_name` ("LMS"). `header.php` resolve tenant via `session.tenant_id` (teacher e student têm; super-admin e deslogado caem no fallback `[L] LMS`). 1 chave i18n PT/EN.
+- **Customização visual em /teacher/settings** (E24-03, #304): novo `LogoStorage` service (template do `EvaluationBriefStorage` — `is_uploaded_file`, `finfo` MIME real, allowlist `png/jpg/jpeg/svg`, max **500KB**, basename `<tenant_id>-<timestamp>.<ext>` em `public/uploads/logos/`, best-effort cleanup do antigo, path traversal defendido por `realpath`). `Tenant::updateBranding(tid, ?name, ?basename)` normaliza string vazia → NULL. `/teacher/settings` ganha 2º card "Identidade visual" com 2 forms separados (`form=avatar|branding`); Actvet vê thumbnail Actvet + hint "padrão (não editável)" e tem upload **rejeitado server-side** mesmo via POST manipulado. Não-Actvet edita nome (max 60 chars) + faz upload com preview. SVG aceita com **trust boundary documentado** (não sanitiza no MVP — risco contido ao próprio professor). 12 chaves i18n PT/EN.
+- **Defaults de provisioning Actvet** (E24-04, #305): INSERT em `TeacherProvisioningService::create` agora seta 2 campos institucionais por contexto — Actvet: `avatar_style='arabe'`+`platform_name='Skills Hub'`; não-Actvet: `'ocidental'`+NULL. Tenants existentes não afetados.
+- **Botão "Excluir logo" em /teacher/settings** (#314): completa o CRUD da logo customizada. Quando professor não-Actvet tem logo setada, botão "Excluir logo" aparece ao lado do thumbnail; click → confirm JS → remove arquivo + zera `tenants.logo_path`; volta pro fallback do sistema. Form oculto separado (HTML não permite forms aninhados); botão usa atributo `form="..."` pra submeter. Defesa server-side pra Actvet. 3 chaves i18n PT/EN.
+
+### Correções
+
+- **Logo customizada estourava da navbar** (#308 + #309): primeira tentativa migrou de `<img>` pra `<span>` background-image em slot 34x34 fixo (#308), mas com `background-size: contain` num quadrado, logos de aspect ratio 2:1 (Actvet 714x348) ficavam pequenas. Volta pra `<img>` com `height: 48px !important; width: auto !important; max-width: none !important;` (#309) — largura proporcional ao aspect nativo, ocupa 3/4 da altura da navbar (64px). `!important` defensivo blinda contra qualquer regra global de `img`.
+- **Mobile: links Ranking/Achievements viram ícones** (#309): Bootstrap Icons (`bi-trophy` + `bi-award`) sempre renderizados; CSS alterna visibilidade entre texto (≥576px) e ícone (<576px). `aria-label` no `<a>` mantém acessibilidade quando só o ícone fica visível.
+- **/profile sem botão Voltar + sem sidebar pro aluno** (#309): novo botão "Voltar" no header do /profile com destino por papel (student→/student, teacher→/teacher, admin→/admin); `lms-student-area` estendido pra incluir `/profile` quando user é aluno → sidebar com avatar/XP/conquistas/ranking aparece junto da edição.
+- **Form do /profile comprimido pro aluno** (#310): após adicionar a sidebar (#309), o wrapper `row > col-12 col-md-10 col-lg-8` ainda comprimia o conteúdo dentro da coluna 1fr (já reduzida pela sidebar 300px). Aluno usa `.lms-student-main` direto — width 100%; teacher/super-admin (layout container clássico) mantém o centramento.
+- **`avg_feedback_minutes` negativo em course metrics** (#313, bug do PO): alguma submission (legacy/seed) tem `feedback_at < created_at` e `TIMESTAMPDIFF(MINUTE, ...)` retornava negativo distorcendo o AVG. Fix: as 3 queries em `CourseMetrics` (`forActivity`, `forEvaluation`, `forCourse`) agora exigem `feedback_at >= created_at` no WHERE — linhas inconsistentes saem do AVG. Filtrar é mais correto que clampar a 0 (zero conta no AVG e empurra a média pra baixo).
+- **Matrix /teacher/courses/{id}/matrix não atualizava ao filtrar grupo** (#313, bug do PO): linha "Média da turma" (tfoot) era pré-computada em PHP usando TODOS os alunos. Filtro Alpine `x-show` só escondia rows, deixando o rodapé estático. Refatorado: `classPct(cuId)` agora reativo via Alpine — recalcula em runtime considerando só os alunos visíveis (`studentIds.filter(matches)`). `classPctClass(cuId)` deriva a cor para casar com o valor.
+
+### Mudanças internas / Tooling
+
+- **`chore(matrix)`**: hardening defensivo aplicado pelo hook de code-review pré-PR — `htmlspecialchars` no JSON injetado em atributo `x-data` (evita break-out se algum dia o conteúdo virar user input) + `e()` em ints interpolados.
+- **`package.json`** bumpado para 0.21.0.
+- **Pendência anotada em `doc/99-pendencias-tecnicas.md`**: logos órfãs em `public/uploads/logos/` quando super-admin marca como Actvet um tenant que tinha logo customizada (helper passa a ignorar `logo_path`, arquivo fica órfão). Não-bloqueante. MVP de cleanup proposto: tratar no toggle do super-admin (`UPDATE tenants SET logo_path=NULL` + `LogoStorage::deleteByBasename`).
+
+### Convenções consolidadas nesta janela
+
+- **Trust boundary explícito em uploads de SVG** — quando o conteúdo é gated pelo próprio dono (professor → próprios alunos), aceitar SVG sem sanitizar é risco contido. PHPDoc do service deve documentar (a) por que aceita, (b) o que fazer pra sanitizar no futuro (DOMDocument stripping `<script>`, `<foreignObject>`, `on*`).
+- **Defesa server-side de toggle escondido na UI** — quando um campo é hidden via lógica condicional (ex.: campo Logo escondido pra Actvet), o handler precisa ignorar silenciosamente POSTs forçados via DevTools/curl. Padrão: `if ($escondido) { $hasUpload = false; }` antes do branch de processamento.
+- **HTML5 form attribute pra forms não-aninhados** — quando um botão precisa submeter um form diferente do que ele está visualmente dentro, usar `<button type="submit" form="form-id">` + `<form id="form-id">` separado em outro lugar. HTML não permite forms aninhados.
+- **Filtro WHERE em vez de clamp em GREATEST** — pra dados inconsistentes em queries de AVG, filtrar (`WHERE col >= other`) é mais correto que clampar (`GREATEST(0, diff)`) porque zero distorce a média; filtrar exclui o ruído.
+- **Reatividade Alpine pra agregados que dependem de filtro** — quando há filtro client-side via `x-show`, qualquer agregado que depende dos elementos visíveis precisa ser reativo (computed function). Pré-computar em PHP só faz sentido pra agregados que ignoram o filtro.
+
 ## [0.20.0] — 2026-04-26
 
 Vigésima release. Escopo: **Epic E23 inteiro — Quick fixes UX** (3 stories, F14) + 1 hotfix de label que ficou desatualizado entre as stories. Corrige rough edges identificados pelo PO em smoke pré-Actvet rollout.
