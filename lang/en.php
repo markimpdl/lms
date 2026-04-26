@@ -920,6 +920,21 @@ return [
     'settings.avatar.style.ocidental' => 'Western',
     'settings.success'                => 'Settings updated.',
     'settings.err.invalid_avatar_style' => 'Invalid avatar style.',
+
+    // Tenant branding (E24-03) — custom name + logo upload
+    'teacher.settings.branding_section'      => 'Visual identity',
+    'teacher.settings.branding_help'         => 'Customize the name and logo shown in the navbar for you and your students. Leave empty to use the default platform name.',
+    'teacher.settings.platform_name_label'   => 'Platform name',
+    'teacher.settings.platform_name_placeholder' => 'e.g. My Course',
+    'teacher.settings.platform_name_too_long' => 'Name must be at most 60 characters.',
+    'teacher.settings.logo_label'            => 'Logo',
+    'teacher.settings.logo_hint'             => 'PNG, JPG or SVG up to 500 KB. Shown in the top-left of the navbar.',
+    'teacher.settings.logo_hint_actvet'      => 'Default Actvet logo (not editable).',
+    'teacher.settings.logo_invalid_mime'     => 'Invalid image format. Accepted: PNG, JPG, SVG.',
+    'teacher.settings.logo_too_large'        => 'Logo must be at most 500 KB.',
+    'teacher.settings.logo_no_file'          => 'No file selected.',
+    'teacher.settings.logo_generic'          => 'Failed to process the logo. Please try again.',
+
     // Configurable notifications (E21-03).
     'notifications.settings.title'      => 'Notifications',
     'notifications.settings.subtitle'   => 'Control which events trigger bell and email for your students. Everything is enabled by default.',
