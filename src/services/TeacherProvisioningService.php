@@ -90,10 +90,16 @@ final class TeacherProvisioningService
 
                 $newId = (int) $pdo->lastInsertId();
 
+                // E24-04: defaults institucionais por contexto. Actvet padrão
+                // arabe + nome "Skills Hub"; demais começam ocidental + nome NULL
+                // (cai no fallback do helper tenant_branding -> "LMS").
+                $avatarStyle  = $isActvet ? 'arabe' : 'ocidental';
+                $platformName = $isActvet ? 'Skills Hub' : null;
+
                 $pdo->prepare(
-                    'INSERT INTO tenants (owner_user_id, name, active, is_actvet)
-                          VALUES (?, ?, 1, ?)'
-                )->execute([$newId, $tenant, $isActvet ? 1 : 0]);
+                    'INSERT INTO tenants (owner_user_id, name, active, is_actvet, avatar_style, platform_name)
+                          VALUES (?, ?, 1, ?, ?, ?)'
+                )->execute([$newId, $tenant, $isActvet ? 1 : 0, $avatarStyle, $platformName]);
 
                 return $newId;
             });
