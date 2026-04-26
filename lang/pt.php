@@ -481,7 +481,7 @@ return [
     'evaluations.created'               => 'Avaliação ":name" criada.',
     'evaluations.updated'               => 'Avaliação ":name" atualizada.',
     'evaluations.quiz_created'          => 'Avaliação ":name" criada. Adicione as questões abaixo.',
-    'evaluations.type.projeto'          => 'Projeto (upload de PDF)',
+    'evaluations.type.projeto'          => 'Projeto (upload de PDF ou ZIP)',
     'evaluations.type.quiz'             => 'Quiz (múltipla escolha)',
     'evaluations.form.type'             => 'Tipo',
     'evaluations.form.type_hint'        => 'Projeto: aluno envia PDF e você corrige manualmente. Quiz: questões de múltipla escolha com nota automática.',

@@ -481,7 +481,7 @@ return [
     'evaluations.created'               => 'Evaluation ":name" created.',
     'evaluations.updated'               => 'Evaluation ":name" updated.',
     'evaluations.quiz_created'          => 'Evaluation ":name" created. Add questions below.',
-    'evaluations.type.projeto'          => 'Project (PDF upload)',
+    'evaluations.type.projeto'          => 'Project (PDF or ZIP upload)',
     'evaluations.type.quiz'             => 'Quiz (multiple choice)',
     'evaluations.form.type'             => 'Type',
     'evaluations.form.type_hint'        => 'Project: student uploads a PDF for manual grading. Quiz: multiple-choice questions with automatic grading.',
