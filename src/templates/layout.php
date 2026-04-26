@@ -37,6 +37,11 @@ $isStudentArea    = $user !== null
 $bodyClass = $extraBody;
 if ($isStudentArea) {
     $bodyClass = trim($bodyClass . ' lms-student-area');
+    // E27-03: dark mode é setting do aluno; class no <body> permite
+    // overrides sem flash (CSS já carregado quando renderiza).
+    if (current_user_theme() === 'dark') {
+        $bodyClass = trim($bodyClass . ' lms-theme-dark');
+    }
 }
 ?><!doctype html>
 <html lang="<?= e($lang) ?>">
