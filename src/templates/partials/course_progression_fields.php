@@ -73,10 +73,10 @@
                 <?= e(__t('courses.form.grading_mode.label')) ?>
             </label>
             <select name="grading_mode" id="f-grading-mode" class="form-select">
-                <option value="grade" <?= ($old['grading_mode'] ?? 'learning_outcomes') === 'grade' ? 'selected' : '' ?>>
+                <option value="grade" <?= ($old['grading_mode'] ?? 'grade') === 'grade' ? 'selected' : '' ?>>
                     <?= e(__t('courses.form.grading_mode.option.grade')) ?>
                 </option>
-                <option value="learning_outcomes" <?= ($old['grading_mode'] ?? 'learning_outcomes') === 'learning_outcomes' ? 'selected' : '' ?>>
+                <option value="learning_outcomes" <?= ($old['grading_mode'] ?? 'grade') === 'learning_outcomes' ? 'selected' : '' ?>>
                     <?= e(__t('courses.form.grading_mode.option.learning_outcomes')) ?>
                 </option>
             </select>
