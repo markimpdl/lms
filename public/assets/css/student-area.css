@@ -781,7 +781,7 @@ body.lms-student-area .lms-student-main {
  * (não sobrescreve). Porcentagem escura pra contrastar com o branco. */
 .lms-course-hero__ring .lms-progress-ring__label {
     color: var(--lms-neutral-900);
-    font-size: 20px;
+    font-size: 17px;
 }
 
 .lms-cc-list { display: flex; flex-direction: column; gap: 32px; }
@@ -2481,4 +2481,19 @@ body.lms-student-area.lms-theme-dark .lms-bell__item-btn:hover {
    tem color claro, mas modal-title pode ter override em algum lugar) */
 body.lms-student-area.lms-theme-dark .modal-title {
     color: var(--lms-neutral-900);
+}
+
+/* Sino dropdown — título "Notificações" e header (color #111827 hardcoded
+   em app.css; pass 1/2 não cobriram). */
+body.lms-student-area.lms-theme-dark .lms-bell__dropdown-header {
+    border-bottom-color: var(--lms-neutral-200);
+}
+body.lms-student-area.lms-theme-dark .lms-bell__dropdown-title {
+    color: var(--lms-neutral-900);
+}
+body.lms-student-area.lms-theme-dark .lms-bell__empty {
+    color: var(--lms-neutral-500);
+}
+body.lms-student-area.lms-theme-dark .lms-bell__dropdown-footer {
+    border-top-color: var(--lms-neutral-200);
 }
