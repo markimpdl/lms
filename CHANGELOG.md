@@ -4,6 +4,34 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.27.0] — 2026-04-26
+
+Vigésima sétima release. Escopo: **Epic E29 inteiro — Identidade visual unificada teacher+admin** (4 stories, F20). Estende o visual moderno da `lms-student-area` (Inter + Plus Jakarta Sans, page bg `#F8F7FB`, cards arredondados, hero pattern com eyebrow + título grande) para professor e super-admin via variants `lms-teacher-area` e `lms-admin-area`. Sem mudança de schema. Decisões consolidadas: variants (não promoção genérica), sem dark mode teacher/admin no MVP, sem sidebar (escopo enxuto — 4 stories em vez das 8 estimadas), migração gradual (páginas não-migradas continuam Bootstrap default sem regressão).
+
+### Novas funcionalidades
+
+#### Epic E29 — Identidade visual unificada teacher+admin
+
+- **Tokens CSS pra `:root` + 2 shells** (E29-01, #374): bloco completo de tokens `--lms-*` (cores, neutrais, radii, shadows, gradients) movido de `body.lms-student-area` pra `:root` em `app.css` — agora globalmente disponíveis. Cascade preservada: overrides específicos como `body.lms-student-area.lms-theme-dark` continuam ganhando por especificidade. `student-area.css` mantém só estilo visual próprio (background, color, font-family). Novo bloco compartilhado `body.lms-teacher-area, body.lms-admin-area` em `app.css` com font-family Inter + page bg + headings em Plus Jakarta Sans + 3 overrides Bootstrap leves (`.card` border-radius+shadow+border, `.form-control`/`.form-select` border-radius, `.btn` border-radius+font-weight). `layout.php` ganhou `$role` local + `$isTeacherArea` (role=teacher + path `/teacher` ou `/teacher/*`) + `$isAdminArea` (role=super_admin + path `/admin` ou `/admin/*`) + `$isThemedArea` agregando os 3 (controla load de fonts + bootstrap-icons). Body class condicional: prefere student (com possível `+lms-theme-dark`); senão teacher; senão admin. Fonts (Inter+Plus Jakarta) e bootstrap-icons agora carregam pra qualquer área temada (antes só student).
+- **Hero pattern em /teacher/*** (E29-02, #375): aplicado `lms-dashboard-header` (eyebrow + title) nas 5 páginas-chave do teacher: `/teacher` (dashboard) com eyebrow "Painel" + welcome subtitle, `/teacher/courses` com "Gestão de conteúdo" + botão `+`, `/teacher/students` com "Gestão de pessoas" + `+`, `/teacher/groups` com "Gestão de pessoas" + `+`, `/teacher/settings` com "Configurações". CSS do hero pattern (4 classes + mobile override) movido de `student-area.css` pra `app.css` — agora reusável por qualquer área temada. **Decisão sobre /teacher/courses:** AC mencionou card grid em vez da tabela; optei por manter a tabela (perderia sortabilidade year/name/created_at sem ganho claro), tabela já fica polida com cascade do E29-01. Card grid completo fica como follow-up se PO sentir falta. 5 chaves i18n PT/EN.
+- **Hero pattern em /admin/*** (E29-03, #376): mesma fórmula nas 3 páginas admin: `/admin` (dashboard) com eyebrow "Administração" + botões nav à direita, `/admin/teachers` com "Gestão de professores" + botão `+`, `/admin/settings` com "Configurações". Tabelas e cards mantidos — cascade do E29-01 entrega o polish via overrides Bootstrap. `/admin/settings` migrada junto mesmo não estando no AC (3 linhas, consistência). 3 chaves i18n PT/EN.
+
+### Correções
+
+Nenhuma nesta janela. (E29-04 / #377 fechada como QA-only — comm audit 1145/1145 + smoke batch passou em 1 pass sem regressões.)
+
+### Mudanças internas / Tooling
+
+- **`package.json`** bumpado para 0.27.0.
+- **Tokens CSS centralizados** — `:root` em `app.css` é agora a fonte da verdade pros design tokens. Adicionar token novo = 1 linha lá.
+
+### Convenções consolidadas nesta janela
+
+- **Variants visuais por papel via cascade + body class** — quando 2-3 papéis precisam de visual semelhante mas com sutilezas (ex.: aluno tem sidebar, teacher/admin não; aluno tem dark mode, outros não), usar variants (`lms-X-area`) que reusam tokens via `:root` em vez de promover a genérica `lms-app-area`. Vantagem: cada variant pode evoluir independente sem risco de regressão cruzada; tokens vêm de cima sem duplicação.
+- **Hero pattern (eyebrow + title) é universal** — `lms-dashboard-*` deve viver em `app.css` (carregado sempre), não em `student-area.css`. Usado em qualquer página de qualquer área temada. Custo: 4 classes + 1 mobile override no global.
+- **Migração gradual via cascade > rewrites de página** — quando o objetivo é "polir visual N páginas com mesmo padrão", a sequência ideal é: (1) extrair tokens pro escopo mais amplo possível; (2) adicionar overrides Bootstrap básicos no body class (radius, shadow); (3) migrar header de cada página individual aplicando hero pattern. Os passos 1-2 já entregam 80% do polish via cascade; passo 3 é cosmetic refinement. Páginas não-migradas continuam funcionando sem regressão.
+- **Sidebar é decisão de papel, não de área** — student tem sidebar porque o conteúdo principal (avatar, XP, conquistas, ranking) é gamificado e contextual. Teacher/admin não precisam — operam tabelas/forms full-width. Não forçar sidebar onde não há conteúdo natural pra ela.
+
 ## [0.26.0] — 2026-04-26
 
 Vigésima sexta release. Janela curta — bundle de polishes UX/visual sem épico amarrado: navegação mobile reformulada (bottom tab bar estilo app + sumiço dos ícones primários do top), pass 4 de polish do dark mode (botão do sino + badge das conquistas unlocked) e adoção do layout student-area + dark mode na página `/notifications` quando o user é aluno. Sem mudança de schema. Próxima janela maior será o E29 (F20 identidade visual unificada teacher+admin, tamanho G).

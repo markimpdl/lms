@@ -26,8 +26,11 @@ $page_title = __t('dashboard.admin.title');
 
 ob_start();
 ?>
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-    <h1 class="h4 mb-0"><?= e(__t('dashboard.admin.title')) ?></h1>
+<header class="lms-dashboard-header">
+    <div>
+        <span class="lms-dashboard-eyebrow"><?= e(__t('admin.dashboard.eyebrow')) ?></span>
+        <h1 class="lms-dashboard-title"><?= e(__t('dashboard.admin.title')) ?></h1>
+    </div>
     <div class="d-flex flex-wrap gap-2">
         <a href="/admin/teachers" class="btn btn-sm btn-outline-primary">
             <?= e(__t('admin.teachers.title')) ?>
@@ -36,7 +39,7 @@ ob_start();
             <?= e(__t('admin.settings.title')) ?>
         </a>
     </div>
-</div>
+</header>
 
 <p class="text-muted small"><?= e(__t('dashboard.admin.welcome', ['name' => $user['name']])) ?></p>
 

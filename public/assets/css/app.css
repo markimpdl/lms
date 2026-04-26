@@ -1,11 +1,144 @@
 /* LMS — customização mínima em cima do Bootstrap 5.
    Foco: mobile-first legível (360px+) e sticky footer. */
 
+/* ============================================================
+   Design tokens — promovidos a :root em E29-01 pra serem reusados
+   por lms-student-area, lms-teacher-area e lms-admin-area. Antes
+   estavam scoped em body.lms-student-area. Cascade preservada:
+   overrides especificos (ex.: body.lms-student-area.lms-theme-dark)
+   continuam ganhando por especificidade.
+   ============================================================ */
+:root {
+    --lms-primary-1: #6366F1;
+    --lms-primary-2: #EC4899;
+    --lms-gradient-primary: linear-gradient(135deg, #6366F1, #EC4899);
+
+    --lms-success: #10B981;
+    --lms-success-dark: #047857;
+    --lms-success-tint: #D1FAE5;
+
+    --lms-warning: #F59E0B;
+    --lms-warning-dark: #92400E;
+    --lms-warning-tint: #FEF3C7;
+
+    --lms-danger: #EF4444;
+    --lms-danger-dark: #B91C1C;
+    --lms-danger-tint: #FEE2E2;
+
+    --lms-violet: #8B5CF6;
+    --lms-violet-dark: #5B21B6;
+    --lms-violet-tint: #EDE9FE;
+
+    --lms-muted: #94A3B8;
+    --lms-muted-dark: #475569;
+    --lms-muted-tint: #F1F5F9;
+
+    --lms-neutral-900: #111827;
+    --lms-neutral-700: #374151;
+    --lms-neutral-500: #6B7280;
+    --lms-neutral-300: #D1D5DB;
+    --lms-neutral-200: #E5E7EB;
+    --lms-neutral-100: #F3F4F6;
+    --lms-neutral-50:  #F9FAFB;
+
+    --lms-page-bg: #F8F7FB;
+    --lms-card-bg: #FFFFFF;
+
+    --lms-radius-chip: 999px;
+    --lms-radius-inner: 12px;
+    --lms-radius-card: 20px;
+    --lms-radius-hero: 24px;
+
+    --lms-shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04);
+    --lms-shadow-card-hover: 0 18px 40px -18px rgba(16, 24, 40, 0.22);
+    --lms-shadow-card-indigo: 0 10px 24px -8px rgba(99, 102, 241, 0.25);
+    --lms-shadow-cta: 0 6px 14px -6px rgba(99, 102, 241, 0.6);
+}
+
 html, body { min-height: 100vh; }
 body {
     display: flex;
     flex-direction: column;
     font-size: 16px; /* inputs com <16px causam auto-zoom no iOS Safari */
+}
+
+/* ============================================================
+   Teacher + Admin areas — shell visual (E29-01)
+   Aplica fontes + page bg + overrides Bootstrap leves via cascade.
+   Sem sidebar (decisao PO 2026-04-26 — diferente do aluno).
+   Sem dark mode (out-of-scope no MVP).
+   ============================================================ */
+body.lms-teacher-area,
+body.lms-admin-area {
+    background: var(--lms-page-bg);
+    color: var(--lms-neutral-700);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+body.lms-teacher-area h1, body.lms-teacher-area h2, body.lms-teacher-area h3, body.lms-teacher-area h4,
+body.lms-teacher-area .h1, body.lms-teacher-area .h2, body.lms-teacher-area .h3, body.lms-teacher-area .h4,
+body.lms-admin-area h1, body.lms-admin-area h2, body.lms-admin-area h3, body.lms-admin-area h4,
+body.lms-admin-area .h1, body.lms-admin-area .h2, body.lms-admin-area .h3, body.lms-admin-area .h4 {
+    font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--lms-neutral-900);
+}
+body.lms-teacher-area .card,
+body.lms-admin-area .card {
+    border-radius: 16px;
+    border: 1px solid var(--lms-neutral-200);
+    box-shadow: var(--lms-shadow-card);
+}
+body.lms-teacher-area .form-control,
+body.lms-teacher-area .form-select,
+body.lms-admin-area .form-control,
+body.lms-admin-area .form-select {
+    border-radius: 10px;
+    border-color: var(--lms-neutral-200);
+}
+body.lms-teacher-area .btn,
+body.lms-admin-area .btn {
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+/* ============================================================
+   Hero pattern (lms-dashboard-*) — promovido pra app.css em E29-02
+   pra ser usado por aluno + teacher + admin. Antes vivia em
+   student-area.css.
+   ============================================================ */
+.lms-dashboard-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    width: 100%;
+}
+.lms-dashboard-eyebrow {
+    display: block;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #7C3AED;
+    margin-bottom: 6px;
+}
+.lms-dashboard-title {
+    font-size: 32px;
+    line-height: 1.15;
+    margin: 0 0 6px;
+}
+.lms-dashboard-subtitle {
+    margin: 0;
+    color: var(--lms-neutral-500);
+    font-size: 14px;
+}
+@media (max-width: 575.98px) {
+    .lms-dashboard-header { margin-bottom: 16px; }
+    .lms-dashboard-title { font-size: 24px; }
 }
 
 main { flex: 1 0 auto; }

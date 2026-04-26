@@ -77,12 +77,15 @@ $page_title = __t('admin.teachers.title');
 
 ob_start();
 ?>
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-    <h1 class="h4 mb-0"><?= e(__t('admin.teachers.title')) ?></h1>
+<header class="lms-dashboard-header">
+    <div>
+        <span class="lms-dashboard-eyebrow"><?= e(__t('admin.teachers.eyebrow')) ?></span>
+        <h1 class="lms-dashboard-title"><?= e(__t('admin.teachers.title')) ?></h1>
+    </div>
     <a href="/admin/teachers/new" class="btn btn-primary">
         <?= e(__t('admin.teachers.new')) ?>
     </a>
-</div>
+</header>
 
 <?php if ($justCreated !== null): ?>
     <div class="alert alert-success" role="alert">
