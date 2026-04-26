@@ -30,6 +30,13 @@ $courseId   = (int) $cu['course_id'];
 $ccId       = (int) $cu['core_competency_id'];
 $isArchived = (int) $cu['course_archived'] === 1;
 
+// E25-02: link "Editar critérios" só aparece em Actvet + LO mode.
+$tenant   = Tenant::findById($tenantId);
+$isActvet = $tenant !== null && (int) ($tenant['is_actvet'] ?? 0) === 1;
+$isLoMode = (string) ($cu['course_grading_mode'] ?? 'grade') === 'learning_outcomes';
+$showLoLink = $isActvet && $isLoMode;
+$loCount    = $showLoLink ? LearningOutcome::countByCu($cuId) : 0;
+
 $content = Content::findForCu($cuId, $tenantId);
 $hasContent   = $content !== null;
 $isPublished  = $hasContent && (int) $content['published'] === 1;
@@ -96,10 +103,19 @@ ob_start();
                 <?php endif; ?>
             </div>
             <?php if (!$isArchived): ?>
-                <a href="/teacher/cu/<?= $cuId ?>/content/edit"
-                   class="btn btn-sm btn-primary">
-                    <?= e(__t($hasContent ? 'content.edit_button' : 'content.create_button')) ?>
-                </a>
+                <div class="d-flex gap-2 flex-wrap">
+                    <?php if ($showLoLink): ?>
+                        <a href="/teacher/cu/<?= $cuId ?>/learning-outcomes"
+                           class="btn btn-sm btn-outline-primary">
+                            <?= e(__t('learning_outcomes.edit_link')) ?>
+                            <span class="badge text-bg-light ms-1"><?= (int) $loCount ?>/5</span>
+                        </a>
+                    <?php endif; ?>
+                    <a href="/teacher/cu/<?= $cuId ?>/content/edit"
+                       class="btn btn-sm btn-primary">
+                        <?= e(__t($hasContent ? 'content.edit_button' : 'content.create_button')) ?>
+                    </a>
+                </div>
             <?php endif; ?>
         </div>
 

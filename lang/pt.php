@@ -317,6 +317,19 @@ return [
     'courses.form.grading_mode.help'                   => 'Como o professor dá nota nas avaliações deste curso. "Nota única" usa 0-10. "Learning Outcomes" exige 5 critérios por unidade, com nota por critério (média = nota final).',
     'courses.form.grading_mode.option.grade'           => 'Nota única (0-10)',
     'courses.form.grading_mode.option.learning_outcomes' => 'Learning Outcomes (5 critérios por unidade)',
+
+    // Learning Outcomes — cadastro por CU (E25-02)
+    'learning_outcomes.title'        => 'Learning Outcomes',
+    'learning_outcomes.breadcrumb'   => 'Critérios',
+    'learning_outcomes.help'         => 'Cadastre exatamente 5 critérios que serão avaliados nesta unidade. O professor dará nota 0-10 para cada um durante a correção; a média será a nota final da avaliação.',
+    'learning_outcomes.field_n'      => 'Critério :n',
+    'learning_outcomes.placeholder'  => 'Descreva o que o aluno deve demonstrar...',
+    'learning_outcomes.err.required' => 'Este critério é obrigatório.',
+    'learning_outcomes.err.too_long' => 'Cada critério deve ter no máximo 500 caracteres.',
+    'learning_outcomes.has_errors'   => 'Corrija os campos destacados.',
+    'learning_outcomes.success'      => 'Critérios atualizados.',
+    'learning_outcomes.edit_link'    => 'Editar critérios',
+
     // Progressão sequencial (E19-02 + E19-03 + E19-04)
     'progression.next_locked'                  => 'Conclua ":name" primeiro',
     'progression.eval_locked'                  => 'Termine todas as atividades antes de fazer a avaliação',
