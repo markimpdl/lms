@@ -934,6 +934,9 @@ return [
     'teacher.settings.logo_too_large'        => 'Logo must be at most 500 KB.',
     'teacher.settings.logo_no_file'          => 'No file selected.',
     'teacher.settings.logo_generic'          => 'Failed to process the logo. Please try again.',
+    'teacher.settings.logo_delete_button'    => 'Delete logo',
+    'teacher.settings.logo_delete_confirm'   => 'Delete the custom logo? The platform falls back to the default logo.',
+    'teacher.settings.logo_deleted'          => 'Custom logo removed.',
 
     // Configurable notifications (E21-03).
     'notifications.settings.title'      => 'Notifications',

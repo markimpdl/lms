@@ -92,6 +92,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Em caso de erro, preserva o que o user digitou pra re-render.
         $platformName = $newName;
+    } elseif ($form === 'delete_logo') {
+        // Remove logo customizada (volta pro fallback do sistema). Defesa
+        // server-side: Actvet nao tem logo custom (UI nao mostra o botao,
+        // mas via DevTools alguem poderia forcar) — ignora silenciosamente.
+        if (!$isActvet && $logoBasename !== '') {
+            LogoStorage::deleteByBasename($logoBasename);
+            Tenant::updateBranding($tenantId, $platformName === '' ? null : $platformName, null);
+            flash('success', __t('teacher.settings.logo_deleted'));
+        }
+        header('Location: /teacher/settings', true, 303);
+        exit;
     }
 }
 
@@ -168,6 +179,15 @@ ob_start();
             </div>
         </form>
 
+        <?php if (!$isActvet && $logoBasename !== ''): ?>
+            <!-- Form oculto para o botão "Excluir logo" no preview abaixo
+                 (HTML não permite forms aninhados; o botão usa form=... attr). -->
+            <form id="logo-delete-form" method="POST" action="/teacher/settings" class="d-none">
+                <?= csrf_field() ?>
+                <input type="hidden" name="form" value="delete_logo">
+            </form>
+        <?php endif; ?>
+
         <form method="POST" action="/teacher/settings" enctype="multipart/form-data"
               class="card card-body shadow-sm" novalidate>
             <?= csrf_field() ?>
@@ -205,9 +225,17 @@ ob_start();
                         <?= e(__t('teacher.settings.logo_label')) ?>
                     </label>
                     <?php if ($logoBasename !== ''): ?>
-                        <div class="mb-2 p-2 border rounded bg-light d-inline-block">
-                            <img src="/uploads/logos/<?= e($logoBasename) ?>?v=<?= e((string) time()) ?>"
-                                 alt="" style="height: 48px; width: auto;">
+                        <div class="mb-2 d-flex align-items-center gap-2 flex-wrap">
+                            <div class="p-2 border rounded bg-light d-inline-block">
+                                <img src="/uploads/logos/<?= e($logoBasename) ?>?v=<?= e((string) time()) ?>"
+                                     alt="" style="height: 48px; width: auto;">
+                            </div>
+                            <button type="submit" form="logo-delete-form"
+                                    class="btn btn-sm btn-outline-danger js-confirm"
+                                    data-confirm="<?= e(__t('teacher.settings.logo_delete_confirm')) ?>">
+                                <i class="bi bi-trash" aria-hidden="true"></i>
+                                <?= e(__t('teacher.settings.logo_delete_button')) ?>
+                            </button>
                         </div>
                     <?php endif; ?>
                     <input type="file" name="logo" id="f-logo"
@@ -227,6 +255,17 @@ ob_start();
         </form>
     </div>
 </div>
+
+<script>
+// Confirm em ações destrutivas (excluir logo customizada).
+document.querySelectorAll('button.js-confirm[data-confirm]').forEach(function (btn) {
+    btn.addEventListener('click', function (event) {
+        if (!window.confirm(btn.dataset.confirm)) {
+            event.preventDefault();
+        }
+    });
+});
+</script>
 <?php
 $page_content = ob_get_clean();
 require LMS_ROOT . '/src/templates/layout.php';
