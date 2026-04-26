@@ -60,20 +60,22 @@ final class AdminTeachersController
     }
 
     /**
-     * Processa o POST de /admin/teachers/{id} (E2-03).
+     * Processa o POST de /admin/teachers/{id} (E2-03 + E24-01).
      *
-     * Atualiza `users.name`/`users.language` e `tenants.name` em uma
-     * transação. Erros por campo voltam como mapa i18n → caller re-renderiza
-     * o form; em sucesso, redirect 303 para a listagem com flash.
+     * Atualiza `users.name`/`users.language`, `tenants.name` e
+     * `tenants.is_actvet` em uma transação. Erros por campo voltam como mapa
+     * i18n → caller re-renderiza o form; em sucesso, redirect 303 para a
+     * listagem com flash.
      *
-     * @param array<string,string> $input Chaves: name, language, tenant_name.
+     * @param array<string,string> $input Chaves: name, language, tenant_name, is_actvet ('0'|'1').
      * @return array<string,string> Mapa field → i18n key.
      */
     public static function update(int $teacherId, array $input): array
     {
-        $name   = trim((string) ($input['name']        ?? ''));
-        $lang   = (string)      ($input['language']    ?? '');
-        $tenant = trim((string) ($input['tenant_name'] ?? ''));
+        $name     = trim((string) ($input['name']        ?? ''));
+        $lang     = (string)      ($input['language']    ?? '');
+        $tenant   = trim((string) ($input['tenant_name'] ?? ''));
+        $isActvet = (string)      ($input['is_actvet']   ?? '0') === '1';
 
         $errors = [];
         if (mb_strlen($name) < 3 || mb_strlen($name) > 120) {
@@ -99,7 +101,7 @@ final class AdminTeachersController
         $tenantId = (int) $teacher['tenant_id'];
 
         try {
-            Database::tx(static function (PDO $pdo) use ($teacherId, $tenantId, $name, $lang, $tenant): void {
+            Database::tx(static function (PDO $pdo) use ($teacherId, $tenantId, $name, $lang, $tenant, $isActvet): void {
                 $pdo->prepare('UPDATE users SET name = ?, language = ? WHERE id = ?')
                     ->execute([$name, $lang, $teacherId]);
 
@@ -107,6 +109,8 @@ final class AdminTeachersController
                 if ($renameErr !== null) {
                     throw new RuntimeException($renameErr);
                 }
+
+                Tenant::setIsActvet($tenantId, $isActvet);
             });
         } catch (RuntimeException $e) {
             return ['tenant_name' => $e->getMessage()];

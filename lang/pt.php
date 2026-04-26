@@ -186,6 +186,11 @@ return [
     'admin.teachers.edit.updated'    => 'Dados de :name atualizados.',
     'admin.teachers.email_immutable' => 'Email não pode ser alterado (ADR-021).',
 
+    // White-label flag Actvet (E24-01) — toggle no cadastro/edição + badge na listagem
+    'admin.teachers.is_actvet_label' => 'É Actvet?',
+    'admin.teachers.is_actvet_hint'  => 'Marca este professor como Actvet (Skills Hub). Habilita Learning Outcomes e Reports nos cursos dele.',
+    'admin.teachers.badge_actvet'    => 'Actvet',
+
     // Desativar/reativar professor (E2-04)
     'admin.teachers.deactivate.title'         => 'Desativar professor',
     'admin.teachers.deactivate.intro_prefix'  => 'Você vai desativar ',

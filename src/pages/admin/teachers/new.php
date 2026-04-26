@@ -16,6 +16,7 @@ $old    = [
     'email'       => '',
     'language'    => 'pt',
     'tenant_name' => '',
+    'is_actvet'   => '0',
     'send_email'  => '1',
 ];
 
@@ -33,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'email'       => (string) ($_POST['email']       ?? ''),
         'language'    => (string) ($_POST['language']    ?? 'pt'),
         'tenant_name' => (string) ($_POST['tenant_name'] ?? ''),
+        'is_actvet'   => isset($_POST['is_actvet']) ? '1' : '0',
         'send_email'  => isset($_POST['send_email']) ? '1' : '0',
     ];
 
@@ -43,6 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'password'    => (string) ($_POST['password'] ?? ''),
             'language'    => $old['language'],
             'tenant_name' => $old['tenant_name'],
+            'is_actvet'   => $old['is_actvet'] === '1',
         ],
         $old['send_email'] === '1'
     );
@@ -128,6 +131,15 @@ ob_start();
                         <div class="invalid-feedback"><?= e(__t($errors['tenant_name'])) ?></div>
                     <?php endif; ?>
                 </div>
+            </div>
+
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" name="is_actvet" id="f-actvet"
+                       value="1" <?= $old['is_actvet'] === '1' ? 'checked' : '' ?>>
+                <label class="form-check-label" for="f-actvet">
+                    <?= e(__t('admin.teachers.is_actvet_label')) ?>
+                </label>
+                <div class="form-text"><?= e(__t('admin.teachers.is_actvet_hint')) ?></div>
             </div>
 
             <div class="form-check mb-3">

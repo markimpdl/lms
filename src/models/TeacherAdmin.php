@@ -80,6 +80,7 @@ final class TeacherAdmin
             SELECT
                 u.id, u.name, u.email, u.language, u.active,
                 u.created_at, u.last_login_at,
+                t.is_actvet,
                 COUNT(DISTINCT CASE WHEN c.archived = 0 THEN c.id END) AS active_courses,
                 COUNT(DISTINCT e.student_user_id)                    AS unique_students
             FROM users u
@@ -87,7 +88,7 @@ final class TeacherAdmin
             LEFT JOIN courses     c ON c.tenant_id     = t.id
             LEFT JOIN enrollments e ON e.course_id     = c.id
             WHERE {$whereSql}
-            GROUP BY u.id, u.name, u.email, u.language, u.active, u.created_at, u.last_login_at
+            GROUP BY u.id, u.name, u.email, u.language, u.active, u.created_at, u.last_login_at, t.is_actvet
             ORDER BY {$sortCol} {$dir}, u.id DESC
             LIMIT :limit OFFSET :offset
             SQL;
@@ -123,6 +124,7 @@ final class TeacherAdmin
                 u.created_at, u.last_login_at,
                 t.id   AS tenant_id,
                 t.name AS tenant_name,
+                t.is_actvet,
                 COUNT(DISTINCT CASE WHEN c.archived = 0 THEN c.id END) AS active_courses,
                 COUNT(DISTINCT e.student_user_id)                    AS unique_students
             FROM users u
@@ -131,7 +133,7 @@ final class TeacherAdmin
             LEFT JOIN enrollments e ON e.course_id     = c.id
             WHERE u.id = :id AND u.role = 'teacher'
             GROUP BY u.id, u.name, u.email, u.language, u.active,
-                     u.created_at, u.last_login_at, t.id, t.name
+                     u.created_at, u.last_login_at, t.id, t.name, t.is_actvet
             LIMIT 1
             SQL;
 

@@ -52,7 +52,8 @@ final class Tenant
     public static function findById(int $tenantId): ?array
     {
         $stmt = Database::pdo()->prepare(
-            'SELECT id, owner_user_id, name, active, avatar_style, created_at, updated_at
+            'SELECT id, owner_user_id, name, active, is_actvet, platform_name, logo_path,
+                    avatar_style, created_at, updated_at
                FROM tenants WHERE id = ? LIMIT 1'
         );
         $stmt->execute([$tenantId]);
@@ -74,5 +75,15 @@ final class Tenant
         );
         $stmt->execute([$style, $tenantId]);
         return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Alterna o flag `is_actvet` do tenant (E24-01). Usado pelo super-admin
+     * em /admin/teachers/{new,edit} para marcar professores Actvet.
+     */
+    public static function setIsActvet(int $tenantId, bool $isActvet): void
+    {
+        Database::pdo()->prepare('UPDATE tenants SET is_actvet = ? WHERE id = ?')
+            ->execute([$isActvet ? 1 : 0, $tenantId]);
     }
 }
