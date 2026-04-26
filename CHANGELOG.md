@@ -4,6 +4,51 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.20.0] — 2026-04-26
+
+Vigésima release. Escopo: **Epic E23 inteiro — Quick fixes UX** (3 stories, F14) + 1 hotfix de label que ficou desatualizado entre as stories. Corrige rough edges identificados pelo PO em smoke pré-Actvet rollout.
+
+### Novas funcionalidades
+
+#### Epic E23 — Quick fixes UX
+
+- **Avaliação tipo Project aceita PDF ou ZIP até 10MB** (E23-01, #297): `EvaluationBriefStorage` refatorada — whitelist de 2 extensões (`pdf`, `zip`); filename dinâmico (`brief.pdf` ou `brief.zip`); `resolveExtension` defensivo (MIME real via `finfo` + fallback pra extensão do nome quando MIME é `application/octet-stream`); `deleteAnyBrief` apaga ambas extensões em re-upload alternando formato; helper público `mimeFromStoredPath` consumido pelo download. Error keys renomeadas `pdf_*` → `brief_*` (semântica precisa). Form `accept="application/pdf,application/zip,.pdf,.zip"`. Student download (`brief.php`) detecta extensão pra Content-Type + filename apropriados. 9 chaves PT/EN atualizadas.
+- **Redirects pra CU + botões Voltar nos 3 forms** (E23-02, #299): após criar atividade/avaliação tipo `projeto`/`codigo` → redirect 303 pra `/teacher/cu/{cuId}` (antes ia pra `/edit`); tipo `quiz` mantém redirect pro form do quiz pra configurar questões. `{activity,evaluation}/quiz.php`: após save bulk → redirect pra CU (antes ficava na mesma URL). Header dos 3 forms ganhou link "← Voltar" no padrão btn-sm btn-outline-secondary apontando pra CU; footer mantém Cancelar. `cancelUrl` dos quiz wrappers atualizado de `/edit` pra `/teacher/cu/{cuId}` pra coerência.
+- **Raiz `/` redireciona pra `/login` quando deslogado** (E23-03, #299): `home.php` simplificada pra puro roteador — logado → dashboard do papel; deslogado → `/login`. Removido hero + demo_flash placeholder + botão login (zero homepage). Strings i18n órfãs (`app.demo_flash_btn`, `app.bootstrap_ok`) ficam por enquanto.
+
+### Correções
+
+- **Labels do tipo de avaliação ficaram desatualizados após E23-01** (#300): em smoke do E23-01, PO detectou que o select de tipo ainda dizia "Projeto (upload de PDF)" + o hint dizia "aluno envia PDF e você corrige manualmente" — não refletiam a mudança pra aceitar também ZIP. Fix: i18n PT/EN atualizadas em ambas strings (`evaluations.type.projeto` + `evaluations.form.type_hint`) pra mencionar "PDF ou ZIP" / "PDF or ZIP". Lição: ao mudar comportamento de upload, fazer grep por menções literais a "PDF" em i18n — fácil deixar copy órfã.
+
+### Mudanças internas / Tooling
+
+- **`package.json`** bumpado para 0.20.0.
+
+### Convenções consolidadas nesta janela
+
+- **Filename dinâmico em storage** (com whitelist de extensões) — quando expansão de tipos aceitos, o pattern `brief.<ext>` baseado no MIME real é mais limpo que coluna nova `extension`. Cascade no delete usa loop pelas extensões do whitelist.
+- **MIME fallback `octet-stream` + extensão do nome** — Windows às vezes envia `application/octet-stream` em ZIPs "puros". Aceitar genérico cegamente abriria pra upload de qualquer binário; exigir bater com extensão `.zip` do nome enviado confirma a intent do usuário.
+- **Header "Voltar" + Footer "Cancelar"** — coexistem nos forms (mesma destino, semantica diferente). Header = navegação pura via seta; Footer = abandonar form preenchido. Padrão visual estabelecido nesta release pode ser replicado em outros forms futuros.
+- **Raiz como puro roteador** — sem hero/marketing na home; quem chega deslogado vai direto pro login. Reduz superfície + força fluxo direto. Vale a pena revisitar se app virar B2C; em B2B/educação fechada (LMS), zero homepage é o certo.
+
+### Pendências de schema
+
+**Zero.** Apenas validação de upload + redirects + roteamento da raiz.
+
+### Pendências (herdadas, ainda abertas)
+
+- **`JUDGE0_KEY` em prod**: endpoint responde 503 amigável até o PO configurar.
+- **C# sem syntax highlight no CodeMirror 6** — plain text funciona; nice-to-have futuro.
+- **Strings i18n órfãs** após simplificação do home.php (`app.demo_flash_btn`, `app.bootstrap_ok`) — limpeza eventual em polish próprio.
+
+### Roadmap pós-MVP estendido — status
+
+**Concluído (9 épicos):** E15, E16, E17, E18, E19, E20, E21, E22, **E23** (F1–F14 todos entregues).
+
+**Em fila (3 épicos):** E24 (F15) → E25 (F16) → E26 (F17) — issues criadas; sem stories ainda; sequencial com dependências cascateadas (E25 depende de E24; E26 depende de E25).
+
+[0.20.0]: https://github.com/markimpdl/lms/releases/tag/v0.20.0
+
 ## [0.19.0] — 2026-04-26
 
 Décima nona release. Escopo: **Epic E22 inteiro — Cross-tenant auth flow** (3 stories, F13) + extensão do roadmap pós-MVP (F14–F17 documentados, E23–E26 com issues criadas). Ativado por **2º tenant criado em prod (Actvet)** em 2026-04-26 — mesmo email entre tenants distintos passa a funcionar ponta-a-ponta.

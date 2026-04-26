@@ -28,10 +28,12 @@ if ($ctx === null || $ctx['evaluation']['pdf_path'] === null) {
 }
 
 $storedPath = (string) $ctx['evaluation']['pdf_path'];
-$filename   = 'enunciado-' . $evaluationId . '.pdf';
+$mime       = EvaluationBriefStorage::mimeFromStoredPath($storedPath);
+$ext        = $mime === 'application/zip' ? 'zip' : 'pdf';
+$filename   = 'enunciado-' . $evaluationId . '.' . $ext;
 
 AttachmentStorage::stream([
     'filename'    => $filename,
     'stored_path' => $storedPath,
-    'mime'        => 'application/pdf',
+    'mime'        => $mime,
 ], 'attachment');

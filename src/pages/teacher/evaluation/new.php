@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $fileField = $_FILES['pdf'] ?? null;
     $hasUpload = is_array($fileField) && (int) ($fileField['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
     if ($old['type'] === 'projeto' && !$hasUpload) {
-        $errors['pdf'] = 'evaluations.form.err.pdf_required';
+        $errors['pdf'] = 'evaluations.form.err.brief_required';
     }
 
     if ($errors === []) {
@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($upload['status'] !== 'ok') {
             // Desfaz o INSERT — sem PDF a avaliação fica inválida na criação.
             Evaluation::delete($evaluationId, $tenantId, $old['title']);
-            $errors['pdf'] = $upload['error_key'] ?? 'evaluations.err.pdf_generic';
+            $errors['pdf'] = $upload['error_key'] ?? 'evaluations.err.brief_generic';
         } else {
             Database::pdo()
                 ->prepare('UPDATE evaluations SET pdf_path = ? WHERE id = ?')
@@ -146,7 +146,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             flash('success', __t('evaluations.created', ['name' => $old['title']]));
-            header('Location: /teacher/evaluation/' . $evaluationId . '/edit', true, 303);
+            // E23-02: redireciona pra CU (era /edit; agora pro ponto de retorno natural).
+            header('Location: /teacher/cu/' . $cuId, true, 303);
             return;
         }
     }

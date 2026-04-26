@@ -22,7 +22,7 @@ declare(strict_types=1);
                 <?= e($mode === 'new' ? __t('activities.new.title') : __t('activities.edit.title', ['name' => $activityName])) ?>
             </h1>
             <a href="/teacher/cu/<?= (int) $cuId ?>" class="btn btn-sm btn-outline-secondary">
-                <?= e(__t('common.cancel')) ?>
+                ← <?= e(__t('common.back')) ?>
             </a>
         </div>
 

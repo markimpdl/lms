@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($hasUpload) {
         $upload = EvaluationBriefStorage::store($fileField, $evaluationId, $tenantId);
         if ($upload['status'] !== 'ok') {
-            $errors['pdf'] = $upload['error_key'] ?? 'evaluations.err.pdf_generic';
+            $errors['pdf'] = $upload['error_key'] ?? 'evaluations.err.brief_generic';
         } else {
             $newPdfPath = $upload['stored_path'];
         }

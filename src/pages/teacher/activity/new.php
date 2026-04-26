@@ -124,7 +124,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             flash('success', __t('activities.created', ['name' => $old['title']]));
-            header('Location: /teacher/activity/' . $result . '/edit', true, 303);
+            // E23-02: redireciona pra CU (era /edit; agora pro ponto de retorno natural).
+            header('Location: /teacher/cu/' . $cuId, true, 303);
             return;
         }
         if ($result === 'course_archived') {
