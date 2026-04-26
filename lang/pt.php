@@ -936,6 +936,9 @@ return [
     'teacher.settings.logo_too_large'        => 'A logo deve ter no máximo 500 KB.',
     'teacher.settings.logo_no_file'          => 'Nenhum arquivo selecionado.',
     'teacher.settings.logo_generic'          => 'Falha ao processar a logo. Tente novamente.',
+    'teacher.settings.logo_delete_button'    => 'Excluir logo',
+    'teacher.settings.logo_delete_confirm'   => 'Excluir a logo customizada? A plataforma volta para a logo padrão.',
+    'teacher.settings.logo_deleted'          => 'Logo customizada removida.',
 
     // Notificações configuráveis (E21-03).
     'notifications.settings.title'      => 'Notificações',
