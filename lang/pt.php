@@ -636,6 +636,12 @@ return [
     'evaluations.grade.lo_uc_not_ready_help'  => 'O curso usa Learning Outcomes mas esta unidade ainda não tem 5 critérios. Cadastre antes de corrigir esta avaliação.',
     // Report PDF download (E26-04)
     'evaluations.grade.report_download'        => 'Baixar Report',
+    // Erros do ReportService (E26) — usados como error_key no retorno do
+    // service (best-effort; hoje vai pra log apenas, futuros callers podem
+    // exibir).
+    'reports.err.template_missing'             => 'Template do report não encontrado.',
+    'reports.err.outdir_missing'               => 'Diretório de reports indisponível.',
+    'reports.err.render'                       => 'Falha ao gerar o PDF do report.',
 
     // Listagem de submissões (E7-04)
     'evaluations.submissions.page_title'   => 'Entregas — :name',

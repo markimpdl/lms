@@ -636,6 +636,11 @@ return [
     'evaluations.grade.lo_uc_not_ready_help'  => 'The course uses Learning Outcomes but this unit has no 5 criteria registered. Register them before grading this evaluation.',
     // Report PDF download (E26-04)
     'evaluations.grade.report_download'        => 'Download Report',
+    // ReportService errors (E26) — used as error_key in the service return
+    // (best-effort; today goes to log only, future callers may display).
+    'reports.err.template_missing'             => 'Report template not found.',
+    'reports.err.outdir_missing'               => 'Reports directory unavailable.',
+    'reports.err.render'                       => 'Failed to generate the report PDF.',
 
     // Submissions list (E7-04)
     'evaluations.submissions.page_title'   => 'Submissions — :name',
