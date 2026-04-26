@@ -2424,10 +2424,61 @@ body.lms-student-area.lms-theme-dark .lms-progress-ring__label {
 }
 /* Hero do curso: ring é deliberadamente branco translúcido sobre o
    gradient colorido do hero — forçamos label dark fixo (não depende
-   do tema). E ::before lá fica branco sólido pra contraste. */
-body.lms-student-area.lms-theme-dark .lms-course-hero__ring .lms-progress-ring::before {
+   do tema). E ::before lá fica branco sólido pra contraste. As 2
+   classes `lms-progress-ring` e `lms-course-hero__ring` coexistem no
+   MESMO elemento, então combinamos sem espaço (pass 1 errou usando
+   espaço, que busca descendente). */
+body.lms-student-area.lms-theme-dark .lms-progress-ring.lms-course-hero__ring::before {
     background: #fff;
 }
+body.lms-student-area.lms-theme-dark .lms-progress-ring.lms-course-hero__ring .lms-progress-ring__label,
 body.lms-student-area.lms-theme-dark .lms-course-hero__ring .lms-progress-ring__label {
     color: #111827;
+}
+
+/* ── Pass 2 fixes (PO smoke v0.24.0 pre-release) ──────────────── */
+
+/* Sidebar sub-cards (XP, Conquistas, Ranking) ficaram MUITO próximos
+   do card-bg parent — adiciona border explícita pra recriar contorno. */
+body.lms-student-area.lms-theme-dark .lms-xp-block,
+body.lms-student-area.lms-theme-dark .lms-ranking-block,
+body.lms-student-area.lms-theme-dark .lms-achievements-block {
+    border: 1px solid var(--lms-neutral-200);
+}
+
+/* Botão idioma na navbar (.lms-navbar__lang): bg #fff + border #E5E7EB
+   hardcoded em app.css. Pass 1 cobriu só color. */
+body.lms-student-area.lms-theme-dark .lms-navbar__lang {
+    background: var(--lms-neutral-100);
+    border-color: var(--lms-neutral-200);
+}
+body.lms-student-area.lms-theme-dark .lms-navbar__lang:hover {
+    background: var(--lms-neutral-200);
+    border-color: var(--lms-neutral-300);
+}
+
+/* Sino de notificações: itens com cor de texto hardcoded em app.css */
+body.lms-student-area.lms-theme-dark .lms-bell__item-title {
+    color: var(--lms-neutral-900);
+}
+body.lms-student-area.lms-theme-dark .lms-bell__item-text {
+    color: var(--lms-neutral-500);
+}
+body.lms-student-area.lms-theme-dark .lms-bell__item-time {
+    color: var(--lms-neutral-500);
+}
+body.lms-student-area.lms-theme-dark .lms-bell__item {
+    border-bottom-color: var(--lms-neutral-200);
+}
+body.lms-student-area.lms-theme-dark .lms-bell__item--unread {
+    background: rgba(139, 92, 246, 0.12);  /* violet-tint translúcido */
+}
+body.lms-student-area.lms-theme-dark .lms-bell__item-btn:hover {
+    background: var(--lms-neutral-100);
+}
+
+/* Modal title (Bootstrap usa color: inherit; modal-content em dark já
+   tem color claro, mas modal-title pode ter override em algum lugar) */
+body.lms-student-area.lms-theme-dark .modal-title {
+    color: var(--lms-neutral-900);
 }
