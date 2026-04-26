@@ -91,6 +91,14 @@ $canResubmit     = $current !== null && (int) $current['retry_allowed'] === 1;
 $canShowForm     = $canSubmitNew || $canResubmit;
 $hasFeedback     = $current !== null && $current['feedback_at'] !== null;
 
+// E25-05: curso em LO mode mostra os 5 critérios pro aluno (read-only
+// antes do feedback; com nota por critério depois).
+$isLoMode      = (string) ($evaluation['grading_mode'] ?? 'grade') === 'learning_outcomes';
+$loList        = $isLoMode ? LearningOutcome::findByCu((int) $evaluation['cu_id']) : [];
+$loGrades      = ($isLoMode && $hasFeedback)
+    ? LearningOutcome::findGradesBySubmission((int) $current['id'])
+    : [];
+
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -238,6 +246,47 @@ ob_start();
                         <?= e(__t('evaluations.student.brief_download')) ?>
                     </a>
                 </div>
+            </div>
+        <?php endif; ?>
+
+        <!-- E25-05: Critérios avaliados (LO mode) — read-only antes do
+             feedback; com nota por LO depois. -->
+        <?php if ($isLoMode && $loList !== []): ?>
+            <div class="card shadow-sm mb-3">
+                <div class="card-header">
+                    <h2 class="h6 mb-0"><?= e(__t('student.evaluation.criteria_title')) ?></h2>
+                    <small class="text-muted">
+                        <?= e(__t($hasFeedback
+                            ? 'student.evaluation.criteria_help_after'
+                            : 'student.evaluation.criteria_help_before')) ?>
+                    </small>
+                </div>
+                <ul class="list-group list-group-flush">
+                    <?php foreach ($loList as $i => $lo):
+                        $loId   = (int) $lo['id'];
+                        $grade  = $loGrades[$loId] ?? null;
+                        $bg     = 'bg-light text-muted';
+                        if ($grade !== null) {
+                            $bg = $grade >= 6.0
+                                ? 'bg-success-subtle text-success-emphasis'
+                                : 'bg-danger-subtle text-danger-emphasis';
+                        }
+                    ?>
+                        <li class="list-group-item d-flex align-items-start gap-2 flex-wrap">
+                            <span class="badge text-bg-light border" style="min-width: 2rem;">
+                                <?= (int) ($i + 1) ?>
+                            </span>
+                            <div class="flex-grow-1 small">
+                                <?= e((string) $lo['description']) ?>
+                            </div>
+                            <?php if ($grade !== null): ?>
+                                <span class="badge <?= e($bg) ?>" style="min-width: 3rem;">
+                                    <?= e(number_format((float) $grade, 1, ',', '')) ?>
+                                </span>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
             </div>
         <?php endif; ?>
 

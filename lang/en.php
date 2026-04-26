@@ -664,6 +664,10 @@ return [
     'evaluations.student.brief_title'    => 'Evaluation brief',
     'evaluations.student.brief_hint'     => 'Download the file to see all exam instructions.',
     'evaluations.student.brief_download' => 'Download brief',
+    // E25-05: assessed criteria (LO mode) — read-only before; with grades after
+    'student.evaluation.criteria_title'        => 'Assessed criteria',
+    'student.evaluation.criteria_help_before'  => 'These are the 5 criteria the teacher will assess in this unit.',
+    'student.evaluation.criteria_help_after'   => 'Grade per criterion (average = final grade).',
     'evaluations.student.feedback_title' => "Teacher's grading",
     'evaluations.student.feedback_at'    => 'Graded on :date',
     'evaluations.student.grade_label'    => 'Grade',

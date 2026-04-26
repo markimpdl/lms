@@ -664,6 +664,10 @@ return [
     'evaluations.student.brief_title'    => 'Enunciado da avaliação',
     'evaluations.student.brief_hint'     => 'Baixe o arquivo para ver todas as instruções da prova.',
     'evaluations.student.brief_download' => 'Baixar enunciado',
+    // E25-05: critérios avaliados (LO mode) — read-only antes; com nota depois
+    'student.evaluation.criteria_title'        => 'Critérios avaliados',
+    'student.evaluation.criteria_help_before'  => 'Estes são os 5 critérios que o professor vai avaliar nesta unidade.',
+    'student.evaluation.criteria_help_after'   => 'Notas por critério (média = nota final).',
     'evaluations.student.feedback_title' => 'Correção do professor',
     'evaluations.student.feedback_at'    => 'Corrigida em :date',
     'evaluations.student.grade_label'    => 'Nota',
