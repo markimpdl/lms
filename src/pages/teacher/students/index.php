@@ -62,12 +62,15 @@ $page_title = __t('students.title');
 
 ob_start();
 ?>
-<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-    <h1 class="h4 mb-0"><?= e(__t('students.title')) ?></h1>
+<header class="lms-dashboard-header">
+    <div>
+        <span class="lms-dashboard-eyebrow"><?= e(__t('teacher.students.eyebrow')) ?></span>
+        <h1 class="lms-dashboard-title"><?= e(__t('students.title')) ?></h1>
+    </div>
     <a href="/teacher/students/new" class="btn btn-primary">
         + <?= e(__t('students.new_button')) ?>
     </a>
-</div>
+</header>
 
 <form method="GET" action="/teacher/students" class="row g-2 mb-3">
     <div class="col-12 col-md-6">

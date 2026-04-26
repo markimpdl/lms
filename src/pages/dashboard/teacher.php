@@ -42,9 +42,14 @@ $page_title = __t('dashboard.teacher.title');
 
 ob_start();
 ?>
-<div class="py-3">
-    <h1 class="h3 mb-1"><?= e(__t('dashboard.teacher.title')) ?></h1>
-    <p class="lead text-muted mb-4"><?= e(__t('dashboard.teacher.welcome', ['name' => $firstName])) ?></p>
+<header class="lms-dashboard-header">
+    <div>
+        <span class="lms-dashboard-eyebrow"><?= e(__t('teacher.dashboard.eyebrow')) ?></span>
+        <h1 class="lms-dashboard-title"><?= e(__t('dashboard.teacher.title')) ?></h1>
+        <p class="lms-dashboard-subtitle"><?= e(__t('dashboard.teacher.welcome', ['name' => $firstName])) ?></p>
+    </div>
+</header>
+<div class="py-1">
 
     <!-- Totalizadores -->
     <div class="row g-3 mb-4">
