@@ -24,7 +24,7 @@ $maxMb = (int) (EvaluationBriefStorage::maxBytes() / (1024 * 1024));
                 <?= e($mode === 'new' ? __t('evaluations.new.title') : __t('evaluations.edit.title', ['name' => $evaluationName])) ?>
             </h1>
             <a href="/teacher/cu/<?= (int) $cuId ?>" class="btn btn-sm btn-outline-secondary">
-                <?= e(__t('common.cancel')) ?>
+                ← <?= e(__t('common.back')) ?>
             </a>
         </div>
 

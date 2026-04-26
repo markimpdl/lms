@@ -23,7 +23,12 @@ $initialQuestionsJson = json_encode($questions, JSON_UNESCAPED_UNICODE | JSON_UN
 ?>
 <div class="row justify-content-center">
     <div class="col-12 col-lg-10">
-        <h1 class="h4 mb-3"><?= e(__t('quiz.form.title', ['name' => $ownerName])) ?></h1>
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <h1 class="h4 mb-0"><?= e(__t('quiz.form.title', ['name' => $ownerName])) ?></h1>
+            <a href="<?= e($cancelUrl) ?>" class="btn btn-sm btn-outline-secondary">
+                ← <?= e(__t('common.back')) ?>
+            </a>
+        </div>
         <p class="text-muted small mb-3"><?= e(__t('quiz.form.subtitle')) ?></p>
 
         <?php if ($errors !== []): ?>
