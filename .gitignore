@@ -12,6 +12,7 @@ template_reports/
 config/env.php
 .mcp.json
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
 
 # Uploads de produção (alunos enviam arquivos lá) — pasta criada pelo installer
 storage/uploads/
