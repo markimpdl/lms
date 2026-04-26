@@ -122,6 +122,7 @@ return [
     'profile.change_password'         => 'Alterar senha',
     'profile.updated'                 => 'Perfil atualizado.',
     'profile.password_changed'        => 'Senha alterada com sucesso.',
+    'profile.theme.saved'             => 'Tema atualizado.',
     'profile.error.name'              => 'Informe um nome entre 1 e 150 caracteres.',
     'profile.error.language'          => 'Idioma inválido.',
     'profile.error.current_wrong'     => 'Senha atual incorreta.',

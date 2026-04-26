@@ -851,6 +851,23 @@ function current_tenant_id(): ?int
 }
 
 /**
+ * Tema visual do usuário atual (E27 — F18). Apenas aluno tem preferência;
+ * teacher/super-admin/deslogado retornam 'light'. Decisão simplificadora
+ * do MVP — dark mode pra teacher/admin entra em E29 (visual unificado).
+ *
+ * @return string 'light' | 'dark'
+ */
+function current_user_theme(): string
+{
+    $u = current_user();
+    if ($u === null || ($u['role'] ?? null) !== 'student') {
+        return 'light';
+    }
+    $theme = (string) ($u['theme'] ?? 'light');
+    return $theme === 'dark' ? 'dark' : 'light';
+}
+
+/**
  * Middleware de autenticação (E1-05).
  *
  * Garante que:

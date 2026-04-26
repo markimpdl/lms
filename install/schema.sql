@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS users (
     id_document           VARCHAR(30)  NULL DEFAULT NULL,
     role                  ENUM('super_admin','teacher','student') NOT NULL,
     language              ENUM('pt','en') NOT NULL DEFAULT 'pt',
+    theme                 ENUM('light','dark') NOT NULL DEFAULT 'light',
     active                TINYINT(1) NOT NULL DEFAULT 1,
     email_tenant_key      VARCHAR(220) GENERATED ALWAYS AS (CONCAT(email, ':', COALESCE(tenant_id, 0))) STORED,
     created_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1287,6 +1288,23 @@ SET @col_exists := (
 );
 SET @sql := IF(@col_exists = 0,
     "ALTER TABLE evaluation_submissions ADD COLUMN report_pdf_path VARCHAR(500) NULL DEFAULT NULL AFTER quiz_snapshot",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E27-01] users.theme — preferencia de tema (light/dark) do aluno.
+-- 'light' default. Apenas aluno usa via toggle em /profile; teacher/
+-- super-admin ficam sempre light no MVP. Persistencia cross-sessao via
+-- DB + sincronizado com $_SESSION['user']['theme'] em AuthController.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'users'
+       AND COLUMN_NAME  = 'theme'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE users ADD COLUMN theme ENUM('light','dark') NOT NULL DEFAULT 'light' AFTER language",
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
