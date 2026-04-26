@@ -27,9 +27,7 @@ $brandLogo = $brand['logo_url'] ?? null;
     <div class="lms-navbar__inner">
         <a class="lms-navbar__brand" href="/" aria-label="<?= e(__t('app.title')) ?>">
             <?php if ($brandLogo !== null): ?>
-                <span class="lms-navbar__logo lms-navbar__logo--branded"
-                      style="background-image: url('<?= e($brandLogo) ?>')"
-                      aria-hidden="true"></span>
+                <img class="lms-navbar__logo-img" src="<?= e($brandLogo) ?>" alt="" aria-hidden="true">
             <?php else: ?>
                 <span class="lms-navbar__logo" aria-hidden="true">L</span>
             <?php endif; ?>
@@ -47,14 +45,18 @@ $brandLogo = $brand['logo_url'] ?? null;
             <nav class="lms-navbar__nav" aria-label="<?= e(__t('nav.primary_aria')) ?>">
                 <?php if ($rankingHref !== null): ?>
                     <a class="lms-navbar__link <?= $currentPath === $rankingHref ? 'is-active' : '' ?>"
-                       href="<?= e($rankingHref) ?>">
-                        <?= e(__t('nav.ranking')) ?>
+                       href="<?= e($rankingHref) ?>"
+                       aria-label="<?= e(__t('nav.ranking')) ?>">
+                        <i class="bi bi-trophy lms-navbar__link-icon" aria-hidden="true"></i>
+                        <span class="lms-navbar__link-text"><?= e(__t('nav.ranking')) ?></span>
                     </a>
                 <?php endif; ?>
                 <?php if ($achievementsHref !== null): ?>
                     <a class="lms-navbar__link <?= $currentPath === $achievementsHref ? 'is-active' : '' ?>"
-                       href="<?= e($achievementsHref) ?>">
-                        <?= e(__t('nav.achievements')) ?>
+                       href="<?= e($achievementsHref) ?>"
+                       aria-label="<?= e(__t('nav.achievements')) ?>">
+                        <i class="bi bi-award lms-navbar__link-icon" aria-hidden="true"></i>
+                        <span class="lms-navbar__link-text"><?= e(__t('nav.achievements')) ?></span>
                     </a>
                 <?php endif; ?>
             </nav>
