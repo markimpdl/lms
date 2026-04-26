@@ -6,12 +6,8 @@
 <style>
     @page {
         size: A4;
-        margin: 0;
+        margin: 18mm 18mm 18mm 18mm;
     }
-    @page content {
-        margin: 18mm 18mm 22mm 18mm;
-    }
-
     body {
         font-family: dejavusans, sans-serif;
         color: #15365F;
@@ -21,66 +17,49 @@
         padding: 0;
     }
 
-    /* ====================== Page 1 (cover) ====================== */
-    .cover {
-        position: relative;
-        width: 210mm;
-        height: 297mm;
-        page-break-after: always;
+    /* Cover wrapper — sem position:absolute. A imagem flui inline,
+       limitada por dimensoes em mm pra nao estourar a pagina. Texto
+       overlay vira simples bloco abaixo (capa fica menos fiel mas
+       parar de estourar 805 paginas era prioridade). */
+    .cover-img {
+        display: block;
+        width: 174mm;   /* page width minus 2x margem 18mm */
+        height: auto;
+        margin: 0 auto;
     }
-    .cover-bg {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 210mm;
-        height: 297mm;
+    .cover-overlay {
+        text-align: center;
+        margin-top: 6mm;
     }
-    .cover-title-block {
-        position: absolute;
-        top: 145mm;
-        left: 110mm;
-        width: 80mm;
-        color: #15365F;
-    }
-    .cover-title {
+    .cover-overlay h1 {
         font-family: dejavusansb, sans-serif;
         font-size: 22pt;
         font-weight: bold;
-        line-height: 1.1;
-        margin: 0 0 14mm 0;
+        color: #15365F;
+        margin: 0 0 4mm 0;
     }
-    .cover-course {
+    .cover-overlay .course {
         font-size: 11pt;
+        font-weight: bold;
         color: #15365F;
         margin: 0;
-        font-weight: bold;
     }
 
-    /* ====================== Page 2+ (content) ====================== */
-    .content-page {
-        page: content;
-    }
-
-    /* Header da pagina de conteudo (topo) */
+    /* Header pg2 (apos pagebreak) */
     .doc-header {
         width: 100%;
         margin-bottom: 6mm;
+        border-collapse: collapse;
     }
     .doc-header td {
         vertical-align: top;
         border: none;
+        padding: 0;
     }
     .doc-header__label {
         font-size: 8pt;
         color: #15365F;
         font-weight: bold;
-        line-height: 1.3;
-    }
-    .doc-header__course {
-        font-size: 8pt;
-        color: #15365F;
-        font-weight: bold;
-        line-height: 1.3;
     }
     .doc-header__brand {
         text-align: right;
@@ -90,7 +69,6 @@
         letter-spacing: 0.5pt;
     }
 
-    /* Titulo grande */
     .doc-title {
         text-align: center;
         font-family: dejavusansb, sans-serif;
@@ -101,7 +79,6 @@
         letter-spacing: 1pt;
     }
 
-    /* Tabela skill/student no topo */
     .skill-table {
         width: 100%;
         border-collapse: collapse;
@@ -116,14 +93,12 @@
     .skill-table .skill-label {
         font-weight: bold;
         color: #15365F;
-        width: 18mm;
+        width: 22mm;
     }
     .skill-table .skill-value {
         color: #15365F;
-        width: 60mm;
     }
 
-    /* Descricao */
     .description {
         text-align: justify;
         font-size: 9pt;
@@ -132,7 +107,6 @@
         line-height: 1.45;
     }
 
-    /* Secao */
     .section-title {
         text-align: center;
         font-family: dejavusansb, sans-serif;
@@ -143,7 +117,6 @@
         letter-spacing: 0.5pt;
     }
 
-    /* Tabela de resultados (UC + LOs) */
     table.results {
         width: 100%;
         border-collapse: collapse;
@@ -158,7 +131,6 @@
         padding: 3mm 2mm;
         text-align: center;
         border: 0.5pt solid #15365F;
-        text-transform: uppercase;
     }
     table.results tbody td {
         padding: 3mm 2mm;
@@ -183,11 +155,10 @@
         text-align: center;
     }
 
-    /* Footer */
     .doc-footer {
         font-size: 7.5pt;
         color: #15365F;
-        line-height: 1.3;
+        margin-top: 12mm;
     }
     .doc-footer hr {
         border: none;
@@ -196,7 +167,6 @@
     }
     .doc-footer table {
         width: 100%;
-        border: none;
         border-collapse: collapse;
     }
     .doc-footer td {
@@ -212,133 +182,119 @@
 </head>
 <body>
 
-<!-- ============================================================
-     Pagina 1 — Capa
-     ============================================================ -->
-<div class="cover">
-    <img class="cover-bg" src="images/image001.png" alt="">
-    <div class="cover-title-block">
-        <p class="cover-title">Assessment Report</p>
-        <p class="cover-course">{{NAME_COURSE}}</p>
-    </div>
+<!-- Pagina 1 (capa) -->
+<img class="cover-img" src="images/image001.png" alt="">
+<div class="cover-overlay">
+    <h1>Assessment Report</h1>
+    <p class="course">{{NAME_COURSE}}</p>
 </div>
 
-<!-- ============================================================
-     Pagina 2 — Conteudo
-     ============================================================ -->
-<div class="content-page">
+<pagebreak />
 
-    <!-- Header da pagina -->
-    <table class="doc-header">
+<!-- Pagina 2 (conteudo) -->
+<table class="doc-header">
+    <tr>
+        <td style="width: 60%;">
+            <span class="doc-header__label">Competence Unit Assessment Report</span><br>
+            <span class="doc-header__label">{{NAME_COURSE}}</span>
+        </td>
+        <td class="doc-header__brand" style="width: 40%;">
+            ACTVET &nbsp;|&nbsp; Skills Hub
+        </td>
+    </tr>
+</table>
+
+<h1 class="doc-title">ASSESSMENT REPORT</h1>
+
+<table class="skill-table">
+    <tr>
+        <td class="skill-label">Skill:</td>
+        <td class="skill-value" colspan="3">{{NAME_COURSE}}</td>
+    </tr>
+    <tr>
+        <td class="skill-label">Student:</td>
+        <td class="skill-value" style="width: 60mm;">{{NAME_STUDENT}}</td>
+        <td class="skill-label" style="width: 30mm;">SH Student ID:</td>
+        <td class="skill-value"></td>
+    </tr>
+</table>
+
+<p class="description">
+    This assessment records the learner's achievement against the Learning Outcomes for this Competence Unit. The final Competence Unit result is calculated based on the average performance across all Learning Outcomes. In addition, the report tracks the learner's attendance and records the training hours allocated to each Learning Outcome.
+</p>
+
+<h2 class="section-title">COMPETENCE UNIT RESULTS</h2>
+<table class="results">
+    <thead>
         <tr>
-            <td style="width: 60%;">
-                <span class="doc-header__label">Competence Unit Assessment Report</span><br>
-                <span class="doc-header__course">{{NAME_COURSE}}</span>
+            <th>COMPETENCE UNIT ID/DESCRIPTION</th>
+            <th style="width: 32mm;">HOURS OF TRAINING</th>
+            <th style="width: 32mm;">PERFORMANCE</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>{{NAME_UC}}</td>
+            <td class="workload">{{WORKLOAD_UC}}</td>
+            <td class="score">{{AVG_LEARN}}</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2 class="section-title">LEARNING OUTCOMES RESULTS BREAKDOWN</h2>
+<table class="results">
+    <thead>
+        <tr>
+            <th colspan="2">LEARNING OUTCOME ID/DESCRIPTION</th>
+            <th style="width: 32mm;">PERFORMANCE</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="lo-num">1.</td>
+            <td>{{LEARN_1_NAME}}</td>
+            <td class="score">{{LEARN_1_SCORE}}</td>
+        </tr>
+        <tr>
+            <td class="lo-num">2.</td>
+            <td>{{LEARN_2_NAME}}</td>
+            <td class="score">{{LEARN_2_SCORE}}</td>
+        </tr>
+        <tr>
+            <td class="lo-num">3.</td>
+            <td>{{LEARN_3_NAME}}</td>
+            <td class="score">{{LEARN_3_SCORE}}</td>
+        </tr>
+        <tr>
+            <td class="lo-num">4.</td>
+            <td>{{LEARN_4_NAME}}</td>
+            <td class="score">{{LEARN_4_SCORE}}</td>
+        </tr>
+        <tr>
+            <td class="lo-num">5.</td>
+            <td>{{LEARN_5_NAME}}</td>
+            <td class="score">{{LEARN_5_SCORE}}</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="doc-footer">
+    <hr>
+    <table>
+        <tr>
+            <td class="col-l">
+                <strong>Date: January 2026</strong><br>
+                Skills for a sustainable future.
             </td>
-            <td class="doc-header__brand" style="width: 40%;">
-                ACTVET &nbsp;|&nbsp; Skills Hub
+            <td class="col-c">
+                <strong>Version: 1.0</strong><br>
+                &copy; Skills Department
+            </td>
+            <td class="col-r">
+                1
             </td>
         </tr>
     </table>
-
-    <!-- Titulo grande -->
-    <h1 class="doc-title">ASSESSMENT REPORT</h1>
-
-    <!-- Skill / Student / Student ID -->
-    <table class="skill-table">
-        <tr>
-            <td class="skill-label">Skill:</td>
-            <td class="skill-value" colspan="3">{{NAME_COURSE}}</td>
-        </tr>
-        <tr>
-            <td class="skill-label">Student:</td>
-            <td class="skill-value">{{NAME_STUDENT}}</td>
-            <td class="skill-label">SH Student ID:</td>
-            <td class="skill-value"></td>
-        </tr>
-    </table>
-
-    <!-- Descricao -->
-    <p class="description">
-        This assessment records the learner's achievement against the Learning Outcomes for this Competence Unit. The final Competence Unit result is calculated based on the average performance across all Learning Outcomes. In addition, the report tracks the learner's attendance and records the training hours allocated to each Learning Outcome.
-    </p>
-
-    <!-- COMPETENCE UNIT RESULTS -->
-    <h2 class="section-title">COMPETENCE UNIT RESULTS</h2>
-    <table class="results">
-        <thead>
-            <tr>
-                <th>COMPETENCE UNIT ID/DESCRIPTION</th>
-                <th style="width: 32mm;">HOURS OF TRAINING</th>
-                <th style="width: 32mm;">PERFORMANCE</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>{{NAME_UC}}</td>
-                <td class="workload">{{WORKLOAD_UC}}</td>
-                <td class="score">{{AVG_LEARN}}</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <!-- LEARNING OUTCOMES RESULTS BREAKDOWN -->
-    <h2 class="section-title">LEARNING OUTCOMES RESULTS BREAKDOWN</h2>
-    <table class="results">
-        <thead>
-            <tr>
-                <th colspan="2">LEARNING OUTCOME ID/DESCRIPTION</th>
-                <th style="width: 32mm;">PERFORMANCE</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td class="lo-num">1.</td>
-                <td>{{LEARN_1_NAME}}</td>
-                <td class="score">{{LEARN_1_SCORE}}</td>
-            </tr>
-            <tr>
-                <td class="lo-num">2.</td>
-                <td>{{LEARN_2_NAME}}</td>
-                <td class="score">{{LEARN_2_SCORE}}</td>
-            </tr>
-            <tr>
-                <td class="lo-num">3.</td>
-                <td>{{LEARN_3_NAME}}</td>
-                <td class="score">{{LEARN_3_SCORE}}</td>
-            </tr>
-            <tr>
-                <td class="lo-num">4.</td>
-                <td>{{LEARN_4_NAME}}</td>
-                <td class="score">{{LEARN_4_SCORE}}</td>
-            </tr>
-            <tr>
-                <td class="lo-num">5.</td>
-                <td>{{LEARN_5_NAME}}</td>
-                <td class="score">{{LEARN_5_SCORE}}</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <!-- Footer (inline; report tem sempre 2 paginas no MVP) -->
-    <div class="doc-footer" style="margin-top: 40mm;">
-        <hr>
-        <table>
-            <tr>
-                <td class="col-l">
-                    <strong>Date: January 2026</strong><br>
-                    Skills for a sustainable future.
-                </td>
-                <td class="col-c">
-                    <strong>Version: 1.0</strong><br>
-                    &copy; Skills Department
-                </td>
-                <td class="col-r">
-                    1
-                </td>
-            </tr>
-        </table>
-    </div>
 </div>
 
 </body>
