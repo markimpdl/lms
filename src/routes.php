@@ -252,6 +252,11 @@ return [
             'role'   => 'teacher',
             'params' => ['id', 'sid'],
         ],
+        '#^/teacher/evaluation/(\d+)/submission/(\d+)/report\.pdf$#' => [
+            'file'   => '/src/pages/teacher/evaluation/report-pdf.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'student_id'],
+        ],
         '#^/teacher/evaluation/(\d+)/submission/(\d+)$#' => [
             'file'   => '/src/pages/teacher/evaluation/submission.php',
             'role'   => 'teacher',

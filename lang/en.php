@@ -634,6 +634,8 @@ return [
     'evaluations.grade.err.lo_uc_not_ready'   => 'This unit does not have 5 criteria registered yet. Register them before grading.',
     'evaluations.grade.lo_uc_not_ready_title' => 'Criteria not registered',
     'evaluations.grade.lo_uc_not_ready_help'  => 'The course uses Learning Outcomes but this unit has no 5 criteria registered. Register them before grading this evaluation.',
+    // Report PDF download (E26-04)
+    'evaluations.grade.report_download'        => 'Download Report',
 
     // Submissions list (E7-04)
     'evaluations.submissions.page_title'   => 'Submissions — :name',
