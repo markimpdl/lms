@@ -19,11 +19,12 @@
         padding: 0;
     }
 
-    /* Cover wrapper — img inline (sem position:absolute) */
+    /* Cover wrapper — altura limitada pra titulo caber na mesma pagina.
+       Aspect 884x1472 (~0.6); altura 220mm => largura ~132mm. */
     .cover-img {
         display: block;
-        width: 174mm;
-        height: auto;
+        height: 220mm;
+        width: auto;
         margin: 0 auto;
     }
     .cover-overlay {
@@ -180,14 +181,38 @@
 </head>
 <body>
 
-<!-- Pagina 1 (capa) -->
+<!-- Footer da pagina de conteudo (definicao + ativacao apos page break).
+     Posicionado automatico na base de cada pagina pelo mPDF. -->
+<htmlpagefooter name="contentFooter">
+    <div class="doc-footer">
+        <hr>
+        <table>
+            <tr>
+                <td class="col-l">
+                    <strong>Date: January 2026</strong><br>
+                    Skills for a sustainable future.
+                </td>
+                <td class="col-c">
+                    <strong>Version: 1.0</strong><br>
+                    &copy; Skills Department
+                </td>
+                <td class="col-r">{PAGENO}</td>
+            </tr>
+        </table>
+    </div>
+</htmlpagefooter>
+
+<!-- Pagina 1 (capa) — sem footer -->
 <img class="cover-img" src="images/image001.png" alt="">
 <div class="cover-overlay">
     <h1>Assessment Report</h1>
     <p class="course">{{NAME_COURSE}}</p>
 </div>
 
-<pagebreak />
+<pagebreak resetpagenum="1" />
+
+<!-- Ativa o footer DEPOIS do page break (a partir da pagina 2) -->
+<sethtmlpagefooter name="contentFooter" value="on" />
 
 <!-- Pagina 2 (conteudo) -->
 <table class="doc-header">
@@ -275,25 +300,6 @@
         </tr>
     </tbody>
 </table>
-
-<div class="doc-footer">
-    <hr>
-    <table>
-        <tr>
-            <td class="col-l">
-                <strong>Date: January 2026</strong><br>
-                Skills for a sustainable future.
-            </td>
-            <td class="col-c">
-                <strong>Version: 1.0</strong><br>
-                &copy; Skills Department
-            </td>
-            <td class="col-r">
-                1
-            </td>
-        </tr>
-    </table>
-</div>
 
 </body>
 </html>
