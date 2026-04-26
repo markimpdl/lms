@@ -246,32 +246,96 @@ async function main() {
         return;
     }
 
-    const client = new ftp.Client(30000);
+    // ── Resiliência contra rate-limit do FTPS Hostinger ─────────────
+    // Plano compartilhado derruba conexão depois de muitos uploads
+    // consecutivos (FIN packet ou ECONNRESET). Estratégia:
+    //  - Pequeno THROTTLE_MS entre uploads (suaviza burst rate)
+    //  - Reconexão proativa a cada RECONNECT_EVERY uploads
+    //  - Reconexão reativa quando detecta erro de conexão (1 retry por arquivo)
+    const THROTTLE_MS      = 80;
+    const RECONNECT_EVERY  = 50;
+    const ACCESS_OPTS = {
+        host: env.FTP_HOST,
+        port: Number(env.FTP_PORT || 21),
+        user: env.FTP_USER,
+        password: env.FTP_PASSWORD,
+        secure,
+        secureOptions: allowSelfSigned ? { rejectUnauthorized: false } : undefined,
+    };
+
+    let client = new ftp.Client(30000);
     client.ftp.verbose = false;
 
-    try {
-        await client.access({
-            host: env.FTP_HOST,
-            port: Number(env.FTP_PORT || 21),
-            user: env.FTP_USER,
-            password: env.FTP_PASSWORD,
-            secure,
-            secureOptions: allowSelfSigned ? { rejectUnauthorized: false } : undefined,
-        });
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-        let ok = 0, fail = 0;
+    async function connect() {
+        await client.access(ACCESS_OPTS);
+    }
+
+    async function reconnect() {
+        try { client.close(); } catch { /* ignore */ }
+        client = new ftp.Client(30000);
+        client.ftp.verbose = false;
+        await connect();
+    }
+
+    function isConnError(err) {
+        const msg = String(err?.message || err || "").toLowerCase();
+        return msg.includes("fin packet")
+            || msg.includes("econnreset")
+            || msg.includes("client is closed")
+            || msg.includes("epipe")
+            || msg.includes("etimedout");
+    }
+
+    try {
+        await connect();
+
+        let ok = 0, fail = 0, sinceReconnect = 0;
         for (const f of toUpload) {
             const remote = toRemote(f.rel, remoteRoot);
-            try {
-                await ensureRemoteDir(client, remote);
-                await client.uploadFrom(f.abs, remote);
-                console.log(`  ↑ ${f.rel.split(/\\/).join("/")}`);
-                ok++;
-            } catch (err) {
-                console.error(`  ✖ ${f.rel} — ${err.message}`);
-                fail++;
-                // Remove do state pra tentar de novo na próxima execução
-                delete newState[f.rel];
+
+            // Reconexão proativa periódica — evita acumular timeout no socket.
+            if (sinceReconnect >= RECONNECT_EVERY) {
+                try {
+                    await reconnect();
+                    sinceReconnect = 0;
+                } catch (err) {
+                    console.error(`  ! reconexao proativa falhou: ${err.message}`);
+                }
+            }
+
+            let attempt = 0;
+            while (true) {
+                try {
+                    await ensureRemoteDir(client, remote);
+                    await client.uploadFrom(f.abs, remote);
+                    console.log(`  ↑ ${f.rel.split(/\\/).join("/")}`);
+                    ok++;
+                    sinceReconnect++;
+                    if (THROTTLE_MS > 0) await sleep(THROTTLE_MS);
+                    break;
+                } catch (err) {
+                    if (attempt === 0 && isConnError(err)) {
+                        // Conexão caiu — reconecta e tenta o mesmo arquivo 1x.
+                        console.error(`  ! conexao caiu em ${f.rel}, reconectando...`);
+                        try {
+                            await reconnect();
+                            sinceReconnect = 0;
+                            attempt++;
+                            continue;
+                        } catch (reErr) {
+                            console.error(`  ✖ ${f.rel} — reconexao falhou: ${reErr.message}`);
+                            fail++;
+                            delete newState[f.rel];
+                            break;
+                        }
+                    }
+                    console.error(`  ✖ ${f.rel} — ${err.message}`);
+                    fail++;
+                    delete newState[f.rel];
+                    break;
+                }
             }
         }
 
@@ -280,7 +344,7 @@ async function main() {
         console.log(`\n✔ Enviados: ${ok} | Falhas: ${fail}\n`);
         if (fail > 0) process.exit(1);
     } finally {
-        client.close();
+        try { client.close(); } catch { /* ignore */ }
     }
 }
 
