@@ -178,6 +178,9 @@ ob_start();
                             <?php else: ?>
                                 <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle"><?= e(__t('admin.teachers.inactive')) ?></span>
                             <?php endif; ?>
+                            <?php if ((int) ($row['is_actvet'] ?? 0) === 1): ?>
+                                <span class="badge bg-info-subtle text-info border border-info-subtle ms-1"><?= e(__t('admin.teachers.badge_actvet')) ?></span>
+                            <?php endif; ?>
                         </td>
                         <td class="text-end"><?= (int) $row['active_courses'] ?></td>
                         <td class="text-end"><?= (int) $row['unique_students'] ?></td>
@@ -208,11 +211,16 @@ ob_start();
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                         <div class="fw-semibold"><?= e($row['name']) ?></div>
-                        <?php if ((int) $row['active'] === 1): ?>
-                            <span class="badge bg-success-subtle text-success border border-success-subtle"><?= e(__t('admin.teachers.active')) ?></span>
-                        <?php else: ?>
-                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle"><?= e(__t('admin.teachers.inactive')) ?></span>
-                        <?php endif; ?>
+                        <div class="d-flex flex-wrap gap-1 justify-content-end">
+                            <?php if ((int) $row['active'] === 1): ?>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle"><?= e(__t('admin.teachers.active')) ?></span>
+                            <?php else: ?>
+                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle"><?= e(__t('admin.teachers.inactive')) ?></span>
+                            <?php endif; ?>
+                            <?php if ((int) ($row['is_actvet'] ?? 0) === 1): ?>
+                                <span class="badge bg-info-subtle text-info border border-info-subtle"><?= e(__t('admin.teachers.badge_actvet')) ?></span>
+                            <?php endif; ?>
+                        </div>
                     </div>
                     <div class="text-muted small text-break mb-2"><?= e($row['email']) ?></div>
                     <div class="d-flex flex-wrap gap-3 small mb-2">

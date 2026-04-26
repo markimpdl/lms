@@ -207,6 +207,15 @@ A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** du
 
 ---
 
+## Limpezas de produção (não-bloqueantes)
+
+### [E24-03] Logos órfãs em `public/uploads/logos/`
+- Quando o super-admin marca como Actvet (`is_actvet=1`) um tenant que tinha `logo_path` setada (upload prévio em `/teacher/settings`), o helper `tenant_branding()` passa a usar a logo Actvet hardcoded e ignora `logo_path`. O arquivo PNG/SVG/JPG fica órfão no disco.
+- **Impacto:** baixo — só desperdício de disco (max 500KB por arquivo).
+- **Ação:** ou (a) cron de limpeza listando arquivos sem referência em `tenants.logo_path`, ou (b) melhor: tratar no toggle do `/admin/teachers/edit` — quando flag muda para Actvet, fazer `UPDATE tenants SET logo_path=NULL` + `LogoStorage::deleteByBasename($oldBasename)`.
+
+---
+
 ## Pendências externas (bloqueiam stories específicas)
 
 ### Judge0 RapidAPI

@@ -8,6 +8,9 @@ return [
     'app.demo_flash_ok'  => 'Flash funcionando — esta mensagem veio de uma sessão anterior.',
     'app.demo_flash_btn' => 'Testar flash',
 
+    // Branding (E24-02) — fallback do nome da plataforma na navbar
+    'branding.default_name' => 'LMS',
+
     // Common
     'common.save'        => 'Salvar',
     'common.cancel'      => 'Cancelar',
@@ -185,6 +188,11 @@ return [
     'admin.teachers.edit.status'     => 'Status',
     'admin.teachers.edit.updated'    => 'Dados de :name atualizados.',
     'admin.teachers.email_immutable' => 'Email não pode ser alterado (ADR-021).',
+
+    // White-label flag Actvet (E24-01) — toggle no cadastro/edição + badge na listagem
+    'admin.teachers.is_actvet_label' => 'É Actvet?',
+    'admin.teachers.is_actvet_hint'  => 'Marca este professor como Actvet (Skills Hub). Habilita Learning Outcomes e Reports nos cursos dele.',
+    'admin.teachers.badge_actvet'    => 'Actvet',
 
     // Desativar/reativar professor (E2-04)
     'admin.teachers.deactivate.title'         => 'Desativar professor',
@@ -914,6 +922,24 @@ return [
     'settings.avatar.style.ocidental' => 'Ocidental',
     'settings.success'                => 'Configurações atualizadas.',
     'settings.err.invalid_avatar_style' => 'Estilo de avatar inválido.',
+
+    // Branding do tenant (E24-03) — nome customizado + upload de logo
+    'teacher.settings.branding_section'      => 'Identidade visual',
+    'teacher.settings.branding_help'         => 'Customize o nome e a logo exibidos na navbar para você e seus alunos. Em branco, usa o nome padrão da plataforma.',
+    'teacher.settings.platform_name_label'   => 'Nome da plataforma',
+    'teacher.settings.platform_name_placeholder' => 'Ex: Meu Curso',
+    'teacher.settings.platform_name_too_long' => 'O nome deve ter no máximo 60 caracteres.',
+    'teacher.settings.logo_label'            => 'Logo',
+    'teacher.settings.logo_hint'             => 'PNG, JPG ou SVG até 500 KB. Será exibida no canto superior esquerdo da navbar.',
+    'teacher.settings.logo_hint_actvet'      => 'Logo Actvet padrão (não editável).',
+    'teacher.settings.logo_invalid_mime'     => 'Formato de imagem inválido. Aceitos: PNG, JPG, SVG.',
+    'teacher.settings.logo_too_large'        => 'A logo deve ter no máximo 500 KB.',
+    'teacher.settings.logo_no_file'          => 'Nenhum arquivo selecionado.',
+    'teacher.settings.logo_generic'          => 'Falha ao processar a logo. Tente novamente.',
+    'teacher.settings.logo_delete_button'    => 'Excluir logo',
+    'teacher.settings.logo_delete_confirm'   => 'Excluir a logo customizada? A plataforma volta para a logo padrão.',
+    'teacher.settings.logo_deleted'          => 'Logo customizada removida.',
+
     // Notificações configuráveis (E21-03).
     'notifications.settings.title'      => 'Notificações',
     'notifications.settings.subtitle'   => 'Controle quais eventos disparam sino e email pros seus alunos. Por padrão, tudo está habilitado.',

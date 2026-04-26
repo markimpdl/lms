@@ -19,20 +19,21 @@ final class TeacherProvisioningService
     public const PASS_MIN  = 8;
 
     /**
-     * @param array<string,string> $input Chaves: name, email, password, language, tenant_name.
+     * @param array<string,mixed> $input Chaves: name, email, password, language, tenant_name, is_actvet (bool).
      *
      * @return array{
      *   errors:  array<string,string>,
-     *   teacher: array{id:int, email:string, password:string, language:string, tenant_name:string}|null
+     *   teacher: array{id:int, email:string, password:string, language:string, tenant_name:string, is_actvet:bool}|null
      * }
      */
     public static function create(array $input): array
     {
-        $name   = trim((string) ($input['name']        ?? ''));
-        $email  = strtolower(trim((string) ($input['email'] ?? '')));
-        $pass   = (string)      ($input['password']    ?? '');
-        $lang   = (string)      ($input['language']    ?? '');
-        $tenant = trim((string) ($input['tenant_name'] ?? ''));
+        $name     = trim((string) ($input['name']        ?? ''));
+        $email    = strtolower(trim((string) ($input['email'] ?? '')));
+        $pass     = (string)      ($input['password']    ?? '');
+        $lang     = (string)      ($input['language']    ?? '');
+        $tenant   = trim((string) ($input['tenant_name'] ?? ''));
+        $isActvet = (bool)        ($input['is_actvet']   ?? false);
 
         $errors = [];
 
@@ -81,7 +82,7 @@ final class TeacherProvisioningService
         $hash = password_hash($pass, PASSWORD_BCRYPT, ['cost' => 12]);
 
         try {
-            $teacherId = (int) Database::tx(static function (PDO $pdo) use ($name, $email, $hash, $lang, $tenant): int {
+            $teacherId = (int) Database::tx(static function (PDO $pdo) use ($name, $email, $hash, $lang, $tenant, $isActvet): int {
                 $pdo->prepare(
                     'INSERT INTO users (tenant_id, email, password_hash, name, role, language, active)
                           VALUES (NULL, ?, ?, ?, "teacher", ?, 1)'
@@ -89,10 +90,16 @@ final class TeacherProvisioningService
 
                 $newId = (int) $pdo->lastInsertId();
 
+                // E24-04: defaults institucionais por contexto. Actvet padrão
+                // arabe + nome "Skills Hub"; demais começam ocidental + nome NULL
+                // (cai no fallback do helper tenant_branding -> "LMS").
+                $avatarStyle  = $isActvet ? 'arabe' : 'ocidental';
+                $platformName = $isActvet ? 'Skills Hub' : null;
+
                 $pdo->prepare(
-                    'INSERT INTO tenants (owner_user_id, name, active)
-                          VALUES (?, ?, 1)'
-                )->execute([$newId, $tenant]);
+                    'INSERT INTO tenants (owner_user_id, name, active, is_actvet, avatar_style, platform_name)
+                          VALUES (?, ?, 1, ?, ?, ?)'
+                )->execute([$newId, $tenant, $isActvet ? 1 : 0, $avatarStyle, $platformName]);
 
                 return $newId;
             });
@@ -123,6 +130,7 @@ final class TeacherProvisioningService
                 'password'    => $pass,
                 'language'    => $lang,
                 'tenant_name' => $tenant,
+                'is_actvet'   => $isActvet,
             ],
         ];
     }

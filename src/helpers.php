@@ -383,6 +383,61 @@ function student_avatar_url(int $studentId): string
 }
 
 /**
+ * Branding visual do tenant (E24-02). Resolve nome + URL da logo a renderizar
+ * na navbar, considerando a flag `is_actvet` e os campos opcionais
+ * `platform_name` / `logo_path`.
+ *
+ * Regras:
+ *  - Actvet (`is_actvet=1`): logo travada em `/assets/logos/actvet.png`,
+ *    nome usa `platform_name` se setado, senão "Skills Hub".
+ *  - Não-Actvet: logo do upload (se `logo_path` setado) ou null pra fallback;
+ *    nome usa `platform_name` se setado, senão `branding.default_name` (i18n).
+ *  - Tenant inexistente / id inválido: fallback genérico.
+ *
+ * `logo_path` armazena apenas o basename (`<tenant_id>-<ts>.<ext>`); o helper
+ * monta a URL final com o prefixo `/uploads/logos/`.
+ *
+ * Cache estático por request — header pode chamar em qualquer página, e
+ * partials que renderizam nome do tenant também.
+ *
+ * @return array{name:string, logo_url:?string}
+ */
+function tenant_branding(int $tenantId): array
+{
+    static $cache = [];
+    if (isset($cache[$tenantId])) {
+        return $cache[$tenantId];
+    }
+
+    $stmt = Database::pdo()->prepare(
+        'SELECT is_actvet, platform_name, logo_path FROM tenants WHERE id = ? LIMIT 1'
+    );
+    $stmt->execute([$tenantId]);
+    $row = $stmt->fetch();
+
+    if ($row === false) {
+        return $cache[$tenantId] = [
+            'name'     => __t('branding.default_name'),
+            'logo_url' => null,
+        ];
+    }
+
+    $isActvet     = (int) $row['is_actvet'] === 1;
+    $platformName = ($row['platform_name'] ?? '') !== '' ? (string) $row['platform_name'] : null;
+    $logoPath     = ($row['logo_path']     ?? '') !== '' ? (string) $row['logo_path']     : null;
+
+    if ($isActvet) {
+        $name    = $platformName ?? 'Skills Hub';
+        $logoUrl = '/assets/logos/actvet.png';
+    } else {
+        $name    = $platformName ?? __t('branding.default_name');
+        $logoUrl = $logoPath !== null ? '/uploads/logos/' . $logoPath : null;
+    }
+
+    return $cache[$tenantId] = ['name' => $name, 'logo_url' => $logoUrl];
+}
+
+/**
  * Pure logic — disponibilidade de acesso do aluno ao curso (E17-03), dados
  * os 3 campos da matrícula. Usada pela CourseCard (sem 2ª query) e por
  * `enrollment_access_status` (que faz query primeiro).

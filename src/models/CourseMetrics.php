@@ -60,6 +60,7 @@ final class CourseMetrics
                (SELECT AVG(TIMESTAMPDIFF(MINUTE, created_at, feedback_at))
                   FROM activity_submissions
                  WHERE activity_id = ? AND feedback_at IS NOT NULL
+                   AND feedback_at >= created_at
                ) AS avg_minutes'
         );
         $stmt->execute([$courseId, $activityId, $activityId]);
@@ -126,6 +127,7 @@ final class CourseMetrics
                (SELECT AVG(TIMESTAMPDIFF(MINUTE, created_at, feedback_at))
                   FROM evaluation_submissions
                  WHERE evaluation_id = ? AND is_current = 1 AND feedback_at IS NOT NULL
+                   AND feedback_at >= created_at
                ) AS avg_minutes'
         );
         $stmt->execute([$courseId, $evaluationId, $evaluationId, $evaluationId]);
@@ -204,6 +206,7 @@ final class CourseMetrics
                      JOIN competence_units cu  ON cu.id = a.competence_unit_id
                      JOIN core_competencies cc ON cc.id = cu.core_competency_id
                     WHERE cc.course_id = ? AND s.feedback_at IS NOT NULL
+                      AND s.feedback_at >= s.created_at
                    UNION ALL
                    SELECT TIMESTAMPDIFF(MINUTE, s.created_at, s.feedback_at) AS m
                      FROM evaluation_submissions s
@@ -211,6 +214,7 @@ final class CourseMetrics
                      JOIN competence_units cu  ON cu.id = e.competence_unit_id
                      JOIN core_competencies cc ON cc.id = cu.core_competency_id
                     WHERE cc.course_id = ? AND s.is_current = 1 AND s.feedback_at IS NOT NULL
+                      AND s.feedback_at >= s.created_at
                ) t) AS avg_minutes'
         );
         $stmt->execute([

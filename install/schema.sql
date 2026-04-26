@@ -40,6 +40,9 @@ CREATE TABLE IF NOT EXISTS tenants (
     owner_user_id   BIGINT UNSIGNED NOT NULL,
     name            VARCHAR(150) NOT NULL,
     active          TINYINT(1) NOT NULL DEFAULT 1,
+    is_actvet       TINYINT(1) NOT NULL DEFAULT 0,
+    platform_name   VARCHAR(60)  NULL DEFAULT NULL,
+    logo_path       VARCHAR(255) NULL DEFAULT NULL,
     avatar_style    ENUM('arabe','ocidental') NOT NULL DEFAULT 'arabe',
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1151,6 +1154,51 @@ SET @col_exists := (
 );
 SET @sql := IF(@col_exists = 0,
     "ALTER TABLE evaluation_submissions ADD COLUMN quiz_snapshot JSON NULL DEFAULT NULL AFTER stored_path",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E24-01] tenants.is_actvet, platform_name, logo_path — white-label per
+-- professor (cada prof = 1 tenant). is_actvet flag setada pelo super-admin
+-- no /admin/teachers/{new,edit}; platform_name e logo_path customizam navbar
+-- via helper tenant_branding (E24-02). Logo Actvet (is_actvet=1) trava em
+-- public/assets/logos/actvet.png; nao-Actvet faz upload livre em
+-- /teacher/settings (E24-03).
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'tenants'
+       AND COLUMN_NAME  = 'is_actvet'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE tenants ADD COLUMN is_actvet TINYINT(1) NOT NULL DEFAULT 0 AFTER active",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'tenants'
+       AND COLUMN_NAME  = 'platform_name'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE tenants ADD COLUMN platform_name VARCHAR(60) NULL DEFAULT NULL AFTER is_actvet",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'tenants'
+       AND COLUMN_NAME  = 'logo_path'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE tenants ADD COLUMN logo_path VARCHAR(255) NULL DEFAULT NULL AFTER platform_name",
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;

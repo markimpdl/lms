@@ -52,7 +52,8 @@ final class Tenant
     public static function findById(int $tenantId): ?array
     {
         $stmt = Database::pdo()->prepare(
-            'SELECT id, owner_user_id, name, active, avatar_style, created_at, updated_at
+            'SELECT id, owner_user_id, name, active, is_actvet, platform_name, logo_path,
+                    avatar_style, created_at, updated_at
                FROM tenants WHERE id = ? LIMIT 1'
         );
         $stmt->execute([$tenantId]);
@@ -74,5 +75,34 @@ final class Tenant
         );
         $stmt->execute([$style, $tenantId]);
         return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Alterna o flag `is_actvet` do tenant (E24-01). Usado pelo super-admin
+     * em /admin/teachers/{new,edit} para marcar professores Actvet.
+     */
+    public static function setIsActvet(int $tenantId, bool $isActvet): void
+    {
+        Database::pdo()->prepare('UPDATE tenants SET is_actvet = ? WHERE id = ?')
+            ->execute([$isActvet ? 1 : 0, $tenantId]);
+    }
+
+    /**
+     * Atualiza o branding do tenant (E24-03): nome customizado da plataforma
+     * e basename da logo customizada. Caller é responsável por respeitar a
+     * regra Actvet (logo travada — não chamar com novo logoPath se Actvet)
+     * e por validar tamanho/sanitização do nome.
+     *
+     * Strings vazias são normalizadas pra NULL pra cair no fallback do
+     * `tenant_branding()`.
+     */
+    public static function updateBranding(int $tenantId, ?string $platformName, ?string $logoBasename): void
+    {
+        $name = ($platformName !== null && trim($platformName) !== '') ? trim($platformName) : null;
+        $logo = ($logoBasename !== null && $logoBasename !== '')        ? $logoBasename       : null;
+
+        Database::pdo()->prepare(
+            'UPDATE tenants SET platform_name = ?, logo_path = ? WHERE id = ?'
+        )->execute([$name, $logo, $tenantId]);
     }
 }

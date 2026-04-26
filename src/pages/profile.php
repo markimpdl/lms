@@ -63,11 +63,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $user = current_user(); // re-lê após possível mutação acima (embora após erro)
 $page_title = __t('profile.title');
 
+$backHref = match ($user['role'] ?? '') {
+    'student'     => '/student',
+    'teacher'     => '/teacher',
+    'super_admin' => '/admin',
+    default       => '/',
+};
+
+// No student area, .lms-student-main já é o 1fr ao lado da sidebar — não
+// precisa do col-lg-8 que comprime ainda mais. Pra teacher/super-admin
+// (layout container clássico), mantém o centramento de form estreito.
+$isStudent = ($user['role'] ?? '') === 'student';
+
 ob_start();
 ?>
-<div class="row justify-content-center">
-    <div class="col-12 col-md-10 col-lg-8">
-        <h1 class="h4 mb-3"><?= e(__t('profile.title')) ?></h1>
+<?php if (!$isStudent): ?><div class="row justify-content-center"><div class="col-12 col-md-10 col-lg-8"><?php endif; ?>
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+            <h1 class="h4 mb-0"><?= e(__t('profile.title')) ?></h1>
+            <a href="<?= e($backHref) ?>" class="btn btn-sm btn-outline-secondary">
+                <?= e(__t('common.back')) ?>
+            </a>
+        </div>
 
         <?php if ($error !== null): ?>
             <div class="alert alert-danger" role="alert"><?= e($error) ?></div>
@@ -172,8 +188,7 @@ ob_start();
                 </div>
             </div>
         </div>
-    </div>
-</div>
+<?php if (!$isStudent): ?></div></div><?php endif; ?>
 
 <script>
 // Bundle do Bootstrap é incluído no fim do <body> pelo layout — esperar `load`

@@ -24,8 +24,11 @@ if ($tenant === null) {
     return;
 }
 
-$errors = [];
-$style  = (string) $tenant['avatar_style'];
+$errors       = [];
+$style        = (string) $tenant['avatar_style'];
+$isActvet     = (int) ($tenant['is_actvet'] ?? 0) === 1;
+$platformName = (string) ($tenant['platform_name'] ?? '');
+$logoBasename = (string) ($tenant['logo_path'] ?? '');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
@@ -36,12 +39,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $newStyle = (string) ($_POST['avatar_style'] ?? '');
-    if (!in_array($newStyle, ['arabe', 'ocidental'], true)) {
-        $errors['avatar_style'] = 'settings.err.invalid_avatar_style';
-    } else {
-        Tenant::updateAvatarStyle($tenantId, $newStyle);
-        flash('success', __t('settings.success'));
+    $form = (string) ($_POST['form'] ?? 'avatar');
+
+    if ($form === 'avatar') {
+        $newStyle = (string) ($_POST['avatar_style'] ?? '');
+        if (!in_array($newStyle, ['arabe', 'ocidental'], true)) {
+            $errors['avatar_style'] = 'settings.err.invalid_avatar_style';
+        } else {
+            Tenant::updateAvatarStyle($tenantId, $newStyle);
+            flash('success', __t('settings.success'));
+            header('Location: /teacher/settings', true, 303);
+            exit;
+        }
+    } elseif ($form === 'branding') {
+        // Nome: opcional, máx 60 chars (matches schema VARCHAR(60)).
+        $newName = trim((string) ($_POST['platform_name'] ?? ''));
+        if ($newName !== '' && mb_strlen($newName) > 60) {
+            $errors['platform_name'] = 'teacher.settings.platform_name_too_long';
+        }
+
+        // Logo: aceita só pra não-Actvet. Pra Actvet, força ignorar mesmo se
+        // o user enviou via POST manual (DevTools) — defesa server-side.
+        $newLogoBasename = $logoBasename;
+        $logoFile        = $_FILES['logo'] ?? null;
+        $hasUpload       = is_array($logoFile) && (int) ($logoFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+
+        if ($hasUpload && $errors === []) {
+            if ($isActvet) {
+                // Silenciosamente ignora — UI não exibe o campo, mas alguém
+                // pode forçar via curl/POST manipulado. Não erra, só ignora.
+                $hasUpload = false;
+            } else {
+                $result = LogoStorage::store($logoFile, $tenantId, $logoBasename === '' ? null : $logoBasename);
+                if ($result['status'] === 'ok') {
+                    $newLogoBasename = (string) $result['basename'];
+                } else {
+                    $errors['logo'] = (string) ($result['error_key'] ?? 'teacher.settings.logo_generic');
+                }
+            }
+        }
+
+        if ($errors === []) {
+            Tenant::updateBranding(
+                $tenantId,
+                $newName === '' ? null : $newName,
+                $newLogoBasename === '' ? null : $newLogoBasename
+            );
+            flash('success', __t('settings.success'));
+            header('Location: /teacher/settings', true, 303);
+            exit;
+        }
+
+        // Em caso de erro, preserva o que o user digitou pra re-render.
+        $platformName = $newName;
+    } elseif ($form === 'delete_logo') {
+        // Remove logo customizada (volta pro fallback do sistema). Defesa
+        // server-side: Actvet nao tem logo custom (UI nao mostra o botao,
+        // mas via DevTools alguem poderia forcar) — ignora silenciosamente.
+        if (!$isActvet && $logoBasename !== '') {
+            LogoStorage::deleteByBasename($logoBasename);
+            Tenant::updateBranding($tenantId, $platformName === '' ? null : $platformName, null);
+            flash('success', __t('teacher.settings.logo_deleted'));
+        }
         header('Location: /teacher/settings', true, 303);
         exit;
     }
@@ -63,12 +122,15 @@ ob_start();
 
         <?php if ($errors !== []): ?>
             <div class="alert alert-danger" role="alert">
-                <?= e(__t($errors['avatar_style'] ?? 'students.form.has_errors')) ?>
+                <?php foreach ($errors as $errKey): ?>
+                    <div><?= e(__t($errKey)) ?></div>
+                <?php endforeach; ?>
             </div>
         <?php endif; ?>
 
-        <form method="POST" action="/teacher/settings" class="card card-body shadow-sm" novalidate>
+        <form method="POST" action="/teacher/settings" class="card card-body shadow-sm mb-3" novalidate>
             <?= csrf_field() ?>
+            <input type="hidden" name="form" value="avatar">
 
             <h2 class="h6 mb-2"><?= e(__t('settings.avatar.title')) ?></h2>
             <p class="text-muted small mb-3"><?= e(__t('settings.avatar.help')) ?></p>
@@ -116,8 +178,94 @@ ob_start();
                 <a href="/teacher" class="btn btn-outline-secondary"><?= e(__t('common.cancel')) ?></a>
             </div>
         </form>
+
+        <?php if (!$isActvet && $logoBasename !== ''): ?>
+            <!-- Form oculto para o botão "Excluir logo" no preview abaixo
+                 (HTML não permite forms aninhados; o botão usa form=... attr). -->
+            <form id="logo-delete-form" method="POST" action="/teacher/settings" class="d-none">
+                <?= csrf_field() ?>
+                <input type="hidden" name="form" value="delete_logo">
+            </form>
+        <?php endif; ?>
+
+        <form method="POST" action="/teacher/settings" enctype="multipart/form-data"
+              class="card card-body shadow-sm" novalidate>
+            <?= csrf_field() ?>
+            <input type="hidden" name="form" value="branding">
+
+            <h2 class="h6 mb-2"><?= e(__t('teacher.settings.branding_section')) ?></h2>
+            <p class="text-muted small mb-3"><?= e(__t('teacher.settings.branding_help')) ?></p>
+
+            <div class="mb-3">
+                <label for="f-platform-name" class="form-label">
+                    <?= e(__t('teacher.settings.platform_name_label')) ?>
+                </label>
+                <input type="text" name="platform_name" id="f-platform-name"
+                       class="form-control<?= isset($errors['platform_name']) ? ' is-invalid' : '' ?>"
+                       value="<?= e($platformName) ?>"
+                       maxlength="60"
+                       placeholder="<?= e(__t('teacher.settings.platform_name_placeholder')) ?>">
+                <?php if (isset($errors['platform_name'])): ?>
+                    <div class="invalid-feedback"><?= e(__t($errors['platform_name'])) ?></div>
+                <?php endif; ?>
+            </div>
+
+            <?php if ($isActvet): ?>
+                <div class="mb-3">
+                    <label class="form-label"><?= e(__t('teacher.settings.logo_label')) ?></label>
+                    <div class="d-flex align-items-center gap-3 p-2 border rounded bg-light">
+                        <img src="/assets/logos/actvet.png" alt="Actvet"
+                             style="height: 48px; width: auto;">
+                        <span class="small text-muted"><?= e(__t('teacher.settings.logo_hint_actvet')) ?></span>
+                    </div>
+                </div>
+            <?php else: ?>
+                <div class="mb-3">
+                    <label for="f-logo" class="form-label">
+                        <?= e(__t('teacher.settings.logo_label')) ?>
+                    </label>
+                    <?php if ($logoBasename !== ''): ?>
+                        <div class="mb-2 d-flex align-items-center gap-2 flex-wrap">
+                            <div class="p-2 border rounded bg-light d-inline-block">
+                                <img src="/uploads/logos/<?= e($logoBasename) ?>?v=<?= e((string) time()) ?>"
+                                     alt="" style="height: 48px; width: auto;">
+                            </div>
+                            <button type="submit" form="logo-delete-form"
+                                    class="btn btn-sm btn-outline-danger js-confirm"
+                                    data-confirm="<?= e(__t('teacher.settings.logo_delete_confirm')) ?>">
+                                <i class="bi bi-trash" aria-hidden="true"></i>
+                                <?= e(__t('teacher.settings.logo_delete_button')) ?>
+                            </button>
+                        </div>
+                    <?php endif; ?>
+                    <input type="file" name="logo" id="f-logo"
+                           accept="image/png,image/jpeg,image/svg+xml"
+                           class="form-control<?= isset($errors['logo']) ? ' is-invalid' : '' ?>">
+                    <div class="form-text"><?= e(__t('teacher.settings.logo_hint')) ?></div>
+                    <?php if (isset($errors['logo'])): ?>
+                        <div class="invalid-feedback"><?= e(__t($errors['logo'])) ?></div>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
+            <div class="d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary"><?= e(__t('common.save')) ?></button>
+                <a href="/teacher" class="btn btn-outline-secondary"><?= e(__t('common.cancel')) ?></a>
+            </div>
+        </form>
     </div>
 </div>
+
+<script>
+// Confirm em ações destrutivas (excluir logo customizada).
+document.querySelectorAll('button.js-confirm[data-confirm]').forEach(function (btn) {
+    btn.addEventListener('click', function (event) {
+        if (!window.confirm(btn.dataset.confirm)) {
+            event.preventDefault();
+        }
+    });
+});
+</script>
 <?php
 $page_content = ob_get_clean();
 require LMS_ROOT . '/src/templates/layout.php';

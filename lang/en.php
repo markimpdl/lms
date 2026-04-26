@@ -8,6 +8,9 @@ return [
     'app.demo_flash_ok'  => 'Flash is working — this message was carried over from a previous session.',
     'app.demo_flash_btn' => 'Test flash',
 
+    // Branding (E24-02) — fallback platform name shown in the navbar
+    'branding.default_name' => 'LMS',
+
     // Common
     'common.save'        => 'Save',
     'common.cancel'      => 'Cancel',
@@ -185,6 +188,11 @@ return [
     'admin.teachers.edit.status'     => 'Status',
     'admin.teachers.edit.updated'    => 'Details for :name updated.',
     'admin.teachers.email_immutable' => 'Email cannot be changed (ADR-021).',
+
+    // White-label Actvet flag (E24-01) — toggle on create/edit + badge in listing
+    'admin.teachers.is_actvet_label' => 'Is Actvet?',
+    'admin.teachers.is_actvet_hint'  => 'Marks this teacher as Actvet (Skills Hub). Enables Learning Outcomes and Reports in their courses.',
+    'admin.teachers.badge_actvet'    => 'Actvet',
 
     // Deactivate/reactivate teacher (E2-04)
     'admin.teachers.deactivate.title'         => 'Deactivate teacher',
@@ -912,6 +920,24 @@ return [
     'settings.avatar.style.ocidental' => 'Western',
     'settings.success'                => 'Settings updated.',
     'settings.err.invalid_avatar_style' => 'Invalid avatar style.',
+
+    // Tenant branding (E24-03) — custom name + logo upload
+    'teacher.settings.branding_section'      => 'Visual identity',
+    'teacher.settings.branding_help'         => 'Customize the name and logo shown in the navbar for you and your students. Leave empty to use the default platform name.',
+    'teacher.settings.platform_name_label'   => 'Platform name',
+    'teacher.settings.platform_name_placeholder' => 'e.g. My Course',
+    'teacher.settings.platform_name_too_long' => 'Name must be at most 60 characters.',
+    'teacher.settings.logo_label'            => 'Logo',
+    'teacher.settings.logo_hint'             => 'PNG, JPG or SVG up to 500 KB. Shown in the top-left of the navbar.',
+    'teacher.settings.logo_hint_actvet'      => 'Default Actvet logo (not editable).',
+    'teacher.settings.logo_invalid_mime'     => 'Invalid image format. Accepted: PNG, JPG, SVG.',
+    'teacher.settings.logo_too_large'        => 'Logo must be at most 500 KB.',
+    'teacher.settings.logo_no_file'          => 'No file selected.',
+    'teacher.settings.logo_generic'          => 'Failed to process the logo. Please try again.',
+    'teacher.settings.logo_delete_button'    => 'Delete logo',
+    'teacher.settings.logo_delete_confirm'   => 'Delete the custom logo? The platform falls back to the default logo.',
+    'teacher.settings.logo_deleted'          => 'Custom logo removed.',
+
     // Configurable notifications (E21-03).
     'notifications.settings.title'      => 'Notifications',
     'notifications.settings.subtitle'   => 'Control which events trigger bell and email for your students. Everything is enabled by default.',

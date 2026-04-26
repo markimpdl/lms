@@ -12,12 +12,26 @@ if ($user !== null && ($user['role'] ?? null) !== 'super_admin') {
     $unread    = Notification::countUnread($uid);
     $bellItems = Notification::findForUser($uid, 10);
 }
+
+// Branding por tenant (E24-02): teacher e student têm tenant_id na sessão
+// (COALESCE em AuthController), super-admin e deslogado caem no fallback.
+$brandTenantId = null;
+if ($user !== null && ($user['role'] ?? null) !== 'super_admin') {
+    $brandTenantId = isset($user['tenant_id']) ? (int) $user['tenant_id'] : null;
+}
+$brand = $brandTenantId !== null ? tenant_branding($brandTenantId) : null;
+$brandName = $brand['name']     ?? __t('branding.default_name');
+$brandLogo = $brand['logo_url'] ?? null;
 ?>
 <header class="lms-navbar">
     <div class="lms-navbar__inner">
         <a class="lms-navbar__brand" href="/" aria-label="<?= e(__t('app.title')) ?>">
-            <span class="lms-navbar__logo" aria-hidden="true">L</span>
-            <span class="lms-navbar__wordmark">LMS</span>
+            <?php if ($brandLogo !== null): ?>
+                <img class="lms-navbar__logo-img" src="<?= e($brandLogo) ?>" alt="" aria-hidden="true">
+            <?php else: ?>
+                <span class="lms-navbar__logo" aria-hidden="true">L</span>
+            <?php endif; ?>
+            <span class="lms-navbar__wordmark"><?= e($brandName) ?></span>
         </a>
 
         <?php
@@ -31,14 +45,18 @@ if ($user !== null && ($user['role'] ?? null) !== 'super_admin') {
             <nav class="lms-navbar__nav" aria-label="<?= e(__t('nav.primary_aria')) ?>">
                 <?php if ($rankingHref !== null): ?>
                     <a class="lms-navbar__link <?= $currentPath === $rankingHref ? 'is-active' : '' ?>"
-                       href="<?= e($rankingHref) ?>">
-                        <?= e(__t('nav.ranking')) ?>
+                       href="<?= e($rankingHref) ?>"
+                       aria-label="<?= e(__t('nav.ranking')) ?>">
+                        <i class="bi bi-trophy lms-navbar__link-icon" aria-hidden="true"></i>
+                        <span class="lms-navbar__link-text"><?= e(__t('nav.ranking')) ?></span>
                     </a>
                 <?php endif; ?>
                 <?php if ($achievementsHref !== null): ?>
                     <a class="lms-navbar__link <?= $currentPath === $achievementsHref ? 'is-active' : '' ?>"
-                       href="<?= e($achievementsHref) ?>">
-                        <?= e(__t('nav.achievements')) ?>
+                       href="<?= e($achievementsHref) ?>"
+                       aria-label="<?= e(__t('nav.achievements')) ?>">
+                        <i class="bi bi-award lms-navbar__link-icon" aria-hidden="true"></i>
+                        <span class="lms-navbar__link-text"><?= e(__t('nav.achievements')) ?></span>
                     </a>
                 <?php endif; ?>
             </nav>
