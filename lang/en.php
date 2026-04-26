@@ -317,6 +317,11 @@ return [
     'courses.form.grading_mode.help'                   => 'How the teacher grades this course. "Single grade" uses 0-10. "Learning Outcomes" requires 5 criteria per unit, with a grade per criterion (average = final grade).',
     'courses.form.grading_mode.option.grade'           => 'Single grade (0-10)',
     'courses.form.grading_mode.option.learning_outcomes' => 'Learning Outcomes (5 criteria per unit)',
+    // Report mode (E26-03) — Actvet+LO only
+    'courses.form.report_mode.label'             => 'Report PDF',
+    'courses.form.report_mode.help'              => 'When enabled, generates a formal PDF after the teacher gives full feedback (all 5 criterion grades). Only the teacher sees the PDF.',
+    'courses.form.report_mode.option.disabled'   => 'Disabled',
+    'courses.form.report_mode.option.skill_hub'  => 'Skills Hub (default template)',
 
     // Learning Outcomes — per-CU registration (E25-02)
     'learning_outcomes.title'        => 'Learning Outcomes',

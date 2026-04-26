@@ -45,6 +45,17 @@ final class TeacherCoursesController
             $gradingMode = 'grade';
         }
 
+        // E26-03: report_mode (default 'disabled'). 'skill_hub' só pra
+        // Actvet+LO. POST manipulado em outros casos cai silencioso pra
+        // 'disabled' (defesa server-side).
+        $reportMode = (string) ($input['report_mode'] ?? 'disabled');
+        if (!in_array($reportMode, ['disabled', 'skill_hub'], true)) {
+            $reportMode = 'disabled';
+        }
+        if (!$isActvet || $gradingMode !== 'learning_outcomes') {
+            $reportMode = 'disabled';
+        }
+
         $errors = [];
         if (mb_strlen($name) < 3 || mb_strlen($name) > 150) {
             $errors['name'] = 'courses.form.err.name';
@@ -76,6 +87,7 @@ final class TeacherCoursesController
                 'activity_mode'         => $activityMode,
                 'eval_after_activities' => $evalAfter,
                 'grading_mode'          => $gradingMode,
+                'report_mode'           => $reportMode,
             ],
         ];
     }
