@@ -40,7 +40,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($v['errors'] === []) {
         TeacherQuizController::saveBulk('evaluation', $evaluationId, $tenantId, $v['data']);
         flash('success', __t('quiz.form.saved'));
-        header('Location: /teacher/evaluation/' . $evaluationId . '/quiz', true, 303);
+        // E23-02: redirect pra CU pai (era a mesma URL — fluxo concluído deve
+        // levar de volta ao ponto de retorno natural do professor).
+        header('Location: /teacher/cu/' . (int) $evaluation['competence_unit_id'], true, 303);
         exit;
     }
     $errors = $v['errors'];
@@ -87,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $formAction = '/teacher/evaluation/' . $evaluationId . '/quiz';
-$cancelUrl  = '/teacher/evaluation/' . $evaluationId . '/edit';
+$cancelUrl  = '/teacher/cu/' . (int) $evaluation['competence_unit_id'];
 
 $page_title = __t('quiz.form.title', ['name' => $ownerName]);
 ob_start();
