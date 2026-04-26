@@ -1253,6 +1253,7 @@ return [
 
     // Navbar — link primário (E9-03)
     'nav.primary_aria' => 'Navegação principal',
+    'nav.home'         => 'Início',
     'nav.ranking'      => 'Ranking',
     'nav.achievements' => 'Conquistas',
 

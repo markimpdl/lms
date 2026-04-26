@@ -2497,3 +2497,59 @@ body.lms-student-area.lms-theme-dark .lms-bell__empty {
 body.lms-student-area.lms-theme-dark .lms-bell__dropdown-footer {
     border-top-color: var(--lms-neutral-200);
 }
+
+/* ============================================================
+   Bottom tab bar (mobile primary nav, aluno only)
+   ============================================================ */
+
+body.lms-student-area .lms-bottom-nav { display: none; }
+
+@media (max-width: 575.98px) {
+    body.lms-student-area .lms-bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        justify-content: space-around;
+        align-items: stretch;
+        background: var(--lms-card-bg);
+        border-top: 1px solid var(--lms-neutral-200);
+        padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+        z-index: 1030;
+        box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
+    }
+    body.lms-student-area .lms-bottom-nav__item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        padding: 6px 4px;
+        min-width: 0;
+        color: var(--lms-neutral-500);
+        text-decoration: none;
+        font-size: 10px;
+        font-weight: 600;
+        line-height: 1.1;
+        border-radius: 10px;
+        transition: color 120ms ease, background 120ms ease;
+    }
+    body.lms-student-area .lms-bottom-nav__item:active {
+        background: var(--lms-neutral-100);
+    }
+    body.lms-student-area .lms-bottom-nav__item.is-active {
+        color: var(--lms-primary-1);
+    }
+    body.lms-student-area .lms-bottom-nav__icon {
+        font-size: 22px;
+        line-height: 1;
+    }
+    body.lms-student-area .lms-bottom-nav__label {
+        font-size: 10px;
+        letter-spacing: 0.02em;
+    }
+    /* Reserva espaco no fim do body pro conteudo nao ficar atras da barra */
+    body.lms-student-area { padding-bottom: 72px; }
+}
