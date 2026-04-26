@@ -247,11 +247,20 @@ final class ReportService
             throw new \RuntimeException('Failed to create mPDF temp dir: ' . $tempDir);
         }
 
-        // Config minimo. Defaults do mPDF: A4 portrait UTF-8 com margens
-        // 15/15/16/16mm e font dejavusans. Setting demais opcoes em iter
-        // anterior causou bug: BleedBox/TrimBox zerados, 1 char por
-        // pagina (200+ paginas no PDF). Margens/font definidas no @page
-        // do template (CSS) em vez de aqui.
+        // DEBUG E30-02: dump do HTML enviado ao mPDF + info do ambiente,
+        // pra diagnosticar bug "1 char por pagina, 200+ paginas". Apos
+        // resolver, remover esse bloco.
+        $debugPath = $absOutPath . '.debug.html';
+        $debugInfo = "<!--\n"
+            . "mPDF version: " . (defined('Mpdf\\Mpdf::VERSION') ? \Mpdf\Mpdf::VERSION : 'unknown') . "\n"
+            . "PHP version: " . PHP_VERSION . "\n"
+            . "GD info: " . print_r(function_exists('gd_info') ? gd_info() : 'NO_GD', true) . "\n"
+            . "Template path: " . $templateDir . "\n"
+            . "Template size: " . strlen($html) . " bytes\n"
+            . "First 200 bytes raw: " . bin2hex(substr($html, 0, 200)) . "\n"
+            . "-->\n";
+        @file_put_contents($debugPath, $debugInfo . $html);
+
         $mpdf = new Mpdf([
             'tempDir' => $tempDir,
         ]);
