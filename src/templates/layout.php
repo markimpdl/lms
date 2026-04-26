@@ -32,7 +32,10 @@ $path             = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_P
 // quando o aluno está editando os próprios dados.
 $isStudentArea    = $user !== null
     && ($user['role'] ?? '') === 'student'
-    && ($path === '/student' || str_starts_with($path, '/student/') || $path === '/profile');
+    && ($path === '/student'
+        || str_starts_with($path, '/student/')
+        || $path === '/profile'
+        || $path === '/notifications');
 
 $bodyClass = $extraBody;
 if ($isStudentArea) {
@@ -77,6 +80,9 @@ if ($isStudentArea) {
             <?php render_flash(); ?>
             <?= $content ?>
         </main>
+    <?php endif; ?>
+    <?php if ($isStudentArea): ?>
+        <?php require __DIR__ . '/partials/bottom_nav.php'; ?>
     <?php endif; ?>
     <?php require __DIR__ . '/footer.php'; ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
