@@ -922,6 +922,21 @@ return [
     'settings.avatar.style.ocidental' => 'Ocidental',
     'settings.success'                => 'Configurações atualizadas.',
     'settings.err.invalid_avatar_style' => 'Estilo de avatar inválido.',
+
+    // Branding do tenant (E24-03) — nome customizado + upload de logo
+    'teacher.settings.branding_section'      => 'Identidade visual',
+    'teacher.settings.branding_help'         => 'Customize o nome e a logo exibidos na navbar para você e seus alunos. Em branco, usa o nome padrão da plataforma.',
+    'teacher.settings.platform_name_label'   => 'Nome da plataforma',
+    'teacher.settings.platform_name_placeholder' => 'Ex: Meu Curso',
+    'teacher.settings.platform_name_too_long' => 'O nome deve ter no máximo 60 caracteres.',
+    'teacher.settings.logo_label'            => 'Logo',
+    'teacher.settings.logo_hint'             => 'PNG, JPG ou SVG até 500 KB. Será exibida no canto superior esquerdo da navbar.',
+    'teacher.settings.logo_hint_actvet'      => 'Logo Actvet padrão (não editável).',
+    'teacher.settings.logo_invalid_mime'     => 'Formato de imagem inválido. Aceitos: PNG, JPG, SVG.',
+    'teacher.settings.logo_too_large'        => 'A logo deve ter no máximo 500 KB.',
+    'teacher.settings.logo_no_file'          => 'Nenhum arquivo selecionado.',
+    'teacher.settings.logo_generic'          => 'Falha ao processar a logo. Tente novamente.',
+
     // Notificações configuráveis (E21-03).
     'notifications.settings.title'      => 'Notificações',
     'notifications.settings.subtitle'   => 'Controle quais eventos disparam sino e email pros seus alunos. Por padrão, tudo está habilitado.',
