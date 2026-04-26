@@ -106,6 +106,16 @@ ob_start();
                     <?= e(__t('profile.tab_password')) ?>
                 </button>
             </li>
+            <?php if ($isStudent): ?>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link<?= $activeTab === 'theme' ? ' active' : '' ?>"
+                            id="tab-theme" data-bs-toggle="tab" data-bs-target="#pane-theme"
+                            type="button" role="tab" aria-controls="pane-theme"
+                            aria-selected="<?= $activeTab === 'theme' ? 'true' : 'false' ?>">
+                        <?= e(__t('profile.tab_theme')) ?>
+                    </button>
+                </li>
+            <?php endif; ?>
         </ul>
 
         <div class="tab-content">
@@ -187,6 +197,42 @@ ob_start();
                     </div>
                 </div>
             </div>
+
+            <?php if ($isStudent): ?>
+                <?php $currentTheme = current_user_theme(); ?>
+                <div class="tab-pane fade<?= $activeTab === 'theme' ? ' show active' : '' ?>"
+                     id="pane-theme" role="tabpanel" aria-labelledby="tab-theme">
+                    <div class="card shadow-sm">
+                        <div class="card-body p-4">
+                            <p class="text-muted small mb-3"><?= e(__t('profile.theme.help')) ?></p>
+                            <form method="POST" action="/profile/theme" novalidate>
+                                <?= csrf_field() ?>
+                                <div class="row g-3 mb-3">
+                                    <?php foreach (['light', 'dark'] as $opt):
+                                        $isCurrent = $currentTheme === $opt;
+                                    ?>
+                                        <div class="col-12 col-md-6">
+                                            <label class="card h-100 p-3 d-flex flex-row align-items-center gap-3 <?= $isCurrent ? 'border-primary' : '' ?>"
+                                                   style="cursor: pointer;">
+                                                <input type="radio" name="theme" value="<?= e($opt) ?>"
+                                                       <?= $isCurrent ? 'checked' : '' ?>
+                                                       class="form-check-input mt-0">
+                                                <div class="flex-grow-1">
+                                                    <div class="fw-semibold"><?= e(__t('profile.theme.option.' . $opt)) ?></div>
+                                                    <div class="small text-muted"><?= e(__t('profile.theme.option.' . $opt . '_hint')) ?></div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-lg w-100 w-sm-auto">
+                                    <?= e(__t('common.save')) ?>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
 <?php if (!$isStudent): ?></div></div><?php endif; ?>
 
