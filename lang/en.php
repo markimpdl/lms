@@ -312,6 +312,11 @@ return [
     'courses.form.mode.free'         => 'Free (any order)',
     'courses.form.eval_after_activities.label' => 'Evaluation unlocks only after all activities are submitted',
     'courses.form.eval_after_activities.help'  => 'When enabled, the student must submit all unit activities before taking the evaluation.',
+    // Grading mode (E25-01) — Actvet only
+    'courses.form.grading_mode.label'                  => 'Grading mode',
+    'courses.form.grading_mode.help'                   => 'How the teacher grades this course. "Single grade" uses 0-10. "Learning Outcomes" requires 5 criteria per unit, with a grade per criterion (average = final grade).',
+    'courses.form.grading_mode.option.grade'           => 'Single grade (0-10)',
+    'courses.form.grading_mode.option.learning_outcomes' => 'Learning Outcomes (5 criteria per unit)',
     // Sequential progression (E19-02 + E19-03 + E19-04)
     'progression.next_locked'                  => 'Complete ":name" first',
     'progression.eval_locked'                  => 'Complete all activities before taking the evaluation',

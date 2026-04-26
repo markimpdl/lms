@@ -1,11 +1,14 @@
 <?php
 /**
- * Partial: 3 campos de modos de progressão do curso (E19-01).
+ * Partial: campos de modos de progressão do curso (E19-01) +
+ * grading_mode (E25-01, condicional).
  *
  * Espera variáveis no escopo do caller:
- *   $old    array com keys 'cc_mode' (string), 'activity_mode' (string),
- *           'eval_after_activities' (int 0/1)
- *   $errors array (pode estar vazio) — checa keys 'cc_mode' e 'activity_mode'
+ *   $old      array com keys 'cc_mode', 'activity_mode',
+ *             'eval_after_activities', e 'grading_mode' (opcional)
+ *   $errors   array (pode estar vazio)
+ *   $isActvet bool (opcional, default false) — controla visibilidade do
+ *             select grading_mode
  */
 ?>
 <fieldset class="border rounded p-3 mb-3">
@@ -63,4 +66,21 @@
         </label>
         <div class="form-text"><?= e(__t('courses.form.eval_after_activities.help')) ?></div>
     </div>
+
+    <?php if (!empty($isActvet)): ?>
+        <div class="mt-3">
+            <label for="f-grading-mode" class="form-label">
+                <?= e(__t('courses.form.grading_mode.label')) ?>
+            </label>
+            <select name="grading_mode" id="f-grading-mode" class="form-select">
+                <option value="grade" <?= ($old['grading_mode'] ?? 'grade') === 'grade' ? 'selected' : '' ?>>
+                    <?= e(__t('courses.form.grading_mode.option.grade')) ?>
+                </option>
+                <option value="learning_outcomes" <?= ($old['grading_mode'] ?? 'grade') === 'learning_outcomes' ? 'selected' : '' ?>>
+                    <?= e(__t('courses.form.grading_mode.option.learning_outcomes')) ?>
+                </option>
+            </select>
+            <div class="form-text"><?= e(__t('courses.form.grading_mode.help')) ?></div>
+        </div>
+    <?php endif; ?>
 </fieldset>

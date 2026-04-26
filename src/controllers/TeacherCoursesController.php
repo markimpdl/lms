@@ -15,10 +15,15 @@ final class TeacherCoursesController
 
     /**
      * Valida input e devolve ou (array vazio de erros) ou mapa field → i18n.
+     *
+     * `$isActvet` controla a aceitação do `grading_mode='learning_outcomes'`
+     * — defesa server-side: tenant não-Actvet sempre força `'grade'`,
+     * mesmo que o POST tente outro valor (E25-01).
+     *
      * @param array<string,string> $input
      * @return array{errors: array<string,string>, data: array<string,mixed>}
      */
-    public static function validate(array $input): array
+    public static function validate(array $input, bool $isActvet = false): array
     {
         $name        = trim((string) ($input['name']        ?? ''));
         $description = trim((string) ($input['description'] ?? ''));
@@ -30,6 +35,15 @@ final class TeacherCoursesController
         $ccMode       = (string) ($input['cc_mode']       ?? 'sequential');
         $activityMode = (string) ($input['activity_mode'] ?? 'sequential');
         $evalAfter    = !empty($input['eval_after_activities']) ? 1 : 0;
+
+        // E25-01: grading_mode (default 'grade'). LO mode só pra Actvet.
+        $gradingMode = (string) ($input['grading_mode'] ?? ($isActvet ? 'learning_outcomes' : 'grade'));
+        if (!in_array($gradingMode, ['grade', 'learning_outcomes'], true)) {
+            $gradingMode = 'grade';
+        }
+        if (!$isActvet) {
+            $gradingMode = 'grade';
+        }
 
         $errors = [];
         if (mb_strlen($name) < 3 || mb_strlen($name) > 150) {
@@ -61,6 +75,7 @@ final class TeacherCoursesController
                 'cc_mode'               => $ccMode,
                 'activity_mode'         => $activityMode,
                 'eval_after_activities' => $evalAfter,
+                'grading_mode'          => $gradingMode,
             ],
         ];
     }
@@ -80,7 +95,10 @@ final class TeacherCoursesController
             exit;
         }
 
-        $v = self::validate($input);
+        $tenant   = Tenant::findById($tenantId);
+        $isActvet = $tenant !== null && (int) ($tenant['is_actvet'] ?? 0) === 1;
+
+        $v = self::validate($input, $isActvet);
         if ($v['errors'] !== []) {
             return $v['errors'];
         }
@@ -119,7 +137,10 @@ final class TeacherCoursesController
             exit;
         }
 
-        $v = self::validate($input);
+        $tenant   = Tenant::findById($tenantId);
+        $isActvet = $tenant !== null && (int) ($tenant['is_actvet'] ?? 0) === 1;
+
+        $v = self::validate($input, $isActvet);
         if ($v['errors'] !== []) {
             return $v['errors'];
         }
