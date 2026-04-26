@@ -23,6 +23,7 @@ $old = [
     'name'        => (string) $teacher['name'],
     'language'    => (string) $teacher['language'],
     'tenant_name' => (string) $teacher['tenant_name'],
+    'is_actvet'   => (int) $teacher['is_actvet'] === 1 ? '1' : '0',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -38,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'name'        => (string) ($_POST['name']        ?? $old['name']),
         'language'    => (string) ($_POST['language']    ?? $old['language']),
         'tenant_name' => (string) ($_POST['tenant_name'] ?? $old['tenant_name']),
+        'is_actvet'   => isset($_POST['is_actvet']) ? '1' : '0',
     ];
 
     $errors = AdminTeachersController::update($teacherId, $old);
@@ -138,6 +140,15 @@ ob_start();
                 </div>
             </div>
 
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" name="is_actvet" id="f-actvet"
+                       value="1" <?= $old['is_actvet'] === '1' ? 'checked' : '' ?>>
+                <label class="form-check-label" for="f-actvet">
+                    <?= e(__t('admin.teachers.is_actvet_label')) ?>
+                </label>
+                <div class="form-text"><?= e(__t('admin.teachers.is_actvet_hint')) ?></div>
+            </div>
+
             <div class="d-flex flex-wrap gap-2">
                 <button type="submit" class="btn btn-primary btn-lg">
                     <?= e(__t('common.save')) ?>
@@ -157,6 +168,9 @@ ob_start();
                         <span class="badge bg-success-subtle text-success border border-success-subtle"><?= e(__t('admin.teachers.active')) ?></span>
                     <?php else: ?>
                         <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle"><?= e(__t('admin.teachers.inactive')) ?></span>
+                    <?php endif; ?>
+                    <?php if ((int) ($teacher['is_actvet'] ?? 0) === 1): ?>
+                        <span class="badge bg-info-subtle text-info border border-info-subtle ms-1"><?= e(__t('admin.teachers.badge_actvet')) ?></span>
                     <?php endif; ?>
                 </dd>
 
