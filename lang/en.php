@@ -511,6 +511,7 @@ return [
     'evaluations.type.quiz'             => 'Quiz (multiple choice)',
     'evaluations.form.type'             => 'Type',
     'evaluations.form.type_hint'        => 'Project: student uploads a PDF or ZIP for manual grading. Quiz: multiple-choice questions with automatic grading.',
+    'evaluations.form.type_hint_lo'     => 'Course in Learning Outcomes mode: only Project is compatible (Quiz is auto-graded and conflicts with per-criterion grading).',
     'evaluations.form.err.type'         => 'Invalid evaluation type.',
     'evaluations.form.quiz_hint'        => 'This is a Quiz-type evaluation.',
     'evaluations.form.quiz_edit_btn'    => 'Edit questions',
@@ -585,6 +586,7 @@ return [
     'evaluations.err.brief_mime'          => 'The file must be a PDF or a ZIP.',
     'evaluations.err.brief_no_file'       => 'No file was uploaded.',
     'evaluations.err.brief_generic'       => 'Could not save the file. Please try again.',
+    'evaluations.err.quiz_not_in_lo_mode' => 'Quiz is not allowed in courses with Learning Outcomes.',
     'evaluations.delete.zone'           => 'Delete evaluation',
     'evaluations.delete.warning'        => 'This permanently removes the evaluation, the PDF, all student submissions and the credited XP. Cannot be undone.',
 

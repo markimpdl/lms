@@ -37,6 +37,11 @@ if ($existing !== null) {
     return;
 }
 
+// E25-04: curso em LO mode esconde quiz no select (auto-corrigido vs LO
+// exige feedback manual). Pre-loaded via CompetenceUnit::findForTenant
+// (audit em #318).
+$isLoMode = (string) ($cu['course_grading_mode'] ?? 'grade') === 'learning_outcomes';
+
 $old = [
     'title'           => '',
     'instructions'    => '',
@@ -68,6 +73,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (!in_array($old['type'], Evaluation::TYPES, true)) {
         $errors['type'] = 'evaluations.form.err.type';
+    }
+    // E25-04: defesa server-side — bloqueia type=quiz quando curso em LO mode
+    // mesmo se POST manipulado bypassa o esconder do UI.
+    if ($isLoMode && $old['type'] === 'quiz') {
+        $errors['type'] = 'evaluations.err.quiz_not_in_lo_mode';
     }
     if ($old['xp_value'] < 0 || $old['xp_value'] > 9999) {
         $errors['xp_value'] = 'evaluations.form.err.xp';
