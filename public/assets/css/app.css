@@ -102,6 +102,45 @@ body.lms-admin-area .btn {
     font-weight: 600;
 }
 
+/* ============================================================
+   Hero pattern (lms-dashboard-*) — promovido pra app.css em E29-02
+   pra ser usado por aluno + teacher + admin. Antes vivia em
+   student-area.css.
+   ============================================================ */
+.lms-dashboard-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    width: 100%;
+}
+.lms-dashboard-eyebrow {
+    display: block;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #7C3AED;
+    margin-bottom: 6px;
+}
+.lms-dashboard-title {
+    font-size: 32px;
+    line-height: 1.15;
+    margin: 0 0 6px;
+}
+.lms-dashboard-subtitle {
+    margin: 0;
+    color: var(--lms-neutral-500);
+    font-size: 14px;
+}
+@media (max-width: 575.98px) {
+    .lms-dashboard-header { margin-bottom: 16px; }
+    .lms-dashboard-title { font-size: 24px; }
+}
+
 main { flex: 1 0 auto; }
 
 /* Garante que inputs mantêm 16px em foco — Bootstrap usa 1rem que herda do body */

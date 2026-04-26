@@ -42,12 +42,15 @@ $page_title = __t('groups.title');
 
 ob_start();
 ?>
-<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-    <h1 class="h4 mb-0"><?= e(__t('groups.title')) ?></h1>
+<header class="lms-dashboard-header">
+    <div>
+        <span class="lms-dashboard-eyebrow"><?= e(__t('teacher.groups.eyebrow')) ?></span>
+        <h1 class="lms-dashboard-title"><?= e(__t('groups.title')) ?></h1>
+    </div>
     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newGroupModal">
         + <?= e(__t('groups.new_button')) ?>
     </button>
-</div>
+</header>
 
 <form method="GET" action="/teacher/groups" class="row g-2 mb-3">
     <div class="col-12 col-md-9">

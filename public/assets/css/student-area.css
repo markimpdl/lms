@@ -356,38 +356,9 @@ body.lms-student-area .lms-student-main {
    Dashboard "Meus cursos" (E14-02)
    ============================================================ */
 
-.lms-dashboard-header {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 20px;
-    flex-wrap: wrap;
-    margin-bottom: 24px;
-    width: 100%;
-}
-
-.lms-dashboard-eyebrow {
-    display: block;
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-weight: 700;
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: #7C3AED;
-    margin-bottom: 6px;
-}
-
-.lms-dashboard-title {
-    font-size: 32px;
-    line-height: 1.15;
-    margin: 0 0 6px;
-}
-
-.lms-dashboard-subtitle {
-    margin: 0;
-    color: var(--lms-neutral-500);
-    font-size: 14px;
-}
+/* Hero pattern (lms-dashboard-*) movido pra app.css em E29-02 — usado
+   tambem por teacher e admin areas a partir desta story. Mobile override
+   abaixo (linha ~651) tambem foi pra app.css. */
 
 .lms-dashboard-empty {
     background: var(--lms-card-bg);
@@ -648,10 +619,9 @@ body.lms-student-area .lms-student-main {
 
 /* Mobile */
 @media (max-width: 575.98px) {
-    .lms-dashboard-header { margin-bottom: 16px; }
-    .lms-dashboard-title { font-size: 24px; }
     .lms-filter-pills { width: 100%; overflow-x: auto; }
     .lms-course-grid { gap: 12px; }
+    /* .lms-dashboard-header e -title moveram pra app.css em E29-02 */
 }
 
 /* ============================================================

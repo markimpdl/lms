@@ -72,6 +72,14 @@ return [
     // Dashboards (stubs in E1-01; replaced in later epics)
     'dashboard.teacher.title'   => 'Teacher dashboard',
     'dashboard.teacher.welcome' => 'Welcome, :name.',
+
+    // Hero pattern eyebrows in teacher pages (E29-02)
+    'teacher.dashboard.eyebrow' => 'Overview',
+    'teacher.courses.eyebrow'   => 'Content management',
+    'teacher.students.eyebrow'  => 'People management',
+    'teacher.groups.eyebrow'    => 'People management',
+    'teacher.settings.eyebrow'  => 'Settings',
+
     'dashboard.student.title'        => 'My courses',
     'dashboard.student.welcome'      => 'Welcome, :name.',
     'dashboard.student.no_courses'   => 'You are not enrolled in any course yet.',

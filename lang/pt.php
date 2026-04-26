@@ -72,6 +72,14 @@ return [
     // Dashboards (stubs em E1-01; substituídos em épicos dedicados)
     'dashboard.teacher.title'   => 'Painel do professor',
     'dashboard.teacher.welcome' => 'Bem-vindo(a), :name.',
+
+    // Eyebrows do hero pattern nas páginas teacher (E29-02)
+    'teacher.dashboard.eyebrow' => 'Painel',
+    'teacher.courses.eyebrow'   => 'Gestão de conteúdo',
+    'teacher.students.eyebrow'  => 'Gestão de pessoas',
+    'teacher.groups.eyebrow'    => 'Gestão de pessoas',
+    'teacher.settings.eyebrow'  => 'Configurações',
+
     'dashboard.student.title'        => 'Meus cursos',
     'dashboard.student.welcome'      => 'Bem-vindo(a), :name.',
     'dashboard.student.no_courses'   => 'Você ainda não está matriculado em nenhum curso.',
