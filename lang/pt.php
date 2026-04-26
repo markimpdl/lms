@@ -634,6 +634,8 @@ return [
     'evaluations.grade.err.lo_uc_not_ready'   => 'Esta unidade ainda não tem 5 critérios cadastrados. Cadastre antes de corrigir.',
     'evaluations.grade.lo_uc_not_ready_title' => 'Faltam critérios cadastrados',
     'evaluations.grade.lo_uc_not_ready_help'  => 'O curso usa Learning Outcomes mas esta unidade ainda não tem 5 critérios. Cadastre antes de corrigir esta avaliação.',
+    // Report PDF download (E26-04)
+    'evaluations.grade.report_download'        => 'Baixar Report',
 
     // Listagem de submissões (E7-04)
     'evaluations.submissions.page_title'   => 'Entregas — :name',

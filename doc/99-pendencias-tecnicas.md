@@ -209,6 +209,12 @@ A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** du
 
 ## Limpezas de produção (não-bloqueantes)
 
+### [E26-04] Bootstrap Icons CSS não carrega fora do student area
+- O CSS `bootstrap-icons.min.css` é carregado em `layout.php` apenas dentro de `if ($isStudentArea)`. Páginas teacher/super-admin que usam `<i class="bi bi-...">` mostram ícones faltantes (quadradinho vazio).
+- **Bugs existentes**: header.php usa `bi-trophy` e `bi-award` no navbar mobile; em rotas teacher/admin com viewport <576px, esses ícones não renderizam.
+- **Impacto:** baixo (afeta só visual mobile dos prof/admin).
+- **Ação:** ou (a) carregar bootstrap-icons em todas as páginas (incrementa request CDN em desktop também), ou (b) usar SVG inline / Unicode pra ícones críticos. Decidir junto com E29 (identidade visual unificada).
+
 ### [E25-02] Re-cadastro de LOs apaga notas existentes via FK CASCADE
 - `LearningOutcome::replaceForCu` faz DELETE + INSERT (transação atômica). O DELETE cascateia em `evaluation_submission_lo_grades` (FK ON DELETE CASCADE) — se o professor já corrigiu submissões e edita os critérios, as notas por LO somem (a média em `evaluation_submissions.grade` permanece, mas perde a granularidade).
 - **Impacto:** baixo no MVP — raro o professor mexer em LOs após começar a corrigir. Quando muda, intencional (mudou o que avalia → notas antigas obsoletas).
