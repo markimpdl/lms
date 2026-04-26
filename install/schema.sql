@@ -107,6 +107,7 @@ CREATE TABLE IF NOT EXISTS courses (
     cc_mode              ENUM('sequential','free') NOT NULL DEFAULT 'sequential',
     activity_mode        ENUM('sequential','free') NOT NULL DEFAULT 'sequential',
     eval_after_activities TINYINT(1) NOT NULL DEFAULT 1,
+    grading_mode         ENUM('grade','learning_outcomes') NOT NULL DEFAULT 'grade',
     created_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
@@ -145,6 +146,20 @@ CREATE TABLE IF NOT EXISTS competence_units (
     PRIMARY KEY (id),
     KEY idx_cu_cc_pos (core_competency_id, position),
     CONSTRAINT fk_cu_cc FOREIGN KEY (core_competency_id) REFERENCES core_competencies(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- 6.b learning_outcomes (E25 — 5 critérios por CU em cursos LO mode Actvet)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS learning_outcomes (
+    id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    cu_id       BIGINT UNSIGNED NOT NULL,
+    description VARCHAR(500)    NOT NULL,
+    position    INT UNSIGNED    NOT NULL DEFAULT 0,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_lo_cu (cu_id, position),
+    CONSTRAINT fk_lo_cu FOREIGN KEY (cu_id) REFERENCES competence_units(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
@@ -273,6 +288,26 @@ CREATE TABLE IF NOT EXISTS evaluation_submissions (
     CONSTRAINT fk_es_evaluation FOREIGN KEY (evaluation_id) REFERENCES evaluations(id) ON DELETE CASCADE,
     CONSTRAINT fk_es_student    FOREIGN KEY (student_user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT chk_es_grade     CHECK (grade IS NULL OR (grade >= 0.0 AND grade <= 10.0))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- 12.b evaluation_submission_lo_grades (E25 — nota por LO em curso LO mode)
+--
+--    Composite PK (submission_id, lo_id) — 1 grade por LO por submissão.
+--    A nota final agregada (média) continua em evaluation_submissions.grade
+--    pra preservar compat com queries que leem .grade direto.
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS evaluation_submission_lo_grades (
+    submission_id BIGINT UNSIGNED NOT NULL,
+    lo_id         BIGINT UNSIGNED NOT NULL,
+    grade         DECIMAL(3,1)    NOT NULL,
+    created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (submission_id, lo_id),
+    KEY idx_eslg_lo (lo_id),
+    CONSTRAINT fk_eslg_sub FOREIGN KEY (submission_id) REFERENCES evaluation_submissions(id) ON DELETE CASCADE,
+    CONSTRAINT fk_eslg_lo  FOREIGN KEY (lo_id)         REFERENCES learning_outcomes(id)       ON DELETE CASCADE,
+    CONSTRAINT chk_eslg_grade CHECK (grade >= 0.0 AND grade <= 10.0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
@@ -1199,6 +1234,23 @@ SET @col_exists := (
 );
 SET @sql := IF(@col_exists = 0,
     "ALTER TABLE tenants ADD COLUMN logo_path VARCHAR(255) NULL DEFAULT NULL AFTER platform_name",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E25-01] courses.grading_mode — modo de avaliacao do curso. 'grade' (default,
+-- nota unica 0-10 — comportamento atual) ou 'learning_outcomes' (5 LOs por
+-- UC, media = nota final). Restrito a Actvet via UI; defesa server-side
+-- forca 'grade' em nao-Actvet.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'courses'
+       AND COLUMN_NAME  = 'grading_mode'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE courses ADD COLUMN grading_mode ENUM('grade','learning_outcomes') NOT NULL DEFAULT 'grade' AFTER eval_after_activities",
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;

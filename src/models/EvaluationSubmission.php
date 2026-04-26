@@ -29,7 +29,7 @@ final class EvaluationSubmission
             'SELECT e.id, e.tenant_id, e.title, e.instructions, e.type, e.pdf_path,
                     e.xp_value, e.submission_open,
                     cu.id AS cu_id, cu.name AS cu_name,
-                    c.id  AS course_id, c.name AS course_name
+                    c.id  AS course_id, c.name AS course_name, c.grading_mode
                FROM evaluations e
                JOIN competence_units cu   ON cu.id = e.competence_unit_id
                JOIN core_competencies cc  ON cc.id = cu.core_competency_id
@@ -100,7 +100,7 @@ final class EvaluationSubmission
             'SELECT e.id, e.tenant_id, e.title, e.instructions, e.type, e.pdf_path,
                     e.xp_value, e.submission_open,
                     cu.id AS cu_id, cu.name AS cu_name,
-                    c.id  AS course_id, c.name AS course_name
+                    c.id  AS course_id, c.name AS course_name, c.grading_mode
                FROM evaluations e
                JOIN competence_units cu   ON cu.id = e.competence_unit_id
                JOIN core_competencies cc  ON cc.id = cu.core_competency_id

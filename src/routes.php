@@ -157,6 +157,11 @@ return [
             'role'   => 'teacher',
             'params' => ['id'],
         ],
+        '#^/teacher/cu/(\d+)/learning-outcomes$#' => [
+            'file'   => '/src/pages/teacher/cu/learning-outcomes.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
         '#^/teacher/cu/(\d+)/attachment$#' => [
             'file'   => '/src/pages/teacher/cu/attachment-upload.php',
             'role'   => 'teacher',

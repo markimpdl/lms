@@ -312,6 +312,24 @@ return [
     'courses.form.mode.free'         => 'Free (any order)',
     'courses.form.eval_after_activities.label' => 'Evaluation unlocks only after all activities are submitted',
     'courses.form.eval_after_activities.help'  => 'When enabled, the student must submit all unit activities before taking the evaluation.',
+    // Grading mode (E25-01) — Actvet only
+    'courses.form.grading_mode.label'                  => 'Grading mode',
+    'courses.form.grading_mode.help'                   => 'How the teacher grades this course. "Single grade" uses 0-10. "Learning Outcomes" requires 5 criteria per unit, with a grade per criterion (average = final grade).',
+    'courses.form.grading_mode.option.grade'           => 'Single grade (0-10)',
+    'courses.form.grading_mode.option.learning_outcomes' => 'Learning Outcomes (5 criteria per unit)',
+
+    // Learning Outcomes — per-CU registration (E25-02)
+    'learning_outcomes.title'        => 'Learning Outcomes',
+    'learning_outcomes.breadcrumb'   => 'Criteria',
+    'learning_outcomes.help'         => 'Register exactly 5 criteria to be assessed in this unit. The teacher gives a 0-10 grade for each during feedback; the average becomes the evaluation final grade.',
+    'learning_outcomes.field_n'      => 'Criterion :n',
+    'learning_outcomes.placeholder'  => 'Describe what the student must demonstrate...',
+    'learning_outcomes.err.required' => 'This criterion is required.',
+    'learning_outcomes.err.too_long' => 'Each criterion must be at most 500 characters.',
+    'learning_outcomes.has_errors'   => 'Please fix the highlighted fields.',
+    'learning_outcomes.success'      => 'Criteria updated.',
+    'learning_outcomes.edit_link'    => 'Edit criteria',
+
     // Sequential progression (E19-02 + E19-03 + E19-04)
     'progression.next_locked'                  => 'Complete ":name" first',
     'progression.eval_locked'                  => 'Complete all activities before taking the evaluation',
@@ -493,6 +511,7 @@ return [
     'evaluations.type.quiz'             => 'Quiz (multiple choice)',
     'evaluations.form.type'             => 'Type',
     'evaluations.form.type_hint'        => 'Project: student uploads a PDF or ZIP for manual grading. Quiz: multiple-choice questions with automatic grading.',
+    'evaluations.form.type_hint_lo'     => 'Course in Learning Outcomes mode: only Project is compatible (Quiz is auto-graded and conflicts with per-criterion grading).',
     'evaluations.form.err.type'         => 'Invalid evaluation type.',
     'evaluations.form.quiz_hint'        => 'This is a Quiz-type evaluation.',
     'evaluations.form.quiz_edit_btn'    => 'Edit questions',
@@ -567,6 +586,7 @@ return [
     'evaluations.err.brief_mime'          => 'The file must be a PDF or a ZIP.',
     'evaluations.err.brief_no_file'       => 'No file was uploaded.',
     'evaluations.err.brief_generic'       => 'Could not save the file. Please try again.',
+    'evaluations.err.quiz_not_in_lo_mode' => 'Quiz is not allowed in courses with Learning Outcomes.',
     'evaluations.delete.zone'           => 'Delete evaluation',
     'evaluations.delete.warning'        => 'This permanently removes the evaluation, the PDF, all student submissions and the credited XP. Cannot be undone.',
 
@@ -598,6 +618,17 @@ return [
     'evaluations.grade.err.feedback_required' => 'Feedback is required.',
     'evaluations.grade.err.feedback_too_long' => 'Feedback is longer than 4000 characters.',
     'evaluations.grade.err.not_current' => 'Only the current attempt can be graded.',
+
+    // Feedback by LO (E25-03)
+    'evaluations.grade.lo_mode_title'        => 'Assessed criteria',
+    'evaluations.grade.lo_mode_help'         => 'Grade each criterion 0-10. The average will be saved as the final grade.',
+    'evaluations.grade.lo_field_n'           => 'Criterion :n',
+    'evaluations.grade.lo_average_label'     => 'Final grade (average)',
+    'evaluations.grade.err.lo_grade_required' => 'Grade is required.',
+    'evaluations.grade.err.lo_grade_range'    => 'Grade must be between 0.0 and 10.0.',
+    'evaluations.grade.err.lo_uc_not_ready'   => 'This unit does not have 5 criteria registered yet. Register them before grading.',
+    'evaluations.grade.lo_uc_not_ready_title' => 'Criteria not registered',
+    'evaluations.grade.lo_uc_not_ready_help'  => 'The course uses Learning Outcomes but this unit has no 5 criteria registered. Register them before grading this evaluation.',
 
     // Submissions list (E7-04)
     'evaluations.submissions.page_title'   => 'Submissions — :name',
@@ -633,6 +664,10 @@ return [
     'evaluations.student.brief_title'    => 'Evaluation brief',
     'evaluations.student.brief_hint'     => 'Download the file to see all exam instructions.',
     'evaluations.student.brief_download' => 'Download brief',
+    // E25-05: assessed criteria (LO mode) — read-only before; with grades after
+    'student.evaluation.criteria_title'        => 'Assessed criteria',
+    'student.evaluation.criteria_help_before'  => 'These are the 5 criteria the teacher will assess in this unit.',
+    'student.evaluation.criteria_help_after'   => 'Grade per criterion (average = final grade).',
     'evaluations.student.feedback_title' => "Teacher's grading",
     'evaluations.student.feedback_at'    => 'Graded on :date',
     'evaluations.student.grade_label'    => 'Grade',

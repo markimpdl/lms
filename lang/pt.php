@@ -312,6 +312,24 @@ return [
     'courses.form.mode.free'         => 'Livre (qualquer ordem)',
     'courses.form.eval_after_activities.label' => 'Avaliação só libera após todas as atividades entregues',
     'courses.form.eval_after_activities.help'  => 'Quando ativado, aluno precisa enviar todas as atividades da unidade antes de fazer a avaliação.',
+    // Modo de avaliação (E25-01) — Actvet only
+    'courses.form.grading_mode.label'                  => 'Modo de avaliação',
+    'courses.form.grading_mode.help'                   => 'Como o professor dá nota nas avaliações deste curso. "Nota única" usa 0-10. "Learning Outcomes" exige 5 critérios por unidade, com nota por critério (média = nota final).',
+    'courses.form.grading_mode.option.grade'           => 'Nota única (0-10)',
+    'courses.form.grading_mode.option.learning_outcomes' => 'Learning Outcomes (5 critérios por unidade)',
+
+    // Learning Outcomes — cadastro por CU (E25-02)
+    'learning_outcomes.title'        => 'Learning Outcomes',
+    'learning_outcomes.breadcrumb'   => 'Critérios',
+    'learning_outcomes.help'         => 'Cadastre exatamente 5 critérios que serão avaliados nesta unidade. O professor dará nota 0-10 para cada um durante a correção; a média será a nota final da avaliação.',
+    'learning_outcomes.field_n'      => 'Critério :n',
+    'learning_outcomes.placeholder'  => 'Descreva o que o aluno deve demonstrar...',
+    'learning_outcomes.err.required' => 'Este critério é obrigatório.',
+    'learning_outcomes.err.too_long' => 'Cada critério deve ter no máximo 500 caracteres.',
+    'learning_outcomes.has_errors'   => 'Corrija os campos destacados.',
+    'learning_outcomes.success'      => 'Critérios atualizados.',
+    'learning_outcomes.edit_link'    => 'Editar critérios',
+
     // Progressão sequencial (E19-02 + E19-03 + E19-04)
     'progression.next_locked'                  => 'Conclua ":name" primeiro',
     'progression.eval_locked'                  => 'Termine todas as atividades antes de fazer a avaliação',
@@ -493,6 +511,7 @@ return [
     'evaluations.type.quiz'             => 'Quiz (múltipla escolha)',
     'evaluations.form.type'             => 'Tipo',
     'evaluations.form.type_hint'        => 'Projeto: aluno envia PDF ou ZIP e você corrige manualmente. Quiz: questões de múltipla escolha com nota automática.',
+    'evaluations.form.type_hint_lo'     => 'Curso em modo Learning Outcomes: só Projeto é compatível (Quiz é nota automática e não combina com avaliação por critério).',
     'evaluations.form.err.type'         => 'Tipo de avaliação inválido.',
     'evaluations.form.quiz_hint'        => 'Esta é uma avaliação tipo Quiz.',
     'evaluations.form.quiz_edit_btn'    => 'Editar questões',
@@ -567,6 +586,7 @@ return [
     'evaluations.err.brief_mime'          => 'O arquivo precisa ser PDF ou ZIP.',
     'evaluations.err.brief_no_file'       => 'Nenhum arquivo foi enviado.',
     'evaluations.err.brief_generic'       => 'Não foi possível salvar o arquivo. Tente novamente.',
+    'evaluations.err.quiz_not_in_lo_mode' => 'Quiz não é permitido em cursos com Learning Outcomes.',
     'evaluations.delete.zone'           => 'Excluir avaliação',
     'evaluations.delete.warning'        => 'Esta ação remove a avaliação, o PDF do enunciado, todas as entregas dos alunos e o XP creditado. Não pode ser desfeita.',
 
@@ -598,6 +618,17 @@ return [
     'evaluations.grade.err.feedback_required' => 'Feedback é obrigatório.',
     'evaluations.grade.err.feedback_too_long' => 'Feedback tem mais de 4000 caracteres.',
     'evaluations.grade.err.not_current' => 'Só a tentativa atual pode ser corrigida.',
+
+    // Feedback por LO (E25-03)
+    'evaluations.grade.lo_mode_title'        => 'Critérios avaliados',
+    'evaluations.grade.lo_mode_help'         => 'Dê uma nota 0-10 para cada critério. A média será gravada como nota final.',
+    'evaluations.grade.lo_field_n'           => 'Critério :n',
+    'evaluations.grade.lo_average_label'     => 'Nota final (média)',
+    'evaluations.grade.err.lo_grade_required' => 'Informe a nota.',
+    'evaluations.grade.err.lo_grade_range'    => 'Nota deve estar entre 0,0 e 10,0.',
+    'evaluations.grade.err.lo_uc_not_ready'   => 'Esta unidade ainda não tem 5 critérios cadastrados. Cadastre antes de corrigir.',
+    'evaluations.grade.lo_uc_not_ready_title' => 'Faltam critérios cadastrados',
+    'evaluations.grade.lo_uc_not_ready_help'  => 'O curso usa Learning Outcomes mas esta unidade ainda não tem 5 critérios. Cadastre antes de corrigir esta avaliação.',
 
     // Listagem de submissões (E7-04)
     'evaluations.submissions.page_title'   => 'Entregas — :name',
@@ -633,6 +664,10 @@ return [
     'evaluations.student.brief_title'    => 'Enunciado da avaliação',
     'evaluations.student.brief_hint'     => 'Baixe o arquivo para ver todas as instruções da prova.',
     'evaluations.student.brief_download' => 'Baixar enunciado',
+    // E25-05: critérios avaliados (LO mode) — read-only antes; com nota depois
+    'student.evaluation.criteria_title'        => 'Critérios avaliados',
+    'student.evaluation.criteria_help_before'  => 'Estes são os 5 critérios que o professor vai avaliar nesta unidade.',
+    'student.evaluation.criteria_help_after'   => 'Notas por critério (média = nota final).',
     'evaluations.student.feedback_title' => 'Correção do professor',
     'evaluations.student.feedback_at'    => 'Corrigida em :date',
     'evaluations.student.grade_label'    => 'Nota',

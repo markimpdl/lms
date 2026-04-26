@@ -209,6 +209,16 @@ A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** du
 
 ## Limpezas de produção (não-bloqueantes)
 
+### [E25-02] Re-cadastro de LOs apaga notas existentes via FK CASCADE
+- `LearningOutcome::replaceForCu` faz DELETE + INSERT (transação atômica). O DELETE cascateia em `evaluation_submission_lo_grades` (FK ON DELETE CASCADE) — se o professor já corrigiu submissões e edita os critérios, as notas por LO somem (a média em `evaluation_submissions.grade` permanece, mas perde a granularidade).
+- **Impacto:** baixo no MVP — raro o professor mexer em LOs após começar a corrigir. Quando muda, intencional (mudou o que avalia → notas antigas obsoletas).
+- **Ação (se virar problema):** gatear `replaceForCu` com confirmação UI quando `countGradesByCu > 0` ("Atenção: existem N correções gravadas. Editar critérios apagará as notas por critério (a média final fica). Continuar?").
+
+### [E25-05] UC sem 5 LOs cadastrados em curso LO mode — aluno fica sem orientação
+- Quando o curso virou LO depois de criar UCs, e o professor ainda não cadastrou os 5 LOs em alguma CU, o aluno em `/student/evaluation/{id}` daquela CU **não vê o card "Critérios avaliados"** (defesa silenciosa: só renderiza com `loList !== []`).
+- **Impacto:** baixo — feedback do professor já está bloqueado nesse cenário (E25-03 mostra alerta clicável pro cadastro), então o aluno fica sem orientação só durante a janela de transição.
+- **Ação (se virar problema):** mostrar mensagem alternativa pro aluno ("Os critérios desta avaliação estão sendo definidos pelo professor"). Sobre-engineering pro MVP.
+
 ### [E24-03] Logos órfãs em `public/uploads/logos/`
 - Quando o super-admin marca como Actvet (`is_actvet=1`) um tenant que tinha `logo_path` setada (upload prévio em `/teacher/settings`), o helper `tenant_branding()` passa a usar a logo Actvet hardcoded e ignora `logo_path`. O arquivo PNG/SVG/JPG fica órfão no disco.
 - **Impacto:** baixo — só desperdício de disco (max 500KB por arquivo).
@@ -219,11 +229,11 @@ A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** du
 ## Pendências externas (bloqueiam stories específicas)
 
 ### Judge0 RapidAPI
-- Plano **gratuito** (ADR-029). Precisa de `JUDGE0_HOST` e `JUDGE0_KEY` em `config/env.php`.
+- Plano **gratuito** (ADR-029). Credenciais em `config/env.php` (gitignored).
 - **Bloqueia:** E8 (compilador online).
 
 ### FTPS Hostinger cPanel
-- Credenciais necessárias: `FTP_HOST`, `FTP_USER`, `FTP_PASSWORD`, `FTP_REMOTE_ROOT=/public_html`, `FTP_SECURE=true`, `FTP_ALLOW_SELF_SIGNED=true`.
+- Credenciais e configurações em `config/env.php` (gitignored). Ver `.env.example` para referência.
 - **Bloqueia:** E13-03 (script de deploy incremental).
 
 ### cPanel — seleção de versão PHP
@@ -259,5 +269,5 @@ A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** du
 
 - **2026-04-23 — Bug: `countDescendants` quebra com `PDO::ATTR_EMULATE_PREPARES = false`.** Descoberto no smoke test do Epic E3 (PDOException `SQLSTATE[HY093] Invalid parameter number` ao abrir `/teacher/courses/{id}`). Causa: `Course`, `CoreCompetency` e `CompetenceUnit` reusavam o placeholder nomeado `:id` várias vezes na mesma query; com emulação desligada em produção (MariaDB 10.11) cada ocorrência conta como slot separado e `execute()` com um único valor para `:id` dispara o erro. Fix: trocar para placeholders posicionais `?` e passar o mesmo valor múltiplas vezes. Revisão: `TeacherAdmin::findById` e `Course::findForTenant` usam `:id` só uma vez — OK.
 - **2026-04-23 — Bug crítico: `tenant_id` do professor nunca era resolvido na sessão.** Descoberto no smoke test do Epic E3 em produção: criar curso / qualquer página `/teacher/*` que usa `current_tenant_id()` caía em 403. Causa: `users.tenant_id IS NULL` para teachers (CHECK constraint `chk_users_role_tenant`); o elo real é `tenants.owner_user_id = users.id` (ADR-025), mas `AuthController::authenticate()` lia `tenant_id` direto de `users`, gravando NULL na sessão. Fix em `src/controllers/AuthController.php`: SELECT agora faz `LEFT JOIN tenants t ON t.owner_user_id = u.id AND t.active = 1` + `COALESCE(t.id, u.tenant_id) AS tenant_id`. Preserva student (vem de `u.tenant_id`) e super_admin (permanece NULL). Sessões anteriores precisam de logout/login para repopular.
-- **2026-04-22 — [E10-03] PHPMailer + SMTP real.** `composer.json` criado (`php ^8.2` + `phpmailer/phpmailer ^6.9`), `bootstrap.php` passa a incluir `vendor/autoload.php`, `Mailer::send()` usa PHPMailer quando `SMTP_HOST/USER/PASS/FROM` estão preenchidos em `config/env.php` e mantém o fallback em `storage/logs/mail-debug.log` caso contrário. Falhas de SMTP vão para `storage/logs/mail.log` (não relançam). `Mailer::isConfigured()` passa a ler o env. Interface pública intocada — callers de E1-03/E2-02/E2-07 seguem iguais. Credenciais de produção: `lms.rumo.info:465 ssl`, remetente `noreply@lms.rumo.info`. Item "[E1-03] Integração PHPMailer quando E10 chegar" e "SMTP Hostgator" (pendência externa) saem da lista.
+- **2026-04-22 — [E10-03] PHPMailer + SMTP real.** `composer.json` criado (`php ^8.2` + `phpmailer/phpmailer ^6.9`), `bootstrap.php` passa a incluir `vendor/autoload.php`, `Mailer::send()` usa PHPMailer quando `SMTP_HOST/USER/PASS/FROM` estão preenchidos em `config/env.php` e mantém o fallback em `storage/logs/mail-debug.log` caso contrário. Falhas de SMTP vão para `storage/logs/mail.log` (não relançam). `Mailer::isConfigured()` passa a ler o env. Interface pública intocada — callers de E1-03/E2-02/E2-07 seguem iguais. Credenciais de produção em `config/env.php` (gitignored). Item "[E1-03] Integração PHPMailer quando E10 chegar" e "SMTP Hostgator" (pendência externa) saem da lista.
 - **2026-04-22 — Pendência externa "SMTP Hostgator" reclassificada.** O domínio `lms.rumo.info` oferece SMTP próprio (cPanel/Hostinger) — não é mais Hostgator. Credenciais já em `config/env.php` (gitignored).
