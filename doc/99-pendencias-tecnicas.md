@@ -209,6 +209,16 @@ A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** du
 
 ## Limpezas de produção (não-bloqueantes)
 
+### [E25-02] Re-cadastro de LOs apaga notas existentes via FK CASCADE
+- `LearningOutcome::replaceForCu` faz DELETE + INSERT (transação atômica). O DELETE cascateia em `evaluation_submission_lo_grades` (FK ON DELETE CASCADE) — se o professor já corrigiu submissões e edita os critérios, as notas por LO somem (a média em `evaluation_submissions.grade` permanece, mas perde a granularidade).
+- **Impacto:** baixo no MVP — raro o professor mexer em LOs após começar a corrigir. Quando muda, intencional (mudou o que avalia → notas antigas obsoletas).
+- **Ação (se virar problema):** gatear `replaceForCu` com confirmação UI quando `countGradesByCu > 0` ("Atenção: existem N correções gravadas. Editar critérios apagará as notas por critério (a média final fica). Continuar?").
+
+### [E25-05] UC sem 5 LOs cadastrados em curso LO mode — aluno fica sem orientação
+- Quando o curso virou LO depois de criar UCs, e o professor ainda não cadastrou os 5 LOs em alguma CU, o aluno em `/student/evaluation/{id}` daquela CU **não vê o card "Critérios avaliados"** (defesa silenciosa: só renderiza com `loList !== []`).
+- **Impacto:** baixo — feedback do professor já está bloqueado nesse cenário (E25-03 mostra alerta clicável pro cadastro), então o aluno fica sem orientação só durante a janela de transição.
+- **Ação (se virar problema):** mostrar mensagem alternativa pro aluno ("Os critérios desta avaliação estão sendo definidos pelo professor"). Sobre-engineering pro MVP.
+
 ### [E24-03] Logos órfãs em `public/uploads/logos/`
 - Quando o super-admin marca como Actvet (`is_actvet=1`) um tenant que tinha `logo_path` setada (upload prévio em `/teacher/settings`), o helper `tenant_branding()` passa a usar a logo Actvet hardcoded e ignora `logo_path`. O arquivo PNG/SVG/JPG fica órfão no disco.
 - **Impacto:** baixo — só desperdício de disco (max 500KB por arquivo).
