@@ -27,17 +27,24 @@ final class RankingService
     /**
      * Calcula o ranking paginado.
      *
+     * Cada linha traz a patente atual do aluno (`rank_*`) calculada sobre o XP
+     * **total acumulado** do tenant (não filtrado pela janela) — patente reflete
+     * progressão histórica, não atividade na janela. NULL quando aluno não tem XP
+     * suficiente pra entrar em nenhuma patente OU tenant não cadastrou patentes.
+     *
      * @param array{group_id?:int, year?:int, course_id?:int} $filters
      * @return array{
      *   rows: list<array{
      *     position:int, student_id:int, name:string,
-     *     group_names:string, xp:int, last_event_at:?string
+     *     group_names:string, xp:int, last_event_at:?string,
+     *     rank_id:?int, rank_name:?string, rank_color_hex:?string
      *   }>,
      *   total:int
      * }
      *
-     * IMPORTANTE: Caller deve escapar `name` e `group_names` com `e()` antes de
-     * renderizá-las em HTML (responsabilidade do controller/view, não do service).
+     * IMPORTANTE: Caller deve escapar `name`, `group_names` e `rank_name` com
+     * `e()` antes de renderizá-los em HTML (responsabilidade do controller/view,
+     * não do service).
      */
     public static function compute(
         int $tenantId,
@@ -92,12 +99,25 @@ final class RankingService
                            (SELECT GROUP_CONCAT(g.name ORDER BY g.name SEPARATOR ', ')
                               FROM group_members gm2
                               INNER JOIN `groups` g ON g.id = gm2.group_id
-                             WHERE gm2.student_user_id = u.id) AS group_names
+                             WHERE gm2.student_user_id = u.id) AS group_names,
+                           MAX(rk.id)        AS rank_id,
+                           MAX(rk.name)      AS rank_name,
+                           MAX(rk.color_hex) AS rank_color_hex
                       FROM users u
                       {$groupJoinSql}
                       LEFT JOIN xp_events x
                              ON x.student_user_id = u.id
                              {$xpJoinSql}
+                      LEFT JOIN (
+                          SELECT student_user_id, SUM(value) AS total_xp
+                            FROM xp_events
+                           WHERE tenant_id = :tenant_id_total
+                           GROUP BY student_user_id
+                      ) ta ON ta.student_user_id = u.id
+                      LEFT JOIN ranks rk
+                             ON rk.tenant_id = :tenant_id_rank
+                            AND rk.xp_min   <= COALESCE(ta.total_xp, 0)
+                            AND (rk.xp_max IS NULL OR rk.xp_max > COALESCE(ta.total_xp, 0))
                      WHERE u.tenant_id = :tenant_id
                        AND u.role      = 'student'
                        AND u.active    = 1
@@ -107,9 +127,11 @@ final class RankingService
                      LIMIT :lim OFFSET :off";
         $stmt = $pdo->prepare($rowsSql);
         self::bindFilters($stmt, $f, $xpParams);
-        $stmt->bindValue(':tenant_id', $tenantId, PDO::PARAM_INT);
-        $stmt->bindValue(':lim',       $perPage,  PDO::PARAM_INT);
-        $stmt->bindValue(':off',       $offset,   PDO::PARAM_INT);
+        $stmt->bindValue(':tenant_id',       $tenantId, PDO::PARAM_INT);
+        $stmt->bindValue(':tenant_id_total', $tenantId, PDO::PARAM_INT);
+        $stmt->bindValue(':tenant_id_rank',  $tenantId, PDO::PARAM_INT);
+        $stmt->bindValue(':lim',             $perPage,  PDO::PARAM_INT);
+        $stmt->bindValue(':off',             $offset,   PDO::PARAM_INT);
         $stmt->execute();
 
         $rows     = [];
@@ -117,12 +139,15 @@ final class RankingService
         foreach ($stmt->fetchAll() as $r) {
             $position++;
             $rows[] = [
-                'position'      => $position,
-                'student_id'    => (int) $r['student_id'],
-                'name'          => (string) $r['name'],
-                'group_names'   => (string) ($r['group_names'] ?? ''),
-                'xp'            => (int) $r['xp'],
-                'last_event_at' => $r['last_event_at'] !== null ? (string) $r['last_event_at'] : null,
+                'position'       => $position,
+                'student_id'     => (int) $r['student_id'],
+                'name'           => (string) $r['name'],
+                'group_names'    => (string) ($r['group_names'] ?? ''),
+                'xp'             => (int) $r['xp'],
+                'last_event_at'  => $r['last_event_at'] !== null ? (string) $r['last_event_at'] : null,
+                'rank_id'        => $r['rank_id']        !== null ? (int) $r['rank_id']           : null,
+                'rank_name'      => $r['rank_name']      !== null ? (string) $r['rank_name']      : null,
+                'rank_color_hex' => $r['rank_color_hex'] !== null ? (string) $r['rank_color_hex'] : null,
             ];
         }
 

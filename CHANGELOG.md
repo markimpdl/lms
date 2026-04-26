@@ -4,6 +4,31 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.25.0] — 2026-04-26
+
+Vigésima quinta release. Escopo: **Epic E28 inteiro — Patentes informativas no ranking** (2 stories, F19) + 1 polish visual (pill mais arredondada). Primeira release pequena pós-Actvet/dark-mode — ranking ganha contexto de progressão ao mostrar a patente atual de cada aluno ao lado do XP. Sem mudança de schema; reusa `Rank::findCurrentByXp` existente da E18, agora inline na query do `RankingService` pra evitar N+1.
+
+### Novas funcionalidades
+
+#### Epic E28 — Patentes informativas no ranking
+
+- **Patente por linha em RankingService::compute** (E28-01, #361): cada row do ranking agora inclui 3 campos novos (`rank_id`, `rank_name`, `rank_color_hex`) calculados em **uma só query** via 2 LEFT JOINs adicionais, sem N+1. (1) Derived table `ta` agrega `SUM(xp_events.value)` por aluno do tenant — XP **TOTAL** sem filtro de janela, porque patente reflete progressão histórica acumulada (aluno é "Lenda" porque tem 5000 XP totais, não porque ganhou 200 nos últimos 7d). (2) LEFT JOIN `ranks rk` replicando a lógica de `Rank::findCurrentByXp`: `xp_min <= total_xp AND (xp_max IS NULL OR xp_max > total_xp)`, coberto pelo índice já existente `idx_ranks_tenant_xpmin (tenant_id, xp_min)`. `MAX(rk.id/name/color_hex)` no SELECT (cada aluno casa com 0 ou 1 rank por design — check constraint `chk_ranks_xp_max` + ranges não-overlapping). NULL nos 3 campos quando aluno sem XP suficiente OU tenant sem patentes cadastradas. **PDO emulation OFF**: 3 placeholders distintos pro tenant_id (`:tenant_id`, `:tenant_id_total`, `:tenant_id_rank`), todos bindados ao mesmo valor.
+- **Coluna Patente desktop + badge inline mobile** (E28-02, #362): nova coluna "Patente" entre Nome e Grupos em `/student/ranking` e `/teacher/ranking` — pill colorido com `rank.color_hex` + texto `rank_name`, escondido em mobile (`d-none d-md-table-cell`). Em mobile, badge inline ao lado do nome (`d-md-none`). Aluno sem patente: em-dash com tooltip `ranking.no_rank`. CSS `.lms-rank-pill` + modificador `--inline` em `app.css` (scope global — student-area E teacher area precisam). **Defesa XSS**: `rank_color_hex` validado server-side com regex `/^#[0-9A-Fa-f]{6}$/` antes de injetar em `style="background:..."`; fallback `#6B7280` (cinza neutro) se não bate. 2 chaves i18n PT/EN (`ranking.col.rank` = "Patente"/"Tier" — escolhi "Tier" em EN porque "Rank" já é o header da posição; `ranking.no_rank` pro tooltip do em-dash).
+
+### Correções
+
+- **Pill da patente mais arredondada** (#366): smoke do PO comparou visual e a pill da patente parecia quadrada perto da pill VOCÊ na mesma linha. `border-radius: 999px` já estava igual ao `--lms-radius-chip` da pill VOCÊ — problema era aspect ratio: padding 2px×10px com texto longo (ex: "INTERMEDIÁRIO") fazia a parte plana do meio dominar visualmente. Fix: padding `2px 10px → 4px 14px` (modificador inline também: `1px 8px → 2px 10px`) + line-height fixo 18px → relativo 1.2 (escala melhor com modificadores).
+
+### Mudanças internas / Tooling
+
+- **`package.json`** bumpado para 0.25.0.
+
+### Convenções consolidadas nesta janela
+
+- **Patentes/badges em ranking refletem XP TOTAL, não XP da janela** — métricas semânticas que dependem de progressão acumulada (patente, conquistas, level) devem usar XP histórico independente do filtro temporal da view. O filtro de janela serve pra rankear/destacar atividade recente; identidade do aluno (que patente ele é) não muda com a seleção do filtro. Implementação: derived table separada (sem WHERE temporal) joinada com a tabela de catálogo (ranks/achievements).
+- **Aspect ratio importa em pill com border-radius máximo** — `border-radius: 999px` só "parece" mais redondo quando padding gera altura suficiente pras pontas terem curvatura visível em comparação com a parte plana. Pill com padding apertado e texto longo lê como retângulo mesmo com 999px. Preferir line-height relativo (`1.2`) + padding generoso a line-height fixo + padding mínimo.
+- **CSS reusável em duas áreas (student vs teacher)** — quando o componente precisa funcionar em ambas as áreas, ir pra `app.css` (carregado sempre) com seletor não-scoped — não `body.lms-student-area .X`. Padrão já usado pra `.lms-ranking-avatar` (E17-05); estendido pra `.lms-rank-pill` aqui. Overrides específicos por área podem ir nos respectivos arquivos depois se necessário.
+
 ## [0.24.0] — 2026-04-26
 
 Vigésima quarta release. Escopo: **Epic E27 inteiro — Dark mode (preferência aluno)** (4 stories, F18) + 3 passes de polish corrigindo gaps visuais detectados pelo PO no smoke pré-release. Primeira release do roadmap pós-Actvet (E27 → E30 são polimentos transversais; ciclo Actvet F14–F17 fechou em v0.23.0). Aluno agora pode escolher entre tema claro e escuro em `/profile`; preferência persiste entre sessões.
