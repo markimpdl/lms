@@ -6,6 +6,10 @@ declare(strict_types=1);
  * POST delega ao TeacherCoursesController::create() (redireciona em sucesso).
  */
 
+$tenantId = current_tenant_id();
+$tenant   = $tenantId !== null ? Tenant::findById($tenantId) : null;
+$isActvet = $tenant !== null && (int) ($tenant['is_actvet'] ?? 0) === 1;
+
 $errors = [];
 $old = [
     'name'                  => '',
@@ -15,6 +19,7 @@ $old = [
     'cc_mode'               => 'sequential',
     'activity_mode'         => 'sequential',
     'eval_after_activities' => 1,
+    'grading_mode'          => $isActvet ? 'learning_outcomes' : 'grade',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -34,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'cc_mode'               => (string) ($_POST['cc_mode']      ?? 'sequential'),
         'activity_mode'         => (string) ($_POST['activity_mode'] ?? 'sequential'),
         'eval_after_activities' => !empty($_POST['eval_after_activities']) ? 1 : 0,
+        'grading_mode'          => (string) ($_POST['grading_mode'] ?? ($isActvet ? 'learning_outcomes' : 'grade')),
     ];
 
     $errors = TeacherCoursesController::create($old);

@@ -23,6 +23,9 @@ if ($course === null) {
 
 $isArchived = (int) $course['archived'] === 1;
 
+$tenant   = Tenant::findById($tenantId);
+$isActvet = $tenant !== null && (int) ($tenant['is_actvet'] ?? 0) === 1;
+
 $errors = [];
 $old = [
     'name'                  => (string) $course['name'],
@@ -32,6 +35,7 @@ $old = [
     'cc_mode'               => (string) ($course['cc_mode'] ?? 'sequential'),
     'activity_mode'         => (string) ($course['activity_mode'] ?? 'sequential'),
     'eval_after_activities' => (int)    ($course['eval_after_activities'] ?? 1),
+    'grading_mode'          => (string) ($course['grading_mode'] ?? 'grade'),
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isArchived) {
@@ -51,6 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isArchived) {
         'cc_mode'               => (string) ($_POST['cc_mode']      ?? 'sequential'),
         'activity_mode'         => (string) ($_POST['activity_mode'] ?? 'sequential'),
         'eval_after_activities' => !empty($_POST['eval_after_activities']) ? 1 : 0,
+        'grading_mode'          => (string) ($_POST['grading_mode']  ?? ($isActvet ? 'learning_outcomes' : 'grade')),
     ];
 
     $errors = TeacherCoursesController::update($courseId, $old);

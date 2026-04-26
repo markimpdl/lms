@@ -312,6 +312,11 @@ return [
     'courses.form.mode.free'         => 'Livre (qualquer ordem)',
     'courses.form.eval_after_activities.label' => 'Avaliação só libera após todas as atividades entregues',
     'courses.form.eval_after_activities.help'  => 'Quando ativado, aluno precisa enviar todas as atividades da unidade antes de fazer a avaliação.',
+    // Modo de avaliação (E25-01) — Actvet only
+    'courses.form.grading_mode.label'                  => 'Modo de avaliação',
+    'courses.form.grading_mode.help'                   => 'Como o professor dá nota nas avaliações deste curso. "Nota única" usa 0-10. "Learning Outcomes" exige 5 critérios por unidade, com nota por critério (média = nota final).',
+    'courses.form.grading_mode.option.grade'           => 'Nota única (0-10)',
+    'courses.form.grading_mode.option.learning_outcomes' => 'Learning Outcomes (5 critérios por unidade)',
     // Progressão sequencial (E19-02 + E19-03 + E19-04)
     'progression.next_locked'                  => 'Conclua ":name" primeiro',
     'progression.eval_locked'                  => 'Termine todas as atividades antes de fazer a avaliação',
