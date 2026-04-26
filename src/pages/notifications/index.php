@@ -25,11 +25,14 @@ $lastPage = max(1, (int) ceil($total / $perPage));
 
 $page_title = __t('notifications.page.title');
 
+// Aluno usa lms-student-area (sidebar + dark mode automatico via layout.php).
+// Teacher e super-admin caem no layout container Bootstrap classico.
+$isStudent = ($user['role'] ?? '') === 'student';
+
 ob_start();
 ?>
-<div class="row justify-content-center">
-    <div class="col-12 col-lg-8">
-        <div class="d-flex align-items-center justify-content-between mb-3">
+<?php if (!$isStudent): ?><div class="row justify-content-center"><div class="col-12 col-lg-8"><?php endif; ?>
+        <div class="d-flex align-items-center justify-content-between mb-3 gap-2">
             <h1 class="h4 m-0"><?= e(__t('notifications.page.title')) ?></h1>
             <?php if ($total > 0): ?>
                 <form method="post" action="/notifications/mark-all-read" class="m-0">
@@ -88,8 +91,7 @@ ob_start();
                 </nav>
             <?php endif; ?>
         <?php endif; ?>
-    </div>
-</div>
+<?php if (!$isStudent): ?></div></div><?php endif; ?>
 <?php
 $page_content = ob_get_clean();
 require LMS_ROOT . '/src/templates/layout.php';

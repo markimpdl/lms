@@ -2573,3 +2573,32 @@ body.lms-student-area.lms-theme-dark .lms-bell__badge {
 body.lms-student-area.lms-theme-dark .lms-achievement-card.is-unlocked .lms-achievement-card__badge {
     color: #111827;
 }
+
+/* /notifications dark overrides — pagina herda lms-student-area quando
+   role=student (gate em layout.php). Tudo em app.css ta hardcoded light;
+   replicamos o esquema de override dos demais blocos dark. */
+body.lms-student-area.lms-theme-dark .lms-notif-list {
+    background: var(--lms-card-bg);
+    border-color: var(--lms-neutral-200);
+}
+body.lms-student-area.lms-theme-dark .lms-notif-list__empty {
+    color: var(--lms-neutral-500);
+}
+body.lms-student-area.lms-theme-dark .lms-notif-row {
+    border-bottom-color: var(--lms-neutral-200);
+}
+body.lms-student-area.lms-theme-dark .lms-notif-row--unread {
+    background: rgba(99, 102, 241, 0.12);
+}
+body.lms-student-area.lms-theme-dark .lms-notif-row__title {
+    color: var(--lms-neutral-900);
+}
+body.lms-student-area.lms-theme-dark .lms-notif-row__text {
+    color: var(--lms-neutral-500);
+}
+body.lms-student-area.lms-theme-dark .lms-notif-row__time {
+    color: var(--lms-neutral-300);
+}
+body.lms-student-area.lms-theme-dark .lms-notif-row__btn:hover {
+    background: rgba(99, 102, 241, 0.18);
+}
