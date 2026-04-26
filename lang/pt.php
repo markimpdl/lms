@@ -8,6 +8,9 @@ return [
     'app.demo_flash_ok'  => 'Flash funcionando — esta mensagem veio de uma sessão anterior.',
     'app.demo_flash_btn' => 'Testar flash',
 
+    // Branding (E24-02) — fallback do nome da plataforma na navbar
+    'branding.default_name' => 'LMS',
+
     // Common
     'common.save'        => 'Salvar',
     'common.cancel'      => 'Cancelar',

@@ -152,6 +152,14 @@ main { flex: 1 0 auto; }
     line-height: 1;
     box-shadow: 0 4px 10px -4px rgba(99, 102, 241, 0.5);
 }
+.lms-navbar__logo-img {
+    display: inline-block;
+    height: 34px;
+    width: auto;
+    max-width: 80px;
+    border-radius: 6px;
+    object-fit: contain;
+}
 .lms-navbar__wordmark {
     font-weight: 800;
     font-size: 18px;
