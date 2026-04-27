@@ -702,6 +702,7 @@ return [
     'student.evaluation.criteria_title'        => 'Critérios avaliados',
     'student.evaluation.criteria_help_before'  => 'Estes são os 5 critérios que o professor vai avaliar nesta unidade.',
     'student.evaluation.criteria_help_after'   => 'Notas por critério (média = nota final).',
+    'student.evaluation.criteria_pending_notice' => 'Os critérios desta avaliação ainda estão sendo definidos pelo professor. Você pode enviar sua entrega normalmente — a nota será atribuída assim que os critérios forem publicados.',
     'evaluations.student.feedback_title' => 'Correção do professor',
     'evaluations.student.feedback_at'    => 'Corrigida em :date',
     'evaluations.student.grade_label'    => 'Nota',

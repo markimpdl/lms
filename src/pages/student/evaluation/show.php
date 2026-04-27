@@ -249,7 +249,14 @@ ob_start();
         <?php endif; ?>
 
         <!-- E25-05: Critérios avaliados (LO mode) — read-only antes do
-             feedback; com nota por LO depois. -->
+             feedback; com nota por LO depois. Quando curso é LO mode mas
+             professor ainda não cadastrou os 5 LOs, mostra alert info pra
+             aluno entender a ausência (em vez de não mostrar nada). -->
+        <?php if ($isLoMode && $loList === []): ?>
+            <div class="alert alert-info mb-3" role="alert">
+                <?= e(__t('student.evaluation.criteria_pending_notice')) ?>
+            </div>
+        <?php endif; ?>
         <?php if ($isLoMode && $loList !== []): ?>
             <div class="card shadow-sm mb-3">
                 <div class="card-header">
