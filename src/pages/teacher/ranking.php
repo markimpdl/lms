@@ -45,11 +45,14 @@ if (!in_array($window, RankingService::WINDOWS, true)) {
 
 $groups = Group::listForSelect($tenantId);
 
+// Anos disponíveis no dropdown = anos de matrícula no tenant (mudou em
+// 2026-04-27 — antes lia data de XP). Alinhado com a nova semântica do
+// filtro year no RankingService (alunos matriculados no ano).
 $years = [];
 $stmt = Database::pdo()->prepare(
-    'SELECT DISTINCT YEAR(created_at) AS y
-       FROM xp_events
-      WHERE tenant_id = ?
+    'SELECT DISTINCT YEAR(e.enrolled_at) AS y
+       FROM enrollments e
+       INNER JOIN courses c ON c.id = e.course_id AND c.tenant_id = ?
       ORDER BY y DESC'
 );
 $stmt->execute([$tenantId]);

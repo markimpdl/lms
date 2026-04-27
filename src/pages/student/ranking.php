@@ -50,13 +50,16 @@ if (!in_array($window, RankingService::WINDOWS, true)) {
 // Lista de grupos do tenant (pra dropdown e validação de input).
 $groups = $tenantId > 0 ? Group::listForSelect($tenantId) : [];
 
-// Lista de anos com eventos no tenant (pra dropdown). Ordenada DESC.
+// Lista de anos com matrículas no tenant (pra dropdown). Ordenada DESC.
+// Mudou em 2026-04-27: antes lia `xp_events.created_at` (ano da última
+// interação); agora lê `enrollments.enrolled_at` (ano de matrícula),
+// alinhado com a nova semântica do filtro `year` no RankingService.
 $years = [];
 if ($tenantId > 0) {
     $stmt = Database::pdo()->prepare(
-        'SELECT DISTINCT YEAR(created_at) AS y
-           FROM xp_events
-          WHERE tenant_id = ?
+        'SELECT DISTINCT YEAR(e.enrolled_at) AS y
+           FROM enrollments e
+           INNER JOIN courses c ON c.id = e.course_id AND c.tenant_id = ?
           ORDER BY y DESC'
     );
     $stmt->execute([$tenantId]);
