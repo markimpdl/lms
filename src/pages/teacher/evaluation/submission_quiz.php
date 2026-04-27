@@ -19,7 +19,6 @@ declare(strict_types=1);
  *   $evaluation   array
  *   $student      array
  *   $current      array — submission corrente (com quiz_snapshot)
- *   $history      list — tentativas anteriores
  */
 
 $errors = [];
@@ -150,25 +149,6 @@ ob_start();
                 </form>
             <?php endif; ?>
         </div>
-
-        <?php if ($history !== []): ?>
-            <div class="card card-body shadow-sm mt-3">
-                <h2 class="h6 mb-3"><?= e(__t('evaluations.grade.history')) ?></h2>
-                <ul class="list-unstyled mb-0 small">
-                    <?php foreach ($history as $h): ?>
-                        <li class="mb-2">
-                            <strong><?= e(__t('evaluations.grade.attempt_n', ['n' => (string) (int) $h['attempt']])) ?></strong>
-                            ·
-                            <?= e(format_short_datetime((string) $h['created_at'])) ?>
-                            ·
-                            <span class="<?= ((float) ($h['grade'] ?? 0)) >= 6 ? 'text-success' : 'text-danger' ?>">
-                                <?= e(number_format((float) ($h['grade'] ?? 0), 1, ',', '')) ?>
-                            </span>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-        <?php endif; ?>
 
         <div class="mt-3">
             <a href="/teacher/evaluation/<?= $evaluationId ?>/submissions" class="btn btn-outline-secondary">

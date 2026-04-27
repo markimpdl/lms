@@ -750,6 +750,7 @@ return [
     'submissions.form.file'             => 'Arquivo',
     'submissions.form.current_file'     => 'arquivo atual',
     'submissions.form.file_hint'        => 'Aceitos: PDF, ZIP, TXT. Máximo 3 MB.',
+    'submissions.form.file_hint_dynamic' => 'Aceitos: :exts. Máximo 3 MB.',
     'submissions.form.code'             => 'Código',
     'submissions.form.code_placeholder' => 'Cole ou digite seu código aqui…',
     'submissions.form.code_hint'        => 'O código é salvo junto com a entrega. Use "Executar" pra testar sem enviar.',

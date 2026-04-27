@@ -1150,3 +1150,29 @@ function breadcrumbs(array $items): string
     }
     return $out . '</ol></nav>';
 }
+
+/**
+ * Remove arquivo do disco a partir de um path relativo armazenado no banco
+ * (`storage/uploads/...`). Defesa traversal: confina via realpath dentro de
+ * `LMS_ROOT/storage/uploads/`. Best-effort — falha em apagar (arquivo já
+ * removido, permissão, etc.) é silenciosa.
+ *
+ * Usado pelo cleanup de DELETE de aluno/curso (E33-feature-pack) quando
+ * cascade do banco apaga as linhas mas os arquivos físicos ficariam órfãos.
+ */
+function safe_unlink_storage(string $relPath): void
+{
+    $relPath = trim($relPath);
+    if ($relPath === '') {
+        return;
+    }
+    $base = @realpath(LMS_ROOT . '/storage/uploads');
+    if ($base === false) {
+        return;
+    }
+    $abs  = LMS_ROOT . '/' . ltrim($relPath, '/');
+    $real = @realpath($abs);
+    if ($real !== false && str_starts_with($real, $base)) {
+        @unlink($real);
+    }
+}

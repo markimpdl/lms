@@ -288,9 +288,61 @@ final class Course
         if ((string) $course['name'] !== $expectedName) {
             return 'name_mismatch';
         }
-        Database::pdo()
-            ->prepare('DELETE FROM courses WHERE id = ? AND tenant_id = ?')
+
+        // Coleta paths físicos a serem limpos depois do DELETE. 5 fontes:
+        //  1. content_attachments (anexos TinyMCE em conteúdos)
+        //  2. activity_submissions (entregas de atividades)
+        //  3. evaluations.pdf_path (PDF de enunciado da avaliação)
+        //  4. evaluation_submissions (entregas de avaliação)
+        //  5. evaluation_submissions.report_pdf_path (PDFs Skills Hub gerados)
+        // Todas resolvem `course_id` via JOIN com a hierarquia cu → cc → course.
+        $pdo = Database::pdo();
+        $stmt = $pdo->prepare(
+            'SELECT ca.stored_path
+               FROM content_attachments ca
+               INNER JOIN contents ct          ON ct.id = ca.content_id
+               INNER JOIN competence_units cu  ON cu.id = ct.competence_unit_id
+               INNER JOIN core_competencies cc ON cc.id = cu.core_competency_id
+              WHERE cc.course_id = ?
+              UNION ALL
+             SELECT s.stored_path
+               FROM activity_submissions s
+               INNER JOIN activities a         ON a.id  = s.activity_id
+               INNER JOIN competence_units cu  ON cu.id = a.competence_unit_id
+               INNER JOIN core_competencies cc ON cc.id = cu.core_competency_id
+              WHERE cc.course_id = ? AND s.stored_path IS NOT NULL
+              UNION ALL
+             SELECT e.pdf_path
+               FROM evaluations e
+               INNER JOIN competence_units cu  ON cu.id = e.competence_unit_id
+               INNER JOIN core_competencies cc ON cc.id = cu.core_competency_id
+              WHERE cc.course_id = ? AND e.pdf_path IS NOT NULL
+              UNION ALL
+             SELECT es.stored_path
+               FROM evaluation_submissions es
+               INNER JOIN evaluations e        ON e.id  = es.evaluation_id
+               INNER JOIN competence_units cu  ON cu.id = e.competence_unit_id
+               INNER JOIN core_competencies cc ON cc.id = cu.core_competency_id
+              WHERE cc.course_id = ? AND es.stored_path IS NOT NULL
+              UNION ALL
+             SELECT es.report_pdf_path
+               FROM evaluation_submissions es
+               INNER JOIN evaluations e        ON e.id  = es.evaluation_id
+               INNER JOIN competence_units cu  ON cu.id = e.competence_unit_id
+               INNER JOIN core_competencies cc ON cc.id = cu.core_competency_id
+              WHERE cc.course_id = ? AND es.report_pdf_path IS NOT NULL'
+        );
+        $stmt->execute([$courseId, $courseId, $courseId, $courseId, $courseId]);
+        /** @var list<string> $paths */
+        $paths = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        $pdo->prepare('DELETE FROM courses WHERE id = ? AND tenant_id = ?')
             ->execute([$courseId, $tenantId]);
+
+        foreach ($paths as $p) {
+            safe_unlink_storage((string) $p);
+        }
+
         return 'ok';
     }
 

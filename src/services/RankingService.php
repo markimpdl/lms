@@ -65,7 +65,8 @@ final class RankingService
         $offset  = ($page - 1) * $perPage;
 
         $f = self::normaliseFilters($filters);
-        [$xpJoinSql, $xpParams] = self::xpJoinClause($window, $f);
+        [$xpJoinSql, $xpParams]    = self::xpJoinClause($window, $f);
+        [$enrollSql, $enrollParams] = self::enrollmentYearClause($f);
         $groupJoinSql = $f['group_id'] !== null
             ? 'INNER JOIN group_members gm ON gm.student_user_id = u.id AND gm.group_id = :group_id'
             : '';
@@ -83,11 +84,12 @@ final class RankingService
                         WHERE u.tenant_id = :tenant_id
                           AND u.role      = 'student'
                           AND u.active    = 1
+                          {$enrollSql}
                         GROUP BY u.id
                         {$havingSql}
                      ) c";
         $stmtTotal = $pdo->prepare($countSql);
-        self::bindFilters($stmtTotal, $f, $xpParams);
+        self::bindFilters($stmtTotal, $f, $xpParams, $enrollParams);
         $stmtTotal->bindValue(':tenant_id', $tenantId, PDO::PARAM_INT);
         $stmtTotal->execute();
         $total = (int) $stmtTotal->fetchColumn();
@@ -121,12 +123,13 @@ final class RankingService
                      WHERE u.tenant_id = :tenant_id
                        AND u.role      = 'student'
                        AND u.active    = 1
+                       {$enrollSql}
                      GROUP BY u.id, u.name
                      {$havingSql}
                      ORDER BY xp DESC, last_event_at DESC, u.name ASC
                      LIMIT :lim OFFSET :off";
         $stmt = $pdo->prepare($rowsSql);
-        self::bindFilters($stmt, $f, $xpParams);
+        self::bindFilters($stmt, $f, $xpParams, $enrollParams);
         $stmt->bindValue(':tenant_id',       $tenantId, PDO::PARAM_INT);
         $stmt->bindValue(':tenant_id_total', $tenantId, PDO::PARAM_INT);
         $stmt->bindValue(':tenant_id_rank',  $tenantId, PDO::PARAM_INT);
@@ -173,7 +176,8 @@ final class RankingService
         }
 
         $f = self::normaliseFilters($filters);
-        [$xpJoinSql, $xpParams] = self::xpJoinClause($window, $f);
+        [$xpJoinSql, $xpParams]    = self::xpJoinClause($window, $f);
+        [$enrollSql, $enrollParams] = self::enrollmentYearClause($f);
         $groupJoinSql = $f['group_id'] !== null
             ? 'INNER JOIN group_members gm ON gm.student_user_id = u.id AND gm.group_id = :group_id'
             : '';
@@ -194,6 +198,7 @@ final class RankingService
                    WHERE u.tenant_id = :tenant_id
                      AND u.role      = 'student'
                      AND u.active    = 1
+                     {$enrollSql}
                    GROUP BY u.id, u.name
                    {$havingSql}
                 ) r
@@ -201,7 +206,7 @@ final class RankingService
                 LIMIT 1";
 
         $stmt = Database::pdo()->prepare($sql);
-        self::bindFilters($stmt, $f, $xpParams);
+        self::bindFilters($stmt, $f, $xpParams, $enrollParams);
         $stmt->bindValue(':tenant_id',  $tenantId,  PDO::PARAM_INT);
         $stmt->bindValue(':student_id', $studentId, PDO::PARAM_INT);
         $stmt->execute();
@@ -223,9 +228,11 @@ final class RankingService
     }
 
     /**
-     * Cláusulas adicionais do `LEFT JOIN xp_events` por janela/ano/curso.
-     * Janela é interpolada como literal int (constante de servidor); ano e
-     * curso vão como placeholders nomeados.
+     * Cláusulas adicionais do `LEFT JOIN xp_events` por janela/curso.
+     * Janela é interpolada como literal int (constante de servidor); curso
+     * vai como placeholder nomeado. **Year não entra aqui** — desde 2026-04-27,
+     * filtro de ano restringe alunos por `enrollments.enrolled_at`, não pela
+     * data do XP (ver `enrollmentJoinClause`).
      *
      * @param array{group_id:?int, year:?int, course_id:?int} $f
      * @return array{0:string, 1:array<string,int>}
@@ -240,10 +247,6 @@ final class RankingService
         } elseif ($window === '30d') {
             $clauses[] = 'x.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)';
         }
-        if ($f['year'] !== null) {
-            $clauses[]       = 'YEAR(x.created_at) = :year';
-            $params[':year'] = $f['year'];
-        }
         if ($f['course_id'] !== null) {
             $clauses[]            = 'x.course_id = :course_id';
             $params[':course_id'] = $f['course_id'];
@@ -254,14 +257,38 @@ final class RankingService
     }
 
     /**
-     * Janela "all" sem filtros temporais → preserva aluno zero XP (LEFT JOIN
-     * sem HAVING). Caso contrário, exclui (consistente com spec).
+     * INNER JOIN com `enrollments` quando filtro `year` está setado, restringindo
+     * o ranking aos alunos matriculados em qualquer curso daquele ano. XP exibido
+     * permanece cumulativo (não filtrado por ano). EXISTS evita duplicar a linha
+     * do aluno quando ele tem 2+ matrículas no mesmo ano.
+     *
+     * @param array{year:?int} $f
+     * @return array{0:string, 1:array<string,int>}
+     */
+    private static function enrollmentYearClause(array $f): array
+    {
+        if ($f['year'] === null) {
+            return ['', []];
+        }
+        $sql = ' AND EXISTS (
+                    SELECT 1 FROM enrollments enr
+                     WHERE enr.student_user_id = u.id
+                       AND YEAR(enr.enrolled_at) = :year
+                ) ';
+        return [$sql, [':year' => $f['year']]];
+    }
+
+    /**
+     * Janela "all" sem filtros temporais/curso → preserva aluno zero XP
+     * (LEFT JOIN sem HAVING). Caso contrário, exclui (consistente com spec).
+     * Filtro de `year` (matrícula) não exige HAVING — alunos matriculados em
+     * `:year` mas sem XP ainda devem aparecer com 0.
      *
      * @param array{group_id:?int, year:?int, course_id:?int} $f
      */
     private static function havingClause(string $window, array $f): string
     {
-        return $window !== 'all' || $f['year'] !== null || $f['course_id'] !== null
+        return $window !== 'all' || $f['course_id'] !== null
             ? 'HAVING COALESCE(SUM(x.value), 0) > 0'
             : '';
     }
@@ -269,11 +296,15 @@ final class RankingService
     /**
      * @param array{group_id:?int, year:?int, course_id:?int} $f
      * @param array<string,int>                                $xpParams
+     * @param array<string,int>                                $enrollParams
      */
-    private static function bindFilters(PDOStatement $stmt, array $f, array $xpParams): void
+    private static function bindFilters(PDOStatement $stmt, array $f, array $xpParams, array $enrollParams = []): void
     {
         if ($f['group_id'] !== null) {
             $stmt->bindValue(':group_id', $f['group_id'], PDO::PARAM_INT);
+        }
+        foreach ($enrollParams as $k => $v) {
+            $stmt->bindValue($k, $v, PDO::PARAM_INT);
         }
         foreach ($xpParams as $k => $v) {
             $stmt->bindValue($k, $v, PDO::PARAM_INT);
