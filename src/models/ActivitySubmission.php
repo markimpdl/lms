@@ -27,6 +27,7 @@ final class ActivitySubmission
         $stmt = Database::pdo()->prepare(
             'SELECT a.id, a.title, a.instruction, a.type, a.xp_value,
                     a.submission_open, a.allow_online_code_run, a.code_language,
+                    a.pdf_path,
                     cu.id AS cu_id, cu.name AS cu_name,
                     c.id  AS course_id, c.name AS course_name, c.archived AS course_archived
                FROM activities a

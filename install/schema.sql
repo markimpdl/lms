@@ -205,6 +205,7 @@ CREATE TABLE IF NOT EXISTS activities (
     instruction           MEDIUMTEXT NOT NULL,
     type                  ENUM('projeto','codigo','quiz') NOT NULL,
     code_language         ENUM('python','csharp','javascript','html') NULL,
+    pdf_path              VARCHAR(500) NULL,
     xp_value              INT UNSIGNED NOT NULL DEFAULT 0,
     submission_open       TINYINT(1) NOT NULL DEFAULT 1,
     allow_online_code_run TINYINT(1) NOT NULL DEFAULT 0,
@@ -1322,6 +1323,22 @@ SET @col_exists := (
 );
 SET @sql := IF(@col_exists = 0,
     "ALTER TABLE users ADD COLUMN theme ENUM('light','dark') NOT NULL DEFAULT 'light' AFTER language",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [v0.30.0] activities.pdf_path — PDF/ZIP de brief da atividade tipo
+-- 'projeto' (semelhante a evaluations.pdf_path). NULL pra atividades sem
+-- brief OU outros tipos. UI gateia; defesa server-side em handlers.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'activities'
+       AND COLUMN_NAME  = 'pdf_path'
+);
+SET @sql := IF(@col_exists = 0,
+    'ALTER TABLE activities ADD COLUMN pdf_path VARCHAR(500) NULL DEFAULT NULL AFTER code_language',
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;

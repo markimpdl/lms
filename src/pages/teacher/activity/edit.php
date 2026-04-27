@@ -80,6 +80,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $old['code_language'] = null;
     }
 
+    // Brief PDF/ZIP — só pra type=projeto (v0.30.0).
+    // pdfPathArg semântica do Activity::update: null=manter, ''=remover, string=novo
+    $pdfPathArg = null;
+    $fileField  = $_FILES['pdf'] ?? null;
+    $hasUpload  = is_array($fileField) && (int) ($fileField['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+    $wantRemove = isset($_POST['pdf_remove']);
+
+    if ($errors === [] && $old['type'] === 'projeto') {
+        if ($hasUpload) {
+            $upload = ActivityBriefStorage::store($fileField, $activityId, $tenantId);
+            if ($upload['status'] !== 'ok') {
+                $errors['pdf'] = $upload['error_key'] ?? 'activities.err.brief_generic';
+            } else {
+                $pdfPathArg = $upload['stored_path'];
+            }
+        } elseif ($wantRemove && $activity['pdf_path'] !== null) {
+            $pdfPathArg = ''; // sentinel "remover" pro Activity::update
+        }
+    } elseif ($errors === [] && $old['type'] !== 'projeto' && $activity['pdf_path'] !== null) {
+        // Trocou tipo de projeto pra outro: zera pdf_path automaticamente.
+        $pdfPathArg = '';
+    }
+
     if ($errors === []) {
         $clean = ContentSanitizer::purify($old['instruction']);
         $result = Activity::update($activityId, $tenantId, [
@@ -87,12 +110,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'instruction'           => $clean,
             'type'                  => $old['type'],
             'code_language'         => $old['code_language'],
+            'pdf_path'              => $pdfPathArg,
             'xp_value'              => $old['xp_value'],
             'submission_open'       => $old['submission_open'],
             'allow_online_code_run' => $old['allow_online_code_run'],
         ]);
 
         if ($result === 'ok') {
+            // Se apagou pdf_path do banco, apaga o arquivo do disco (best-effort).
+            if ($pdfPathArg === '' && $activity['pdf_path'] !== null) {
+                ActivityBriefStorage::delete($activityId, $tenantId);
+            }
             flash('success', __t('activities.updated', ['name' => $old['title']]));
             header('Location: /teacher/cu/' . $cuId, true, 303);
             return;
@@ -108,10 +136,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$mode         = 'edit';
-$formAction   = '/teacher/activity/' . $activityId . '/edit';
-$submissions  = Activity::countSubmissions($activityId);
-$activityName = (string) $activity['title'];
+$mode           = 'edit';
+$formAction     = '/teacher/activity/' . $activityId . '/edit';
+$submissions    = Activity::countSubmissions($activityId);
+$activityName   = (string) $activity['title'];
+$currentPdfPath = $activity['pdf_path'] !== null ? (string) $activity['pdf_path'] : null;
+$maxMb          = (int) ((ActivityBriefStorage::maxBytes()) / (1024 * 1024));
 
 // E6-05: contagens e counts formatados pra o modal de exclusão.
 $deleteCounts = Activity::countForDelete($activityId);
