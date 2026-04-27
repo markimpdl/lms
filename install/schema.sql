@@ -262,8 +262,11 @@ CREATE TABLE IF NOT EXISTS evaluations (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 12. evaluation_submissions — múltiplas tentativas (attempt). idx_es_eval_current
--- acelera listagem do professor (E7-04: WHERE evaluation_id = ? AND is_current = 1).
+-- 12. evaluation_submissions — desde v0.29.0 sem histórico de tentativas
+-- reprovadas (DELETE em vez de soft-delete). UK garante 1 linha por (eval,
+-- student) — `attempt` continua incrementando como contador histórico.
+-- Coluna `is_current` removida em v0.30.0 (sempre = 1, virou dead weight);
+-- índice `idx_es_eval_current` também removido. Acesso pela UK ou idx_es_student.
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS evaluation_submissions (
     id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -279,14 +282,12 @@ CREATE TABLE IF NOT EXISTS evaluation_submissions (
     feedback        TEXT NULL,
     feedback_at     DATETIME NULL DEFAULT NULL,
     retry_allowed   TINYINT(1) NOT NULL DEFAULT 0,
-    is_current      TINYINT(1) NOT NULL DEFAULT 1,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_es_eval_student_attempt (evaluation_id, student_user_id, attempt),
     KEY idx_es_student (student_user_id),
     KEY idx_es_tenant (tenant_id),
-    KEY idx_es_eval_current (evaluation_id, is_current),
     CONSTRAINT fk_es_tenant     FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
     CONSTRAINT fk_es_evaluation FOREIGN KEY (evaluation_id) REFERENCES evaluations(id) ON DELETE CASCADE,
     CONSTRAINT fk_es_student    FOREIGN KEY (student_user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -903,17 +904,33 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- [E7-00] idx_es_eval_current — acelera listagem do professor (E7-04)
--- filtrando por (evaluation_id, is_current = 1). Composto cobre o caminho
--- quente sem depender do PRIMARY ou de uk_es_eval_student_attempt.
+-- [v0.30.0] DROP idx_es_eval_current — coluna is_current vai sair (sempre = 1
+-- desde v0.29.0). Em ambientes onde o índice já existe, dropar primeiro
+-- (caso contrário o DROP COLUMN abaixo falha por dependência).
 SET @idx_exists := (
     SELECT COUNT(*) FROM information_schema.STATISTICS
      WHERE TABLE_SCHEMA = DATABASE()
        AND TABLE_NAME   = 'evaluation_submissions'
        AND INDEX_NAME   = 'idx_es_eval_current'
 );
-SET @sql := IF(@idx_exists = 0,
-    'ALTER TABLE evaluation_submissions ADD KEY idx_es_eval_current (evaluation_id, is_current)',
+SET @sql := IF(@idx_exists > 0,
+    'ALTER TABLE evaluation_submissions DROP INDEX idx_es_eval_current',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [v0.30.0] DROP COLUMN is_current — virou dead weight quando feat de
+-- "sem histórico de tentativas" garantiu 1 linha por (eval, student).
+-- Idempotente: só dropa se a coluna ainda existe.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'evaluation_submissions'
+       AND COLUMN_NAME  = 'is_current'
+);
+SET @sql := IF(@col_exists > 0,
+    'ALTER TABLE evaluation_submissions DROP COLUMN is_current',
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;

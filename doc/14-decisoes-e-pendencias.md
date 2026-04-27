@@ -144,11 +144,15 @@
 **Supersede:** ADR-019 (rate limits numéricos). ADR-019 fica histórico para referência.
 **A revisar quando:** (a) o plano pago for assinado; (b) a indisponibilidade por cota se tornar frequente a ponto de atrapalhar aulas; (c) o cadastro público for habilitado e alunos desconhecidos entrarem na plataforma.
 
-### ADR-028 — PDF do enunciado de avaliação aceita até 10 MB
-**Decisão:** o upload do PDF do enunciado de uma avaliação tem teto de **10 MB** (não os 3 MB padrão dos demais uploads). Demais uploads (submissões do aluno, anexos de conteúdo, imagens inline) seguem em 3 MB.
-**Por quê:** enunciados de prova frequentemente incluem figuras, diagramas e tabelas de referência, estourando 3 MB com facilidade. Submissões do aluno e anexos gerais não têm essa necessidade.
-**Implicação:** `UPLOAD_MAX_MB_PDF_BRIEF = 10` em `config/env.php`; validação específica em `UploadService::store($scope='evaluation_brief', …)`.
-**A revisar quando:** surgirem casos reais de enunciados acima desse limite.
+### ADR-028 — Limites de upload por contexto (atualizado v0.30.0)
+**Decisão (v0.30.0):** três tetos distintos por contexto:
+- PDF de enunciado da avaliação: **12 MB** (`UPLOAD_MAX_MB_PDF_BRIEF` no env, default 12)
+- Anexos TinyMCE em conteúdo (`content_attachments`): **12 MB**
+- Entrega do aluno (atividade + avaliação): **10 MB**
+**Por quê:** PO solicitou em 2026-04-27 — enunciados/anexos do professor frequentemente excedem 3 MB (figuras, diagramas), e entregas do aluno também precisam de mais espaço (PDFs de relatório, projetos zipados).
+**Implicação:** constantes `MAX_BYTES` em `SubmissionStorage`, `EvaluationSubmissionStorage` (10MB), `AttachmentStorage` (12MB); env `UPLOAD_MAX_MB_PDF_BRIEF=12` em `EvaluationBriefStorage`. PO deve atualizar `config/env.php` em prod (de 10 → 12) via FileZilla — caso contrário PDF de enunciado fica em 10 MB.
+**Histórico:** v0.7.0 limites uniformes 3 MB; v0.7.0 PDF enunciado virou 10 MB (ADR-028 original); v0.30.0 expansão pra 12/10 MB.
+**A revisar quando:** surgirem casos reais ou se Hostinger reduzir `upload_max_filesize` no php.ini.
 
 ### ADR-027 — Aluno pode editar ou remover a própria entrega de atividade até o feedback
 **Decisão:** após enviar uma atividade, o aluno pode (a) substituir o arquivo enviado ou (b) remover completamente a submissão enquanto ela **ainda não tiver feedback** registrado. No momento em que o professor grava feedback pela primeira vez, a submissão fica imutável (mesmo que o feedback seja editado depois).

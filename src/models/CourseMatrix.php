@@ -8,7 +8,7 @@ declare(strict_types=1);
  *  1. Students matriculados no curso (active + inactive; cliente filtra)
  *  2. CUs do curso agrupadas por CC, com total de atividades e flag has_eval
  *  3. Contagem de entregas por (student_id, cu_id)
- *  4. Avaliação aprovada (grade ≥ 6, is_current) por (student_id, cu_id)
+ *  4. Avaliação aprovada (grade ≥ 6) por (student_id, cu_id)
  *  5. Grupos de cada aluno (pro filtro client-side)
  *
  * A fórmula de cu_status é a mesma do StudentProgress::cuStatus
@@ -125,7 +125,6 @@ final class CourseMatrix
                    JOIN competence_units cu ON cu.id = e.competence_unit_id
                    JOIN core_competencies cc ON cc.id = cu.core_competency_id
                   WHERE cc.course_id = ?
-                    AND es.is_current = 1
                     AND es.grade IS NOT NULL
                     AND es.grade >= 6.0'
             );

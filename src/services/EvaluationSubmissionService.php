@@ -12,7 +12,7 @@ declare(strict_types=1);
  *      de ultimas tentativas").
  *   3. Calcula próximo attempt (current.attempt + 1) — mantido como contador
  *      histórico ("aluno está na 2ª tentativa") mesmo sem o registro antigo.
- *   4. Insere nova linha is_current=1.
+ *   4. Insere nova linha (única por par eval/student desde v0.30.0).
  *
  * O arquivo no disco já foi salvo antes pelo handler via
  * `EvaluationSubmissionStorage::store($file, $evalId, $studentId, $attempt, $tenantId)`.
@@ -58,7 +58,7 @@ final class EvaluationSubmissionService
                 $stmt = $pdo->prepare(
                     'SELECT id, attempt, retry_allowed, stored_path, report_pdf_path
                        FROM evaluation_submissions
-                      WHERE evaluation_id = ? AND student_user_id = ? AND is_current = 1
+                      WHERE evaluation_id = ? AND student_user_id = ?
                       LIMIT 1'
                 );
                 $stmt->execute([$evaluationId, $studentId]);
@@ -97,8 +97,8 @@ final class EvaluationSubmissionService
                 $pdo->prepare(
                     'INSERT INTO evaluation_submissions
                         (tenant_id, evaluation_id, student_user_id, attempt,
-                         filename, stored_path, is_current)
-                     VALUES (?, ?, ?, ?, ?, ?, 1)'
+                         filename, stored_path)
+                     VALUES (?, ?, ?, ?, ?, ?)'
                 )->execute([
                     $tenantId,
                     $evaluationId,
@@ -127,8 +127,7 @@ final class EvaluationSubmissionService
     /**
      * Corrige uma submissão (E7-03). Roda em transação:
      *
-     *   1. Valida que a submissão pertence ao tenant e é `is_current=1`
-     *      (não deixa corrigir tentativa arquivada).
+     *   1. Valida que a submissão pertence ao tenant.
      *   2. Clamp: se `grade >= 6`, força `retry_allowed = 0` — a regra de
      *      negócio é "aprovado não reenvia", independente do que veio do
      *      form (ADR-002 + regra PO E7).
@@ -139,7 +138,6 @@ final class EvaluationSubmissionService
      *
      * Códigos de retorno:
      *   'not_found'  — submissão não existe ou não pertence ao tenant
-     *   'not_current' — submissão existe mas é histórica (is_current=0)
      *   'ok'         — gravado; retorna `retry_effective` (após clamp) e
      *                  `xp_awarded` (true quando o INSERT IGNORE gerou linha).
      *
@@ -249,7 +247,7 @@ final class EvaluationSubmissionService
         bool $retryAllowed
     ): array {
         $stmt = $pdo->prepare(
-            'SELECT s.id, s.evaluation_id, s.student_user_id, s.is_current
+            'SELECT s.id, s.evaluation_id, s.student_user_id
                FROM evaluation_submissions s
                JOIN evaluations e ON e.id = s.evaluation_id
               WHERE s.id = ? AND e.tenant_id = ?
@@ -259,9 +257,6 @@ final class EvaluationSubmissionService
         $sub = $stmt->fetch();
         if ($sub === false) {
             return ['status' => 'not_found'];
-        }
-        if ((int) $sub['is_current'] !== 1) {
-            return ['status' => 'not_current'];
         }
 
         $retryEffective = ($grade >= 6.0) ? 0 : ($retryAllowed ? 1 : 0);

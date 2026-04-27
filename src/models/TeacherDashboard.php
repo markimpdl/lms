@@ -53,7 +53,7 @@ final class TeacherDashboard
              (SELECT COUNT(*)
                 FROM evaluation_submissions s
                 JOIN evaluations e         ON e.id  = s.evaluation_id AND e.tenant_id = ?
-               WHERE s.is_current = 1 AND s.feedback_at IS NULL)'
+               WHERE s.feedback_at IS NULL)'
         );
         $stmt->execute([$tenantId, $tenantId]);
         $counts = $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -102,8 +102,7 @@ final class TeacherDashboard
                      s.created_at, s.feedback_at
                 FROM evaluation_submissions s
                 JOIN evaluations e         ON e.id  = s.evaluation_id AND e.tenant_id = ?
-                JOIN users u               ON u.id  = s.student_user_id
-               WHERE s.is_current = 1)
+                JOIN users u               ON u.id  = s.student_user_id)
              ORDER BY created_at DESC
              LIMIT ' . $limit
         );

@@ -4,13 +4,14 @@ declare(strict_types=1);
 /**
  * Model de submissão de avaliação (E7-02).
  *
- * 1 linha por (evaluation_id, student_id) — desde 2026-04-27 não guardamos
+ * 1 linha por (evaluation_id, student_id) — desde v0.29.0 não guardamos
  * histórico de tentativas reprovadas (PO: economia de espaço; só a última
  * importa). O `submit()` no service faz DELETE da tentativa antiga + apaga
  * arquivos físicos antes de inserir a nova. Coluna `attempt` segue
  * incrementando como contador histórico ("aluno está na 2ª tentativa") mesmo
- * sem o registro antigo. Coluna `is_current` ficou sempre = 1 (deprecated,
- * mantida pra compat com queries existentes; remover em futura migration).
+ * sem o registro antigo. Coluna `is_current` removida em v0.30.0 (era sempre
+ * = 1, virou dead weight). Queries que filtravam `AND is_current = 1` foram
+ * limpas — a UK garante a unicidade.
  *
  * Toda query do aluno valida matrícula ativa via JOIN em `enrollments`.
  */
@@ -50,9 +51,9 @@ final class EvaluationSubmission
 
         $stmt = Database::pdo()->prepare(
             'SELECT id, attempt, filename, stored_path, quiz_snapshot, grade, feedback,
-                    feedback_at, retry_allowed, is_current, created_at
+                    feedback_at, retry_allowed, created_at
                FROM evaluation_submissions
-              WHERE evaluation_id = ? AND student_user_id = ? AND is_current = 1
+              WHERE evaluation_id = ? AND student_user_id = ?
               LIMIT 1'
         );
         $stmt->execute([$evaluationId, $studentId]);
@@ -70,7 +71,7 @@ final class EvaluationSubmission
      * professor E que o aluno tem matrícula ativa. Retorna null quando algum
      * dos dois falha.
      *
-     * Desde 2026-04-27 sem histórico de tentativas (`history` removido —
+     * Desde v0.29.0 sem histórico de tentativas (`history` removido —
      * só existe 1 linha por (eval, student) no banco). Templates devem ler
      * apenas `current`.
      *
@@ -117,7 +118,7 @@ final class EvaluationSubmission
             'SELECT id, attempt, filename, stored_path, quiz_snapshot, report_pdf_path,
                     grade, feedback, feedback_at, retry_allowed, created_at
                FROM evaluation_submissions
-              WHERE evaluation_id = ? AND student_user_id = ? AND is_current = 1
+              WHERE evaluation_id = ? AND student_user_id = ?
               LIMIT 1'
         );
         $stmt->execute([$evaluationId, $studentId]);
@@ -132,10 +133,14 @@ final class EvaluationSubmission
 
     /**
      * Listagem pro professor (E7-04): todos os alunos matriculados no curso
-     * da CU + LEFT JOIN com a tentativa corrente (is_current=1). Alunos sem
-     * submissão aparecem com `attempt/filename/grade/...` NULL.
+     * da CU + LEFT JOIN com a única tentativa que existe por (eval, student)
+     * desde v0.29.0. Alunos sem submissão aparecem com `attempt/filename/...` NULL.
      *
      * Valida tenant via JOIN em courses. Ordena por nome do aluno (asc).
+     *
+     * `attempts_count` continua refletindo o `attempt` atual (1 quando aluno
+     * só tentou uma vez, 2+ quando reenviou — o contador é incrementado mesmo
+     * sem o registro antigo).
      *
      * @return list<array<string,mixed>>
      */
@@ -145,9 +150,7 @@ final class EvaluationSubmission
             'SELECT u.id AS student_id, u.name AS student_name, u.email AS student_email,
                     s.id AS submission_id, s.attempt, s.filename, s.grade,
                     s.feedback_at, s.retry_allowed, s.created_at AS submitted_at,
-                    (SELECT COUNT(*) FROM evaluation_submissions s2
-                      WHERE s2.evaluation_id = e.id
-                        AND s2.student_user_id = u.id) AS attempts_count
+                    COALESCE(s.attempt, 0) AS attempts_count
                FROM evaluations e
                JOIN competence_units cu   ON cu.id = e.competence_unit_id
                JOIN core_competencies cc  ON cc.id = cu.core_competency_id
@@ -159,7 +162,6 @@ final class EvaluationSubmission
                LEFT JOIN evaluation_submissions s
                       ON s.evaluation_id = e.id
                      AND s.student_user_id = u.id
-                     AND s.is_current = 1
               WHERE e.id = ?
               ORDER BY u.name ASC, u.id ASC'
         );
@@ -168,16 +170,14 @@ final class EvaluationSubmission
     }
 
     /**
-     * Conta submissões correntes (is_current=1) da avaliação ainda sem
-     * feedback. Usado no CTA do edit.php pra indicar quantas correções
-     * estão pendentes. Não conta tentativas arquivadas.
+     * Conta submissões da avaliação ainda sem feedback. Usado no CTA do
+     * edit.php pra indicar quantas correções estão pendentes.
      */
     public static function countPendingForEvaluation(int $evaluationId): int
     {
         $stmt = Database::pdo()->prepare(
             'SELECT COUNT(*) FROM evaluation_submissions
               WHERE evaluation_id = ?
-                AND is_current = 1
                 AND feedback_at IS NULL'
         );
         $stmt->execute([$evaluationId]);

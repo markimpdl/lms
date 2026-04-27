@@ -11,7 +11,7 @@ declare(strict_types=1);
  *   $tenantId     int
  *   $evaluationId int
  *   $evaluation   array — fetched via EvaluationSubmission::findForStudentEvaluation
- *   $current      array|null — submission corrente do aluno (is_current=1) ou null
+ *   $current      array|null — submission corrente do aluno ou null
  *
  * Fluxo:
  *  - Se aluno já submeteu: renderiza snapshot read-only + nota + status.
@@ -79,9 +79,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$readOnly) {
                 $evaluationId, $studentId, $tenantId, $snapshot, $grade, $nextAttempt
             ): void {
                 $pdo = Database::pdo();
-                // Marca submissões anteriores como não-current.
+                // Hard-delete de submissão anterior (v0.29.0+: sem histórico
+                // de tentativas). Quiz não tem arquivo físico (snapshot é JSON
+                // inline), então não precisa de safe_unlink_storage. Cascade
+                // limpa lo_grades automaticamente.
                 $pdo->prepare(
-                    'UPDATE evaluation_submissions SET is_current = 0
+                    'DELETE FROM evaluation_submissions
                       WHERE evaluation_id = ? AND student_user_id = ?'
                 )->execute([$evaluationId, $studentId]);
 
@@ -89,8 +92,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$readOnly) {
                     'INSERT INTO evaluation_submissions
                         (tenant_id, evaluation_id, student_user_id, attempt,
                          filename, stored_path, quiz_snapshot, grade,
-                         feedback, feedback_at, retry_allowed, is_current)
-                     VALUES (?, ?, ?, ?, NULL, NULL, ?, ?, NULL, NOW(), 0, 1)'
+                         feedback, feedback_at, retry_allowed)
+                     VALUES (?, ?, ?, ?, NULL, NULL, ?, ?, NULL, NOW(), 0)'
                 )->execute([
                     $tenantId,
                     $evaluationId,

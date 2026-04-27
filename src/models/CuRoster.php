@@ -91,7 +91,7 @@ final class CuRoster
             $stmt = $pdo->prepare(
                 'SELECT student_user_id, grade, feedback_at, retry_allowed
                    FROM evaluation_submissions
-                  WHERE evaluation_id = ? AND is_current = 1'
+                  WHERE evaluation_id = ?'
             );
             $stmt->execute([$evalId]);
             foreach ($stmt->fetchAll() as $row) {

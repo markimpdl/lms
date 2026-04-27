@@ -240,16 +240,17 @@ final class AchievementsService
     }
 
     /**
-     * Conta apenas submissions correntes (`is_current = 1`) — o aluno pode
-     * ter múltiplas tentativas mas conceitualmente é "1 avaliação enviada".
-     * `evaluation_submissions.tenant_id` existe (E7-00); usado como defesa
-     * em profundidade.
+     * Conta avaliações enviadas pelo aluno. Desde v0.29.0 a UK
+     * (evaluation_id, student_user_id, attempt) garante 1 linha por avaliação
+     * por aluno (sem mais histórico de tentativas reprovadas) — então
+     * COUNT(*) reflete diretamente "quantas avaliações distintas o aluno
+     * enviou".
      */
     private static function countEvaluationSubmissions(int $studentId): int
     {
         $stmt = Database::pdo()->prepare(
             'SELECT COUNT(*) FROM evaluation_submissions
-              WHERE student_user_id = ? AND is_current = 1'
+              WHERE student_user_id = ?'
         );
         $stmt->execute([$studentId]);
         return (int) $stmt->fetchColumn();
@@ -624,7 +625,6 @@ final class AchievementsService
                   JOIN evaluations ev       ON ev.competence_unit_id = cu.id
                   JOIN evaluation_submissions es ON es.evaluation_id = ev.id
                                                 AND es.student_user_id = ?
-                                                AND es.is_current = 1
                                                 AND es.grade IS NOT NULL
                                                 AND es.grade >= 10.0
                  WHERE c.tenant_id = ?
@@ -730,7 +730,6 @@ final class AchievementsService
                 SELECT 1 FROM evaluations ev
                   JOIN evaluation_submissions es ON es.evaluation_id = ev.id
                                                 AND es.student_user_id = ?
-                                                AND es.is_current = 1
                                                 AND es.grade IS NOT NULL
                                                 AND es.grade >= 10.0
                  WHERE ev.competence_unit_id = ?
