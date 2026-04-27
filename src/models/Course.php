@@ -292,9 +292,10 @@ final class Course
         // Coleta paths físicos a serem limpos depois do DELETE. 5 fontes:
         //  1. content_attachments (anexos TinyMCE em conteúdos)
         //  2. activity_submissions (entregas de atividades)
-        //  3. evaluations.pdf_path (PDF de enunciado da avaliação)
-        //  4. evaluation_submissions (entregas de avaliação)
-        //  5. evaluation_submissions.report_pdf_path (PDFs Skills Hub gerados)
+        //  3. activities.pdf_path (brief PDF de atividade tipo projeto — v0.30.0)
+        //  4. evaluations.pdf_path (PDF de enunciado da avaliação)
+        //  5. evaluation_submissions (entregas de avaliação)
+        //  6. evaluation_submissions.report_pdf_path (PDFs Skills Hub gerados)
         // Todas resolvem `course_id` via JOIN com a hierarquia cu → cc → course.
         $pdo = Database::pdo();
         $stmt = $pdo->prepare(
@@ -311,6 +312,12 @@ final class Course
                INNER JOIN competence_units cu  ON cu.id = a.competence_unit_id
                INNER JOIN core_competencies cc ON cc.id = cu.core_competency_id
               WHERE cc.course_id = ? AND s.stored_path IS NOT NULL
+              UNION ALL
+             SELECT a.pdf_path
+               FROM activities a
+               INNER JOIN competence_units cu  ON cu.id = a.competence_unit_id
+               INNER JOIN core_competencies cc ON cc.id = cu.core_competency_id
+              WHERE cc.course_id = ? AND a.pdf_path IS NOT NULL
               UNION ALL
              SELECT e.pdf_path
                FROM evaluations e
@@ -332,7 +339,7 @@ final class Course
                INNER JOIN core_competencies cc ON cc.id = cu.core_competency_id
               WHERE cc.course_id = ? AND es.report_pdf_path IS NOT NULL'
         );
-        $stmt->execute([$courseId, $courseId, $courseId, $courseId, $courseId]);
+        $stmt->execute([$courseId, $courseId, $courseId, $courseId, $courseId, $courseId]);
         /** @var list<string> $paths */
         $paths = $stmt->fetchAll(PDO::FETCH_COLUMN);
 

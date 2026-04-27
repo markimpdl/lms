@@ -56,20 +56,20 @@ if ($result['status'] === 'not_found') {
     return;
 }
 
-// Apaga arquivos físicos das submissões — seguro após commit do DB.
-$realBase = realpath(LMS_ROOT . '/storage/uploads');
+// Apaga arquivos físicos (submissions + brief PDF v0.30.0) — seguro após
+// commit do DB. Helper safe_unlink_storage tem defesa traversal.
 foreach ($result['stored_paths'] ?? [] as $rel) {
-    $full = LMS_ROOT . '/' . $rel;
-    $real = @realpath($full);
-    if ($realBase !== false && $real !== false && str_starts_with($real, $realBase)) {
-        @unlink($real);
-    }
+    safe_unlink_storage((string) $rel);
 }
 
-// Tenta rmdir do diretório da atividade (se vazio). Silencioso se falhar.
-$activityDir = LMS_ROOT . '/storage/uploads/tenant_' . $tenantId . '/submissions/' . $activityId;
-if (is_dir($activityDir)) {
-    @rmdir($activityDir);
+// Tenta rmdir dos diretórios da atividade (submissions + brief). Silencioso.
+$submissionsDir = LMS_ROOT . '/storage/uploads/tenant_' . $tenantId . '/submissions/' . $activityId;
+if (is_dir($submissionsDir)) {
+    @rmdir($submissionsDir);
+}
+$briefDir = LMS_ROOT . '/storage/uploads/tenant_' . $tenantId . '/activities/' . $activityId;
+if (is_dir($briefDir)) {
+    @rmdir($briefDir);
 }
 
 flash('success', __t('activities.deleted', ['name' => (string) $activity['title']]));

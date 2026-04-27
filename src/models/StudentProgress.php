@@ -10,8 +10,8 @@ declare(strict_types=1);
  * Fórmula da CU (doc/10):
  *   percent = (entregues + avaliacao_aprovada) / (N_atividades + tem_avaliacao) × 100
  *
- * "Avaliação aprovada" = existe submissão corrente (is_current=1) com
- * `grade >= 6` (nota que aprova a CU — E7-03). `tem_avaliacao` = existe
+ * "Avaliação aprovada" = existe submissão (única por par eval/student desde
+ * v0.29.0) com `grade >= 6` (nota que aprova a CU — E7-03). `tem_avaliacao` = existe
  * linha em `evaluations` para a CU (ADR-007 garante no máximo 1).
  *
  * Uma CU sem atividades e sem avaliação retorna 0% e **conta na média
@@ -42,7 +42,6 @@ final class StudentProgress
                    JOIN evaluations e ON e.id = es.evaluation_id
                   WHERE e.competence_unit_id = ?
                     AND es.student_user_id = ?
-                    AND es.is_current = 1
                     AND es.grade IS NOT NULL
                     AND es.grade >= 6.0) AS evaluation_approved'
         );

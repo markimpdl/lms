@@ -173,7 +173,8 @@ final class Evaluation
     }
 
     /**
-     * Conta submissões (todas as tentativas, não só is_current).
+     * Conta submissões da avaliação. Desde v0.29.0 é sempre 1 por par
+     * (eval, student) — usado pra gatear "tem alguém pra corrigir".
      */
     public static function countSubmissions(int $evaluationId): int
     {

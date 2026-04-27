@@ -41,7 +41,8 @@ return [
     'JUDGE0_KEY'    => 'your-rapidapi-key',
 
     // --- Uploads -------------------------------------------------------
-    // Teto em MB do PDF de enunciado da avaliação (ADR-028). Demais uploads
-    // permanecem com teto fixo de 3 MB no storage service correspondente.
-    'UPLOAD_MAX_MB_PDF_BRIEF' => 10,
+    // Teto em MB do PDF de enunciado da avaliação (ADR-028). Limites dos
+    // demais uploads em src/services/*Storage.php (todos hardcoded em
+    // bytes — entrega aluno 10MB, anexo TinyMCE 12MB).
+    'UPLOAD_MAX_MB_PDF_BRIEF' => 12,
 ];

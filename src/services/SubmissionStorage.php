@@ -18,7 +18,7 @@ declare(strict_types=1);
  */
 final class SubmissionStorage
 {
-    public const MAX_BYTES = 3 * 1024 * 1024; // 3 MB
+    public const MAX_BYTES = 10 * 1024 * 1024; // 10 MB (v0.30.0)
 
     private const ALLOWED_DEFAULT = [
         'application/pdf' => 'pdf',

@@ -27,7 +27,8 @@ final class Activity
     {
         $stmt = Database::pdo()->prepare(
             'SELECT a.id, a.competence_unit_id, a.title, a.instruction,
-                    a.type, a.code_language, a.xp_value, a.submission_open,
+                    a.type, a.code_language, a.pdf_path,
+                    a.xp_value, a.submission_open,
                     a.allow_online_code_run, a.position,
                     a.created_at, a.updated_at,
                     cc.id AS cc_id, c.id AS course_id, c.archived AS course_archived
@@ -48,7 +49,12 @@ final class Activity
      * tenant e que o curso não está arquivado. Retorna id novo, ou 'not_found'
      * / 'course_archived'.
      *
-     * @param array{title:string, instruction:string, type:string, code_language?:?string, xp_value:int, submission_open:bool, allow_online_code_run:bool} $data
+     * `pdf_path` é null no INSERT — o handler chama `store()` no service de
+     * brief depois (precisa do `id` no path) e atualiza via UPDATE separado.
+     * Mesmo padrão de `Evaluation::create`. Brief só faz sentido pra
+     * type='projeto' (gateado no form).
+     *
+     * @param array{title:string, instruction:string, type:string, code_language?:?string, pdf_path?:?string, xp_value:int, submission_open:bool, allow_online_code_run:bool} $data
      * @return int|string
      */
     public static function create(int $cuId, int $tenantId, array $data): int|string
@@ -88,11 +94,18 @@ final class Activity
                 }
             }
 
+            // pdf_path só pra type='projeto'; gravado pelo handler via UPDATE
+            // após store() pra ter o id no path. INSERT inicial sempre NULL.
+            $pdfPath = null;
+            if (($data['type'] ?? '') === 'projeto') {
+                $pdfPath = $data['pdf_path'] ?? null;
+            }
+
             $ins = $pdo->prepare(
                 'INSERT INTO activities
                     (competence_unit_id, title, instruction, type, code_language,
-                     xp_value, submission_open, allow_online_code_run, position)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                     pdf_path, xp_value, submission_open, allow_online_code_run, position)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
             $ins->execute([
                 $cuId,
@@ -100,6 +113,7 @@ final class Activity
                 $data['instruction'],
                 $data['type'],
                 $lang,
+                $pdfPath,
                 $data['xp_value'],
                 $data['submission_open'] ? 1 : 0,
                 $data['allow_online_code_run'] ? 1 : 0,
@@ -113,7 +127,12 @@ final class Activity
      * Atualiza campos editáveis. Retorna 'ok', 'not_found' ou 'course_archived'.
      * Curso arquivado bloqueia edição.
      *
-     * @param array{title:string, instruction:string, type:string, code_language?:?string, xp_value:int, submission_open:bool, allow_online_code_run:bool} $data
+     * `pdf_path` semântica (igual a `Evaluation::update`):
+     *   - `null`     → mantém o valor atual (sem upload novo nem remoção)
+     *   - string     → grava o novo path (caller já fez `store()`)
+     *   - `''`       → zera pdf_path (caller pediu remover; deletar arquivo é responsabilidade do handler via `ActivityBriefStorage::delete`)
+     *
+     * @param array{title:string, instruction:string, type:string, code_language?:?string, pdf_path?:?string, xp_value:int, submission_open:bool, allow_online_code_run:bool} $data
      */
     public static function update(int $id, int $tenantId, array $data): string
     {
@@ -133,21 +152,45 @@ final class Activity
             }
         }
 
-        Database::pdo()->prepare(
-            'UPDATE activities
-                SET title = ?, instruction = ?, type = ?, code_language = ?,
-                    xp_value = ?, submission_open = ?, allow_online_code_run = ?
-              WHERE id = ?'
-        )->execute([
-            $data['title'],
-            $data['instruction'],
-            $data['type'],
-            $lang,
-            $data['xp_value'],
-            $data['submission_open'] ? 1 : 0,
-            $data['allow_online_code_run'] ? 1 : 0,
-            $id,
-        ]);
+        $pdfRaw    = $data['pdf_path'] ?? null;
+        $touchPdf  = $pdfRaw !== null;
+        $newPdf    = ($pdfRaw === '' || $data['type'] !== 'projeto') ? null : $pdfRaw;
+
+        if ($touchPdf) {
+            Database::pdo()->prepare(
+                'UPDATE activities
+                    SET title = ?, instruction = ?, type = ?, code_language = ?,
+                        pdf_path = ?,
+                        xp_value = ?, submission_open = ?, allow_online_code_run = ?
+                  WHERE id = ?'
+            )->execute([
+                $data['title'],
+                $data['instruction'],
+                $data['type'],
+                $lang,
+                $newPdf,
+                $data['xp_value'],
+                $data['submission_open'] ? 1 : 0,
+                $data['allow_online_code_run'] ? 1 : 0,
+                $id,
+            ]);
+        } else {
+            Database::pdo()->prepare(
+                'UPDATE activities
+                    SET title = ?, instruction = ?, type = ?, code_language = ?,
+                        xp_value = ?, submission_open = ?, allow_online_code_run = ?
+                  WHERE id = ?'
+            )->execute([
+                $data['title'],
+                $data['instruction'],
+                $data['type'],
+                $lang,
+                $data['xp_value'],
+                $data['submission_open'] ? 1 : 0,
+                $data['allow_online_code_run'] ? 1 : 0,
+                $id,
+            ]);
+        }
         return 'ok';
     }
 
@@ -207,11 +250,15 @@ final class Activity
         }
 
         return Database::tx(static function (PDO $pdo) use ($id): array {
+            // Submissões + brief PDF (v0.30.0) — UNION ALL pra um SELECT só.
             $stmt = $pdo->prepare(
                 'SELECT stored_path FROM activity_submissions
-                  WHERE activity_id = ? AND stored_path IS NOT NULL'
+                  WHERE activity_id = ? AND stored_path IS NOT NULL
+                  UNION ALL
+                 SELECT pdf_path FROM activities
+                  WHERE id = ? AND pdf_path IS NOT NULL'
             );
-            $stmt->execute([$id]);
+            $stmt->execute([$id, $id]);
             $paths = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
             $pdo->prepare(

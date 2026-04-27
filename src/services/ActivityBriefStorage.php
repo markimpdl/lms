@@ -2,28 +2,22 @@
 declare(strict_types=1);
 
 /**
- * Armazenamento do enunciado da avaliação tipo `projeto` (E7-01 + E23-01).
+ * Armazenamento do brief (PDF/ZIP) da atividade tipo `projeto` (v0.30.0).
+ *
+ * Clone do `EvaluationBriefStorage` aplicado a atividades — mesma decisão
+ * de design (1 arquivo por atividade, deterministic name, PDF+ZIP, teto via
+ * `UPLOAD_MAX_MB_PDF_BRIEF`). Reupload alterna PDF↔ZIP apagando o anterior.
  *
  * Layout em disco:
- *   storage/uploads/tenant_<tid>/evaluations/<evaluation_id>/brief.<ext>
+ *   storage/uploads/tenant_<tid>/activities/<activity_id>/brief.<ext>
  *
- * Nome determinístico `brief.{pdf|zip}`: o reupload substitui a versão
- * anterior. Diferente de anexos de conteúdo (UUID — semântica N:1), aqui
- * cada avaliação tem no máximo 1 arquivo de enunciado.
- *
- * Tipos aceitos (E23-01): PDF e ZIP. Teto configurável via
- * UPLOAD_MAX_MB_PDF_BRIEF em config/env.php (default 12 MB desde v0.30.0).
- *
- * Re-upload alternando formato (PDF → ZIP ou vice-versa): apaga o
- * arquivo antigo de qualquer extensão antes de gravar o novo.
+ * Disponível só pra `activities.type = 'projeto'` — caller (form/handler)
+ * gateia. Aqui é só armazenamento.
  */
-final class EvaluationBriefStorage
+final class ActivityBriefStorage
 {
     private const DEFAULT_MAX_MB = 12;
 
-    /** Extensões aceitas e seus MIME types canônicos. ZIP tem 2 MIMEs comuns
-     *  conforme browser/cliente (`application/zip` é o RFC; alguns Windows
-     *  enviam `application/x-zip-compressed` ou `application/octet-stream`). */
     private const ALLOWED = [
         'pdf' => ['application/pdf'],
         'zip' => ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'],
@@ -38,23 +32,20 @@ final class EvaluationBriefStorage
         return $mb * 1024 * 1024;
     }
 
-    /**
-     * Detecta extensão do path armazenado pra Content-Type no download.
-     */
     public static function mimeFromStoredPath(string $storedPath): string
     {
         $ext = strtolower(pathinfo($storedPath, PATHINFO_EXTENSION));
         if ($ext === 'zip') {
             return 'application/zip';
         }
-        return 'application/pdf'; // default + legados
+        return 'application/pdf';
     }
 
     /**
      * @param array{name:string,tmp_name:string,size:int,error:int,type?:string} $file
      * @return array{status:string, filename?:string, stored_path?:string, error_key?:string}
      */
-    public static function store(array $file, int $evaluationId, int $tenantId): array
+    public static function store(array $file, int $activityId, int $tenantId): array
     {
         $err = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
         if ($err !== UPLOAD_ERR_OK) {
@@ -62,46 +53,43 @@ final class EvaluationBriefStorage
         }
         $size = (int) $file['size'];
         if ($size <= 0 || $size > self::maxBytes()) {
-            return ['status' => 'error', 'error_key' => 'evaluations.err.brief_size'];
+            return ['status' => 'error', 'error_key' => 'activities.err.brief_size'];
         }
         $tmp = (string) $file['tmp_name'];
         if (!is_uploaded_file($tmp)) {
-            return ['status' => 'error', 'error_key' => 'evaluations.err.brief_generic'];
+            return ['status' => 'error', 'error_key' => 'activities.err.brief_generic'];
         }
 
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mime  = (string) $finfo->file($tmp);
-
-        // Determina extensão baseada em MIME real + extensão do nome (fallback).
-        $ext = self::resolveExtension($mime, (string) $file['name']);
+        $ext   = self::resolveExtension($mime, (string) $file['name']);
         if ($ext === null) {
-            return ['status' => 'error', 'error_key' => 'evaluations.err.brief_mime'];
+            return ['status' => 'error', 'error_key' => 'activities.err.brief_mime'];
         }
 
-        $baseDir = LMS_ROOT . '/storage/uploads/tenant_' . $tenantId . '/evaluations/' . $evaluationId;
+        $baseDir = LMS_ROOT . '/storage/uploads/tenant_' . $tenantId . '/activities/' . $activityId;
         if (!is_dir($baseDir) && !@mkdir($baseDir, 0775, true)) {
-            return ['status' => 'error', 'error_key' => 'evaluations.err.brief_generic'];
+            return ['status' => 'error', 'error_key' => 'activities.err.brief_generic'];
         }
 
-        // Apaga briefs anteriores (qualquer extensão) — re-upload substitui.
         self::deleteAnyBrief($baseDir);
 
         $storedFilename = 'brief.' . $ext;
         $storedFull     = $baseDir . '/' . $storedFilename;
         if (!@move_uploaded_file($tmp, $storedFull)) {
-            return ['status' => 'error', 'error_key' => 'evaluations.err.brief_generic'];
+            return ['status' => 'error', 'error_key' => 'activities.err.brief_generic'];
         }
 
         return [
             'status'      => 'ok',
             'filename'    => self::sanitizeFilename((string) $file['name'], $ext),
-            'stored_path' => 'storage/uploads/tenant_' . $tenantId . '/evaluations/' . $evaluationId . '/' . $storedFilename,
+            'stored_path' => 'storage/uploads/tenant_' . $tenantId . '/activities/' . $activityId . '/' . $storedFilename,
         ];
     }
 
-    public static function delete(int $evaluationId, int $tenantId): void
+    public static function delete(int $activityId, int $tenantId): void
     {
-        $baseDir = LMS_ROOT . '/storage/uploads/tenant_' . $tenantId . '/evaluations/' . $evaluationId;
+        $baseDir = LMS_ROOT . '/storage/uploads/tenant_' . $tenantId . '/activities/' . $activityId;
         if (!is_dir($baseDir)) {
             return;
         }
@@ -109,10 +97,6 @@ final class EvaluationBriefStorage
         @rmdir($baseDir);
     }
 
-    /**
-     * Apaga `brief.pdf` e `brief.zip` se existirem. Defesa contra path
-     * traversal via realpath comparado ao storage root.
-     */
     private static function deleteAnyBrief(string $baseDir): void
     {
         $realBase = realpath(LMS_ROOT . '/storage/uploads');
@@ -128,21 +112,11 @@ final class EvaluationBriefStorage
         }
     }
 
-    /**
-     * Resolve extensão final usando MIME real (`finfo`) + extensão do nome
-     * como reforço. Retorna null se nenhum match — dispara erro de MIME.
-     *
-     * Cenário ZIP comum: `finfo` retorna `application/zip` em quase todos
-     * casos. Mas alguns Windows mandam `application/octet-stream` quando
-     * o arquivo é "puro" (sem assinatura). Nesse caso, fallback pra
-     * extensão do nome (.zip) confirma intent do usuário.
-     */
     private static function resolveExtension(string $mime, string $originalName): ?string
     {
         $nameExt = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
         foreach (self::ALLOWED as $ext => $mimes) {
             if (in_array($mime, $mimes, true)) {
-                // Quando MIME é octet-stream (genérico), exige bater com a extensão do nome.
                 if ($mime === 'application/octet-stream' && $nameExt !== $ext) {
                     continue;
                 }
@@ -160,7 +134,6 @@ final class EvaluationBriefStorage
         if ($name === '' || $name === '.' || $name === '..') {
             $name = 'arquivo.' . $ext;
         }
-        // Garante que o nome retornado tem a extensão correta (defensivo).
         if (strtolower(pathinfo($name, PATHINFO_EXTENSION)) !== $ext) {
             $name .= '.' . $ext;
         }
@@ -170,9 +143,9 @@ final class EvaluationBriefStorage
     private static function mapUploadError(int $code): string
     {
         return match ($code) {
-            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'evaluations.err.brief_size',
-            UPLOAD_ERR_NO_FILE                         => 'evaluations.err.brief_no_file',
-            default                                    => 'evaluations.err.brief_generic',
+            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'activities.err.brief_size',
+            UPLOAD_ERR_NO_FILE                         => 'activities.err.brief_no_file',
+            default                                    => 'activities.err.brief_generic',
         };
     }
 }

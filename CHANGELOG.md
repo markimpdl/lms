@@ -4,6 +4,56 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.30.0] — 2026-04-27
+
+Trigésima release. Janela densa de demandas pós-v0.29.0: 4 features novas (sem histórico de tentativas refinado, brief PDF em atividades, alertas pro aluno, limites de upload maiores) + 3 fixes críticos (incluindo um bug latente desde E19-03 que silenciosamente desativava o gate de progressão de avaliação). 2 mudanças de schema. PO precisa rodar 2 ALTERs em prod via phpMyAdmin (já feitos pelo PO durante a janela).
+
+### Novas funcionalidades
+
+- **Brief PDF/ZIP em atividade tipo projeto** (PR #409): atividades agora aceitam upload de arquivo brief (PDF ou ZIP) — paralelo ao que já existia em avaliação. Disponível só pra `type=projeto`. Novo `ActivityBriefStorage` (clone do `EvaluationBriefStorage`), coluna `activities.pdf_path` no schema, campo upload no form do professor (com nome do arquivo atual + checkbox "Remover" em edit), botão "Baixar arquivo" pro aluno em `/student/activity/{id}` quando `pdf_path !== null`. Endpoint de download `/student/activity/{id}/brief` com gate de matrícula. `Activity::delete` e `Course::delete` limpam o arquivo do disco junto com o registro. Limite: 12 MB (env `UPLOAD_MAX_MB_PDF_BRIEF`).
+- **Aviso pro aluno quando UC em LO mode sem 5 LOs cadastrados** (PR #408): resolve [E25-05] do doc/99. Quando o curso está em `grading_mode=learning_outcomes` mas o professor ainda não cadastrou os 5 LOs daquela CU, o aluno em `/student/evaluation/{id}` agora vê alert info amigável: *"Os critérios desta avaliação ainda estão sendo definidos pelo professor. Você pode enviar sua entrega normalmente — a nota será atribuída assim que os critérios forem publicados."* (PT/EN). Não bloqueia submit.
+- **Limites de upload aumentados** (PR #408): atendendo demanda do PO, três tetos distintos por contexto:
+  - PDF de enunciado (avaliação) — env `UPLOAD_MAX_MB_PDF_BRIEF`: 10 → **12 MB**
+  - Anexos TinyMCE em conteúdo: 3 → **12 MB**
+  - Entrega do aluno (atividade + avaliação): 3 → **10 MB**
+  i18n PT/EN atualizada (8 strings com "3 MB"). CLAUDE.md + ADR-028 reformulados com a nova spec.
+
+### Correções
+
+- **CRÍTICO: bug latente no gate de progressão da avaliação** (PR #post-deploy hotfix): notificação de avaliação abria a tela mesmo quando a CU estava bloqueada (curso `cc_mode=sequential` ou `eval_after_activities=1` com atividades pendentes). Causa raiz: `src/pages/student/evaluation/show.php` lia `$evaluation['competence_unit_id']`, mas a SELECT de `EvaluationSubmission::findForStudentEvaluation` usa `cu.id AS cu_id` (alias) — `competence_unit_id` nunca esteve no resultset. Cast `(int) null` virava 0 e:
+  - Gate `cc_mode=sequential`: `cu_status[0]` caía no default `'free'`
+  - Gate `eval_after_activities`: `WHERE competence_unit_id = 0` retornava 0 atividades, condição `$total > 0 && $submitted < $total` sempre false
+  Bug existia desde E19-03 (gate `eval_after_activities` **nunca funcionou de verdade** — só descoberto agora porque o PO clicou na notificação e validou contra o cenário esperado). Fix: 1 linha — usar `'cu_id'` em vez de `'competence_unit_id'`. Aproveitei pra clonar o gate `cc_mode=sequential` que já existia em `activity/show.php` mas faltava na avaliação (cobertura ampliada além do bug raiz). Diagnosticado em prod via script web temporário `_debug_eval_gate.php` que dumpava cada decisão do gate — script removido após uso.
+- **Tela do aluno em submissão de atividade/avaliação ocupa 100% do main** (commit direto): o conteúdo de `student/activity/show.php` e `student/evaluation/show.php` estava envolto em `<div class="row justify-content-center"><div class="col-12 col-lg-10">`, limitando a 83% em viewports `lg+` dentro do `.lms-student-main` (que já tem `width: 100%` e `max-width: 1280px` do grid). Trocado por `<div class="row"><div class="col-12">` — agora aproveita toda largura disponível. Quiz_handler mantém `col-lg-9` (telas de resultado, narrower faz sentido pra leitura).
+
+### Refactor / mudanças internas
+
+- **DROP coluna `evaluation_submissions.is_current`** (PR #408): era dead weight desde v0.29.0 (sempre = 1 — UK garante 1 linha por par eval/student após o feat de "sem histórico de tentativas reprovadas"). Removida do schema + 14 arquivos PHP limpos (modelos `EvaluationSubmission`, `CourseMatrix`, `CourseMetrics`, `CuRoster`, `StudentProgress`, `TeacherDashboard`, `Evaluation` + service `EvaluationSubmissionService` + `AchievementsService`). **Bug bonus encontrado e corrigido**: `quiz_handler.php` ainda fazia soft-delete via `UPDATE is_current=0 + INSERT is_current=1` (esqueci de converter na v0.29.0 — quiz reenvio acumulava histórico em silêncio). Agora hard-delete consistente. `EvaluationSubmissionService::applyGrade` perdeu o ramo `'not_current'` (impossível agora). i18n: 6 chaves removidas (`history`, `attempt_n`, `grade_label` histórico, `err.not_current`, etc).
+- **`Tenant::clearLogo`** novo, usado pra zerar `logo_path` quando tenant vira Actvet (cobre o caso de logo customizada órfã — já existia no v0.29.0; reforçado aqui). `Course::delete` agora cobre **6 fontes** de paths a limpar (incluiu `activities.pdf_path`).
+
+### Mudanças de schema
+
+- `evaluation_submissions.is_current` — **DROP COLUMN** + DROP INDEX `idx_es_eval_current` (ALTER condicional idempotente em `install/schema.sql`).
+- `activities.pdf_path VARCHAR(500) NULL` — ADD COLUMN (ALTER condicional).
+
+PO já rodou os 2 ALTERs em prod via phpMyAdmin durante a janela.
+
+### Mudanças internas / Tooling
+
+- **`package.json`** bumpado para 0.30.0.
+- **CLAUDE.md**: linha de uploads reformulada com os 3 tetos novos.
+- **`doc/14-decisoes-e-pendencias.md`**: ADR-028 reformulada (3 tetos + histórico).
+- **`doc/99-pendencias-tecnicas.md`**: 4 itens movidos pra "Resolvidas" (E25-05 LOs pendentes, E0-03 cosmético skill, Bootstrap Icons descartada, etc).
+
+### Convenções consolidadas nesta janela
+
+- **Aliases em SELECT são contrato — caller deve usar a key alias, não a coluna original**: `cu.id AS cu_id` no SELECT significa que o array de retorno tem `cu_id`, não `id` nem `competence_unit_id`. Bug do `cuId=0` ficou latente meses porque o caller assumiu silenciosamente o nome da coluna. Lição: na PR review de modelo + caller, conferir se os nomes batem 1-pra-1. Considerar adicionar `?? throw` ou afirmações pra tornar erros assim altos em vez de silenciosos (ex.: `(int) ($evaluation['cu_id'] ?? throw new RuntimeException(...))` — mas mata o trade-off de tolerância pra novos campos).
+- **Scripts web temporários de debug são caminho útil pra investigar bug em prod**: padrão estabelecido `public/_debug_*.php` (gate `require_auth` + dump em `text/plain`) — diagnostica em uma rodada o que demoraria muito via "deploy + smoke + supor". Apagar do servidor e do repo após uso.
+- **`safe_unlink_storage` deve ser usado em qualquer caminho que apaga arquivo do disco**: `Activity::delete` foi atualizado pra usar o helper centralizado em vez do `realpath + unlink` ad-hoc. Padrão consolidado.
+- **Bug latente em gate de segurança/progressão tem alta prioridade — mesmo se ninguém pegou ainda**. O gate `eval_after_activities` esteve quebrado meses sem ser percebido. Lições: (a) gates devem ter teste manual no fim do épico que os introduz, (b) na lista de smoke do épico, incluir cenário positivo E negativo (ativar gate, tentar bypass, conferir bloqueio).
+
+---
+
 ## [0.29.0] — 2026-04-27
 
 Vigésima nona release. Janela curta de polish/correções pós-roadmap, sem épico amarrado: 5 demandas do PO consolidadas em 1 PR batch + 1 bug raiz de visibilidade de feature (botão Run/highlight no editor de código do aluno) + housekeeping (PHP 8.3 doc, 30 issues órfãs fechadas no GitHub, gotchas mPDF documentadas). Sem mudança de schema. Migration de dados retroativa via script web temporário (já aplicada em prod).
