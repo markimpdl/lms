@@ -105,4 +105,17 @@ final class Tenant
             'UPDATE tenants SET platform_name = ?, logo_path = ? WHERE id = ?'
         )->execute([$name, $logo, $tenantId]);
     }
+
+    /**
+     * Zera apenas `logo_path` (mantém `platform_name`). Usado quando o
+     * tenant vira Actvet — a logo customizada deixa de ser referenciada
+     * pelo `tenant_branding()` (que passa a usar a logo Actvet hardcoded),
+     * o arquivo no disco fica órfão e o caller deve removê-lo via
+     * `LogoStorage::deleteByBasename()`.
+     */
+    public static function clearLogo(int $tenantId): void
+    {
+        Database::pdo()->prepare('UPDATE tenants SET logo_path = NULL WHERE id = ?')
+            ->execute([$tenantId]);
+    }
 }

@@ -12,7 +12,7 @@ Você é um desenvolvedor PHP sênior revisando código do LMS antes de ir para 
 
 ## Stack context
 
-- PHP 8.2+ (sem framework)
+- PHP 8.3+ (sem framework; produção em 8.3)
 - MySQL 8 via PDO
 - Bootstrap 5 + Alpine.js
 - TinyMCE 6 (conteúdo) + CodeMirror 6 (atividades de código)
@@ -62,7 +62,7 @@ Você é um desenvolvedor PHP sênior revisando código do LMS antes de ir para 
 
 - [ ] Lógica de banco em **Models** (`src/models/<Entity>.php`); páginas e controllers ficam finos
 - [ ] Lógica de negócio em **Services** (`src/services/`) quando atravessa múltiplos models
-- [ ] PDO via `MySQL::pdo()` singleton — sem `new PDO()` solto
+- [ ] PDO via `Database::pdo()` singleton — sem `new PDO()` solto
 - [ ] Templates (`src/templates/`) recebem dados já preparados — sem queries dentro
 - [ ] Helpers de auth/CSRF/i18n em `src/helpers.php` ou `src/lib/`
 
