@@ -355,6 +355,10 @@ return [
     'learning_outcomes.has_errors'   => 'Please fix the highlighted fields.',
     'learning_outcomes.success'      => 'Criteria updated.',
     'learning_outcomes.edit_link'    => 'Edit criteria',
+    'learning_outcomes.cascade_warning_title'   => 'Heads up: existing scores will be deleted',
+    'learning_outcomes.cascade_warning_body'    => 'This unit already has :n criterion score(s) recorded across assessment submissions. Saving now will delete all per-criterion scores (the final assessment grade is preserved).',
+    'learning_outcomes.cascade_warning_confirm' => 'I understand and want to delete the per-criterion scores.',
+    'learning_outcomes.err.confirm_required'    => 'Tick the confirmation box to proceed.',
 
     // Sequential progression (E19-02 + E19-03 + E19-04)
     'progression.next_locked'                  => 'Complete ":name" first',
@@ -483,7 +487,7 @@ return [
     'activities.form.submission_open'  => 'Submission open',
     'activities.form.submission_open_hint' => 'When unchecked, students cannot submit new attempts (existing submissions are kept).',
     'activities.form.allow_code_run'   => 'Allow online code execution',
-    'activities.form.allow_code_run_hint' => 'Only available for Code-type activities. Judge0 execution arrives in Epic E8.',
+    'activities.form.allow_code_run_hint' => 'Only available for Code-type activities. When checked, students can run the code directly in the browser (via Judge0).',
     'activities.form.code_language'       => 'Code language',
     'activities.form.code_language_none'  => '— No language set —',
     'activities.form.code_language_hint'  => 'Sets the editor + language Judge0 uses to run.',
@@ -745,6 +749,7 @@ return [
     'submissions.form.file'             => 'File',
     'submissions.form.current_file'     => 'current file',
     'submissions.form.file_hint'        => 'Accepted: PDF, ZIP, TXT. Max 3 MB.',
+    'submissions.form.file_hint_dynamic' => 'Accepted: :exts. Max 3 MB.',
     'submissions.form.code'             => 'Code',
     'submissions.form.code_placeholder' => 'Paste or type your code here…',
     'submissions.form.code_hint'        => 'Code is saved with the submission. Hit "Run" to test without submitting.',

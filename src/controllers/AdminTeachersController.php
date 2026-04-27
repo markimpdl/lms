@@ -100,8 +100,17 @@ final class AdminTeachersController
         }
         $tenantId = (int) $teacher['tenant_id'];
 
+        // Snapshot pre-update pra detectar transição não-Actvet → Actvet
+        // e limpar logo customizada (que vira ignorada pelo
+        // tenant_branding(), passa a usar a logo Actvet hardcoded — o
+        // arquivo no disco fica órfão).
+        $oldTenant     = Tenant::findById($tenantId);
+        $oldIsActvet   = $oldTenant !== null && (int) ($oldTenant['is_actvet'] ?? 0) === 1;
+        $oldLogoPath   = (string) ($oldTenant['logo_path'] ?? '');
+        $shouldDropLogo = !$oldIsActvet && $isActvet && $oldLogoPath !== '';
+
         try {
-            Database::tx(static function (PDO $pdo) use ($teacherId, $tenantId, $name, $lang, $tenant, $isActvet): void {
+            Database::tx(static function (PDO $pdo) use ($teacherId, $tenantId, $name, $lang, $tenant, $isActvet, $shouldDropLogo): void {
                 $pdo->prepare('UPDATE users SET name = ?, language = ? WHERE id = ?')
                     ->execute([$name, $lang, $teacherId]);
 
@@ -111,9 +120,20 @@ final class AdminTeachersController
                 }
 
                 Tenant::setIsActvet($tenantId, $isActvet);
+
+                if ($shouldDropLogo) {
+                    Tenant::clearLogo($tenantId);
+                }
             });
         } catch (RuntimeException $e) {
             return ['tenant_name' => $e->getMessage()];
+        }
+
+        // Best-effort: depois do commit, apaga o arquivo da logo antiga
+        // do disco. Falha em apagar não derruba a atualização (LogoStorage
+        // já é silencioso).
+        if ($shouldDropLogo) {
+            LogoStorage::deleteByBasename($oldLogoPath);
         }
 
         flash('success', __t('admin.teachers.edit.updated', ['name' => $name]));

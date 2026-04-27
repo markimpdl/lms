@@ -128,6 +128,23 @@ $codeLang   = $activity['code_language'] ?? null;
 $useEditor  = $isCode && (int) ($activity['allow_online_code_run'] ?? 0) === 1 && $codeLang !== null;
 $errors     = [];
 
+// Allowlist de extensões pro input file. Atividade tipo código com
+// linguagem definida estende com a extensão da linguagem (.py/.cs/.js/.html);
+// .zip e .txt continuam universais (zip pra projetos com vários arquivos).
+$codeLangExt = [
+    'python'     => 'py',
+    'csharp'     => 'cs',
+    'javascript' => 'js',
+    'html'       => 'html',
+];
+$acceptExts = ['.pdf', '.zip', '.txt'];
+if ($isCode && $codeLang !== null && isset($codeLangExt[$codeLang])) {
+    array_unshift($acceptExts, '.' . $codeLangExt[$codeLang]);
+    $acceptExts = array_values(array_unique($acceptExts));
+}
+$acceptAttr = implode(',', $acceptExts);
+$acceptHint = strtoupper(implode(', ', array_map(static fn ($x) => ltrim($x, '.'), $acceptExts)));
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         csrf_verify();
@@ -155,7 +172,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $storedPath = $submission['stored_path'] ?? null;
 
     if ($hasFile) {
-        $result = SubmissionStorage::store($_FILES['file'], $activityId, $studentId, $tenantId);
+        $result = SubmissionStorage::store(
+            $_FILES['file'], $activityId, $studentId, $tenantId,
+            ['code_language' => $codeLang]
+        );
         if ($result['status'] !== 'ok') {
             $errors['file'] = $result['error_key'] ?? 'submissions.err.generic';
         } else {
@@ -299,8 +319,8 @@ ob_start();
                             </label>
                             <input type="file" name="file" id="f-file"
                                    class="form-control<?= isset($errors['file']) ? ' is-invalid' : '' ?>"
-                                   accept=".pdf,.zip,.txt">
-                            <div class="form-text"><?= e(__t('submissions.form.file_hint')) ?></div>
+                                   accept="<?= e($acceptAttr) ?>">
+                            <div class="form-text"><?= e(__t('submissions.form.file_hint_dynamic', ['exts' => $acceptHint])) ?></div>
                         </div>
 
                         <?php if ($isCode): ?>
@@ -421,8 +441,10 @@ if (container && textarea) {
     } else if (lang === 'html') {
         const m = await import("https://esm.sh/@codemirror/lang-html@6.4.9");
         langExt = m.html();
+    } else if (lang === 'csharp') {
+        const m = await import("https://esm.sh/@codemirror/lang-csharp@6.1.1");
+        langExt = m.csharp();
     }
-    // C# fica sem highlight (CM6 não tem pacote oficial); texto plain roda.
 
     const view = new EditorView({
         doc: textarea.value,

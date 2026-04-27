@@ -6,14 +6,23 @@ declare(strict_types=1);
  *
  * submit() roda em transação:
  *   1. Valida gates (submission_open, retry_allowed na tentativa corrente)
- *   2. Calcula próximo attempt (MAX+1)
- *   3. Flipa a corrente pra is_current=0, retry_allowed=0
- *   4. Insere nova linha is_current=1
+ *   2. Se há tentativa anterior: DELETE da linha + apaga arquivos (stored_path
+ *      e report_pdf_path) — desde 2026-04-27 não guardamos mais histórico
+ *      de tentativas reprovadas (PO: "Pode deletar, e nao precisa da Caixa
+ *      de ultimas tentativas").
+ *   3. Calcula próximo attempt (current.attempt + 1) — mantido como contador
+ *      histórico ("aluno está na 2ª tentativa") mesmo sem o registro antigo.
+ *   4. Insere nova linha is_current=1.
  *
  * O arquivo no disco já foi salvo antes pelo handler via
  * `EvaluationSubmissionStorage::store($file, $evalId, $studentId, $attempt, $tenantId)`.
- * Se o UPSERT falhar a transação é revertida — o arquivo no disco fica
+ * Se o INSERT falhar a transação é revertida — o arquivo no disco fica
  * órfão mas é inofensivo (caminho inclui attempt, não colide).
+ *
+ * **Cascade ao DELETE**: a FK em `evaluation_submission_lo_grades.submission_id`
+ * é ON DELETE CASCADE, então notas por LO da tentativa antiga somem juntas.
+ * XP creditado em `xp_events` referencia `evaluation_id` (não submission), e
+ * `XpEvents::awardEvaluation` é idempotente via UK — sem efeito colateral.
  */
 final class EvaluationSubmissionService
 {
@@ -32,7 +41,7 @@ final class EvaluationSubmissionService
         string $filename,
         string $storedPath
     ): array {
-        return Database::tx(
+        $result = Database::tx(
             static function (PDO $pdo) use (
                 $evaluationId, $tenantId, $studentId, $filename, $storedPath
             ): array {
@@ -47,13 +56,17 @@ final class EvaluationSubmissionService
                 $isOpen = (int) $evalRow['submission_open'] === 1;
 
                 $stmt = $pdo->prepare(
-                    'SELECT id, attempt, retry_allowed
+                    'SELECT id, attempt, retry_allowed, stored_path, report_pdf_path
                        FROM evaluation_submissions
                       WHERE evaluation_id = ? AND student_user_id = ? AND is_current = 1
                       LIMIT 1'
                 );
                 $stmt->execute([$evaluationId, $studentId]);
                 $current = $stmt->fetch();
+
+                /** @var list<string> $orphanPaths arquivos a remover do disco
+                 *  pós-commit (best-effort, fora da transação). */
+                $orphanPaths = [];
 
                 if ($current === false) {
                     if (!$isOpen) {
@@ -66,10 +79,18 @@ final class EvaluationSubmissionService
                     }
                     $nextAttempt = (int) $current['attempt'] + 1;
 
+                    foreach (['stored_path', 'report_pdf_path'] as $col) {
+                        $p = (string) ($current[$col] ?? '');
+                        if ($p !== '') {
+                            $orphanPaths[] = $p;
+                        }
+                    }
+
+                    // DELETE da tentativa antiga (cascade limpa
+                    // evaluation_submission_lo_grades). Sem mais soft-delete
+                    // via is_current=0 — não guardamos histórico.
                     $pdo->prepare(
-                        'UPDATE evaluation_submissions
-                            SET is_current = 0, retry_allowed = 0
-                          WHERE id = ?'
+                        'DELETE FROM evaluation_submissions WHERE id = ?'
                     )->execute([$current['id']]);
                 }
 
@@ -87,9 +108,20 @@ final class EvaluationSubmissionService
                     $storedPath,
                 ]);
 
-                return ['status' => 'ok', 'attempt' => $nextAttempt];
+                return ['status' => 'ok', 'attempt' => $nextAttempt, '_orphan_paths' => $orphanPaths];
             }
         );
+
+        // Best-effort cleanup pós-commit: arquivos da tentativa antiga.
+        // Falha aqui não rola back o submit (o INSERT novo já está commitado).
+        if (($result['_orphan_paths'] ?? []) !== []) {
+            foreach ($result['_orphan_paths'] as $p) {
+                safe_unlink_storage((string) $p);
+            }
+            unset($result['_orphan_paths']);
+        }
+
+        return $result;
     }
 
     /**

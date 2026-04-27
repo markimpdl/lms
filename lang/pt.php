@@ -355,6 +355,10 @@ return [
     'learning_outcomes.has_errors'   => 'Corrija os campos destacados.',
     'learning_outcomes.success'      => 'Critérios atualizados.',
     'learning_outcomes.edit_link'    => 'Editar critérios',
+    'learning_outcomes.cascade_warning_title'   => 'Atenção: notas existentes serão apagadas',
+    'learning_outcomes.cascade_warning_body'    => 'Esta unidade já tem :n nota(s) por critério gravada(s) em correções de avaliações. Salvar agora apaga todas as notas por critério (a nota final da avaliação permanece).',
+    'learning_outcomes.cascade_warning_confirm' => 'Confirmo que entendi e quero apagar as notas por critério.',
+    'learning_outcomes.err.confirm_required'    => 'Marque a confirmação para prosseguir.',
 
     // Progressão sequencial (E19-02 + E19-03 + E19-04)
     'progression.next_locked'                  => 'Conclua ":name" primeiro',
@@ -483,7 +487,7 @@ return [
     'activities.form.submission_open'  => 'Entrega aberta',
     'activities.form.submission_open_hint' => 'Quando desmarcado, alunos não conseguem enviar novas entregas (as existentes permanecem).',
     'activities.form.allow_code_run'   => 'Permitir execução online de código',
-    'activities.form.allow_code_run_hint' => 'Só disponível para atividades do tipo Código. A execução via Judge0 chega no Epic E8.',
+    'activities.form.allow_code_run_hint' => 'Só disponível para atividades do tipo Código. Quando marcado, o aluno pode executar o código direto pelo navegador (via Judge0).',
     'activities.form.code_language'       => 'Linguagem do código',
     'activities.form.code_language_none'  => '— Sem linguagem definida —',
     'activities.form.code_language_hint'  => 'Define o editor + a linguagem que o Judge0 usa pra executar.',
@@ -746,6 +750,7 @@ return [
     'submissions.form.file'             => 'Arquivo',
     'submissions.form.current_file'     => 'arquivo atual',
     'submissions.form.file_hint'        => 'Aceitos: PDF, ZIP, TXT. Máximo 3 MB.',
+    'submissions.form.file_hint_dynamic' => 'Aceitos: :exts. Máximo 3 MB.',
     'submissions.form.code'             => 'Código',
     'submissions.form.code_placeholder' => 'Cole ou digite seu código aqui…',
     'submissions.form.code_hint'        => 'O código é salvo junto com a entrega. Use "Executar" pra testar sem enviar.',

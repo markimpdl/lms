@@ -84,7 +84,6 @@ if ((string) ($evaluation['type'] ?? 'projeto') === 'quiz') {
 }
 
 $isOpen     = (int) $evaluation['submission_open'] === 1;
-$history    = EvaluationSubmission::listHistoryForStudent($evaluationId, $studentId);
 
 $canSubmitNew    = $current === null && $isOpen;
 $canResubmit     = $current !== null && (int) $current['retry_allowed'] === 1;
@@ -412,44 +411,6 @@ ob_start();
         </div>
         <?php endif; ?>
 
-        <!-- Histórico de tentativas (E7-05: com feedback expandido). -->
-        <?php
-            $priorAttempts = array_filter($history, static fn ($h) => (int) $h['is_current'] !== 1);
-        ?>
-        <?php if ($priorAttempts !== []): ?>
-            <div class="card shadow-sm">
-                <div class="card-header">
-                    <h2 class="h6 mb-0"><?= e(__t('evaluations.student.history_title')) ?></h2>
-                </div>
-                <ul class="list-group list-group-flush">
-                    <?php foreach ($priorAttempts as $h): ?>
-                        <li class="list-group-item">
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <span class="fw-semibold">
-                                    <?= e(__t('evaluations.student.attempt_n', ['n' => (string) $h['attempt']])) ?>
-                                </span>
-                                <small class="text-muted flex-grow-1">
-                                    <?= e(substr((string) $h['created_at'], 0, 16)) ?>
-                                    <?php if ($h['grade'] !== null): ?>
-                                        · <?= e(__t('evaluations.student.grade_label')) ?>:
-                                        <strong><?= e(number_format((float) $h['grade'], 1, ',', '')) ?></strong>
-                                    <?php endif; ?>
-                                </small>
-                                <a href="/student/evaluation/<?= $evaluationId ?>/submission/<?= (int) $h['id'] ?>/file"
-                                   class="btn btn-sm btn-outline-secondary">
-                                    <?= e((string) $h['filename']) ?>
-                                </a>
-                            </div>
-                            <?php if ($h['feedback'] !== null && $h['feedback'] !== ''): ?>
-                                <p class="mt-2 mb-0 small" style="white-space: pre-wrap;">
-                                    <?= e((string) $h['feedback']) ?>
-                                </p>
-                            <?php endif; ?>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-        <?php endif; ?>
     </div>
 </div>
 

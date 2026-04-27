@@ -54,6 +54,12 @@ for ($i = 0; $i < LO_REQUIRED_COUNT; $i++) {
 }
 
 $errors = [];
+$confirmError = null;
+
+// Quantas notas por LO já estão gravadas — se > 0, a UI exige
+// confirmação explícita pra rodar o replaceForCu (que cascateia
+// DELETE em evaluation_submission_lo_grades).
+$gradesCount = LearningOutcome::countGradesByCu($cuId);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isArchived) {
     try {
@@ -78,7 +84,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isArchived) {
         }
     }
 
-    if ($errors === []) {
+    if ($errors === [] && $gradesCount > 0 && empty($_POST['confirm_drop_grades'])) {
+        $confirmError = 'learning_outcomes.err.confirm_required';
+    }
+
+    if ($errors === [] && $confirmError === null) {
         LearningOutcome::replaceForCu($cuId, $old);
         flash('success', __t('learning_outcomes.success'));
         header('Location: /teacher/cu/' . $cuId, true, 303);
@@ -157,6 +167,26 @@ ob_start();
                     <?php endif; ?>
                 </div>
             <?php endfor; ?>
+
+            <?php if (!$isArchived && $gradesCount > 0): ?>
+                <div class="alert alert-warning" role="alert">
+                    <strong><?= e(__t('learning_outcomes.cascade_warning_title')) ?></strong>
+                    <p class="mb-2 mt-1">
+                        <?= e(__t('learning_outcomes.cascade_warning_body', ['n' => (string) $gradesCount])) ?>
+                    </p>
+                    <div class="form-check">
+                        <input type="checkbox" name="confirm_drop_grades" value="1"
+                               id="f-confirm-drop"
+                               class="form-check-input<?= $confirmError !== null ? ' is-invalid' : '' ?>">
+                        <label class="form-check-label" for="f-confirm-drop">
+                            <?= e(__t('learning_outcomes.cascade_warning_confirm')) ?>
+                        </label>
+                        <?php if ($confirmError !== null): ?>
+                            <div class="invalid-feedback d-block"><?= e(__t($confirmError)) ?></div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
 
             <?php if (!$isArchived): ?>
                 <div class="d-flex flex-wrap gap-2">

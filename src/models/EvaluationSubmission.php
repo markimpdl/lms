@@ -4,10 +4,13 @@ declare(strict_types=1);
 /**
  * Model de submissão de avaliação (E7-02).
  *
- * Diferente de `activity_submissions` (1:1 por aluno, mutável até feedback),
- * aqui temos histórico: cada tentativa é uma linha própria com `attempt`
- * incrementando, `is_current=1` só na mais recente, `retry_allowed` setado
- * pelo professor na correção (E7-03) quando permite reenvio.
+ * 1 linha por (evaluation_id, student_id) — desde 2026-04-27 não guardamos
+ * histórico de tentativas reprovadas (PO: economia de espaço; só a última
+ * importa). O `submit()` no service faz DELETE da tentativa antiga + apaga
+ * arquivos físicos antes de inserir a nova. Coluna `attempt` segue
+ * incrementando como contador histórico ("aluno está na 2ª tentativa") mesmo
+ * sem o registro antigo. Coluna `is_current` ficou sempre = 1 (deprecated,
+ * mantida pra compat com queries existentes; remover em futura migration).
  *
  * Toda query do aluno valida matrícula ativa via JOIN em `enrollments`.
  */
@@ -62,36 +65,19 @@ final class EvaluationSubmission
     }
 
     /**
-     * Histórico completo do aluno para esta avaliação, ordenado da tentativa
-     * mais recente pra mais antiga. Não valida matrícula — chamador já
-     * validou via `findForStudentEvaluation`.
-     *
-     * @return list<array<string,mixed>>
-     */
-    public static function listHistoryForStudent(int $evaluationId, int $studentId): array
-    {
-        $stmt = Database::pdo()->prepare(
-            'SELECT id, attempt, filename, stored_path, grade, feedback,
-                    feedback_at, retry_allowed, is_current, created_at
-               FROM evaluation_submissions
-              WHERE evaluation_id = ? AND student_user_id = ?
-              ORDER BY attempt DESC'
-        );
-        $stmt->execute([$evaluationId, $studentId]);
-        return $stmt->fetchAll();
-    }
-
-    /**
      * Visão do professor (E7-03): avaliação + aluno + submissão corrente +
-     * histórico + contexto de CU/curso. Valida que a avaliação pertence ao
-     * tenant do professor E que o aluno tem matrícula ativa. Retorna null
-     * quando algum dos dois falha.
+     * contexto de CU/curso. Valida que a avaliação pertence ao tenant do
+     * professor E que o aluno tem matrícula ativa. Retorna null quando algum
+     * dos dois falha.
+     *
+     * Desde 2026-04-27 sem histórico de tentativas (`history` removido —
+     * só existe 1 linha por (eval, student) no banco). Templates devem ler
+     * apenas `current`.
      *
      * @return array{
      *   evaluation: array<string,mixed>,
      *   student:    array<string,mixed>,
-     *   current:    array<string,mixed>|null,
-     *   history:    list<array<string,mixed>>
+     *   current:    array<string,mixed>|null
      * }|null
      */
     public static function findForGrading(int $evaluationId, int $studentId, int $tenantId): ?array
@@ -129,29 +115,18 @@ final class EvaluationSubmission
 
         $stmt = Database::pdo()->prepare(
             'SELECT id, attempt, filename, stored_path, quiz_snapshot, report_pdf_path,
-                    grade, feedback, feedback_at, retry_allowed, is_current, created_at
+                    grade, feedback, feedback_at, retry_allowed, created_at
                FROM evaluation_submissions
-              WHERE evaluation_id = ? AND student_user_id = ?
-              ORDER BY attempt DESC'
+              WHERE evaluation_id = ? AND student_user_id = ? AND is_current = 1
+              LIMIT 1'
         );
         $stmt->execute([$evaluationId, $studentId]);
-        $rows = $stmt->fetchAll();
-
-        $current = null;
-        $history = [];
-        foreach ($rows as $row) {
-            if ((int) $row['is_current'] === 1 && $current === null) {
-                $current = $row;
-            } else {
-                $history[] = $row;
-            }
-        }
+        $current = $stmt->fetch();
 
         return [
             'evaluation' => $evaluation,
             'student'    => $student,
-            'current'    => $current,
-            'history'    => $history,
+            'current'    => $current === false ? null : $current,
         ];
     }
 

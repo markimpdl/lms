@@ -83,6 +83,24 @@ final class LearningOutcome
     }
 
     /**
+     * Quantas notas por LO já foram lançadas em submissões dessa CU. Usado
+     * pra gatear o reset de LOs (E25-02): se > 0, o `replaceForCu` vai
+     * cascatear DELETE em `evaluation_submission_lo_grades` e apagar essas
+     * notas — UI exige confirmação explícita do professor.
+     */
+    public static function countGradesByCu(int $cuId): int
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT COUNT(*)
+               FROM evaluation_submission_lo_grades eslg
+               JOIN learning_outcomes lo ON lo.id = eslg.lo_id
+              WHERE lo.cu_id = ?'
+        );
+        $stmt->execute([$cuId]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
      * Retorna mapa lo_id => grade pra uma submissão (E25-03). Vazio se
      * ainda não há feedback gravado por LO.
      *
