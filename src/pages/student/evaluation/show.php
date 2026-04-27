@@ -42,15 +42,36 @@ if (!$availability['available']) {
     exit;
 }
 
-// E19-03: gate eval_after_activities. Bloqueia GET e POST quando o curso
-// exige todas as atividades enviadas antes de liberar a avaliação.
+// E19-03 + v0.30.0: gates de progressão.
+//   1. cc_mode=sequential: bloqueia avaliações de CUs em CCs ainda não
+//      liberadas (paridade com activity/show.php; bug reportado pelo PO
+//      em 2026-04-27 — notificação abria avaliação mesmo CC bloqueada).
+//   2. eval_after_activities: exige todas as atividades da CU enviadas
+//      antes de liberar a avaliação.
 $courseId = (int) $evaluation['course_id'];
 $cuId     = (int) $evaluation['competence_unit_id'];
-$evalAfterStmt = Database::pdo()->prepare(
-    'SELECT eval_after_activities FROM courses WHERE id = ? LIMIT 1'
+
+$progGateStmt = Database::pdo()->prepare(
+    'SELECT cc_mode, eval_after_activities FROM courses WHERE id = ? LIMIT 1'
 );
-$evalAfterStmt->execute([$courseId]);
-$evalAfter = (int) ($evalAfterStmt->fetchColumn() ?: 1);
+$progGateStmt->execute([$courseId]);
+$progConf  = $progGateStmt->fetch();
+$ccMode    = (string) ($progConf['cc_mode']                ?? 'sequential');
+$evalAfter = (int)    ($progConf['eval_after_activities']  ?? 1);
+
+if ($ccMode === 'sequential') {
+    $courseFull = StudentCurriculum::forStudentCourse($studentId, $courseId);
+    if ($courseFull !== null) {
+        $progGate = course_progression_state($courseFull, $studentId);
+        $cuStatus = $progGate['cu_status'][$cuId] ?? 'free';
+        if ($cuStatus === 'hidden' || $cuStatus === 'next') {
+            flash('warning', __t('progression.cu_locked'));
+            header('Location: /student/course/' . $courseId, true, 303);
+            exit;
+        }
+    }
+}
+
 if ($evalAfter === 1) {
     $stmt = Database::pdo()->prepare(
         'SELECT COUNT(*) FROM activities WHERE competence_unit_id = ?'
