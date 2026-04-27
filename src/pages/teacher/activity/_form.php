@@ -127,7 +127,6 @@ declare(strict_types=1);
                        <?= $old['type'] !== 'codigo' ? 'disabled' : '' ?>>
                 <label class="form-check-label" for="f-allow-code-run">
                     <?= e(__t('activities.form.allow_code_run')) ?>
-                    <span class="badge text-bg-light border ms-1"><?= e(__t('common.soon')) ?></span>
                 </label>
                 <div class="form-text"><?= e(__t('activities.form.allow_code_run_hint')) ?></div>
             </div>
