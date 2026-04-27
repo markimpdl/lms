@@ -91,7 +91,7 @@ $fileCount = (int) $pdo->query(
 </ul>
 <p>FK CASCADE limpa <code>evaluation_submission_lo_grades</code> automaticamente.</p>
 <form method="POST">
-    <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+    <?= csrf_field() ?>
     <button type="submit" style="padding: .5rem 1rem; background: #c00; color: #fff; border: 0; cursor: pointer;">
         Apagar agora
     </button>
