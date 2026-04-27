@@ -749,6 +749,7 @@ return [
     'submissions.form.file'             => 'File',
     'submissions.form.current_file'     => 'current file',
     'submissions.form.file_hint'        => 'Accepted: PDF, ZIP, TXT. Max 3 MB.',
+    'submissions.form.file_hint_dynamic' => 'Accepted: :exts. Max 3 MB.',
     'submissions.form.code'             => 'Code',
     'submissions.form.code_placeholder' => 'Paste or type your code here…',
     'submissions.form.code_hint'        => 'Code is saved with the submission. Hit "Run" to test without submitting.',
