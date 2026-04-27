@@ -216,12 +216,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             return;
         }
 
-        if ($result['status'] === 'not_current') {
-            flash('danger', __t('evaluations.grade.err.not_current'));
-            header('Location: /teacher/evaluation/' . $evaluationId . '/submission/' . $studentId);
-            return;
-        }
-
+        // 'not_current' não existe mais (v0.30.0: só há 1 submissão por par
+        // eval/student) — caí em 404 se status != 'ok' / 'not_found'.
         http_response_code(404);
         require LMS_ROOT . '/src/templates/errors/404.php';
         return;

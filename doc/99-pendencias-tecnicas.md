@@ -216,11 +216,8 @@ A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** du
 - **Ação:** **E30 (F21)** — refazer o template em HTML/CSS limpo, fiel ao `template_reports/CU_SKILL_HUB_PDF.pdf`. Se mesmo após reescrever houver gaps, considerar swap dompdf→mPDF. Backfill das submissions já corrigidas executando `ReportService::generate` em loop.
 - **Mitigação enquanto E30 não chega:** pipeline (trigger, storage, endpoint, segurança) está OK e funciona com qualquer template — quando E30 substituir o template.html + rodar backfill, todos os PDFs antigos são regerados sem nova migração de schema.
 
-### [E26-04] Bootstrap Icons CSS não carrega fora do student area
-- O CSS `bootstrap-icons.min.css` é carregado em `layout.php` apenas dentro de `if ($isStudentArea)`. Páginas teacher/super-admin que usam `<i class="bi bi-...">` mostram ícones faltantes (quadradinho vazio).
-- **Bugs existentes**: header.php usa `bi-trophy` e `bi-award` no navbar mobile; em rotas teacher/admin com viewport <576px, esses ícones não renderizam.
-- **Impacto:** baixo (afeta só visual mobile dos prof/admin).
-- **Ação:** ou (a) carregar bootstrap-icons em todas as páginas (incrementa request CDN em desktop também), ou (b) usar SVG inline / Unicode pra ícones críticos. Decidir junto com E29 (identidade visual unificada).
+### ~~[E26-04] Bootstrap Icons CSS não carrega fora do student area~~ ✅ DESCARTADA (2026-04-27)
+- PO decidiu que o impacto é baixo demais pra justificar mudança. Pode ficar como está.
 
 ### ~~[E25-02] Re-cadastro de LOs apaga notas existentes via FK CASCADE~~ ✅ RESOLVIDA (v0.29.0)
 

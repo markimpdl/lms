@@ -118,15 +118,15 @@ final class CourseMetrics
                  WHERE e.course_id = ? AND u.role = \'student\' AND u.active = 1
                ) AS enrolled,
                (SELECT COUNT(*) FROM evaluation_submissions
-                 WHERE evaluation_id = ? AND is_current = 1
+                 WHERE evaluation_id = ?
                    AND grade IS NOT NULL AND grade >= 6.0
                ) AS approved,
                (SELECT AVG(grade) FROM evaluation_submissions
-                 WHERE evaluation_id = ? AND is_current = 1 AND grade IS NOT NULL
+                 WHERE evaluation_id = ? AND grade IS NOT NULL
                ) AS avg_grade,
                (SELECT AVG(TIMESTAMPDIFF(MINUTE, created_at, feedback_at))
                   FROM evaluation_submissions
-                 WHERE evaluation_id = ? AND is_current = 1 AND feedback_at IS NOT NULL
+                 WHERE evaluation_id = ? AND feedback_at IS NOT NULL
                    AND feedback_at >= created_at
                ) AS avg_minutes'
         );
@@ -213,7 +213,7 @@ final class CourseMetrics
                      JOIN evaluations e ON e.id = s.evaluation_id AND e.tenant_id = ?
                      JOIN competence_units cu  ON cu.id = e.competence_unit_id
                      JOIN core_competencies cc ON cc.id = cu.core_competency_id
-                    WHERE cc.course_id = ? AND s.is_current = 1 AND s.feedback_at IS NOT NULL
+                    WHERE cc.course_id = ? AND s.feedback_at IS NOT NULL
                       AND s.feedback_at >= s.created_at
                ) t) AS avg_minutes'
         );
@@ -259,7 +259,7 @@ final class CourseMetrics
                    JOIN evaluations e ON e.id = s.evaluation_id AND e.tenant_id = ?
                    JOIN competence_units cu  ON cu.id = e.competence_unit_id
                    JOIN core_competencies cc ON cc.id = cu.core_competency_id
-                  WHERE cc.course_id = ? AND s.is_current = 1
+                  WHERE cc.course_id = ?
                     AND s.grade IS NOT NULL AND s.grade >= 6.0'
             );
             $stmt->execute([$tenantId, $courseId]);
