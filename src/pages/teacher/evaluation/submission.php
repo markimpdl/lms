@@ -33,7 +33,6 @@ if ($ctx === null) {
 $evaluation = $ctx['evaluation'];
 $student    = $ctx['student'];
 $current    = $ctx['current'];
-$history    = $ctx['history'];
 
 if ($current === null) {
     http_response_code(404);
@@ -421,41 +420,6 @@ ob_start();
             </div>
         </form>
 
-        <!-- Histórico de tentativas anteriores -->
-        <?php if ($history !== []): ?>
-            <div class="card shadow-sm">
-                <div class="card-header">
-                    <h2 class="h6 mb-0"><?= e(__t('evaluations.grade.history')) ?></h2>
-                </div>
-                <ul class="list-group list-group-flush">
-                    <?php foreach ($history as $h): ?>
-                        <li class="list-group-item">
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <span class="fw-semibold">
-                                    <?= e(__t('evaluations.grade.attempt_n', ['n' => (string) $h['attempt']])) ?>
-                                </span>
-                                <small class="text-muted flex-grow-1">
-                                    <?= e(substr((string) $h['created_at'], 0, 16)) ?>
-                                    <?php if ($h['grade'] !== null): ?>
-                                        · <?= e(__t('evaluations.grade.grade_label')) ?>:
-                                        <strong><?= e(number_format((float) $h['grade'], 1, ',', '')) ?></strong>
-                                    <?php endif; ?>
-                                </small>
-                                <a href="/teacher/evaluation/<?= $evaluationId ?>/submission/<?= (int) $h['id'] ?>/file"
-                                   class="btn btn-sm btn-outline-secondary">
-                                    <?= e((string) $h['filename']) ?>
-                                </a>
-                            </div>
-                            <?php if ($h['feedback'] !== null && $h['feedback'] !== ''): ?>
-                                <p class="mt-2 mb-0 small" style="white-space: pre-wrap;">
-                                    <?= e((string) $h['feedback']) ?>
-                                </p>
-                            <?php endif; ?>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-        <?php endif; ?>
     </div>
 </div>
 
