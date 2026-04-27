@@ -12,14 +12,14 @@ declare(strict_types=1);
  * cada avaliação tem no máximo 1 arquivo de enunciado.
  *
  * Tipos aceitos (E23-01): PDF e ZIP. Teto configurável via
- * UPLOAD_MAX_MB_PDF_BRIEF em config/env.php (default 10 MB — ADR-028).
+ * UPLOAD_MAX_MB_PDF_BRIEF em config/env.php (default 12 MB desde v0.30.0).
  *
  * Re-upload alternando formato (PDF → ZIP ou vice-versa): apaga o
  * arquivo antigo de qualquer extensão antes de gravar o novo.
  */
 final class EvaluationBriefStorage
 {
-    private const DEFAULT_MAX_MB = 10;
+    private const DEFAULT_MAX_MB = 12;
 
     /** Extensões aceitas e seus MIME types canônicos. ZIP tem 2 MIMEs comuns
      *  conforme browser/cliente (`application/zip` é o RFC; alguns Windows

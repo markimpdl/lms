@@ -16,11 +16,11 @@ declare(strict_types=1);
  * porque o UUID diferencia no disco.
  *
  * Tipos aceitos + mime validado via `finfo_file` (mime real, não só
- * extensão). Tamanho máximo 3 MB.
+ * extensão). Tamanho máximo 12 MB (v0.30.0 — antes 3 MB).
  */
 final class AttachmentStorage
 {
-    public const MAX_BYTES = 3 * 1024 * 1024; // 3 MB
+    public const MAX_BYTES = 12 * 1024 * 1024; // 12 MB (v0.30.0)
     public const MAX_ATTACHMENTS_PER_CU = 50; // Previne DDoS via criação em massa
 
     /** Mapa de mime canônico → extensão a gravar. */

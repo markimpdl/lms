@@ -15,7 +15,7 @@ declare(strict_types=1);
  */
 final class EvaluationSubmissionStorage
 {
-    public const MAX_BYTES = 3 * 1024 * 1024;
+    public const MAX_BYTES = 10 * 1024 * 1024; // 10 MB (v0.30.0)
 
     private const ALLOWED = [
         'application/pdf' => 'pdf',
