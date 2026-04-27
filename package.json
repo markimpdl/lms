@@ -1,6 +1,6 @@
 {
   "name": "lms-deploy",
-  "version": "0.27.0",
+  "version": "0.28.0",
   "description": "Utilitários Node do LMS (deploy incremental via FTP/FTPS).",
   "private": true,
   "type": "module",
