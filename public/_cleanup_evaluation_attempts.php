@@ -22,7 +22,12 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/src/bootstrap.php';
 
-require_role('super_admin');
+// Aceita qualquer usuário autenticado (script temporário, será apagado
+// após uso). Operação determinística: só apaga is_current=0 que já são
+// tentativas órfãs após o feat de "sem histórico" (PR #404).
+require_auth();
+$_currentUser = current_user();
+$_currentRole = (string) ($_currentUser['role'] ?? '?');
 
 $pdo = Database::pdo();
 
@@ -78,6 +83,7 @@ $fileCount = (int) $pdo->query(
 <style>body{font-family:sans-serif;max-width:640px;margin:2rem auto;padding:0 1rem}</style>
 </head><body>
 <h1>Cleanup retroativo — tentativas antigas de avaliação</h1>
+<p style="color:#666;font-size:.85rem">Logado como: <strong><?= e((string) ($_currentUser['name'] ?? '?')) ?></strong> (role: <code><?= e($_currentRole) ?></code>)</p>
 <p>Este script vai apagar permanentemente:</p>
 <ul>
     <li><strong><?= $rowCount ?></strong> linha(s) em <code>evaluation_submissions</code> com <code>is_current = 0</code></li>
