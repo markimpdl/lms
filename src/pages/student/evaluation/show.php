@@ -49,7 +49,10 @@ if (!$availability['available']) {
 //   2. eval_after_activities: exige todas as atividades da CU enviadas
 //      antes de liberar a avaliação.
 $courseId = (int) $evaluation['course_id'];
-$cuId     = (int) $evaluation['competence_unit_id'];
+// SELECT de findForStudentEvaluation usa `cu.id AS cu_id` — não há
+// `competence_unit_id` no resultset. Bug latente desde E19-03 (gate
+// eval_after_activities nunca disparou porque cuId virava 0).
+$cuId     = (int) $evaluation['cu_id'];
 
 $progGateStmt = Database::pdo()->prepare(
     'SELECT cc_mode, eval_after_activities FROM courses WHERE id = ? LIMIT 1'
