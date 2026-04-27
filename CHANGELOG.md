@@ -4,6 +4,46 @@ Todos os releases do LMS ficam documentados neste arquivo. O formato segue
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.28.0] — 2026-04-27
+
+Vigésima oitava release — **fecha o roadmap pós-MVP estendido**. Escopo: **Epic E30 inteiro — Refazer template Skills Hub fiel ao PDF** (2 stories, F21). Renderer dos relatórios trocado de dompdf pra **mPDF v8.3** (suporte sólido a layouts absolutos, page sizes em mm explícito, fontes TTF empacotadas) e o template `public/assets/report-templates/skill_hub/template.html` reescrito do zero com layout absoluto na capa (faixa lateral + logo grande à direita + bloco texto centro-direita + faixa rodapé) e logo ACTVET|Skills Hub no header das páginas internas. Sem mudança de schema. Iteração intensa com o PO via smoke local PDF (4 iterações na capa) — agora "ficou perfeito".
+
+### Novas funcionalidades
+
+#### Epic E30 — Refazer template Skills Hub fiel ao PDF
+
+- **Renderer trocado pra mPDF v8.3** (E30-01, #384): `ReportService::renderPdf` migrado de `dompdf/dompdf` pra `mpdf/mpdf` v8.3.1. Motivação: dompdf tinha limitações conhecidas com `position: absolute`, fontes não-Latin e `@page :first` — bloqueavam o nível de fidelidade visual que o template Skills Hub precisava (4 elementos posicionados livremente na capa). Composer require atualizado, autoload regenerado, GD confirmado em prod via phpinfo (v2.3.3 — pré-requisito do mPDF v8). API do `ReportService` inalterada (mesma assinatura `generate(int $submissionId): array`); só a engine interna mudou. `vendor/mpdf` é 94MB (88MB de TTFs pra Indic/CJK/Aegean/etc) — adicionado ao `EXCLUDE_PATHS` do `scripts/deploy/ftp-deploy.mjs` pra não saturar a conexão FTPS da Hostinger. PO sobe `vendor/mpdf` manualmente via FileZilla na primeira instalação + qualquer atualização do composer require. Doc `doc/19-reports.md` atualizado com nova arquitetura e quirks documentados.
+
+- **Template Skills Hub reescrito** (E30-02, #385): saiu do export "Save as Web Page Filtered" do Word (que tinha 800+ tags `<o:p>`, `<v:shape>`, MSO-specific styles e gerava 805 páginas em branco no mPDF) pra um HTML/CSS limpo, redondo, idiomático mPDF. Capa em layout absoluto bleed-to-edge: faixa lateral azul (`image006.png`, top 30mm/left 0), logo grande ACTVET+SkillsHub (`logo-grande.png`, top ~25%/right 35mm), bloco texto "Assessment Report" + nome do curso (top centro/right 30mm, alinhado à direita), faixa quadradinhos rodapé (`image002.png`, bottom 0/full-width). Páginas internas: header com label "Competence Unit Assessment Report" + nome do curso à esquerda + logo `image005.png` (18mm) à direita; título "ASSESSMENT REPORT" centralizado; tabela de skill+student; tabela "COMPETENCE UNIT RESULTS" com média; tabela "LEARNING OUTCOMES RESULTS BREAKDOWN" com 5 LOs; footer fixo na base (Date + Version + page number) via `<htmlpagefooter>` ativado após `<pagebreak>`. 4 iterações com smoke do PO até bater pixel-perfect com o PDF entregue pelo Skills Hub.
+
+### Correções
+
+- **mPDF v8.3.1: `@page { size: A4 }` keyword colapsa BleedBox/TrimBox** (#394): bug encontrado por bisect — HTML trivial (`<h1>X</h1>` com font-size 22pt) renderizava em 24 páginas; template completo ia pra 200+. `size: A4`, `size: a4`, `size: A4 portrait` todos triggam. Apenas `size: 210mm 297mm` (dimensões mm explícitas) funciona corretamente. MediaBox PDF fica certo em ambos os casos, mas mPDF zera BleedBox/TrimBox quando keyword é usada → trunca o layout em 1 caractere por página. Fix permanente: documentado em `feedback_mpdf_gotchas.md` (regra 1) e `template.html` usa `size: 210mm 297mm` explícito.
+- **mPDF constructor — config mínimo é o que funciona** (#392): passar `format: 'A4'` + `orientation: 'P'` separados no construtor causava o mesmo collapse de layout. Defaults do mPDF v8 (A4 portrait UTF-8 + margens 15/15/16/16mm + font dejavusans) já são o esperado. `ReportService::renderPdf` instancia agora com apenas `new Mpdf(['tempDir' => $dir])` (tempDir necessário pra Hostinger não escrever em /tmp). Formato/margens/font definidos no `@page` do CSS, não no PHP.
+- **Template gerou 805 páginas em branco** (#390): primeiro rewrite pegou demais do export do Word (tags `<o:p>`, namespaces `mso-*`, divs vazios). mPDF interpretava cada como page break. Fix: simplificar pra HTML/CSS puro sem MSO-isms.
+- **Capa cabe em 1 página + footer fixo na base** (#385 iter 3): `<htmlpagefooter>` definido antes do `<pagebreak>` mas só ativado depois (`<sethtmlpagefooter name="contentFooter" value="on" />` post-pagebreak) — assim a capa fica clean (sem footer) e as páginas internas têm footer fixo automático.
+- **Capa bleed-to-edge** (#395 iter 3.1): `@page :first { margin: 0 }` desliga as margens da capa pra `image002.png` rodapé tocar a borda inferior e a tabela 2-col tocar topo+laterais. Páginas internas mantém `@page { margin: 18mm }` global.
+- **Capa 4-block layout absoluto** (#396 iter 4): tabela 2-col da iter 3 não expressava o layout pedido (logo grande a 25% do topo + texto centro-direita + lateral cobrindo só metade). Reescrita com 4 `<div style="position:absolute">` independentes, cada um wrappando a img/texto. mPDF v8 aceita position:absolute em block-level (div/p) — `right:Xmm` + `top:Ymm` em `@page :first`. IMG inline NÃO aceita position:absolute em mPDF — sempre wrap em div block-level. Combinado com `image005.png` substituindo o texto "ACTVET | Skills Hub" no header da pg2 (width 18mm, alinhado à direita). PO validou: "agora ficou perfeito".
+
+### Mudanças internas / Tooling
+
+- **`vendor/mpdf` excluído do auto-deploy** (parte do #387): 94MB sairia em ~30 min via FTPS throttled da Hostinger e saturava a conexão. Adicionado ao `EXCLUDE_PATHS` do `scripts/deploy/ftp-deploy.mjs`. Convenção: composer deps grandes (>10MB) sobem manual via FileZilla; deps tiny (FPDI ~330KB, etc) passam pelo auto-deploy normal.
+- **`EXCLUDE_PATHS` do ftp-deploy suporta multi-segmento** (#388): bug antigo só checava `parts[0]` (primeiro segmento do path) — adicionar `vendor/mpdf` (2 segmentos) era ignorado silenciosamente. Fix: trocar por prefix match no `posixPath` inteiro. Agora qualquer multi-segmento (`vendor/X`, `path/to/dir`) funciona como exclude.
+- **`package.json`** bumpado para 0.28.0.
+- **`doc/19-reports.md`** atualizado com mPDF v8 quirks + nova arquitetura.
+- **Breakdown E30 documentado** (#386): `doc/breakdowns/E30.md` com as 2 stories e critérios de aceite.
+
+### Convenções consolidadas nesta janela
+
+- **Bug em renderer? Testar local primeiro, sempre.** Durante E30-02, gastei horas debugando o bug `size: A4` em prod (deploy + smoke + esperar OPcache + PO reportar). Quando finalmente testei mPDF local (mesmo sem GD — mPDF tolera pra texto puro, ou via `php -d extension=gd` pra imagens), reproduzi em 5 min e identifiquei o trigger via bisect. Regra: se o renderer (mPDF, qualquer PDF lib) é PHP-puro, escrever um `test-X.php` curto local com vendor/autoload, instanciar e testar com input mínimal. Bisect localmente é ordens de magnitude mais rápido que iterar via deploy + smoke real.
+- **`@page { size: 210mm 297mm }` em mm explícito — nunca o keyword `A4`** em qualquer template novo pro mPDF v8.x. Documentado em `feedback_mpdf_gotchas.md`.
+- **mPDF position:absolute em DIV wrapper** funciona pra cover layouts complexos (4 elementos posicionados livremente em mm relativos a `@page`). IMG inline (sem div wrapper) NÃO aceita position:absolute — sempre wrap em block-level.
+- **PHP local sem GD: imagens viram X silenciosamente.** mPDF substitui imagens por placeholder sem erro fatal — facil interpretar como "template quebrado" quando na verdade é ambiente. Pra smoke local de PDF com imagens: `php -d extension=gd scripts/test-X.php`. Pra debugar imagens em geral: `$mpdf->showImageErrors = true` no script de teste — converte placeholders silenciosos em exception com causa real.
+- **Composer deps grandes (>10MB) excluídas do auto-deploy.** Padrão estabelecido com `vendor/mpdf` (94MB). Sobem manual via FileZilla na primeira instalação + cada bump. `EXCLUDE_PATHS` no `ftp-deploy.mjs` agora suporta multi-segmento corretamente.
+- **Iteração com PO via smoke local PDF.** Pra features com fidelidade visual crítica (PDF, layouts pixel-perfect), abrir o PDF local no viewer padrão do Windows (`start "" "<path>"`) e pedir feedback iterativo direto, antes de deploy. 4 iterações da capa Skills Hub foram resolvidas em 1 sessão local; deploy só ao fim quando o PO aprovou. Custo: PHP local precisa de GD habilitado pra renderizar imagens (`php -d extension=gd`).
+
+---
+
 ## [0.27.0] — 2026-04-26
 
 Vigésima sétima release. Escopo: **Epic E29 inteiro — Identidade visual unificada teacher+admin** (4 stories, F20). Estende o visual moderno da `lms-student-area` (Inter + Plus Jakarta Sans, page bg `#F8F7FB`, cards arredondados, hero pattern com eyebrow + título grande) para professor e super-admin via variants `lms-teacher-area` e `lms-admin-area`. Sem mudança de schema. Decisões consolidadas: variants (não promoção genérica), sem dark mode teacher/admin no MVP, sem sidebar (escopo enxuto — 4 stories em vez das 8 estimadas), migração gradual (páginas não-migradas continuam Bootstrap default sem regressão).

@@ -1,11 +1,11 @@
 <?php
 declare(strict_types=1);
 
-use Dompdf\Dompdf;
-use Dompdf\Options;
+use Mpdf\Mpdf;
 
 /**
- * Gera Reports PDF pós-feedback de avaliações em LO mode (E26 — F17).
+ * Gera Reports PDF pós-feedback de avaliações em LO mode (E26 — F17;
+ * renderer trocado pra mPDF em E30-01 / 2026-04-27).
  *
  * **Disponibilidade restrita:** tenants Actvet com curso `grading_mode='learning_outcomes'`
  * E `report_mode='skill_hub'` E todos os 5 LOs com nota lançada. Fora desse
@@ -16,7 +16,7 @@ use Dompdf\Options;
  *
  * Re-correção (re-feedback do prof) sobrescreve o arquivo existente.
  *
- * Variáveis substituídas via `str_replace` (sintaxe `{{VAR_NAME}}`):
+ * Variáveis substituídas via `strtr` (sintaxe `{{VAR_NAME}}`):
  *  - `{{NAME_COURSE}}`, `{{NAME_STUDENT}}`, `{{NAME_UC}}`
  *  - `{{WORKLOAD_UC}}` (formato `30h`)
  *  - `{{AVG_LEARN}}` (média × 10; inteiro quando exato, 1 decimal só se necessário)
@@ -25,8 +25,9 @@ use Dompdf\Options;
  *
  * Variáveis fora do catálogo: ficam literais no PDF (debug-friendly, decisão da spec).
  *
- * **dompdf** rodando com `chroot` apontando pro template + `isRemoteEnabled=false`
- * — não abre URLs externas nem arquivos fora do template dir.
+ * **mPDF** rodando com `tempDir` confinado a `storage/reports/_mpdf-tmp/`. Imagens
+ * remotas desativadas (`mPDF` não baixa URLs externas — só assets do basePath
+ * no template_dir). Requer extensão PHP `gd` em produção.
  */
 final class ReportService
 {
@@ -87,7 +88,7 @@ final class ReportService
         try {
             self::renderPdf($html, $absPath);
         } catch (\Throwable $e) {
-            error_log('[ReportService] dompdf failed for submission ' . $submissionId . ': ' . $e->getMessage());
+            error_log('[ReportService] mPDF failed for submission ' . $submissionId . ': ' . $e->getMessage());
             return ['status' => 'render_failed', 'error_key' => 'reports.err.render'];
         }
 
@@ -229,29 +230,33 @@ final class ReportService
     }
 
     /**
-     * Renderiza o HTML em PDF e salva no path absoluto. dompdf gated com
-     * chroot apontando pro template dir (impede acesso a outros files do
-     * disco) e remote desativado (sem buscar URLs externas).
+     * Renderiza o HTML em PDF e salva no path absoluto. mPDF gated com
+     * `tempDir` confinado a storage/reports/_mpdf-tmp/ (não escreve em
+     * /tmp do servidor) + basePath apontando pro template dir (assets
+     * relativos do template resolvem dali).
+     *
+     * Imagens remotas (URLs http://) ignoradas pela config padrão do mPDF
+     * — só carrega assets locais via basePath.
      */
     private static function renderPdf(string $html, string $absOutPath): void
     {
         $templateDir = LMS_ROOT . self::REL_TEMPLATE_DIR;
+        $tempDir     = LMS_ROOT . self::REL_OUTPUT_DIR . '/_mpdf-tmp';
 
-        $options = new Options();
-        $options->set('chroot', $templateDir);
-        $options->set('isRemoteEnabled', false);
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('defaultFont', 'DejaVu Sans');
-
-        $dompdf = new Dompdf($options);
-        $dompdf->setBasePath($templateDir);
-        $dompdf->loadHtml($html, 'UTF-8');
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-
-        $output = $dompdf->output();
-        if (file_put_contents($absOutPath, $output) === false) {
-            throw new \RuntimeException('Failed to write PDF to ' . $absOutPath);
+        if (!is_dir($tempDir) && !@mkdir($tempDir, 0775, true)) {
+            throw new \RuntimeException('Failed to create mPDF temp dir: ' . $tempDir);
         }
+
+        // Config minimo. Defaults do mPDF: A4 portrait UTF-8 com margens
+        // 15/15/16/16mm e font dejavusans. Setting demais opcoes em iter
+        // anterior causou bug: BleedBox/TrimBox zerados, 1 char por
+        // pagina (200+ paginas no PDF). Margens/font definidas no @page
+        // do template (CSS) em vez de aqui.
+        $mpdf = new Mpdf([
+            'tempDir' => $tempDir,
+        ]);
+        $mpdf->SetBasePath($templateDir . '/');
+        $mpdf->WriteHTML($html);
+        $mpdf->Output($absOutPath, \Mpdf\Output\Destination::FILE);
     }
 }

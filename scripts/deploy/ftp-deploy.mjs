@@ -61,6 +61,11 @@ const EXCLUDE_PATHS = [
     "scripts",
     "CLAUDE.md",
     "README.md",
+    // mPDF empacota ~94MB de TTFs (E30-01) — auto-deploy via FTPS
+    // throttled levaria 30+ min e satura a conexão. Atualizacao do
+    // mPDF em prod é evento raro (composer require novo) e o PO sobe
+    // manualmente via FileZilla quando acontecer.
+    "vendor/mpdf",
 ];
 
 // ── Subpastas que VOLTAM a ser permitidas mesmo quando o pai está
@@ -142,9 +147,11 @@ function isExcluded(relPath) {
             return false;
         }
     }
-    const parts = relPath.split(/[\\/]/);
     for (const ex of EXCLUDE_PATHS) {
-        if (parts[0] === ex) return true;
+        // Suporta multi-segmento: "vendor/mpdf" matcheia "vendor/mpdf"
+        // e "vendor/mpdf/foo/bar". Single-segmento (".git") tambem cobre
+        // ".git/objects/..." pelo mesmo prefix-match.
+        if (posixPath === ex || posixPath.startsWith(ex + "/")) return true;
     }
     for (const re of EXCLUDE_PATTERNS) {
         if (re.test(posixPath)) return true;
