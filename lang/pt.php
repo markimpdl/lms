@@ -487,7 +487,7 @@ return [
     'activities.form.submission_open'  => 'Entrega aberta',
     'activities.form.submission_open_hint' => 'Quando desmarcado, alunos não conseguem enviar novas entregas (as existentes permanecem).',
     'activities.form.allow_code_run'   => 'Permitir execução online de código',
-    'activities.form.allow_code_run_hint' => 'Só disponível para atividades do tipo Código. A execução via Judge0 chega no Epic E8.',
+    'activities.form.allow_code_run_hint' => 'Só disponível para atividades do tipo Código. Quando marcado, o aluno pode executar o código direto pelo navegador (via Judge0).',
     'activities.form.code_language'       => 'Linguagem do código',
     'activities.form.code_language_none'  => '— Sem linguagem definida —',
     'activities.form.code_language_hint'  => 'Define o editor + a linguagem que o Judge0 usa pra executar.',

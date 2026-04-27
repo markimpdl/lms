@@ -487,7 +487,7 @@ return [
     'activities.form.submission_open'  => 'Submission open',
     'activities.form.submission_open_hint' => 'When unchecked, students cannot submit new attempts (existing submissions are kept).',
     'activities.form.allow_code_run'   => 'Allow online code execution',
-    'activities.form.allow_code_run_hint' => 'Only available for Code-type activities. Judge0 execution arrives in Epic E8.',
+    'activities.form.allow_code_run_hint' => 'Only available for Code-type activities. When checked, students can run the code directly in the browser (via Judge0).',
     'activities.form.code_language'       => 'Code language',
     'activities.form.code_language_none'  => '— No language set —',
     'activities.form.code_language_hint'  => 'Sets the editor + language Judge0 uses to run.',
