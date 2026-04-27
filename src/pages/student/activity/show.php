@@ -254,6 +254,22 @@ ob_start();
             </div>
         </div>
 
+        <!-- Brief PDF/ZIP do professor (v0.30.0) — só pra atividade tipo projeto. -->
+        <?php if (($activity['pdf_path'] ?? null) !== null): ?>
+            <div class="card shadow-sm mb-3">
+                <div class="card-body d-flex align-items-center gap-3 flex-wrap">
+                    <div class="flex-grow-1">
+                        <strong><?= e(__t('activities.student.brief_title')) ?></strong>
+                        <div class="small text-muted"><?= e(__t('activities.student.brief_hint')) ?></div>
+                    </div>
+                    <a href="/student/activity/<?= $activityId ?>/brief"
+                       class="btn btn-outline-primary">
+                        <?= e(__t('activities.student.brief_download')) ?>
+                    </a>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <!-- Feedback do professor, quando já entregue -->
         <?php if ($submission !== null && $submission['feedback_at'] !== null): ?>
             <div class="card shadow-sm mb-3 border-success">

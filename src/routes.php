@@ -308,6 +308,11 @@ return [
             'role'   => 'student',
             'params' => ['id'],
         ],
+        '#^/student/activity/(\d+)/brief$#' => [
+            'file'   => '/src/pages/student/activity/brief.php',
+            'role'   => 'student',
+            'params' => ['id'],
+        ],
         '#^/student/cu/(\d+)$#' => [
             'file'   => '/src/pages/student/cu/show.php',
             'role'   => 'student',

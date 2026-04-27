@@ -80,6 +80,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $old['code_language'] = null;
     }
 
+    // Brief PDF/ZIP — opcional, só pra type=projeto (v0.30.0)
+    $fileField = $_FILES['pdf'] ?? null;
+    $hasUpload = is_array($fileField) && (int) ($fileField['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+
     if ($errors === []) {
         $clean = ContentSanitizer::purify($old['instruction']);
         $result = Activity::create($cuId, $tenantId, [
@@ -87,12 +91,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'instruction'           => $clean,
             'type'                  => $old['type'],
             'code_language'         => $old['code_language'],
+            'pdf_path'              => null,
             'xp_value'              => $old['xp_value'],
             'submission_open'       => $old['submission_open'],
             'allow_online_code_run' => $old['allow_online_code_run'],
         ]);
 
         if (is_int($result)) {
+            // Brief upload: rola depois do INSERT pra ter o id no path.
+            // Se falhar, ROLLBACK manual via Activity::delete (atividade
+            // sem dados úteis ainda — sem submissões nem XP).
+            if ($old['type'] === 'projeto' && $hasUpload) {
+                $upload = ActivityBriefStorage::store($fileField, $result, $tenantId);
+                if ($upload['status'] !== 'ok') {
+                    Activity::delete($result, $tenantId, $old['title']);
+                    $errors['pdf'] = $upload['error_key'] ?? 'activities.err.brief_generic';
+                    // Cai pro re-render do form com $errors preenchido
+                    goto renderForm;
+                }
+                Database::pdo()
+                    ->prepare('UPDATE activities SET pdf_path = ? WHERE id = ?')
+                    ->execute([$upload['stored_path'], $result]);
+            }
+
             // E20-07: type=quiz redireciona pro form do quiz e NÃO dispara
             // fanout activity_new aqui — atividade-quiz sem questões é
             // inutilizável pro aluno; fanout fica diferido (não automatizado
@@ -139,11 +160,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$mode         = 'new';
-$formAction   = '/teacher/cu/' . $cuId . '/activity/new';
-$submissions  = 0;
-$activityId   = null;
-$activityName = (string) $cu['name'];
+renderForm:
+$mode           = 'new';
+$formAction     = '/teacher/cu/' . $cuId . '/activity/new';
+$submissions    = 0;
+$activityId     = null;
+$activityName   = (string) $cu['name'];
+$currentPdfPath = null;
+$maxMb          = (int) ((ActivityBriefStorage::maxBytes()) / (1024 * 1024));
 
 $page_title = __t('activities.new.title');
 ob_start();

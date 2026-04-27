@@ -38,7 +38,8 @@ declare(strict_types=1);
             </div>
         <?php endif; ?>
 
-        <form method="POST" action="<?= e($formAction) ?>" class="card card-body shadow-sm" novalidate>
+        <form method="POST" action="<?= e($formAction) ?>"
+              enctype="multipart/form-data" class="card card-body shadow-sm" novalidate>
             <?= csrf_field() ?>
 
             <div class="mb-3">
@@ -111,6 +112,34 @@ declare(strict_types=1);
                 <div class="form-text"><?= e(__t('activities.form.instruction_hint')) ?></div>
             </div>
 
+            <div class="mb-3" id="pdf-group" <?= ($old['type'] ?? 'projeto') !== 'projeto' ? 'style="display:none"' : '' ?>>
+                <label for="f-pdf" class="form-label"><?= e(__t('activities.form.pdf')) ?></label>
+                <?php if ($mode === 'edit' && ($currentPdfPath ?? null) !== null): ?>
+                    <div class="mb-2 small d-flex align-items-center gap-2 flex-wrap">
+                        <span class="text-muted"><?= e(__t('activities.form.pdf_current')) ?>:</span>
+                        <code><?= e(basename((string) $currentPdfPath)) ?></code>
+                        <div class="form-check ms-2">
+                            <input class="form-check-input" type="checkbox" id="f-pdf-remove" name="pdf_remove" value="1">
+                            <label class="form-check-label small" for="f-pdf-remove">
+                                <?= e(__t('activities.form.pdf_remove')) ?>
+                            </label>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                <input type="file" name="pdf" id="f-pdf"
+                       accept="application/pdf,application/zip,.pdf,.zip"
+                       class="form-control<?= isset($errors['pdf']) ? ' is-invalid' : '' ?>">
+                <div class="form-text">
+                    <?= e(__t('activities.form.pdf_hint', ['mb' => (string) ($maxMb ?? 12)])) ?>
+                    <?php if ($mode === 'edit'): ?>
+                        — <?= e(__t('activities.form.pdf_keep_hint')) ?>
+                    <?php endif; ?>
+                </div>
+                <?php if (isset($errors['pdf'])): ?>
+                    <div class="invalid-feedback"><?= e(__t($errors['pdf'])) ?></div>
+                <?php endif; ?>
+            </div>
+
             <div class="form-check mb-2">
                 <input class="form-check-input" type="checkbox" id="f-submission-open"
                        name="submission_open" value="1" <?= $old['submission_open'] ? 'checked' : '' ?>>
@@ -168,22 +197,25 @@ tinymce.init({
     mobile: { toolbar_mode: 'floating' }
 });
 
-// Habilita/desabilita o toggle "executar código" e mostra/esconde o select de
-// linguagem conforme o tipo escolhido.
+// Habilita/desabilita o toggle "executar código", mostra/esconde o select de
+// linguagem (type=codigo) e o campo de PDF brief (type=projeto, v0.30.0).
 (function () {
-    var sel   = document.getElementById('f-type');
-    var chk   = document.getElementById('f-allow-code-run');
-    var group = document.getElementById('code-language-group');
-    var lang  = document.getElementById('f-code-language');
+    var sel       = document.getElementById('f-type');
+    var chk       = document.getElementById('f-allow-code-run');
+    var langGroup = document.getElementById('code-language-group');
+    var lang      = document.getElementById('f-code-language');
+    var pdfGroup  = document.getElementById('pdf-group');
     if (!sel) return;
     sel.addEventListener('change', function () {
-        var enabled = sel.value === 'codigo';
+        var isCode    = sel.value === 'codigo';
+        var isProject = sel.value === 'projeto';
         if (chk) {
-            chk.disabled = !enabled;
-            if (!enabled) chk.checked = false;
+            chk.disabled = !isCode;
+            if (!isCode) chk.checked = false;
         }
-        if (group) group.style.display = enabled ? '' : 'none';
-        if (lang && !enabled) lang.value = '';
+        if (langGroup) langGroup.style.display = isCode ? '' : 'none';
+        if (lang && !isCode) lang.value = '';
+        if (pdfGroup) pdfGroup.style.display = isProject ? '' : 'none';
     });
 })();
 </script>
