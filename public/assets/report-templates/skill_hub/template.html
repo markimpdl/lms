@@ -24,47 +24,68 @@
         padding: 0;
     }
 
-    /* Cover layout — table 2-col: image001 esquerda (bleed) + texto
-       direita no mesmo nivel vertical. Image002 no rodape em width
-       full (bleed esquerda+direita). @page :first { margin: 0 } cuida
-       do bleed top/left/right. */
-    .cover-table {
-        width: 210mm;
-        border-collapse: collapse;
-        margin: 0;
+    /* Capa (iter 4) — layout absoluto sobre @page :first { margin: 0 }.
+       4 elementos:
+         - image006 lateral: top 30mm, left 0
+         - logo-grande: top ~25% (74mm), right 35mm
+         - bloco texto Assessment Report + curso: meio, right 30mm
+         - image002 footer: full-width, bottom 0
+    */
+    .cover-side {
+        position: absolute;
+        top: 30mm;
+        left: 0;
+        width: 70mm;
     }
-    .cover-table td {
-        border: none;
-        padding: 0;
-        vertical-align: middle;
-    }
-    .cover-img {
+    .cover-side img {
         display: block;
-        width: 108mm;
-        height: 180mm;
+        width: 70mm;
+        height: auto;
+    }
+    .cover-logo {
+        position: absolute;
+        top: 74mm;
+        right: 35mm;
+        width: 80mm;
+        text-align: right;
+    }
+    .cover-logo img {
+        display: inline-block;
+        width: 80mm;
+        height: auto;
     }
     .cover-text {
-        padding: 0 18mm 0 12mm;
-        vertical-align: middle;
+        position: absolute;
+        top: 145mm;
+        right: 30mm;
+        width: 150mm;
+        text-align: right;
     }
     .cover-text h1 {
         font-family: dejavusansb, sans-serif;
-        font-size: 22pt;
+        font-size: 26pt;
         font-weight: bold;
         color: #15365F;
-        margin: 0 0 6mm 0;
+        margin: 0 0 4mm 0;
+        text-align: right;
     }
     .cover-text .course {
-        font-size: 11pt;
+        font-size: 13pt;
         font-weight: bold;
         color: #15365F;
         margin: 0;
+        text-align: right;
     }
-    .cover-bottom {
+    .cover-footer {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 210mm;
+    }
+    .cover-footer img {
         display: block;
         width: 210mm;
         height: auto;
-        margin: 0;
     }
 
     /* Header pg2 */
@@ -85,10 +106,10 @@
     }
     .doc-header__brand {
         text-align: right;
-        font-size: 9pt;
-        color: #15365F;
-        font-weight: bold;
-        letter-spacing: 0.5pt;
+    }
+    .doc-header__brand img {
+        width: 18mm;
+        height: auto;
     }
 
     .doc-title {
@@ -224,19 +245,16 @@
     </div>
 </htmlpagefooter>
 
-<!-- Pagina 1 (capa) — bleed-to-edge via @page :first margin:0 -->
-<table class="cover-table">
-    <tr>
-        <td style="width: 108mm;">
-            <img class="cover-img" src="images/image001.png" alt="">
-        </td>
-        <td class="cover-text">
-            <h1>Assessment Report</h1>
-            <p class="course">{{NAME_COURSE}}</p>
-        </td>
-    </tr>
-</table>
-<img class="cover-bottom" src="images/image002.png" alt="">
+<!-- Pagina 1 (capa) — bleed-to-edge via @page :first { margin: 0 }.
+     Layout absoluto: side (image006) + logo-grande direita + texto +
+     footer (image002). -->
+<div class="cover-side"><img src="images/image006.png" alt=""></div>
+<div class="cover-logo"><img src="images/logo-grande.png" alt=""></div>
+<div class="cover-text">
+    <h1>Assessment Report</h1>
+    <p class="course">{{NAME_COURSE}}</p>
+</div>
+<div class="cover-footer"><img src="images/image002.png" alt=""></div>
 
 <pagebreak resetpagenum="1" />
 
@@ -251,7 +269,7 @@
             <span class="doc-header__label">{{NAME_COURSE}}</span>
         </td>
         <td class="doc-header__brand" style="width: 40%;">
-            ACTVET &nbsp;|&nbsp; Skills Hub
+            <img src="images/image005.png" alt="ACTVET Skills Hub">
         </td>
     </tr>
 </table>
