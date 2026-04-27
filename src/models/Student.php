@@ -230,8 +230,12 @@ final class Student
 
     /**
      * Exclui aluno após revalidar o email informado (confirmação por digitação,
-     * padrão E3-05). Cascade cuida de enrollments, submissions, xp_events,
-     * group_members.
+     * padrão E3-05). Cascade do banco cuida de enrollments, submissions,
+     * xp_events, group_members.
+     *
+     * Antes do DELETE, coleta os `stored_path` das submissões físicas
+     * (atividades + avaliações) pra apagar os arquivos do disco depois do
+     * commit (best-effort — falha aqui não rola back).
      *
      * Retorna: 'ok' | 'not_found' | 'email_mismatch'.
      */
@@ -244,9 +248,26 @@ final class Student
         if ((string) $student['email'] !== $expectedEmail) {
             return 'email_mismatch';
         }
-        Database::pdo()
-            ->prepare('DELETE FROM users WHERE id = ? AND tenant_id = ? AND role = "student"')
+
+        $pdo = Database::pdo();
+        $stmt = $pdo->prepare(
+            'SELECT stored_path FROM activity_submissions
+              WHERE student_user_id = ? AND stored_path IS NOT NULL
+              UNION ALL
+             SELECT stored_path FROM evaluation_submissions
+              WHERE student_user_id = ? AND stored_path IS NOT NULL'
+        );
+        $stmt->execute([$id, $id]);
+        /** @var list<string> $paths */
+        $paths = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        $pdo->prepare('DELETE FROM users WHERE id = ? AND tenant_id = ? AND role = "student"')
             ->execute([$id, $tenantId]);
+
+        foreach ($paths as $p) {
+            safe_unlink_storage((string) $p);
+        }
+
         return 'ok';
     }
 }
