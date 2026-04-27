@@ -222,20 +222,14 @@ A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** du
 - **Impacto:** baixo (afeta só visual mobile dos prof/admin).
 - **Ação:** ou (a) carregar bootstrap-icons em todas as páginas (incrementa request CDN em desktop também), ou (b) usar SVG inline / Unicode pra ícones críticos. Decidir junto com E29 (identidade visual unificada).
 
-### [E25-02] Re-cadastro de LOs apaga notas existentes via FK CASCADE
-- `LearningOutcome::replaceForCu` faz DELETE + INSERT (transação atômica). O DELETE cascateia em `evaluation_submission_lo_grades` (FK ON DELETE CASCADE) — se o professor já corrigiu submissões e edita os critérios, as notas por LO somem (a média em `evaluation_submissions.grade` permanece, mas perde a granularidade).
-- **Impacto:** baixo no MVP — raro o professor mexer em LOs após começar a corrigir. Quando muda, intencional (mudou o que avalia → notas antigas obsoletas).
-- **Ação (se virar problema):** gatear `replaceForCu` com confirmação UI quando `countGradesByCu > 0` ("Atenção: existem N correções gravadas. Editar critérios apagará as notas por critério (a média final fica). Continuar?").
+### ~~[E25-02] Re-cadastro de LOs apaga notas existentes via FK CASCADE~~ ✅ RESOLVIDA (v0.29.0)
 
 ### [E25-05] UC sem 5 LOs cadastrados em curso LO mode — aluno fica sem orientação
 - Quando o curso virou LO depois de criar UCs, e o professor ainda não cadastrou os 5 LOs em alguma CU, o aluno em `/student/evaluation/{id}` daquela CU **não vê o card "Critérios avaliados"** (defesa silenciosa: só renderiza com `loList !== []`).
 - **Impacto:** baixo — feedback do professor já está bloqueado nesse cenário (E25-03 mostra alerta clicável pro cadastro), então o aluno fica sem orientação só durante a janela de transição.
 - **Ação (se virar problema):** mostrar mensagem alternativa pro aluno ("Os critérios desta avaliação estão sendo definidos pelo professor"). Sobre-engineering pro MVP.
 
-### [E24-03] Logos órfãs em `public/uploads/logos/`
-- Quando o super-admin marca como Actvet (`is_actvet=1`) um tenant que tinha `logo_path` setada (upload prévio em `/teacher/settings`), o helper `tenant_branding()` passa a usar a logo Actvet hardcoded e ignora `logo_path`. O arquivo PNG/SVG/JPG fica órfão no disco.
-- **Impacto:** baixo — só desperdício de disco (max 500KB por arquivo).
-- **Ação:** ou (a) cron de limpeza listando arquivos sem referência em `tenants.logo_path`, ou (b) melhor: tratar no toggle do `/admin/teachers/edit` — quando flag muda para Actvet, fazer `UPDATE tenants SET logo_path=NULL` + `LogoStorage::deleteByBasename($oldBasename)`.
+### ~~[E24-03] Logos órfãs em `public/uploads/logos/`~~ ✅ RESOLVIDA (v0.29.0)
 
 ---
 
@@ -250,7 +244,8 @@ A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** du
 - **Bloqueia:** E13-03 (script de deploy incremental).
 
 ### cPanel — seleção de versão PHP
-- **Ação na primeira configuração:** garantir que o domínio está travado em **PHP 8.2** no MultiPHP Manager. Não deixar no "latest" (pode pular versões sem aviso).
+- **Status (2026-04-27):** Hostinger subiu o domínio pra **PHP 8.3** automaticamente em 2026-04-22. Validado por uso real (todo o roadmap rodou em 8.3 sem incidente). CLAUDE.md atualizado pra refletir 8.3.
+- **Ação na primeira configuração de domínio novo:** travar em PHP **8.3** no MultiPHP Manager. Não deixar no "latest" (pode pular versões sem aviso).
 
 ### cPanel — document root
 - **Ação na primeira configuração:** apontar o document root do domínio para `/public_html/public/` (e não `/public_html/`). O front controller e o `.htaccess` estão em `public/`.
@@ -259,9 +254,7 @@ A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** du
 
 ## Inconsistências menores de documentação para alinhar
 
-### [E0-03] Skill `/code-review` cita `MySQL::pdo()` em vez de `Database::pdo()`
-- Arquivo: `.claude/skills/code-review.md`, linha que diz "PDO via `MySQL::pdo()` singleton".
-- **Ação:** trocar para `Database::pdo()` em uma das próximas oportunidades (não urgente — o skill não é auto-invocado).
+### ~~[E0-03] Skill `/code-review` cita `MySQL::pdo()` em vez de `Database::pdo()`~~ ✅ RESOLVIDA (v0.29.0)
 
 ### [E0-04] Divergência AC "toast" vs. implementação "alert"
 - A issue #17 fala em "toast Bootstrap"; a implementação usa `alert` do Bootstrap.
@@ -284,3 +277,7 @@ A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** du
 - **2026-04-23 — Bug crítico: `tenant_id` do professor nunca era resolvido na sessão.** Descoberto no smoke test do Epic E3 em produção: criar curso / qualquer página `/teacher/*` que usa `current_tenant_id()` caía em 403. Causa: `users.tenant_id IS NULL` para teachers (CHECK constraint `chk_users_role_tenant`); o elo real é `tenants.owner_user_id = users.id` (ADR-025), mas `AuthController::authenticate()` lia `tenant_id` direto de `users`, gravando NULL na sessão. Fix em `src/controllers/AuthController.php`: SELECT agora faz `LEFT JOIN tenants t ON t.owner_user_id = u.id AND t.active = 1` + `COALESCE(t.id, u.tenant_id) AS tenant_id`. Preserva student (vem de `u.tenant_id`) e super_admin (permanece NULL). Sessões anteriores precisam de logout/login para repopular.
 - **2026-04-22 — [E10-03] PHPMailer + SMTP real.** `composer.json` criado (`php ^8.2` + `phpmailer/phpmailer ^6.9`), `bootstrap.php` passa a incluir `vendor/autoload.php`, `Mailer::send()` usa PHPMailer quando `SMTP_HOST/USER/PASS/FROM` estão preenchidos em `config/env.php` e mantém o fallback em `storage/logs/mail-debug.log` caso contrário. Falhas de SMTP vão para `storage/logs/mail.log` (não relançam). `Mailer::isConfigured()` passa a ler o env. Interface pública intocada — callers de E1-03/E2-02/E2-07 seguem iguais. Credenciais de produção em `config/env.php` (gitignored). Item "[E1-03] Integração PHPMailer quando E10 chegar" e "SMTP Hostgator" (pendência externa) saem da lista.
 - **2026-04-22 — Pendência externa "SMTP Hostgator" reclassificada.** O domínio `lms.rumo.info` oferece SMTP próprio (cPanel/Hostinger) — não é mais Hostgator. Credenciais já em `config/env.php` (gitignored).
+- **2026-04-27 — [E25-02] Re-cadastro de LOs apaga notas existentes via FK CASCADE (v0.29.0).** Adicionado `LearningOutcome::countGradesByCu(int $cuId): int` (JOIN learning_outcomes × evaluation_submission_lo_grades). Page handler `src/pages/teacher/cu/learning-outcomes.php` exibe alerta amarelo + checkbox `confirm_drop_grades` quando `gradesCount > 0`; submit sem confirmação devolve erro `learning_outcomes.err.confirm_required`. 4 chaves i18n novas em PT/EN.
+- **2026-04-27 — [E24-03] Logos órfãs em `public/uploads/logos/` (v0.29.0).** Adicionado `Tenant::clearLogo(int $tenantId): void` (zera só `logo_path`, mantém `platform_name`). `AdminTeachersController::update` agora detecta transição não-Actvet → Actvet e, se há `logo_path` setada, chama `clearLogo` dentro da tx + `LogoStorage::deleteByBasename` após o commit (best-effort). Cobre o caso comum; logos órfãs já existentes em prod requerem cleanup manual via FileZilla (raras).
+- **2026-04-27 — [E0-03] Skill `/code-review` cita `MySQL::pdo()` em vez de `Database::pdo()` (v0.29.0).** Trocado em `.claude/skills/code-review.md`.
+- **2026-04-27 — Hostinger subiu o domínio para PHP 8.3 (v0.29.0).** Auto-upgrade da Hostinger em 2026-04-22; validado por uso real durante todo o roadmap pós-MVP estendido (E15-E30). CLAUDE.md atualizado pra refletir 8.3 (features 8.3 OK, ainda proibir 8.4).

@@ -355,6 +355,10 @@ return [
     'learning_outcomes.has_errors'   => 'Please fix the highlighted fields.',
     'learning_outcomes.success'      => 'Criteria updated.',
     'learning_outcomes.edit_link'    => 'Edit criteria',
+    'learning_outcomes.cascade_warning_title'   => 'Heads up: existing scores will be deleted',
+    'learning_outcomes.cascade_warning_body'    => 'This unit already has :n criterion score(s) recorded across assessment submissions. Saving now will delete all per-criterion scores (the final assessment grade is preserved).',
+    'learning_outcomes.cascade_warning_confirm' => 'I understand and want to delete the per-criterion scores.',
+    'learning_outcomes.err.confirm_required'    => 'Tick the confirmation box to proceed.',
 
     // Sequential progression (E19-02 + E19-03 + E19-04)
     'progression.next_locked'                  => 'Complete ":name" first',

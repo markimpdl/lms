@@ -355,6 +355,10 @@ return [
     'learning_outcomes.has_errors'   => 'Corrija os campos destacados.',
     'learning_outcomes.success'      => 'Critérios atualizados.',
     'learning_outcomes.edit_link'    => 'Editar critérios',
+    'learning_outcomes.cascade_warning_title'   => 'Atenção: notas existentes serão apagadas',
+    'learning_outcomes.cascade_warning_body'    => 'Esta unidade já tem :n nota(s) por critério gravada(s) em correções de avaliações. Salvar agora apaga todas as notas por critério (a nota final da avaliação permanece).',
+    'learning_outcomes.cascade_warning_confirm' => 'Confirmo que entendi e quero apagar as notas por critério.',
+    'learning_outcomes.err.confirm_required'    => 'Marque a confirmação para prosseguir.',
 
     // Progressão sequencial (E19-02 + E19-03 + E19-04)
     'progression.next_locked'                  => 'Conclua ":name" primeiro',
