@@ -946,6 +946,10 @@ body.lms-student-area .lms-student-main {
     margin-bottom: 24px;
     overflow-x: auto;
     max-width: 100%;
+    position: sticky;
+    top: 8px;
+    z-index: 20;
+    box-shadow: var(--lms-shadow-card);
 }
 .lms-section-tab {
     display: inline-flex;
