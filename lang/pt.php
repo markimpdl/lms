@@ -429,6 +429,8 @@ return [
     'content.form.publish'       => 'Publicar para os alunos',
     'content.form.publish_hint'  => 'Quando marcado, os alunos matriculados neste curso verão o conteúdo na CU. Desmarque para continuar rascunhando sem expor.',
     'content.saved'              => 'Conteúdo salvo.',
+    'content.show_more'          => 'Ver mais',
+    'content.show_less'          => 'Ver menos',
 
     // Anexos (E5-03)
     'attachments.section'                   => 'Anexos',
