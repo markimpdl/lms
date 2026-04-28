@@ -948,7 +948,7 @@ body.lms-student-area .lms-student-main {
     overflow-x: auto;
     max-width: 100%;
     position: sticky;
-    top: 8px;
+    top: 72px; /* navbar (64px) + 8px de respiro; navbar fica acima */
     z-index: 20;
     box-shadow: var(--lms-shadow-card);
 }
