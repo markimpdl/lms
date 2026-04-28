@@ -937,7 +937,8 @@ body.lms-student-area .lms-student-main {
 
 /* Section tabs */
 .lms-section-tabs {
-    display: inline-flex;
+    display: flex;
+    width: fit-content;
     gap: 4px;
     padding: 5px;
     background: var(--lms-card-bg);
