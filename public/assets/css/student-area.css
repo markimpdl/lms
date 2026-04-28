@@ -1011,6 +1011,26 @@ body.lms-student-area .lms-student-main {
     padding: 28px;
     box-shadow: var(--lms-shadow-card);
 }
+.lms-content-card__body.is-collapsed {
+    max-height: 1500px;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 100px), transparent);
+            mask-image: linear-gradient(to bottom, black calc(100% - 100px), transparent);
+}
+.lms-content-card__toggle { text-align: center; margin-top: 16px; }
+.lms-content-card__toggle-btn {
+    background: var(--lms-card-bg);
+    border: 1px solid var(--lms-neutral-200);
+    border-radius: var(--lms-radius-chip);
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--lms-neutral-700);
+    cursor: pointer;
+    transition: background 160ms ease, color 160ms ease;
+}
+.lms-content-card__toggle-btn:hover { background: var(--lms-neutral-100); color: var(--lms-neutral-900); }
+
 .lms-content-card--empty { text-align: center; color: var(--lms-neutral-500); }
 .lms-content-card__empty-title {
     font-family: 'Plus Jakarta Sans', sans-serif;
