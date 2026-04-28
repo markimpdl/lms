@@ -126,15 +126,27 @@ ob_start();
         <?php endif; ?>
 
         <div class="card shadow-sm mb-3">
-            <div class="card-body content-render">
-                <?php if ($hasContent): ?>
-                    <?= (string) $content['html'] ?>
-                <?php else: ?>
+            <?php if ($hasContent): ?>
+                <div class="card-body content-render"
+                     x-data="{ expanded: false, needsToggle: false }"
+                     x-init="$nextTick(() => { needsToggle = $refs.body.scrollHeight > 700 })">
+                    <div x-ref="body" class="content-render__body" :class="{ 'is-collapsed': !expanded && needsToggle }">
+                        <?= (string) $content['html'] ?>
+                    </div>
+                    <div class="text-center mt-3" x-show="needsToggle" x-cloak>
+                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                @click="expanded = !expanded">
+                            <span x-text="expanded ? '<?= e(__t('content.show_less')) ?>' : '<?= e(__t('content.show_more')) ?>'"></span>
+                        </button>
+                    </div>
+                </div>
+            <?php else: ?>
+                <div class="card-body content-render">
                     <p class="text-muted mb-0 text-center py-4">
                         <?= e(__t('content.none_yet')) ?>
                     </p>
-                <?php endif; ?>
-            </div>
+                </div>
+            <?php endif; ?>
         </div>
 
         <!-- Atividades (E6-02) -->
@@ -462,6 +474,12 @@ ob_start();
 .content-render pre:not([class*="language-"]) { background: #f6f8fa; padding: .75rem; border-radius: .25rem; overflow-x: auto; }
 .content-render pre[class*="language-"]       { margin: .75rem 0; border-radius: .25rem; }
 .content-render blockquote   { border-left: 3px solid #dee2e6; padding-left: 1rem; color: #6c757d; }
+.content-render__body.is-collapsed {
+    max-height: 700px;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 80px), transparent);
+            mask-image: linear-gradient(to bottom, black calc(100% - 80px), transparent);
+}
 </style>
 <?php
 $page_content = ob_get_clean();

@@ -429,6 +429,8 @@ return [
     'content.form.publish'       => 'Publish to students',
     'content.form.publish_hint'  => 'When checked, enrolled students of this course will see the content in the CU. Uncheck to keep drafting without exposing.',
     'content.saved'              => 'Content saved.',
+    'content.show_more'          => 'Show more',
+    'content.show_less'          => 'Show less',
 
     // Attachments (E5-03)
     'attachments.section'                   => 'Attachments',
