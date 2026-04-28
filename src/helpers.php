@@ -712,11 +712,15 @@ function current_lang(): string
         $_SESSION['lang'] = $_GET['lang'];
     }
 
+    // Fallback 'en' pra visitantes anonimos (login, /forgot, etc.). Usuarios
+    // logados tem `language` na sessao/DB; fallback so impacta quem nao tem
+    // preferencia setada — e o publico tipico do LMS sao alunos e
+    // professores nos EAU, onde EN eh mais neutro que PT.
     $candidate = $_SESSION['lang']
         ?? (current_user()['language'] ?? null)
-        ?? 'pt';
+        ?? 'en';
 
-    $resolved = in_array($candidate, $supported, true) ? $candidate : 'pt';
+    $resolved = in_array($candidate, $supported, true) ? $candidate : 'en';
     return $resolved;
 }
 
