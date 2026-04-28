@@ -1048,7 +1048,7 @@ body.lms-student-area .lms-student-main {
     color: var(--lms-neutral-700);
     font-style: italic;
 }
-.unit-prose pre {
+.unit-prose pre:not([class*="language-"]) {
     background: #0F172A;
     color: #E2E8F0;
     padding: 16px 18px;
@@ -1058,7 +1058,8 @@ body.lms-student-area .lms-student-main {
     line-height: 1.6;
     margin: 18px 0;
 }
-.unit-prose pre code { background: transparent; color: inherit; padding: 0; }
+.unit-prose pre:not([class*="language-"]) code { background: transparent; color: inherit; padding: 0; }
+.unit-prose pre[class*="language-"] { margin: 18px 0; border-radius: var(--lms-radius-inner); }
 .unit-prose code {
     background: var(--lms-neutral-100);
     color: var(--lms-neutral-900);

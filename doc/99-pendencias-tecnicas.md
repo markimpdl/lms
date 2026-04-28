@@ -6,6 +6,21 @@ Para decisões arquiteturais já tomadas, ver `14-decisoes-e-pendencias.md` (ADR
 
 ---
 
+## Prism.js carregado via CDN externa (POLISH-03)
+
+O syntax highlighting de blocos de código publicados (POLISH-03) usa **Prism 1.29.0** servido pelo `cdnjs.cloudflare.com`:
+- `themes/prism-tomorrow.min.css`
+- `prism.min.js` (core + markup/css/clike/javascript)
+- `components/prism-python.min.js`
+- `components/prism-csharp.min.js`
+
+Carregado apenas em áreas autenticadas (`$isThemedArea` no `layout.php`). Se o cdnjs ficar fora do ar ou for bloqueado, blocos de código publicados após esta versão renderizam como `<pre>` simples sem cor — não quebra nada, só perde a cor.
+
+- **Ação futura:** considerar self-host (vendorar em `public/assets/vendor/prism/`) se houver CSP estrita, comportamento offline, ou se a hospedagem bloquear cdnjs.
+- **Quando:** quando trocarmos a estratégia de hospedagem ou se aparecer reclamação de aluno em rede corporativa restritiva.
+
+---
+
 ## Compatibilidade com PHP 8.3 em produção
 
 A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** durante o primeiro deploy (v0.1.0 — 2026-04-22). O projeto foi escrito mirando PHP 8.2 e `composer.json` trava em `"php": "^8.2"` (permite 8.2/8.3/8.4), então o código roda, mas não foi validado em 8.3.
