@@ -170,6 +170,39 @@ final class EvaluationSubmission
     }
 
     /**
+     * Lista todos os reports PDF gerados de um aluno (POLISH-01),
+     * com contexto Curso › CC › CU + nota + data do feedback.
+     * Usado no card "Reports" da tela de detalhes do aluno (E4-01).
+     *
+     * Filtra `report_pdf_path IS NOT NULL` (só submissões com PDF gerado)
+     * e tenant via JOIN em courses (mesmo padrão de findForGrading).
+     * Ordenado por nome do curso (asc) e data do feedback (desc) — caller
+     * agrupa por course_id em PHP.
+     *
+     * @return list<array<string,mixed>>
+     */
+    public static function listReportsByStudent(int $studentUserId, int $tenantId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT s.evaluation_id, s.grade, s.feedback_at,
+                    e.title AS evaluation_title,
+                    cu.id AS cu_id, cu.name AS cu_name,
+                    cc.id AS cc_id, cc.name AS cc_name,
+                    c.id  AS course_id, c.name AS course_name
+               FROM evaluation_submissions s
+               JOIN evaluations e         ON e.id  = s.evaluation_id
+               JOIN competence_units cu   ON cu.id = e.competence_unit_id
+               JOIN core_competencies cc  ON cc.id = cu.core_competency_id
+               JOIN courses c             ON c.id  = cc.course_id AND c.tenant_id = ?
+              WHERE s.student_user_id = ?
+                AND s.report_pdf_path IS NOT NULL
+              ORDER BY c.name ASC, s.feedback_at DESC'
+        );
+        $stmt->execute([$tenantId, $studentUserId]);
+        return $stmt->fetchAll();
+    }
+
+    /**
      * Conta submissões da avaliação ainda sem feedback. Usado no CTA do
      * edit.php pra indicar quantas correções estão pendentes.
      */

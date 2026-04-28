@@ -861,6 +861,10 @@ return [
     'students.filter.all'            => 'All',
     'students.col.name'              => 'Name',
     'students.col.id_document'       => 'ID document',
+    // Generated reports (POLISH-01) — grouped by course on the student details page.
+    'students.reports.title'         => 'Generated reports',
+    'students.reports.subtitle'      => '{count} graded evaluation report(s) (PDF).',
+    'students.reports.grade_label'   => 'Grade',
     // Login history — teacher-only view (E16-04).
     'students.logins.title'          => 'Recent logins',
     'students.logins.subtitle'       => 'Last 10 sign-ins; IP, approximate location and browser.',
