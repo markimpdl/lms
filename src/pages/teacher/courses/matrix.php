@@ -176,11 +176,11 @@ ob_start();
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($students as $s): $sid = (int) $s['id']; ?>
+                        <?php foreach ($students as $s): $sid = (int) $s['id']; $fullName = (string) $s['name']; $shortName = format_short_name($fullName); ?>
                             <tr x-show="matches(<?= $sid ?>)" x-transition.opacity>
                                 <td>
-                                    <a href="/teacher/students/<?= $sid ?>" class="text-decoration-none">
-                                        <?= e((string) $s['name']) ?>
+                                    <a href="/teacher/students/<?= $sid ?>" class="text-decoration-none" title="<?= e($fullName) ?>">
+                                        <?= e($shortName) ?>
                                     </a>
                                     <?php if ((int) $s['active'] === 0): ?>
                                         <span class="badge text-bg-secondary ms-1"><?= e(__t('cu_roster.badge.inactive')) ?></span>
