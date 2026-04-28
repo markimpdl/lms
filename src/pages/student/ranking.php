@@ -235,7 +235,7 @@ ob_start();
                             <img src="<?= e(student_avatar_url((int) $row['student_id'])) ?>"
                                  class="lms-ranking-avatar d-none d-md-inline-block"
                                  alt="" width="32" height="32" loading="lazy">
-                            <span class="lms-ranking-name"><?= e($row['name']) ?></span>
+                            <span class="lms-ranking-name" title="<?= e((string) $row['name']) ?>"><?= e(format_short_name((string) $row['name'])) ?></span>
                             <?php if ($rankName !== null): ?>
                                 <span class="lms-rank-pill lms-rank-pill--inline d-md-none"
                                       style="background: <?= e($rankColor) ?>"><?= e($rankName) ?></span>
