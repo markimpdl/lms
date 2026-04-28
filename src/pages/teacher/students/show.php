@@ -333,11 +333,14 @@ ob_start();
                                 <?= e((string) $rep['course_name']) ?>
                             </li>
                         <?php endif; ?>
-                        <?php $ccCu = (string) $rep['cc_name'] . ' › ' . (string) $rep['cu_name']; ?>
+                        <?php
+                            $ccCu      = (string) $rep['cc_name'] . ' › ' . (string) $rep['cu_name'];
+                            $ccCuShort = mb_strimwidth($ccCu, 0, 25, '…', 'UTF-8');
+                        ?>
                         <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
                             <div class="flex-grow-1" style="min-width:0">
-                                <div class="text-truncate small text-muted" title="<?= e($ccCu) ?>">
-                                    <?= e($ccCu) ?>
+                                <div class="small text-muted" title="<?= e($ccCu) ?>">
+                                    <?= e($ccCuShort) ?>
                                 </div>
                                 <div class="text-truncate fw-semibold" title="<?= e((string) $rep['evaluation_title']) ?>">
                                     <?= e((string) $rep['evaluation_title']) ?>

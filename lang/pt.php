@@ -865,7 +865,7 @@ return [
     'students.col.id_document'       => 'Documento',
     // Reports gerados (POLISH-01) — agrupados por curso na tela de detalhes do aluno.
     'students.reports.title'         => 'Reports gerados',
-    'students.reports.subtitle'      => '{count} report(s) PDF de avaliações já corrigidas.',
+    'students.reports.subtitle'      => ':count report(s) PDF de avaliações já corrigidas.',
     'students.reports.grade_label'   => 'Nota',
     // Histórico de conexões — visível só pro professor (E16-04).
     'students.logins.title'          => 'Últimos acessos',
