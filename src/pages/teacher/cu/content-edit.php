@@ -107,6 +107,26 @@ ob_start();
             </a>
         </div>
 
+        <div id="draftBanner" class="alert alert-warning d-none" role="alert">
+            <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                <div>
+                    <strong><?= e(__t('content.draft.title')) ?></strong>
+                    <div class="small mb-0">
+                        <?= e(__t('content.draft.text')) ?>
+                        <span id="draftAge" class="fw-semibold"></span>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" id="draftRestore" class="btn btn-sm btn-warning">
+                        <?= e(__t('content.draft.restore')) ?>
+                    </button>
+                    <button type="button" id="draftDiscard" class="btn btn-sm btn-outline-secondary">
+                        <?= e(__t('content.draft.discard')) ?>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <form method="POST" action="/teacher/cu/<?= $cuId ?>/content/edit" class="card card-body shadow-sm mb-3" novalidate>
             <?= csrf_field() ?>
 
@@ -274,8 +294,110 @@ tinymce.init({
                    'table{width:100%;border-collapse:collapse}' +
                    'table td,table th{border:1px solid #dee2e6;padding:.4rem}' +
                    'iframe.content-video{width:100%;aspect-ratio:16/9;border:0}',
-    mobile: { toolbar_mode: 'floating' }
+    mobile: { toolbar_mode: 'floating' },
+    setup: function (editor) {
+        // Autosave de rascunho local — salva em localStorage a cada 3s de
+        // ociosidade. Protege contra perda de trabalho quando a sessao
+        // expira no meio da edicao (CSRF/auth fail no submit).
+        var saveTimer = null;
+        editor.on('input keyup change', function () {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(saveDraft, 3000);
+        });
+    }
 });
+
+// ── Draft local (localStorage) — recuperacao apos session timeout ────────
+(function () {
+    var DRAFT_KEY     = 'lms_content_draft_v1_<?= $cuId ?>';
+    var SERVER_HTML   = <?= json_encode($dirtyHtml, JSON_UNESCAPED_SLASHES) ?>;
+    var SERVER_PUB    = <?= $published ? 'true' : 'false' ?>;
+    var publishedEl   = document.getElementById('fPublished');
+    var banner        = document.getElementById('draftBanner');
+    var btnRestore    = document.getElementById('draftRestore');
+    var btnDiscard    = document.getElementById('draftDiscard');
+    var ageEl         = document.getElementById('draftAge');
+
+    // Exposto pra setup() do TinyMCE.
+    window.saveDraft = function () {
+        var ed = window.tinymce && tinymce.activeEditor;
+        if (!ed) return;
+        try {
+            localStorage.setItem(DRAFT_KEY, JSON.stringify({
+                html:      ed.getContent(),
+                published: !!(publishedEl && publishedEl.checked),
+                savedAt:   new Date().toISOString()
+            }));
+        } catch (e) { /* quota exceeded — ignora */ }
+    };
+
+    if (publishedEl) {
+        publishedEl.addEventListener('change', window.saveDraft);
+    }
+
+    function readDraft() {
+        try {
+            var raw = localStorage.getItem(DRAFT_KEY);
+            if (!raw) return null;
+            var d = JSON.parse(raw);
+            if (!d || typeof d.html !== 'string') return null;
+            return d;
+        } catch (e) { return null; }
+    }
+
+    function clearDraft() {
+        try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* ignore */ }
+    }
+
+    function ageString(savedAt) {
+        var diffMs = Date.now() - new Date(savedAt).getTime();
+        var min = Math.max(1, Math.round(diffMs / 60000));
+        if (min < 60) return '(' + min + ' min)';
+        var hr = Math.round(min / 60);
+        return '(' + hr + ' h)';
+    }
+
+    function offerRestore() {
+        var draft = readDraft();
+        if (!draft) return;
+        // Se o rascunho bate com o servidor, ja foi salvo — descarta.
+        if (draft.html === SERVER_HTML && draft.published === SERVER_PUB) {
+            clearDraft();
+            return;
+        }
+        if (ageEl) ageEl.textContent = ageString(draft.savedAt);
+        if (banner) banner.classList.remove('d-none');
+
+        if (btnRestore) {
+            btnRestore.addEventListener('click', function () {
+                var ed = window.tinymce && tinymce.activeEditor;
+                if (ed) ed.setContent(draft.html);
+                if (publishedEl) publishedEl.checked = !!draft.published;
+                if (banner) banner.classList.add('d-none');
+            });
+        }
+        if (btnDiscard) {
+            btnDiscard.addEventListener('click', function () {
+                clearDraft();
+                if (banner) banner.classList.add('d-none');
+            });
+        }
+    }
+
+    // Espera o TinyMCE estar pronto antes de oferecer restore (precisa do editor pra setContent).
+    document.addEventListener('DOMContentLoaded', function () {
+        var tries = 0;
+        var iv = setInterval(function () {
+            tries++;
+            if (window.tinymce && tinymce.activeEditor) {
+                clearInterval(iv);
+                offerRestore();
+            } else if (tries > 60) {
+                clearInterval(iv); // 30s — desiste
+            }
+        }, 500);
+    });
+})();
 
 // Confirmação do botão "Remover" de anexos (E5-03).
 document.querySelectorAll('form.js-att-delete-form[data-confirm]').forEach(function (form) {
