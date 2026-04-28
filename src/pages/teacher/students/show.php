@@ -334,13 +334,16 @@ ob_start();
                             </li>
                         <?php endif; ?>
                         <?php
-                            $ccCu      = (string) $rep['cc_name'] . ' › ' . (string) $rep['cu_name'];
-                            $ccCuShort = mb_strimwidth($ccCu, 0, 25, '…', 'UTF-8');
+                            $ccFull  = (string) $rep['cc_name'];
+                            $cuFull  = (string) $rep['cu_name'];
+                            $ccShort = mb_strimwidth($ccFull, 0, 25, '…', 'UTF-8');
+                            $cuShort = mb_strimwidth($cuFull, 0, 25, '…', 'UTF-8');
+                            $ccCuFull = $ccFull . ' › ' . $cuFull;
                         ?>
                         <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
                             <div class="flex-grow-1" style="min-width:0">
-                                <div class="small text-muted" title="<?= e($ccCu) ?>">
-                                    <?= e($ccCuShort) ?>
+                                <div class="small text-muted" title="<?= e($ccCuFull) ?>">
+                                    <?= e($ccShort) ?> › <?= e($cuShort) ?>
                                 </div>
                                 <div class="text-truncate fw-semibold" title="<?= e((string) $rep['evaluation_title']) ?>">
                                     <?= e((string) $rep['evaluation_title']) ?>
