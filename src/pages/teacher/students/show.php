@@ -84,6 +84,8 @@ $availableGroups = array_values(array_filter(
     static fn(array $g): bool => !in_array($g['id'], $studentGroupIds, true)
 ));
 
+$studentReports = EvaluationSubmission::listReportsByStudent($studentId, $tenantId);
+
 $deleteCountsFormatted = format_delete_counts([
     'enrollments' => (int) $student['enrollments_count'],
     'groups'      => (int) $student['groups_count'],
@@ -312,6 +314,56 @@ ob_start();
                 </ul>
             <?php endif; ?>
         </div>
+
+        <!-- Reports gerados (POLISH-01) -->
+        <?php if ($studentReports !== []): ?>
+            <div class="card shadow-sm mb-3">
+                <div class="card-header">
+                    <h2 class="h6 mb-0"><?= e(__t('students.reports.title')) ?></h2>
+                    <small class="text-muted">
+                        <?= e(__t('students.reports.subtitle', ['count' => (string) count($studentReports)])) ?>
+                    </small>
+                </div>
+                <ul class="list-group list-group-flush">
+                    <?php $currentCourseId = null; ?>
+                    <?php foreach ($studentReports as $rep): ?>
+                        <?php $courseId = (int) $rep['course_id']; ?>
+                        <?php if ($courseId !== $currentCourseId): $currentCourseId = $courseId; ?>
+                            <li class="list-group-item bg-body-tertiary text-muted small fw-semibold text-uppercase" style="letter-spacing:.04em">
+                                <?= e((string) $rep['course_name']) ?>
+                            </li>
+                        <?php endif; ?>
+                        <?php $ccCu = (string) $rep['cc_name'] . ' › ' . (string) $rep['cu_name']; ?>
+                        <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
+                            <div class="flex-grow-1" style="min-width:0">
+                                <div class="text-truncate small text-muted" title="<?= e($ccCu) ?>">
+                                    <?= e($ccCu) ?>
+                                </div>
+                                <div class="text-truncate fw-semibold" title="<?= e((string) $rep['evaluation_title']) ?>">
+                                    <?= e((string) $rep['evaluation_title']) ?>
+                                </div>
+                                <div class="small text-muted">
+                                    <?php if ($rep['grade'] !== null): ?>
+                                        <span class="badge text-bg-light border me-1">
+                                            <?= e(__t('students.reports.grade_label')) ?>
+                                            <?= e(number_format((float) $rep['grade'], 1, current_lang() === 'pt' ? ',' : '.', '')) ?>
+                                        </span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($rep['feedback_at'])): ?>
+                                        <?= e(format_short_datetime((string) $rep['feedback_at'])) ?>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <a href="/teacher/evaluation/<?= (int) $rep['evaluation_id'] ?>/submission/<?= (int) $studentId ?>/report.pdf"
+                               target="_blank" rel="noopener"
+                               class="btn btn-sm btn-outline-primary">
+                                <?= e(__t('evaluations.grade.report_download')) ?>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
 
         <!-- Histórico de conexões (E16-04) -->
         <div class="card shadow-sm mb-3">
