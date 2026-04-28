@@ -300,8 +300,8 @@ ob_start();
                         <?php foreach ($roster as $r): ?>
                             <tr x-show="!onlyActive || <?= (int) $r['active'] ?> === 1" x-transition.opacity>
                                 <td>
-                                    <a href="/teacher/students/<?= (int) $r['id'] ?>" class="text-decoration-none">
-                                        <?= e((string) $r['name']) ?>
+                                    <a href="/teacher/students/<?= (int) $r['id'] ?>" class="text-decoration-none" title="<?= e((string) $r['name']) ?>">
+                                        <?= e(format_short_name((string) $r['name'])) ?>
                                     </a>
                                     <?php if ((int) $r['active'] === 0): ?>
                                         <span class="badge text-bg-secondary ms-1"><?= e(__t('cu_roster.badge.inactive')) ?></span>
@@ -366,8 +366,8 @@ ob_start();
                     <?php foreach ($roster as $r): ?>
                         <li class="list-group-item" x-show="!onlyActive || <?= (int) $r['active'] ?> === 1" x-transition.opacity>
                             <div class="d-flex align-items-center gap-2 mb-2">
-                                <a href="/teacher/students/<?= (int) $r['id'] ?>" class="fw-semibold text-decoration-none flex-grow-1">
-                                    <?= e((string) $r['name']) ?>
+                                <a href="/teacher/students/<?= (int) $r['id'] ?>" class="fw-semibold text-decoration-none flex-grow-1" title="<?= e((string) $r['name']) ?>">
+                                    <?= e(format_short_name((string) $r['name'])) ?>
                                 </a>
                                 <?php if ((int) $r['active'] === 0): ?>
                                     <span class="badge text-bg-secondary"><?= e(__t('cu_roster.badge.inactive')) ?></span>
