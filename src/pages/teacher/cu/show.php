@@ -459,7 +459,8 @@ ob_start();
 .content-render img          { max-width: 100%; height: auto; }
 .content-render table        { width: 100%; }
 .content-render iframe       { width: 100%; aspect-ratio: 16 / 9; border: 0; }
-.content-render pre          { background: #f6f8fa; padding: .75rem; border-radius: .25rem; overflow-x: auto; }
+.content-render pre:not([class*="language-"]) { background: #f6f8fa; padding: .75rem; border-radius: .25rem; overflow-x: auto; }
+.content-render pre[class*="language-"]       { margin: .75rem 0; border-radius: .25rem; }
 .content-render blockquote   { border-left: 3px solid #dee2e6; padding-left: 1rem; color: #6c757d; }
 </style>
 <?php
