@@ -87,7 +87,7 @@ $recentAchievements = $tenantId > 0
                           title="<?= e(__t('sidebar.no_rank')) ?>">—</span>
                 <?php endif; ?>
             </div>
-            <div class="lms-sidebar-name"><?= e($name) ?></div>
+            <div class="lms-sidebar-name" title="<?= e($name) ?>"><?= e(format_short_name($name)) ?></div>
             <?php if ($recentCrs !== null): ?>
                 <div class="lms-sidebar-subtitle"><?= e($recentCrs) ?></div>
             <?php endif; ?>
