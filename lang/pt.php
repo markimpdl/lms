@@ -431,6 +431,10 @@ return [
     'content.saved'              => 'Conteúdo salvo.',
     'content.show_more'          => 'Ver mais',
     'content.show_less'          => 'Ver menos',
+    'content.draft.title'        => 'Rascunho local encontrado',
+    'content.draft.text'         => 'Este navegador tem um rascunho deste conteúdo que ainda não foi salvo no servidor — provavelmente sua sessão expirou no meio da edição. Salvo há',
+    'content.draft.restore'      => 'Restaurar rascunho',
+    'content.draft.discard'      => 'Descartar',
 
     // Anexos (E5-03)
     'attachments.section'                   => 'Anexos',

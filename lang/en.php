@@ -431,6 +431,10 @@ return [
     'content.saved'              => 'Content saved.',
     'content.show_more'          => 'Show more',
     'content.show_less'          => 'Show less',
+    'content.draft.title'        => 'Local draft found',
+    'content.draft.text'         => 'This browser has a draft of this content that was never saved on the server — your session probably expired mid-edit. Saved',
+    'content.draft.restore'      => 'Restore draft',
+    'content.draft.discard'      => 'Discard',
 
     // Attachments (E5-03)
     'attachments.section'                   => 'Attachments',
