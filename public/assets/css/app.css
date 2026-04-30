@@ -780,3 +780,63 @@ main { flex: 1 0 auto; }
         padding: 0.75rem 1rem;
     }
 }
+
+/* ============================================================
+   Loading overlay no submit de formulários (anti duplo-clique).
+   Ativado via JS em public/assets/js/app.js. z-index 1080 fica
+   acima de modais Bootstrap (1055) e backdrops (1050).
+   ============================================================ */
+
+.lms-loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1080;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(17, 24, 39, 0.45);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 120ms ease;
+}
+
+.lms-loading-overlay.is-visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.lms-loading-overlay__panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 24px 32px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 20px 50px -12px rgba(16, 24, 40, 0.35);
+    min-width: 180px;
+}
+
+.lms-loading-overlay__spinner {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid #E5E7EB;
+    border-top-color: #6366F1;
+    animation: lms-loading-spin 720ms linear infinite;
+}
+
+.lms-loading-overlay__label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+}
+
+@keyframes lms-loading-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lms-loading-overlay { transition: none; }
+    .lms-loading-overlay__spinner { animation-duration: 1600ms; }
+}

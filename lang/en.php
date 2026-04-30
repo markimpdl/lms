@@ -25,6 +25,7 @@ return [
     'common.day'         => 'day',
     'common.days'        => 'days',
     'common.loading'     => 'Loading...',
+    'common.submitting'  => 'Submitting...',
     'common.search'      => 'Search',
     'common.required'    => 'Required',
 
