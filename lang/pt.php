@@ -25,6 +25,7 @@ return [
     'common.day'         => 'dia',
     'common.days'        => 'dias',
     'common.loading'     => 'Carregando...',
+    'common.submitting'  => 'Enviando...',
     'common.search'      => 'Buscar',
     'common.required'    => 'Obrigatório',
 
