@@ -9,6 +9,8 @@ declare(strict_types=1);
  * Acessada pelo link "ver todas" do card de submissões recentes do dashboard.
  */
 
+require_role('teacher');
+
 $tenantId = current_tenant_id();
 if ($tenantId === null) {
     http_response_code(403);
