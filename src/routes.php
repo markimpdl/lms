@@ -55,6 +55,7 @@ return [
         '/teacher/ranks'        => ['file' => '/src/pages/teacher/ranks/index.php',    'role' => 'teacher'],
         '/teacher/ranks/save'   => ['file' => '/src/pages/teacher/ranks/save.php',     'role' => 'teacher'],
         '/teacher/ranking'      => ['file' => '/src/pages/teacher/ranking.php',        'role' => 'teacher'],
+        '/teacher/submissions'  => ['file' => '/src/pages/teacher/submissions/index.php', 'role' => 'teacher'],
         '/teacher/settings'     => ['file' => '/src/pages/teacher/settings/index.php', 'role' => 'teacher'],
         '/teacher/settings/notifications' => ['file' => '/src/pages/teacher/settings/notifications.php', 'role' => 'teacher'],
         '/student'             => ['file' => '/src/pages/dashboard/student.php',     'role' => 'student'],

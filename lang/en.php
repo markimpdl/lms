@@ -1082,11 +1082,23 @@ return [
     'teacher_dashboard.recent.badge.evaluation' => 'Assessment',
     'teacher_dashboard.recent.pending'          => 'Awaiting feedback',
     'teacher_dashboard.recent.with_feedback'    => 'Feedbacked',
+    'teacher_dashboard.recent.view_all'         => 'View all',
     'teacher_dashboard.inactive.title'          => 'Students without recent access',
     'teacher_dashboard.inactive.empty'          => 'All students have accessed recently.',
     'teacher_dashboard.inactive.never'          => 'Never accessed',
     'teacher_dashboard.inactive.days_ago'       => ':days days ago',
     'teacher_dashboard.hubs.title'              => 'Manage',
+
+    // Teacher submissions — full paginated listing
+    'teacher_submissions.page.title'            => 'Submissions',
+    'teacher_submissions.filter.all'            => 'All',
+    'teacher_submissions.filter.pending'        => 'Pending',
+    'teacher_submissions.empty.all'             => 'No submissions found.',
+    'teacher_submissions.empty.pending'         => 'No pending submissions.',
+    'teacher_submissions.pagination_label'      => 'Submissions pagination',
+    'teacher_submissions.prev'                  => 'Previous',
+    'teacher_submissions.next'                  => 'Next',
+    'teacher_submissions.page_x_of_y'           => 'Page :x of :y',
 
     // CU Roster — students tab on CU page (E11-03)
     'cu_roster.title'                     => 'Students',
