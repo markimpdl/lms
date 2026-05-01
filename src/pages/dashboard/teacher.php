@@ -79,8 +79,11 @@ ob_start();
     <div class="row g-3 mb-4">
         <div class="col-12 col-lg-8">
             <div class="card shadow-sm h-100">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center gap-2">
                     <h2 class="h6 mb-0"><?= e(__t('teacher_dashboard.recent.title')) ?></h2>
+                    <a href="/teacher/submissions" class="small text-decoration-none">
+                        <?= e(__t('teacher_dashboard.recent.view_all')) ?>
+                    </a>
                 </div>
                 <?php if ($recent === []): ?>
                     <div class="card-body text-center text-muted py-4">

@@ -1084,11 +1084,23 @@ return [
     'teacher_dashboard.recent.badge.evaluation' => 'Avaliação',
     'teacher_dashboard.recent.pending'          => 'Aguardando feedback',
     'teacher_dashboard.recent.with_feedback'    => 'Corrigida',
+    'teacher_dashboard.recent.view_all'         => 'Ver todas',
     'teacher_dashboard.inactive.title'          => 'Alunos sem acesso recente',
     'teacher_dashboard.inactive.empty'          => 'Todos os alunos acessaram recentemente.',
     'teacher_dashboard.inactive.never'          => 'Nunca acessou',
     'teacher_dashboard.inactive.days_ago'       => 'Há :days dias',
     'teacher_dashboard.hubs.title'              => 'Gerenciar',
+
+    // Teacher submissions — listagem completa paginada
+    'teacher_submissions.page.title'            => 'Submissões',
+    'teacher_submissions.filter.all'            => 'Todas',
+    'teacher_submissions.filter.pending'        => 'Pendentes',
+    'teacher_submissions.empty.all'             => 'Nenhuma submissão encontrada.',
+    'teacher_submissions.empty.pending'         => 'Nenhuma submissão pendente.',
+    'teacher_submissions.pagination_label'      => 'Paginação de submissões',
+    'teacher_submissions.prev'                  => 'Anterior',
+    'teacher_submissions.next'                  => 'Próximo',
+    'teacher_submissions.page_x_of_y'           => 'Página :x de :y',
 
     // CU Roster — aba Alunos da CU (E11-03)
     'cu_roster.title'                     => 'Alunos',
