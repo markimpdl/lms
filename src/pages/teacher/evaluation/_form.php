@@ -108,9 +108,6 @@ $maxMb = (int) (EvaluationBriefStorage::maxBytes() / (1024 * 1024));
             <div class="mb-3" id="pdf-group" <?= ($old['type'] ?? 'projeto') === 'quiz' ? 'style="display:none"' : '' ?>>
                 <label for="f-pdf" class="form-label">
                     <?= e(__t('evaluations.form.pdf')) ?>
-                    <?php if ($mode === 'new'): ?>
-                        <span class="text-danger">*</span>
-                    <?php endif; ?>
                 </label>
                 <?php if ($mode === 'edit' && $currentPdfPath !== null): ?>
                     <div class="mb-2 small">

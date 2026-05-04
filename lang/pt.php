@@ -630,7 +630,6 @@ return [
     'evaluations.form.warning_submissions' => ':count aluno(s) já entregaram esta avaliação. Edite com cuidado — as entregas existentes permanecem.',
     'evaluations.form.err.title'        => 'Título precisa ter entre 3 e 200 caracteres.',
     'evaluations.form.err.xp'           => 'XP deve ser um inteiro entre 0 e 9999.',
-    'evaluations.form.err.brief_required' => 'O arquivo do enunciado é obrigatório na criação.',
     'evaluations.err.brief_size'          => 'Arquivo maior que o limite permitido.',
     'evaluations.err.brief_mime'          => 'O arquivo precisa ser PDF ou ZIP.',
     'evaluations.err.brief_no_file'       => 'Nenhum arquivo foi enviado.',
