@@ -630,7 +630,6 @@ return [
     'evaluations.form.warning_submissions' => ':count student(s) already submitted this evaluation. Edit carefully — existing submissions remain.',
     'evaluations.form.err.title'        => 'Title must be between 3 and 200 characters.',
     'evaluations.form.err.xp'           => 'XP must be an integer between 0 and 9999.',
-    'evaluations.form.err.brief_required' => 'The evaluation file is required when creating.',
     'evaluations.err.brief_size'          => 'File larger than the allowed limit.',
     'evaluations.err.brief_mime'          => 'The file must be a PDF or a ZIP.',
     'evaluations.err.brief_no_file'       => 'No file was uploaded.',

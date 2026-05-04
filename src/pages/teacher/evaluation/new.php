@@ -5,7 +5,8 @@ declare(strict_types=1);
  * GET /teacher/cu/{id}/evaluation/new — form de nova avaliação (E7-01).
  * POST cria a avaliação e redireciona pra tela de edição.
  *
- * PDF é obrigatório na criação: upload roda depois do INSERT pra ter o
+ * PDF é opcional (paridade com Activity::create — brief pode ficar só no
+ * TinyMCE). Upload, quando houver, roda depois do INSERT pra ter o
  * evaluation_id no path; se o upload falhar, o INSERT é desfeito.
  * instructions passa pelo ContentSanitizer antes de gravar.
  */
@@ -83,12 +84,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['xp_value'] = 'evaluations.form.err.xp';
     }
 
-    // PDF obrigatório só pra type=projeto. Quiz não usa upload.
+    // PDF é opcional: só processa upload se o professor anexou arquivo.
+    // Quiz não usa upload.
     $fileField = $_FILES['pdf'] ?? null;
     $hasUpload = is_array($fileField) && (int) ($fileField['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
-    if ($old['type'] === 'projeto' && !$hasUpload) {
-        $errors['pdf'] = 'evaluations.form.err.brief_required';
-    }
 
     if ($errors === []) {
         $clean  = ContentSanitizer::purify($old['instructions']);
@@ -130,39 +129,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             return;
         }
 
-        $upload = EvaluationBriefStorage::store($fileField, $evaluationId, $tenantId);
-        if ($upload['status'] !== 'ok') {
-            // Desfaz o INSERT — sem PDF a avaliação fica inválida na criação.
-            Evaluation::delete($evaluationId, $tenantId, $old['title']);
-            $errors['pdf'] = $upload['error_key'] ?? 'evaluations.err.brief_generic';
-        } else {
+        if ($hasUpload) {
+            $upload = EvaluationBriefStorage::store($fileField, $evaluationId, $tenantId);
+            if ($upload['status'] !== 'ok') {
+                // Rollback do INSERT — PDF foi anexado mas falhou o storage.
+                Evaluation::delete($evaluationId, $tenantId, $old['title']);
+                $errors['pdf'] = $upload['error_key'] ?? 'evaluations.err.brief_generic';
+                goto renderForm;
+            }
             Database::pdo()
                 ->prepare('UPDATE evaluations SET pdf_path = ? WHERE id = ?')
                 ->execute([$upload['stored_path'], $evaluationId]);
-
-            // Fanout `new_evaluation` (E10-04) — notifica alunos matriculados
-            // no curso. Idioma segue `courses.language` via courseId.
-            $courseId  = (int) $cu['course_id'];
-            $studentIds = Enrollment::activeStudentIdsForCourse($courseId, $tenantId);
-            if ($studentIds !== []) {
-                NotificationService::fanout(
-                    NotificationService::EVENT_NEW_EVALUATION,
-                    $studentIds,
-                    $old['title'],
-                    null,
-                    '/student/evaluation/' . $evaluationId,
-                    $courseId
-                );
-            }
-
-            flash('success', __t('evaluations.created', ['name' => $old['title']]));
-            // E23-02: redireciona pra CU (era /edit; agora pro ponto de retorno natural).
-            header('Location: /teacher/cu/' . $cuId, true, 303);
-            return;
         }
+
+        // Fanout `new_evaluation` (E10-04) — notifica alunos matriculados
+        // no curso. Idioma segue `courses.language` via courseId.
+        $courseId  = (int) $cu['course_id'];
+        $studentIds = Enrollment::activeStudentIdsForCourse($courseId, $tenantId);
+        if ($studentIds !== []) {
+            NotificationService::fanout(
+                NotificationService::EVENT_NEW_EVALUATION,
+                $studentIds,
+                $old['title'],
+                null,
+                '/student/evaluation/' . $evaluationId,
+                $courseId
+            );
+        }
+
+        flash('success', __t('evaluations.created', ['name' => $old['title']]));
+        // E23-02: redireciona pra CU (era /edit; agora pro ponto de retorno natural).
+        header('Location: /teacher/cu/' . $cuId, true, 303);
+        return;
     }
 }
 
+renderForm:
 $mode           = 'new';
 $formAction     = '/teacher/cu/' . $cuId . '/evaluation/new';
 $submissions    = 0;
