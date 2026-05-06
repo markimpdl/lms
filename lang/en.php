@@ -798,6 +798,20 @@ return [
     'code_run.err.quota'        => 'Daily execution quota exceeded. Try again tomorrow.',
     'code_run.err.timeout'      => 'The execution server took too long to respond. Try again.',
     'code_run.err.remote'       => 'Execution service error. Try again.',
+
+    // Student online-time heartbeat (TIME-01) — keys consumed by the JS;
+    // typically silent, kept for debugging / future UI surfacing.
+    'heartbeat.err.method'      => 'Invalid HTTP method.',
+    'heartbeat.err.forbidden'   => 'Invalid session.',
+    'heartbeat.err.csrf'        => 'Security token expired. Refresh the page.',
+    'heartbeat.err.bad_uuid'    => 'Invalid session identifier.',
+    'heartbeat.err.internal'    => 'Internal error while recording activity.',
+    'session_end.err.method'    => 'Invalid HTTP method.',
+    'session_end.err.forbidden' => 'Invalid session.',
+    'session_end.err.csrf'      => 'Security token expired.',
+    'session_end.err.bad_uuid'  => 'Invalid session identifier.',
+    'session_end.err.internal'  => 'Internal error while ending session.',
+
     'submissions.form.submit'           => 'Submit',
     'submissions.form.update'           => 'Update submission',
     'submissions.form.delete'           => 'Remove submission',
