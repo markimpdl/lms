@@ -108,6 +108,10 @@ if ($isStudentArea) {
             integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
     <script defer src="/assets/js/app.js"></script>
+    <?php if ($isStudentArea): ?>
+        <script>window.LMS_HEARTBEAT = { csrf: <?= json_encode(csrf_token(), JSON_UNESCAPED_SLASHES) ?> };</script>
+        <script defer src="/assets/js/student-heartbeat.js"></script>
+    <?php endif; ?>
     <?php if ($isThemedArea): ?>
         <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" data-manual></script>
         <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
