@@ -1350,6 +1350,7 @@ return [
     'ranking.col.xp'               => 'XP',
     'ranking.no_rank'              => 'No tier yet',
     'ranking.you'                  => 'You',
+    'ranking.online'               => 'Online now',
     'ranking.empty'                => 'No ranking yet.',
     'ranking.empty_hint'           => 'Once students start submitting activities and evaluations, the ranking will show up here.',
     'ranking.pagination.aria'      => 'Ranking pagination',

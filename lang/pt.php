@@ -1352,6 +1352,7 @@ return [
     'ranking.col.xp'               => 'XP',
     'ranking.no_rank'              => 'Sem patente cadastrada',
     'ranking.you'                  => 'Você',
+    'ranking.online'               => 'Online agora',
     'ranking.empty'                => 'Sem ranking ainda.',
     'ranking.empty_hint'           => 'Quando os alunos começarem a entregar atividades e avaliações, o ranking aparece aqui.',
     'ranking.pagination.aria'      => 'Paginação do ranking',
