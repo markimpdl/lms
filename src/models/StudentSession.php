@@ -185,6 +185,32 @@ final class StudentSession
      * Idempotente: rodar 2x no mesmo minuto so fecha o que sobrou. Retorna o
      * numero de sessoes fechadas. Indexado por (ended_at, last_ping_at).
      */
+    /**
+     * IDs dos alunos do tenant atualmente online — sessao com `ended_at IS
+     * NULL` E `last_ping_at` dentro da janela do cron (mesmo threshold de
+     * 3 min usado por closeStaleSessions). Sem isso, aluno que fechou aba
+     * abruptamente apareceria online ate o cron rodar.
+     *
+     * Indexado por idx_ss_open_recent (ended_at, last_ping_at) — o
+     * EXPLAIN deve ler so o range de last_ping_at recente.
+     *
+     * @return list<int>
+     */
+    public static function onlineUserIds(int $tenantId, int $thresholdMinutes = self::CRON_CLOSE_AFTER_MINUTES): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT DISTINCT user_id
+               FROM student_sessions
+              WHERE tenant_id = ?
+                AND ended_at IS NULL
+                AND last_ping_at >= (NOW() - INTERVAL ? MINUTE)'
+        );
+        $stmt->bindValue(1, $tenantId, PDO::PARAM_INT);
+        $stmt->bindValue(2, max(1, $thresholdMinutes), PDO::PARAM_INT);
+        $stmt->execute();
+        return array_map(static fn($v): int => (int) $v, $stmt->fetchAll(PDO::FETCH_COLUMN));
+    }
+
     public static function closeStaleSessions(int $minutes = self::CRON_CLOSE_AFTER_MINUTES): int
     {
         $stmt = Database::pdo()->prepare(

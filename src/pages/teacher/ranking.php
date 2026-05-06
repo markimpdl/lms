@@ -93,6 +93,9 @@ $rows     = $result['rows'];
 $total    = $result['total'];
 $lastPage = max(1, (int) ceil($total / $perPage));
 
+// Indicador "online agora" — flip pra lookup O(1) por student_id.
+$onlineSet = array_flip(StudentSession::onlineUserIds($tenantId));
+
 $qs = static function (array $overrides = []) use ($window, $groupId, $year, $page): string {
     $params = ['window' => $window, 'page' => (string) $page];
     if ($groupId !== null) { $params['group'] = (string) $groupId; }
@@ -220,6 +223,11 @@ ob_start();
                                 <img src="<?= e(student_avatar_url((int) $row['student_id'])) ?>"
                                      class="lms-ranking-avatar d-none d-md-inline-block me-2"
                                      alt="" width="32" height="32" loading="lazy">
+                                <?php if (isset($onlineSet[(int) $row['student_id']])): ?>
+                                    <span class="lms-online-dot text-success me-1"
+                                          title="<?= e(__t('ranking.online')) ?>"
+                                          aria-label="<?= e(__t('ranking.online')) ?>">●</span>
+                                <?php endif; ?>
                                 <span title="<?= e((string) $row['name']) ?>"><?= e(format_short_name((string) $row['name'])) ?></span>
                                 <?php if ($rankName !== null): ?>
                                     <span class="lms-rank-pill lms-rank-pill--inline d-md-none"
