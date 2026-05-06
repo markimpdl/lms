@@ -122,6 +122,63 @@ final class StudentSession
      * Idempotente: rodar 2x no mesmo minuto so fecha o que sobrou. Retorna o
      * numero de sessoes fechadas. Indexado por (ended_at, last_ping_at).
      */
+    /**
+     * Resumo agregado das sessoes de UM aluno (TIME-05). Mesma formula da
+     * lista (TIME-04) — COALESCE inclui sessao ativa no SUM/AVG. Sem filtro
+     * de janela: sempre o historico completo.
+     *
+     * @return array{last_ping_at:?string, access_count:int, time_total:int, time_avg:int}
+     */
+    public static function statsForStudent(int $userId, int $tenantId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT
+                MAX(last_ping_at) AS last_ping_at,
+                COUNT(*)          AS access_count,
+                SUM(COALESCE(duration_seconds,
+                             TIMESTAMPDIFF(SECOND, started_at, NOW()))) AS time_total,
+                AVG(COALESCE(duration_seconds,
+                             TIMESTAMPDIFF(SECOND, started_at, NOW()))) AS time_avg
+               FROM student_sessions
+              WHERE tenant_id = ? AND user_id = ?'
+        );
+        $stmt->execute([$tenantId, $userId]);
+        $row = $stmt->fetch();
+        if ($row === false) {
+            return ['last_ping_at' => null, 'access_count' => 0, 'time_total' => 0, 'time_avg' => 0];
+        }
+        return [
+            'last_ping_at' => $row['last_ping_at'] !== null ? (string) $row['last_ping_at'] : null,
+            'access_count' => (int) $row['access_count'],
+            'time_total'   => (int) ($row['time_total'] ?? 0),
+            'time_avg'     => (int) ($row['time_avg']   ?? 0),
+        ];
+    }
+
+    /**
+     * Sessoes mais recentes de UM aluno, ordenadas por started_at DESC.
+     * Retorna $limit + 1 elementos (truque pra detectar "Ver mais" sem
+     * SELECT COUNT(*) extra). O caller deve cortar pra $limit antes de
+     * exibir.
+     *
+     * @return list<array<string,mixed>>
+     */
+    public static function recentSessions(int $userId, int $tenantId, int $limit): array
+    {
+        $limit = max(1, min(500, $limit));
+        // LIMIT nao aceita placeholder com EMULATE_PREPARES=false; cast pra
+        // int + concat e o padrao do projeto (Notification::findForUser).
+        $stmt = Database::pdo()->prepare(
+            'SELECT started_at, last_ping_at, ended_at, duration_seconds, ip_address, user_agent
+               FROM student_sessions
+              WHERE tenant_id = ? AND user_id = ?
+              ORDER BY started_at DESC
+              LIMIT ' . ($limit + 1)
+        );
+        $stmt->execute([$tenantId, $userId]);
+        return $stmt->fetchAll();
+    }
+
     public static function closeStaleSessions(int $minutes = self::CRON_CLOSE_AFTER_MINUTES): int
     {
         $stmt = Database::pdo()->prepare(
