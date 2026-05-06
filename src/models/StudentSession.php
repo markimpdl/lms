@@ -53,12 +53,18 @@ final class StudentSession
 
         $stmt = $pdo->prepare(
             'SELECT user_id, ended_at,
-                    (last_ping_at < NOW() - INTERVAL ' . self::STALE_GAP_MINUTES . ' MINUTE) AS is_stale
+                    (last_ping_at < NOW() - INTERVAL ? MINUTE) AS is_stale
                FROM student_sessions
-              WHERE session_uuid = ?
+              WHERE session_uuid = ? AND tenant_id = ?
               LIMIT 1'
         );
-        $stmt->execute([$uuid]);
+        // Nao misturar bindValue() com execute(array): o array do execute
+        // re-bindaria as posicoes a partir da 1, sobrescrevendo o INTERVAL
+        // pelo UUID e quebrando a query em runtime.
+        $stmt->bindValue(1, self::STALE_GAP_MINUTES, PDO::PARAM_INT);
+        $stmt->bindValue(2, $uuid);
+        $stmt->bindValue(3, $tenantId, PDO::PARAM_INT);
+        $stmt->execute();
         $existing = $stmt->fetch();
 
         if ($existing === false) {
@@ -99,8 +105,8 @@ final class StudentSession
     /**
      * Fecha explicitamente a sessao (sendBeacon do beforeunload). Idempotente:
      * sessao ja fechada retorna false sem erro. Valida ownership por user_id
-     * pra impedir que aluno A feche sessao do aluno B (UUID v4 e basicamente
-     * unguessable, mas a defesa nao custa).
+     * (user_id e unico no sistema, implicitamente isolando por tenant).
+     * UUID v4 e basicamente unguessable, mas a defesa de validacao nao custa.
      */
     public static function endSession(string $uuid, int $userId): bool
     {
@@ -116,12 +122,6 @@ final class StudentSession
         return $upd->rowCount() > 0;
     }
 
-    /**
-     * Fecha sessoes ativas cujo ultimo ping foi ha mais de $minutes.
-     * Usa last_ping_at como ended_at (presume que o aluno saiu nesse momento).
-     * Idempotente: rodar 2x no mesmo minuto so fecha o que sobrou. Retorna o
-     * numero de sessoes fechadas. Indexado por (ended_at, last_ping_at).
-     */
     /**
      * Resumo agregado das sessoes de UM aluno (TIME-05). Mesma formula da
      * lista (TIME-04) — COALESCE inclui sessao ativa no SUM/AVG. Sem filtro
@@ -179,6 +179,12 @@ final class StudentSession
         return $stmt->fetchAll();
     }
 
+    /**
+     * Fecha sessoes ativas cujo ultimo ping foi ha mais de $minutes.
+     * Usa last_ping_at como ended_at (presume que o aluno saiu nesse momento).
+     * Idempotente: rodar 2x no mesmo minuto so fecha o que sobrou. Retorna o
+     * numero de sessoes fechadas. Indexado por (ended_at, last_ping_at).
+     */
     public static function closeStaleSessions(int $minutes = self::CRON_CLOSE_AFTER_MINUTES): int
     {
         $stmt = Database::pdo()->prepare(
