@@ -36,6 +36,8 @@ return [
         '/notifications/mark-all-read'  => '/src/pages/notifications/mark-all-read.php',
         '/settings/language'            => '/src/pages/settings/language.php',
         '/api/code/run'                 => '/src/pages/api/code/run.php',
+        '/api/student/heartbeat'        => '/src/pages/api/student/heartbeat.php',
+        '/api/student/session-end'      => '/src/pages/api/student/session-end.php',
     ],
 
     'roles' => [

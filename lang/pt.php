@@ -800,6 +800,20 @@ return [
     'code_run.err.timeout'      => 'O servidor de execução demorou a responder. Tente novamente.',
     'code_run.err.remote'       => 'Erro no serviço de execução. Tente novamente.',
 
+    // Heartbeat de tempo online do aluno (TIME-01) — error_keys consumidas pelo
+    // JS de student-heartbeat. Em geral nao chegam ao usuario (heartbeat e
+    // silencioso); ficam aqui pro debug e pra eventual exibicao em log/UI.
+    'heartbeat.err.method'      => 'Método HTTP inválido.',
+    'heartbeat.err.forbidden'   => 'Sessão inválida.',
+    'heartbeat.err.csrf'        => 'Token de segurança expirado. Atualize a página.',
+    'heartbeat.err.bad_uuid'    => 'Identificador de sessão inválido.',
+    'heartbeat.err.internal'    => 'Erro interno ao registrar atividade.',
+    'session_end.err.method'    => 'Método HTTP inválido.',
+    'session_end.err.forbidden' => 'Sessão inválida.',
+    'session_end.err.csrf'      => 'Token de segurança expirado.',
+    'session_end.err.bad_uuid'  => 'Identificador de sessão inválido.',
+    'session_end.err.internal'  => 'Erro interno ao encerrar sessão.',
+
     'submissions.form.submit'           => 'Enviar entrega',
     'submissions.form.update'           => 'Atualizar entrega',
     'submissions.form.delete'           => 'Remover entrega',
