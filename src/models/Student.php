@@ -24,16 +24,32 @@ final class Student
         'active'        => 'u.active',
         'created_at'    => 'u.created_at',
         'last_login_at' => 'u.last_login_at',
+        // TIME-04 — metricas de tempo online (NULL ordena como menor em ASC,
+        // maior em DESC; alunos sem sessao caem na cauda da lista por DESC).
+        'last_ping_at'  => 'sess.last_ping_at',
+        'access_count'  => 'sess.access_count',
+        'time_total'    => 'sess.time_total',
+        'time_avg'      => 'sess.time_avg',
+    ];
+
+    /** Janelas aceitas para o filtro `period` da listagem (TIME-04). */
+    private const PERIOD_DAYS = [
+        'all' => null,
+        '7d'  => 7,
+        '30d' => 30,
+        '90d' => 90,
     ];
 
     /**
-     * @param array<string,string> $filters Chaves: q, status ('active'|'inactive'|'all'), sort, dir.
+     * @param array<string,string> $filters Chaves: q, status ('active'|'inactive'|'all'),
+     *                                       sort, dir, period ('all'|'7d'|'30d'|'90d').
      * @return array{
      *   rows: list<array<string,mixed>>,
      *   total: int,
      *   page: int,
      *   total_pages: int,
      *   per_page: int,
+     *   period: string,
      * }
      */
     public static function listByTenant(int $tenantId, array $filters, int $page): array
@@ -43,6 +59,11 @@ final class Student
         $sortKey = (string)      ($filters['sort']   ?? 'created_at');
         $sortCol = self::SORT_COLUMNS[$sortKey] ?? self::SORT_COLUMNS['created_at'];
         $dir     = strtoupper((string) ($filters['dir'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
+        $period  = (string)      ($filters['period'] ?? 'all');
+        if (!array_key_exists($period, self::PERIOD_DAYS)) {
+            $period = 'all';
+        }
+        $periodDays = self::PERIOD_DAYS[$period];
 
         $where  = ['u.role = :role', 'u.tenant_id = :tid'];
         $params = [':role' => 'student', ':tid' => $tenantId];
@@ -70,20 +91,51 @@ final class Student
         $page       = max(1, min($page, $totalPages));
         $offset     = ($page - 1) * self::PER_PAGE;
 
+        // Subquery agregando metricas de tempo online por aluno (TIME-04).
+        // Em derived table — sem isso, o JOIN com enrollments/group_members
+        // multiplicaria os SUM/AVG/COUNT por (cursos x grupos).
+        // COALESCE traz a sessao ativa: usa duration_seconds quando ja
+        // fechada, senao TIMESTAMPDIFF(NOW() - started_at). Index alvo:
+        // idx_ss_tenant_user (tenant_id, user_id, started_at).
+        $sessFilter = 'tenant_id = :sess_tid';
+        if ($periodDays !== null) {
+            // $periodDays vem de PERIOD_DAYS (whitelist 7/30/90); cast int
+            // antes de inlinar evita qualquer surpresa.
+            $sessFilter .= ' AND started_at > NOW() - INTERVAL ' . (int) $periodDays . ' DAY';
+        }
+        $sessSubquery = <<<SQL
+            (SELECT user_id,
+                    MAX(last_ping_at) AS last_ping_at,
+                    COUNT(*) AS access_count,
+                    SUM(COALESCE(duration_seconds,
+                                 TIMESTAMPDIFF(SECOND, started_at, NOW()))) AS time_total,
+                    AVG(COALESCE(duration_seconds,
+                                 TIMESTAMPDIFF(SECOND, started_at, NOW()))) AS time_avg
+               FROM student_sessions
+              WHERE {$sessFilter}
+              GROUP BY user_id)
+            SQL;
+
         $sql = <<<SQL
             SELECT
                 u.id, u.name, u.email, u.language, u.active,
                 u.gender, u.id_document,
                 u.created_at, u.last_login_at,
-                COUNT(DISTINCT e.course_id) AS enrollments_count,
-                COUNT(DISTINCT gm.group_id) AS groups_count
+                COUNT(DISTINCT e.course_id)  AS enrollments_count,
+                COUNT(DISTINCT gm.group_id)  AS groups_count,
+                sess.last_ping_at,
+                sess.access_count,
+                sess.time_total,
+                sess.time_avg
             FROM users u
             LEFT JOIN enrollments   e  ON e.student_user_id  = u.id
             LEFT JOIN group_members gm ON gm.student_user_id = u.id
+            LEFT JOIN {$sessSubquery} sess ON sess.user_id = u.id
             WHERE {$whereSql}
             GROUP BY u.id, u.name, u.email, u.language, u.active,
                      u.gender, u.id_document,
-                     u.created_at, u.last_login_at
+                     u.created_at, u.last_login_at,
+                     sess.last_ping_at, sess.access_count, sess.time_total, sess.time_avg
             ORDER BY {$sortCol} {$dir}, u.id DESC
             LIMIT :limit OFFSET :offset
             SQL;
@@ -92,6 +144,7 @@ final class Student
         foreach ($params as $k => $v) {
             $stmt->bindValue($k, $v);
         }
+        $stmt->bindValue(':sess_tid', $tenantId, PDO::PARAM_INT);
         $stmt->bindValue(':limit',  self::PER_PAGE, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset,        PDO::PARAM_INT);
         $stmt->execute();
@@ -102,6 +155,7 @@ final class Student
             'page'        => $page,
             'total_pages' => $totalPages,
             'per_page'    => self::PER_PAGE,
+            'period'      => $period,
         ];
     }
 

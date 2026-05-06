@@ -570,6 +570,29 @@ function format_short_name(string $fullName): string
 }
 
 /**
+ * Formata duracao em segundos pra string legivel (TIME-04).
+ *   null ou <= 0   -> '—'
+ *   1..59s         -> '45s'
+ *   60..3599s      -> '12min'   (segundos sao ruido em listagem)
+ *   >= 3600s       -> '2h 35min'
+ */
+function format_duration(?int $seconds): string
+{
+    if ($seconds === null || $seconds <= 0) {
+        return '—';
+    }
+    if ($seconds < 60) {
+        return $seconds . 's';
+    }
+    if ($seconds < 3600) {
+        return intdiv($seconds, 60) . 'min';
+    }
+    $hours = intdiv($seconds, 3600);
+    $mins  = intdiv($seconds % 3600, 60);
+    return $mins === 0 ? $hours . 'h' : $hours . 'h ' . $mins . 'min';
+}
+
+/**
  * Posição linear do aluno no ranking geral do tenant (E9-07). Delega pra
  * `RankingService::myPosition` (window 'all', sem filtros). Engole Throwable
  * graciosamente — sidebar mostra "—" se a query falhar (mesmo padrão do
