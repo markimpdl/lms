@@ -53,12 +53,18 @@ final class StudentSession
 
         $stmt = $pdo->prepare(
             'SELECT user_id, ended_at,
-                    (last_ping_at < NOW() - INTERVAL ' . self::STALE_GAP_MINUTES . ' MINUTE) AS is_stale
+                    (last_ping_at < NOW() - INTERVAL ? MINUTE) AS is_stale
                FROM student_sessions
-              WHERE session_uuid = ?
+              WHERE session_uuid = ? AND tenant_id = ?
               LIMIT 1'
         );
-        $stmt->execute([$uuid]);
+        // Nao misturar bindValue() com execute(array): o array do execute
+        // re-bindaria as posicoes a partir da 1, sobrescrevendo o INTERVAL
+        // pelo UUID e quebrando a query em runtime.
+        $stmt->bindValue(1, self::STALE_GAP_MINUTES, PDO::PARAM_INT);
+        $stmt->bindValue(2, $uuid);
+        $stmt->bindValue(3, $tenantId, PDO::PARAM_INT);
+        $stmt->execute();
         $existing = $stmt->fetch();
 
         if ($existing === false) {
@@ -99,8 +105,8 @@ final class StudentSession
     /**
      * Fecha explicitamente a sessao (sendBeacon do beforeunload). Idempotente:
      * sessao ja fechada retorna false sem erro. Valida ownership por user_id
-     * pra impedir que aluno A feche sessao do aluno B (UUID v4 e basicamente
-     * unguessable, mas a defesa nao custa).
+     * (user_id e unico no sistema, implicitamente isolando por tenant).
+     * UUID v4 e basicamente unguessable, mas a defesa de validacao nao custa.
      */
     public static function endSession(string $uuid, int $userId): bool
     {
@@ -114,6 +120,63 @@ final class StudentSession
         );
         $upd->execute([$uuid, $userId]);
         return $upd->rowCount() > 0;
+    }
+
+    /**
+     * Resumo agregado das sessoes de UM aluno (TIME-05). Mesma formula da
+     * lista (TIME-04) — COALESCE inclui sessao ativa no SUM/AVG. Sem filtro
+     * de janela: sempre o historico completo.
+     *
+     * @return array{last_ping_at:?string, access_count:int, time_total:int, time_avg:int}
+     */
+    public static function statsForStudent(int $userId, int $tenantId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT
+                MAX(last_ping_at) AS last_ping_at,
+                COUNT(*)          AS access_count,
+                SUM(COALESCE(duration_seconds,
+                             TIMESTAMPDIFF(SECOND, started_at, NOW()))) AS time_total,
+                AVG(COALESCE(duration_seconds,
+                             TIMESTAMPDIFF(SECOND, started_at, NOW()))) AS time_avg
+               FROM student_sessions
+              WHERE tenant_id = ? AND user_id = ?'
+        );
+        $stmt->execute([$tenantId, $userId]);
+        $row = $stmt->fetch();
+        if ($row === false) {
+            return ['last_ping_at' => null, 'access_count' => 0, 'time_total' => 0, 'time_avg' => 0];
+        }
+        return [
+            'last_ping_at' => $row['last_ping_at'] !== null ? (string) $row['last_ping_at'] : null,
+            'access_count' => (int) $row['access_count'],
+            'time_total'   => (int) ($row['time_total'] ?? 0),
+            'time_avg'     => (int) ($row['time_avg']   ?? 0),
+        ];
+    }
+
+    /**
+     * Sessoes mais recentes de UM aluno, ordenadas por started_at DESC.
+     * Retorna $limit + 1 elementos (truque pra detectar "Ver mais" sem
+     * SELECT COUNT(*) extra). O caller deve cortar pra $limit antes de
+     * exibir.
+     *
+     * @return list<array<string,mixed>>
+     */
+    public static function recentSessions(int $userId, int $tenantId, int $limit): array
+    {
+        $limit = max(1, min(500, $limit));
+        // LIMIT nao aceita placeholder com EMULATE_PREPARES=false; cast pra
+        // int + concat e o padrao do projeto (Notification::findForUser).
+        $stmt = Database::pdo()->prepare(
+            'SELECT started_at, last_ping_at, ended_at, duration_seconds, ip_address, user_agent
+               FROM student_sessions
+              WHERE tenant_id = ? AND user_id = ?
+              ORDER BY started_at DESC
+              LIMIT ' . ($limit + 1)
+        );
+        $stmt->execute([$tenantId, $userId]);
+        return $stmt->fetchAll();
     }
 
     /**

@@ -70,6 +70,14 @@ if ($resetOnce !== null && (int) ($resetOnce['student_id'] ?? 0) === $studentId)
 $isActive = (int) $student['active'] === 1;
 
 $recentLogins = UserLogin::findRecentForUser($studentId);
+
+// Tempo online (TIME-05) — KPIs agregados + lista paginada das sessoes
+// mais recentes com IP/UA. Limite cresce em saltos de 30 (Ver mais).
+$sessionsLimit  = max(30, min(300, (int) ($_GET['sessions_limit'] ?? 30)));
+$sessionStats   = StudentSession::statsForStudent($studentId, $tenantId);
+$sessionsRaw    = StudentSession::recentSessions($studentId, $tenantId, $sessionsLimit);
+$sessionsHasMore = count($sessionsRaw) > $sessionsLimit;
+$recentSessions = array_slice($sessionsRaw, 0, $sessionsLimit);
 $enrollments = Enrollment::listByStudent($studentId, $tenantId);
 $enrolledIds = array_map(static fn(array $e): int => (int) $e['course_id'], $enrollments);
 $availableCourses = array_values(array_filter(
@@ -370,6 +378,99 @@ ob_start();
                 </ul>
             </div>
         <?php endif; ?>
+
+        <!-- Atividade na plataforma (TIME-05) -->
+        <div class="card shadow-sm mb-3" id="sessions">
+            <div class="card-header">
+                <h2 class="h6 mb-0"><?= e(__t('students.activity.title')) ?></h2>
+                <small class="text-muted"><?= e(__t('students.activity.subtitle')) ?></small>
+            </div>
+            <div class="card-body">
+                <div class="row g-2 small mb-3">
+                    <div class="col-6 col-md-3">
+                        <div class="border rounded p-2 h-100">
+                            <div class="text-muted text-uppercase" style="font-size: .7rem;"><?= e(__t('students.col.last_access')) ?></div>
+                            <div class="fw-semibold">
+                                <?= $sessionStats['last_ping_at'] !== null
+                                    ? e(format_short_datetime((string) $sessionStats['last_ping_at']))
+                                    : '<span class="text-muted">—</span>' ?>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="border rounded p-2 h-100">
+                            <div class="text-muted text-uppercase" style="font-size: .7rem;"><?= e(__t('students.col.access_count')) ?></div>
+                            <div class="fw-semibold"><?= (int) $sessionStats['access_count'] ?></div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="border rounded p-2 h-100">
+                            <div class="text-muted text-uppercase" style="font-size: .7rem;"><?= e(__t('students.col.time_total')) ?></div>
+                            <div class="fw-semibold"><?= e(format_duration((int) $sessionStats['time_total'])) ?></div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="border rounded p-2 h-100">
+                            <div class="text-muted text-uppercase" style="font-size: .7rem;"><?= e(__t('students.col.time_avg')) ?></div>
+                            <div class="fw-semibold"><?= e(format_duration((int) $sessionStats['time_avg'])) ?></div>
+                        </div>
+                    </div>
+                </div>
+
+                <?php if ($recentSessions === []): ?>
+                    <p class="text-center text-muted mb-0 py-3"><?= e(__t('students.activity.empty')) ?></p>
+                <?php else: ?>
+                    <div class="table-responsive">
+                        <table class="table align-middle small mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th><?= e(__t('students.activity.col.started_at')) ?></th>
+                                    <th><?= e(__t('students.activity.col.duration')) ?></th>
+                                    <th class="d-none d-md-table-cell"><?= e(__t('students.activity.col.ip')) ?></th>
+                                    <th class="d-none d-lg-table-cell"><?= e(__t('students.activity.col.device')) ?></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($recentSessions as $sess): ?>
+                                    <?php
+                                        $duration = $sess['duration_seconds'] !== null
+                                            ? (int) $sess['duration_seconds']
+                                            : (strtotime((string) $sess['last_ping_at']) - strtotime((string) $sess['started_at']));
+                                        $isOpen = $sess['ended_at'] === null;
+                                    ?>
+                                    <tr>
+                                        <td><?= e(format_short_datetime((string) $sess['started_at'])) ?></td>
+                                        <td>
+                                            <?= e(format_duration($duration)) ?>
+                                            <?php if ($isOpen): ?>
+                                                <span class="badge text-bg-success ms-1"><?= e(__t('students.activity.live')) ?></span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="d-none d-md-table-cell text-muted">
+                                            <?= !empty($sess['ip_address'])
+                                                ? '<code>' . e((string) $sess['ip_address']) . '</code>'
+                                                : '<span class="text-muted">—</span>' ?>
+                                        </td>
+                                        <td class="d-none d-lg-table-cell text-muted small text-truncate" style="max-width: 220px;"
+                                            title="<?= e((string) ($sess['user_agent'] ?? '')) ?>">
+                                            <?php $devShort = format_user_agent_short($sess['user_agent'] ?? null); ?>
+                                            <?= $devShort !== '' ? e($devShort) : '<span class="text-muted">—</span>' ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <?php if ($sessionsHasMore): ?>
+                        <div class="text-center mt-3">
+                            <a href="?sessions_limit=<?= $sessionsLimit + 30 ?>#sessions" class="btn btn-sm btn-outline-secondary">
+                                <?= e(__t('students.activity.load_more')) ?>
+                            </a>
+                        </div>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </div>
+        </div>
 
         <!-- Histórico de conexões (E16-04) -->
         <div class="card shadow-sm mb-3">
