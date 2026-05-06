@@ -25,6 +25,9 @@ final class StudentSession
     /** Janela maxima entre pings sem considerar a sessao obsoleta (em minutos). */
     public const STALE_GAP_MINUTES = 30;
 
+    /** Limite default usado pelo cron pra fechar sessoes orfas (em minutos). */
+    public const CRON_CLOSE_AFTER_MINUTES = 3;
+
     /**
      * Registra um ping. Se UUID e novo, cria a sessao; se ja existe e esta
      * dentro da janela de 30 min, atualiza last_ping_at. Retorna o status
@@ -111,5 +114,25 @@ final class StudentSession
         );
         $upd->execute([$uuid, $userId]);
         return $upd->rowCount() > 0;
+    }
+
+    /**
+     * Fecha sessoes ativas cujo ultimo ping foi ha mais de $minutes.
+     * Usa last_ping_at como ended_at (presume que o aluno saiu nesse momento).
+     * Idempotente: rodar 2x no mesmo minuto so fecha o que sobrou. Retorna o
+     * numero de sessoes fechadas. Indexado por (ended_at, last_ping_at).
+     */
+    public static function closeStaleSessions(int $minutes = self::CRON_CLOSE_AFTER_MINUTES): int
+    {
+        $stmt = Database::pdo()->prepare(
+            'UPDATE student_sessions
+                SET ended_at = last_ping_at,
+                    duration_seconds = TIMESTAMPDIFF(SECOND, started_at, last_ping_at)
+              WHERE ended_at IS NULL
+                AND last_ping_at < (NOW() - INTERVAL ? MINUTE)'
+        );
+        $stmt->bindValue(1, max(1, $minutes), PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->rowCount();
     }
 }
