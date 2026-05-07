@@ -127,7 +127,12 @@ final class Evaluation
      * caminho (upload novo); se null, mantém o valor atual (sem alteração
      * do PDF). Retorna 'ok', 'not_found' ou 'course_archived'.
      *
-     * @param array{title:string, instructions:string, xp_value:int, submission_open:bool, pdf_path:?string} $data
+     * `type` é imutável em edit (quiz/projeto têm conteúdo incompatível);
+     * caller é obrigado a passar o valor original do registro. Default
+     * silencioso pra 'projeto' aqui já causou perda de dados em produção
+     * — não reintroduzir.
+     *
+     * @param array{title:string, instructions:string, type:string, xp_value:int, submission_open:bool, pdf_path:?string} $data
      */
     public static function update(int $id, int $tenantId, array $data): string
     {
@@ -139,6 +144,10 @@ final class Evaluation
             return 'course_archived';
         }
 
+        if (!isset($data['type']) || $data['type'] === '') {
+            throw new InvalidArgumentException('Evaluation::update requires type');
+        }
+
         if ($data['pdf_path'] !== null) {
             Database::pdo()->prepare(
                 'UPDATE evaluations
@@ -148,7 +157,7 @@ final class Evaluation
             )->execute([
                 $data['title'],
                 $data['instructions'] !== '' ? $data['instructions'] : null,
-                $data['type'] ?? 'projeto',
+                $data['type'],
                 $data['pdf_path'],
                 $data['xp_value'],
                 $data['submission_open'] ? 1 : 0,
@@ -163,7 +172,7 @@ final class Evaluation
             )->execute([
                 $data['title'],
                 $data['instructions'] !== '' ? $data['instructions'] : null,
-                $data['type'] ?? 'projeto',
+                $data['type'],
                 $data['xp_value'],
                 $data['submission_open'] ? 1 : 0,
                 $id,

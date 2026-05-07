@@ -58,33 +58,35 @@ $maxMb = (int) (EvaluationBriefStorage::maxBytes() / (1024 * 1024));
             <div class="row g-3">
                 <div class="col-12 col-md-6 mb-3">
                     <label for="f-type" class="form-label"><?= e(__t('evaluations.form.type')) ?></label>
-                    <select name="type" id="f-type"
-                            class="form-select<?= isset($errors['type']) ? ' is-invalid' : '' ?>">
-                        <?php foreach (Evaluation::TYPES as $t): ?>
-                            <?php
-                                // E25-04: quiz não é compatível com LO mode
-                                // (auto-correção × feedback manual por critério).
-                                // Em new, esconde a opção. Em edit, type é
-                                // imutável — preserva visibilidade quando a
-                                // evaluation já existe como quiz (ex.: curso
-                                // virou LO depois da criação).
-                                $hideQuiz = $t === 'quiz'
-                                    && !empty($isLoMode)
-                                    && $mode === 'new';
-                                if ($hideQuiz) {
-                                    continue;
-                                }
-                            ?>
-                            <option value="<?= e($t) ?>" <?= ($old['type'] ?? 'projeto') === $t ? 'selected' : '' ?>>
-                                <?= e(__t('evaluations.type.' . $t)) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <div class="form-text">
-                        <?= e(__t((!empty($isLoMode) && $mode === 'new') ? 'evaluations.form.type_hint_lo' : 'evaluations.form.type_hint')) ?>
-                    </div>
-                    <?php if (isset($errors['type'])): ?>
-                        <div class="invalid-feedback"><?= e(__t($errors['type'])) ?></div>
+                    <?php if ($mode === 'edit'): ?>
+                        <input type="text" id="f-type" class="form-control" disabled
+                               value="<?= e(__t('evaluations.type.' . ($old['type'] ?? 'projeto'))) ?>">
+                        <div class="form-text">
+                            <?= e(__t('evaluations.form.type_immutable_hint')) ?>
+                        </div>
+                    <?php else: ?>
+                        <select name="type" id="f-type"
+                                class="form-select<?= isset($errors['type']) ? ' is-invalid' : '' ?>">
+                            <?php foreach (Evaluation::TYPES as $t): ?>
+                                <?php
+                                    // E25-04: quiz não é compatível com LO mode
+                                    // (auto-correção × feedback manual por critério).
+                                    $hideQuiz = $t === 'quiz' && !empty($isLoMode);
+                                    if ($hideQuiz) {
+                                        continue;
+                                    }
+                                ?>
+                                <option value="<?= e($t) ?>" <?= ($old['type'] ?? 'projeto') === $t ? 'selected' : '' ?>>
+                                    <?= e(__t('evaluations.type.' . $t)) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-text">
+                            <?= e(__t(!empty($isLoMode) ? 'evaluations.form.type_hint_lo' : 'evaluations.form.type_hint')) ?>
+                        </div>
+                        <?php if (isset($errors['type'])): ?>
+                            <div class="invalid-feedback"><?= e(__t($errors['type'])) ?></div>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
                 <div class="col-12 col-md-6 mb-3">

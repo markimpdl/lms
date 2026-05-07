@@ -176,10 +176,11 @@ ob_start();
                             $open = (int) $act['submission_open'] === 1;
                             $subs = (int) $act['submission_count'];
                         ?>
+                        <?php $editUrl = (string) $act['type'] === 'quiz' ? '/teacher/activity/' . $aid . '/quiz' : '/teacher/activity/' . $aid . '/edit'; ?>
                         <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
                             <span class="text-muted small" style="min-width: 1.5rem;"><?= $i + 1 ?>.</span>
                             <div class="flex-grow-1">
-                                <a href="/teacher/activity/<?= $aid ?>/edit" class="fw-semibold text-decoration-none">
+                                <a href="<?= e($editUrl) ?>" class="fw-semibold text-decoration-none">
                                     <?= e((string) $act['title']) ?>
                                 </a>
                                 <small class="text-muted ms-2">
@@ -245,18 +246,21 @@ ob_start();
                 </div>
             <?php else: ?>
                 <?php
-                    $evId   = (int) $evaluation['id'];
-                    $evOpen = (int) $evaluation['submission_open'] === 1;
+                    $evId      = (int) $evaluation['id'];
+                    $evOpen    = (int) $evaluation['submission_open'] === 1;
+                    $evIsQuiz  = (string) ($evaluation['type'] ?? 'projeto') === 'quiz';
+                    $evEditUrl = $evIsQuiz ? '/teacher/evaluation/' . $evId . '/quiz' : '/teacher/evaluation/' . $evId . '/edit';
                 ?>
                 <div class="card-body">
                     <div class="d-flex align-items-center gap-2 flex-wrap">
                         <div class="flex-grow-1">
-                            <a href="/teacher/evaluation/<?= $evId ?>/edit" class="fw-semibold text-decoration-none">
+                            <a href="<?= e($evEditUrl) ?>" class="fw-semibold text-decoration-none">
                                 <?= e((string) $evaluation['title']) ?>
                             </a>
                             <small class="text-muted ms-2">
+                                <?= e(__t('evaluations.type.' . ($evaluation['type'] ?? 'projeto'))) ?> ·
                                 <?= (int) $evaluation['xp_value'] ?> XP
-                                <?php if ($evaluation['pdf_path'] !== null): ?>
+                                <?php if (!$evIsQuiz && $evaluation['pdf_path'] !== null): ?>
                                     · <?= e(__t('evaluations.badge.has_pdf')) ?>
                                 <?php endif; ?>
                             </small>
@@ -267,7 +271,7 @@ ob_start();
                             <span class="badge text-bg-secondary"><?= e(__t('evaluations.status.closed')) ?></span>
                         <?php endif; ?>
                         <?php if (!$isArchived): ?>
-                            <a href="/teacher/evaluation/<?= $evId ?>/edit" class="btn btn-sm btn-outline-secondary">
+                            <a href="<?= e($evEditUrl) ?>" class="btn btn-sm btn-outline-secondary">
                                 <?= e(__t('common.edit')) ?>
                             </a>
                         <?php endif; ?>

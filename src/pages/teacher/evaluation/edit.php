@@ -27,9 +27,14 @@ $isArchived = (int) $evaluation['course_archived'] === 1;
 // E25-04: passa pro _form.php (type é imutável em edit, mas o hint adapta).
 $isLoMode   = (string) ($evaluation['course_grading_mode'] ?? 'grade') === 'learning_outcomes';
 
+// type é imutável em edit — sempre o do registro original. Não vem do POST
+// pra evitar tampering e pra blindar quiz vs projeto (conteúdo incompatível).
+$evaluationType = (string) $evaluation['type'];
+
 $old = [
     'title'           => (string) $evaluation['title'],
     'instructions'    => (string) ($evaluation['instructions'] ?? ''),
+    'type'            => $evaluationType,
     'xp_value'        => (int)    $evaluation['xp_value'],
     'submission_open' => (int)    $evaluation['submission_open'] === 1,
 ];
@@ -53,6 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old = [
         'title'           => trim((string) ($_POST['title']         ?? '')),
         'instructions'    => (string)       ($_POST['instructions'] ?? ''),
+        'type'            => $evaluationType,
         'xp_value'        => (int)          ($_POST['xp_value']     ?? 0),
         'submission_open' => isset($_POST['submission_open']),
     ];
@@ -82,6 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = Evaluation::update($evaluationId, $tenantId, [
             'title'           => $old['title'],
             'instructions'    => $clean,
+            'type'            => $evaluationType,
             'pdf_path'        => $newPdfPath,
             'xp_value'        => $old['xp_value'],
             'submission_open' => $old['submission_open'],
