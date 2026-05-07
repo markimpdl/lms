@@ -47,6 +47,8 @@ final class Database
             // o offset do timezone configurado no bootstrap.
             $offset = date('P');
             if (preg_match('/^[+-]\d{2}:\d{2}$/', $offset) === 1) {
+                // Offset é validado antes, string literal é seguro aqui.
+                // Alternativa com ? placeholder não funciona em exec().
                 self::$pdo->exec("SET time_zone = '" . $offset . "'");
             }
         } catch (PDOException $e) {

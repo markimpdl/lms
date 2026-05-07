@@ -26,8 +26,10 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/src/bootstrap.php';
 
 require_auth();
+require_role('teacher', 'super_admin');
 $_user = current_user();
 $_role = (string) ($_user['role'] ?? '?');
+$_tid = current_tenant_id();
 
 $pdo = Database::pdo();
 
@@ -37,15 +39,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Cutoff calculado server-side no momento do POST: registros com
     // started_at <= (NOW() - 5min) sao considerados pre-fix e levam +4h.
     // Os ultimos 5 min sao preservados (assumidos pos-deploy, ja em Dubai).
+    // Filtro por tenant_id: teachers so veem suas proprias sessoes.
     $upd = $pdo->prepare(
         'UPDATE student_sessions
             SET started_at   = DATE_ADD(started_at,   INTERVAL 4 HOUR),
                 last_ping_at = DATE_ADD(last_ping_at, INTERVAL 4 HOUR),
                 ended_at     = CASE WHEN ended_at IS NULL THEN NULL
                                     ELSE DATE_ADD(ended_at, INTERVAL 4 HOUR) END
-          WHERE started_at <= (NOW() - INTERVAL 5 MINUTE)'
+          WHERE tenant_id = :tid
+            AND started_at <= (NOW() - INTERVAL 5 MINUTE)'
     );
-    $upd->execute();
+    $upd->execute([':tid' => $_tid]);
     $affected = $upd->rowCount();
 
     header('Content-Type: text/plain; charset=utf-8');
@@ -58,19 +62,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $nowMysql = (string) $pdo->query('SELECT NOW()')->fetchColumn();
 $nowPhp   = date('Y-m-d H:i:s');
 
-$totalRows = (int) $pdo->query('SELECT COUNT(*) FROM student_sessions')->fetchColumn();
-$affectedRows = (int) $pdo->query(
-    'SELECT COUNT(*) FROM student_sessions
-      WHERE started_at <= (NOW() - INTERVAL 5 MINUTE)'
-)->fetchColumn();
+$totalStmt = $pdo->prepare('SELECT COUNT(*) FROM student_sessions WHERE tenant_id = :tid');
+$totalStmt->execute([':tid' => $_tid]);
+$totalRows = (int) $totalStmt->fetchColumn();
 
-$preview = $pdo->query(
+$affectedStmt = $pdo->prepare(
+    'SELECT COUNT(*) FROM student_sessions
+      WHERE tenant_id = :tid
+        AND started_at <= (NOW() - INTERVAL 5 MINUTE)'
+);
+$affectedStmt->execute([':tid' => $_tid]);
+$affectedRows = (int) $affectedStmt->fetchColumn();
+
+$previewStmt = $pdo->prepare(
     'SELECT id, user_id, started_at, last_ping_at, ended_at
        FROM student_sessions
-      WHERE started_at <= (NOW() - INTERVAL 5 MINUTE)
+      WHERE tenant_id = :tid
+        AND started_at <= (NOW() - INTERVAL 5 MINUTE)
       ORDER BY started_at DESC
       LIMIT 5'
-)->fetchAll();
+);
+$previewStmt->execute([':tid' => $_tid]);
+$preview = $previewStmt->fetchAll();
 
 ?><!DOCTYPE html>
 <html lang="pt"><head><meta charset="utf-8"><title>Fix timezone — student_sessions</title>
