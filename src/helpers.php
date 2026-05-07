@@ -570,6 +570,73 @@ function format_short_name(string $fullName): string
 }
 
 /**
+ * Resume um user agent em "Browser / SO" (TIME-05). Sem libs — switch/case
+ * por keyword. Ordem importa: testa Edge antes de Chrome (UA do Edge contem
+ * "Chrome"), Opera antes de Chrome, etc. Versoes nao sao extraidas (Win11
+ * reporta como Windows NT 10.0 — distinguir nao e confiavel).
+ *
+ * Devolve string vazia quando UA tambem e vazia.
+ */
+function format_user_agent_short(?string $ua): string
+{
+    $ua = trim((string) $ua);
+    if ($ua === '') return '';
+
+    if (stripos($ua, 'Edg/') !== false || stripos($ua, 'Edge/') !== false) {
+        $browser = 'Edge';
+    } elseif (stripos($ua, 'OPR/') !== false || stripos($ua, 'Opera') !== false) {
+        $browser = 'Opera';
+    } elseif (stripos($ua, 'Firefox') !== false) {
+        $browser = 'Firefox';
+    } elseif (stripos($ua, 'Chrome') !== false) {
+        $browser = 'Chrome';
+    } elseif (stripos($ua, 'Safari') !== false) {
+        $browser = 'Safari';
+    } else {
+        $browser = '?';
+    }
+
+    if (stripos($ua, 'Android') !== false) {
+        $os = 'Android';
+    } elseif (stripos($ua, 'iPhone') !== false || stripos($ua, 'iPad') !== false || stripos($ua, 'iOS') !== false) {
+        $os = 'iOS';
+    } elseif (stripos($ua, 'Windows') !== false) {
+        $os = 'Windows';
+    } elseif (stripos($ua, 'Mac OS X') !== false || stripos($ua, 'Macintosh') !== false) {
+        $os = 'macOS';
+    } elseif (stripos($ua, 'Linux') !== false) {
+        $os = 'Linux';
+    } else {
+        $os = '?';
+    }
+
+    return $browser . ' / ' . $os;
+}
+
+/**
+ * Formata duracao em segundos pra string legivel (TIME-04).
+ *   null ou <= 0   -> '—'
+ *   1..59s         -> '45s'
+ *   60..3599s      -> '12min'   (segundos sao ruido em listagem)
+ *   >= 3600s       -> '2h 35min'
+ */
+function format_duration(?int $seconds): string
+{
+    if ($seconds === null || $seconds <= 0) {
+        return '—';
+    }
+    if ($seconds < 60) {
+        return $seconds . 's';
+    }
+    if ($seconds < 3600) {
+        return intdiv($seconds, 60) . 'min';
+    }
+    $hours = intdiv($seconds, 3600);
+    $mins  = intdiv($seconds % 3600, 60);
+    return $mins === 0 ? $hours . 'h' : $hours . 'h ' . $mins . 'min';
+}
+
+/**
  * Posição linear do aluno no ranking geral do tenant (E9-07). Delega pra
  * `RankingService::myPosition` (window 'all', sem filtros). Engole Throwable
  * graciosamente — sidebar mostra "—" se a query falhar (mesmo padrão do
@@ -712,11 +779,15 @@ function current_lang(): string
         $_SESSION['lang'] = $_GET['lang'];
     }
 
+    // Fallback 'en' pra visitantes anonimos (login, /forgot, etc.). Usuarios
+    // logados tem `language` na sessao/DB; fallback so impacta quem nao tem
+    // preferencia setada — e o publico tipico do LMS sao alunos e
+    // professores nos EAU, onde EN eh mais neutro que PT.
     $candidate = $_SESSION['lang']
         ?? (current_user()['language'] ?? null)
-        ?? 'pt';
+        ?? 'en';
 
-    $resolved = in_array($candidate, $supported, true) ? $candidate : 'pt';
+    $resolved = in_array($candidate, $supported, true) ? $candidate : 'en';
     return $resolved;
 }
 

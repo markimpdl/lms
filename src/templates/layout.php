@@ -80,8 +80,11 @@ if ($isStudentArea) {
         <link rel="stylesheet" href="/assets/css/student-area.css">
     <?php endif; ?>
     <link rel="stylesheet" href="/assets/css/app.css">
+    <?php if ($isThemedArea): ?>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <?php endif; ?>
 </head>
-<body<?= $bodyClass !== '' ? ' class="' . e($bodyClass) . '"' : '' ?>>
+<body<?= $bodyClass !== '' ? ' class="' . e($bodyClass) . '"' : '' ?> data-submitting-label="<?= e(__t('common.submitting')) ?>">
     <?php require __DIR__ . '/header.php'; ?>
     <?php if ($isStudentArea): ?>
         <main class="lms-student-grid">
@@ -104,5 +107,16 @@ if ($isStudentArea) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
             integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+    <script defer src="/assets/js/app.js"></script>
+    <?php if ($isStudentArea): ?>
+        <script>window.LMS_HEARTBEAT = { csrf: <?= json_encode(csrf_token(), JSON_UNESCAPED_SLASHES) ?> };</script>
+        <script defer src="/assets/js/student-heartbeat.js"></script>
+    <?php endif; ?>
+    <?php if ($isThemedArea): ?>
+        <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" data-manual></script>
+        <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+        <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-csharp.min.js"></script>
+        <script defer>document.addEventListener('DOMContentLoaded', function () { if (window.Prism) { Prism.highlightAll(); } });</script>
+    <?php endif; ?>
 </body>
 </html>

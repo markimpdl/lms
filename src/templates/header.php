@@ -90,8 +90,9 @@ $brandLogo = $brand['logo_url'] ?? null;
                         <span class="lms-navbar__avatar" aria-hidden="true">
                             <?= e(mb_strtoupper(mb_substr((string) ($user['name'] ?? $user['email'] ?? '?'), 0, 1))) ?>
                         </span>
-                        <span class="lms-navbar__user-name user-label">
-                            <?= e($user['name'] ?? $user['email'] ?? '') ?>
+                        <?php $userFullName = (string) ($user['name'] ?? $user['email'] ?? ''); ?>
+                        <span class="lms-navbar__user-name user-label" title="<?= e($userFullName) ?>">
+                            <?= e(format_short_name($userFullName)) ?>
                         </span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">

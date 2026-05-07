@@ -254,9 +254,12 @@ if ($evaluation !== null) {
 $attachments = [];
 if ($content !== false) {
     $stmt = Database::pdo()->prepare(
+        // Imagens são anexadas só para uso inline no corpo do conteúdo (TinyMCE);
+        // não devem aparecer na lista de materiais para download do aluno.
         'SELECT a.id, a.filename, a.mime, a.size_bytes
            FROM content_attachments a
           WHERE a.content_id = ?
+            AND (a.mime IS NULL OR a.mime NOT LIKE \'image/%\')
           ORDER BY a.created_at DESC, a.id DESC'
     );
     $stmt->execute([(int) $content['id']]);
@@ -316,8 +319,18 @@ ob_start();
         require LMS_ROOT . '/src/templates/partials/section_header.php';
     ?>
     <?php if ($hasPublishedContent): ?>
-        <div class="lms-content-card unit-prose">
-            <?= $html /* HTML já sanitizado em E5-01 via ContentSanitizer */ ?>
+        <div class="lms-content-card"
+             x-data="{ expanded: false, needsToggle: false }"
+             x-init="$nextTick(() => { needsToggle = $refs.body.scrollHeight > 1500 })">
+            <div x-ref="body" class="unit-prose lms-content-card__body" :class="{ 'is-collapsed': !expanded && needsToggle }">
+                <?= $html /* HTML já sanitizado em E5-01 via ContentSanitizer */ ?>
+            </div>
+            <div class="lms-content-card__toggle" x-show="needsToggle" x-cloak>
+                <button type="button" class="lms-content-card__toggle-btn"
+                        @click="expanded = !expanded">
+                    <span x-text="expanded ? '<?= e(__t('content.show_less')) ?>' : '<?= e(__t('content.show_more')) ?>'"></span>
+                </button>
+            </div>
         </div>
     <?php else: ?>
         <div class="lms-content-card lms-content-card--empty">

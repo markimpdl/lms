@@ -130,8 +130,8 @@ ob_start();
     ['label' => (string) $activity['title']],
 ]) ?>
 
-<div class="row justify-content-center">
-    <div class="col-12 col-lg-9">
+<div class="row">
+    <div class="col-12">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
             <div>
                 <h1 class="h4 mb-1"><?= e((string) $activity['title']) ?></h1>

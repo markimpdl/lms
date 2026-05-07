@@ -108,6 +108,11 @@ $rows     = $result['rows'];
 $total    = $result['total'];
 $lastPage = max(1, (int) ceil($total / $perPage));
 
+// Indicador "online agora" — flip pra lookup O(1) por student_id.
+$onlineSet = $tenantId > 0
+    ? array_flip(StudentSession::onlineUserIds($tenantId))
+    : [];
+
 // Builder de querystring que preserva o estado completo dos filtros. Aceita
 // overrides; passar null em uma chave remove. Também resseta `page` quando
 // se troca janela ou filtros (overrides explícitos passam por cima).
@@ -235,7 +240,12 @@ ob_start();
                             <img src="<?= e(student_avatar_url((int) $row['student_id'])) ?>"
                                  class="lms-ranking-avatar d-none d-md-inline-block"
                                  alt="" width="32" height="32" loading="lazy">
-                            <span class="lms-ranking-name"><?= e($row['name']) ?></span>
+                            <?php if (isset($onlineSet[(int) $row['student_id']])): ?>
+                                <span class="lms-online-dot text-success me-1"
+                                      title="<?= e(__t('ranking.online')) ?>"
+                                      aria-label="<?= e(__t('ranking.online')) ?>">●</span>
+                            <?php endif; ?>
+                            <span class="lms-ranking-name" title="<?= e((string) $row['name']) ?>"><?= e(format_short_name((string) $row['name'])) ?></span>
                             <?php if ($rankName !== null): ?>
                                 <span class="lms-rank-pill lms-rank-pill--inline d-md-none"
                                       style="background: <?= e($rankColor) ?>"><?= e($rankName) ?></span>

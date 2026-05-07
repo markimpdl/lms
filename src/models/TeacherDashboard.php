@@ -104,10 +104,128 @@ final class TeacherDashboard
                 JOIN evaluations e         ON e.id  = s.evaluation_id AND e.tenant_id = ?
                 JOIN users u               ON u.id  = s.student_user_id)
              ORDER BY created_at DESC
-             LIMIT ' . $limit
+             LIMIT ?'
         );
-        $stmt->execute([$tenantId, $tenantId]);
+        $stmt->execute([$tenantId, $tenantId, $limit]);
         return $stmt->fetchAll();
+    }
+
+    /**
+     * Listagem paginada de TODAS as submissões do tenant — página dedicada
+     * /teacher/submissions. Igual ao recent, mas com offset + filtro opcional
+     * por pendentes (sem feedback).
+     *
+     * @return list<array{
+     *   src:'activity'|'evaluation',
+     *   ref_id:int,
+     *   ref_title:string,
+     *   student_id:int,
+     *   student_name:string,
+     *   created_at:string,
+     *   feedback_at:?string
+     * }>
+     */
+    public static function findAllSubmissions(
+        int $tenantId,
+        bool $pendingOnly,
+        int $perPage,
+        int $offset
+    ): array {
+        $perPage = max(1, min(100, $perPage));
+        $offset  = max(0, $offset);
+
+        if ($pendingOnly) {
+            $stmt = Database::pdo()->prepare(
+                '(SELECT \'activity\' AS src, s.activity_id AS ref_id,
+                         a.title AS ref_title,
+                         s.student_user_id AS student_id, u.name AS student_name,
+                         s.created_at, s.feedback_at
+                    FROM activity_submissions s
+                    JOIN activities a          ON a.id  = s.activity_id
+                    JOIN competence_units cu   ON cu.id = a.competence_unit_id
+                    JOIN core_competencies cc  ON cc.id = cu.core_competency_id
+                    JOIN courses c             ON c.id  = cc.course_id AND c.tenant_id = ?
+                    JOIN users u               ON u.id  = s.student_user_id
+                   WHERE s.feedback_at IS NULL)
+                 UNION ALL
+                 (SELECT \'evaluation\' AS src, s.evaluation_id AS ref_id,
+                         e.title AS ref_title,
+                         s.student_user_id AS student_id, u.name AS student_name,
+                         s.created_at, s.feedback_at
+                    FROM evaluation_submissions s
+                    JOIN evaluations e         ON e.id  = s.evaluation_id AND e.tenant_id = ?
+                    JOIN users u               ON u.id  = s.student_user_id
+                   WHERE s.feedback_at IS NULL)
+                 ORDER BY created_at DESC
+                 LIMIT ? OFFSET ?'
+            );
+            $stmt->execute([$tenantId, $tenantId, $perPage, $offset]);
+        } else {
+            $stmt = Database::pdo()->prepare(
+                '(SELECT \'activity\' AS src, s.activity_id AS ref_id,
+                         a.title AS ref_title,
+                         s.student_user_id AS student_id, u.name AS student_name,
+                         s.created_at, s.feedback_at
+                    FROM activity_submissions s
+                    JOIN activities a          ON a.id  = s.activity_id
+                    JOIN competence_units cu   ON cu.id = a.competence_unit_id
+                    JOIN core_competencies cc  ON cc.id = cu.core_competency_id
+                    JOIN courses c             ON c.id  = cc.course_id AND c.tenant_id = ?
+                    JOIN users u               ON u.id  = s.student_user_id)
+                 UNION ALL
+                 (SELECT \'evaluation\' AS src, s.evaluation_id AS ref_id,
+                         e.title AS ref_title,
+                         s.student_user_id AS student_id, u.name AS student_name,
+                         s.created_at, s.feedback_at
+                    FROM evaluation_submissions s
+                    JOIN evaluations e         ON e.id  = s.evaluation_id AND e.tenant_id = ?
+                    JOIN users u               ON u.id  = s.student_user_id)
+                 ORDER BY created_at DESC
+                 LIMIT ? OFFSET ?'
+            );
+            $stmt->execute([$tenantId, $tenantId, $perPage, $offset]);
+        }
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Total de submissões pra paginação (`/teacher/submissions`).
+     */
+    public static function countAllSubmissions(int $tenantId, bool $pendingOnly): int
+    {
+        if ($pendingOnly) {
+            $stmt = Database::pdo()->prepare(
+                '(SELECT COUNT(*)
+                    FROM activity_submissions s
+                    JOIN activities a          ON a.id  = s.activity_id
+                    JOIN competence_units cu   ON cu.id = a.competence_unit_id
+                    JOIN core_competencies cc  ON cc.id = cu.core_competency_id
+                    JOIN courses c             ON c.id  = cc.course_id AND c.tenant_id = ?
+                   WHERE s.feedback_at IS NULL)
+                 UNION ALL
+                 (SELECT COUNT(*)
+                    FROM evaluation_submissions s
+                    JOIN evaluations e         ON e.id  = s.evaluation_id AND e.tenant_id = ?
+                   WHERE s.feedback_at IS NULL)'
+            );
+            $stmt->execute([$tenantId, $tenantId]);
+        } else {
+            $stmt = Database::pdo()->prepare(
+                '(SELECT COUNT(*)
+                    FROM activity_submissions s
+                    JOIN activities a          ON a.id  = s.activity_id
+                    JOIN competence_units cu   ON cu.id = a.competence_unit_id
+                    JOIN core_competencies cc  ON cc.id = cu.core_competency_id
+                    JOIN courses c             ON c.id  = cc.course_id AND c.tenant_id = ?)
+                 UNION ALL
+                 (SELECT COUNT(*)
+                    FROM evaluation_submissions s
+                    JOIN evaluations e         ON e.id  = s.evaluation_id AND e.tenant_id = ?)'
+            );
+            $stmt->execute([$tenantId, $tenantId]);
+        }
+        $counts = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        return (int) array_sum(array_map('intval', $counts));
     }
 
     /**
@@ -136,9 +254,9 @@ final class TeacherDashboard
              HAVING MAX(e.last_access_at) IS NULL
                  OR MAX(e.last_access_at) < (NOW() - INTERVAL 14 DAY)
               ORDER BY last_access_at ASC
-              LIMIT ' . $limit
+              LIMIT ?'
         );
-        $stmt->execute([$tenantId]);
+        $stmt->execute([$tenantId, $limit]);
         return $stmt->fetchAll();
     }
 }

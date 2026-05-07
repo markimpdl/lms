@@ -126,15 +126,27 @@ ob_start();
         <?php endif; ?>
 
         <div class="card shadow-sm mb-3">
-            <div class="card-body content-render">
-                <?php if ($hasContent): ?>
-                    <?= (string) $content['html'] ?>
-                <?php else: ?>
+            <?php if ($hasContent): ?>
+                <div class="card-body content-render"
+                     x-data="{ expanded: false, needsToggle: false }"
+                     x-init="$nextTick(() => { needsToggle = $refs.body.scrollHeight > 700 })">
+                    <div x-ref="body" class="content-render__body" :class="{ 'is-collapsed': !expanded && needsToggle }">
+                        <?= (string) $content['html'] ?>
+                    </div>
+                    <div class="text-center mt-3" x-show="needsToggle" x-cloak>
+                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                @click="expanded = !expanded">
+                            <span x-text="expanded ? '<?= e(__t('content.show_less')) ?>' : '<?= e(__t('content.show_more')) ?>'"></span>
+                        </button>
+                    </div>
+                </div>
+            <?php else: ?>
+                <div class="card-body content-render">
                     <p class="text-muted mb-0 text-center py-4">
                         <?= e(__t('content.none_yet')) ?>
                     </p>
-                <?php endif; ?>
-            </div>
+                </div>
+            <?php endif; ?>
         </div>
 
         <!-- Atividades (E6-02) -->
@@ -300,8 +312,8 @@ ob_start();
                         <?php foreach ($roster as $r): ?>
                             <tr x-show="!onlyActive || <?= (int) $r['active'] ?> === 1" x-transition.opacity>
                                 <td>
-                                    <a href="/teacher/students/<?= (int) $r['id'] ?>" class="text-decoration-none">
-                                        <?= e((string) $r['name']) ?>
+                                    <a href="/teacher/students/<?= (int) $r['id'] ?>" class="text-decoration-none" title="<?= e((string) $r['name']) ?>">
+                                        <?= e(format_short_name((string) $r['name'])) ?>
                                     </a>
                                     <?php if ((int) $r['active'] === 0): ?>
                                         <span class="badge text-bg-secondary ms-1"><?= e(__t('cu_roster.badge.inactive')) ?></span>
@@ -366,8 +378,8 @@ ob_start();
                     <?php foreach ($roster as $r): ?>
                         <li class="list-group-item" x-show="!onlyActive || <?= (int) $r['active'] ?> === 1" x-transition.opacity>
                             <div class="d-flex align-items-center gap-2 mb-2">
-                                <a href="/teacher/students/<?= (int) $r['id'] ?>" class="fw-semibold text-decoration-none flex-grow-1">
-                                    <?= e((string) $r['name']) ?>
+                                <a href="/teacher/students/<?= (int) $r['id'] ?>" class="fw-semibold text-decoration-none flex-grow-1" title="<?= e((string) $r['name']) ?>">
+                                    <?= e(format_short_name((string) $r['name'])) ?>
                                 </a>
                                 <?php if ((int) $r['active'] === 0): ?>
                                     <span class="badge text-bg-secondary"><?= e(__t('cu_roster.badge.inactive')) ?></span>
@@ -459,8 +471,15 @@ ob_start();
 .content-render img          { max-width: 100%; height: auto; }
 .content-render table        { width: 100%; }
 .content-render iframe       { width: 100%; aspect-ratio: 16 / 9; border: 0; }
-.content-render pre          { background: #f6f8fa; padding: .75rem; border-radius: .25rem; overflow-x: auto; }
+.content-render pre:not([class*="language-"]) { background: #f6f8fa; padding: .75rem; border-radius: .25rem; overflow-x: auto; }
+.content-render pre[class*="language-"]       { margin: .75rem 0; border-radius: .25rem; }
 .content-render blockquote   { border-left: 3px solid #dee2e6; padding-left: 1rem; color: #6c757d; }
+.content-render__body.is-collapsed {
+    max-height: 700px;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 80px), transparent);
+            mask-image: linear-gradient(to bottom, black calc(100% - 80px), transparent);
+}
 </style>
 <?php
 $page_content = ob_get_clean();

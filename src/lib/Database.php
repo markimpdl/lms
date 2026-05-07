@@ -38,6 +38,19 @@ final class Database
                 PDO::ATTR_EMULATE_PREPARES   => false,
                 // charset=utf8mb4 no DSN já emite SET NAMES (PHP 5.3.6+).
             ]);
+
+            // Alinha o time_zone da sessão MySQL com o timezone do PHP
+            // (Asia/Dubai por padrão). Sem isso, NOW()/CURRENT_TIMESTAMP
+            // gravariam em UTC na Hostinger e ficariam 4h atrás do que
+            // o app exibe. Usa offset numérico (+04:00) porque o named
+            // tz não está carregado em todos os MariaDB. date('P') retorna
+            // o offset do timezone configurado no bootstrap.
+            $offset = date('P');
+            if (preg_match('/^[+-]\d{2}:\d{2}$/', $offset) === 1) {
+                // Offset é validado antes, string literal é seguro aqui.
+                // Alternativa com ? placeholder não funciona em exec().
+                self::$pdo->exec("SET time_zone = '" . $offset . "'");
+            }
         } catch (PDOException $e) {
             self::logError('connection', $e);
             self::abortWithGenericError();

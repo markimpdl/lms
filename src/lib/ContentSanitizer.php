@@ -57,7 +57,7 @@ final class ContentSanitizer
             'ul', 'ol', 'li',
             'a[href|title|target|rel]',
             'blockquote',
-            'pre', 'code',
+            'pre[class]', 'code[class]',
             'table[class]', 'thead', 'tbody', 'tr',
             'th[colspan|rowspan]', 'td[colspan|rowspan]',
             'img[src|alt|title|width|height]',

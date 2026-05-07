@@ -1344,6 +1344,35 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
+-- [v0.31.0] student_sessions — sessoes de tempo online do aluno (TIME-01).
+-- Heartbeat de 60s do JS popula last_ping_at; cron fecha sessoes com
+-- last_ping_at > 3min sem novo ping (ended_at = last_ping_at). Acesso novo
+-- = gap > 30min entre pings (cliente abre nova sessao com novo UUID).
+-- session_uuid e gerado client-side (crypto.randomUUID) e usado como dedup
+-- key. tenant_id NOT NULL — CHK em users garante que role='student' tem
+-- tenant_id. Retencao infinita (purge manual quando precisar). Multi-tab
+-- tratado via BroadcastChannel no JS; backend so registra o que chega.
+-- duration_seconds e populado pelo cron OU pelo /api/student/session/end
+-- (sendBeacon no beforeunload).
+CREATE TABLE IF NOT EXISTS student_sessions (
+    id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tenant_id         BIGINT UNSIGNED NOT NULL,
+    user_id           BIGINT UNSIGNED NOT NULL,
+    session_uuid      CHAR(36)        NOT NULL,
+    started_at        DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_ping_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ended_at          DATETIME        NULL DEFAULT NULL,
+    duration_seconds  INT UNSIGNED    NULL DEFAULT NULL,
+    ip_address        VARCHAR(45)     NULL DEFAULT NULL,
+    user_agent        VARCHAR(255)    NULL DEFAULT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_ss_uuid (session_uuid),
+    KEY idx_ss_tenant_user (tenant_id, user_id, started_at),
+    KEY idx_ss_open_recent (ended_at, last_ping_at),
+    CONSTRAINT fk_ss_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ss_user   FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ----------------------------------------------------------------------------
 SET FOREIGN_KEY_CHECKS = 1;
 SET SQL_MODE = @OLD_SQL_MODE;

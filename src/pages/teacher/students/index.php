@@ -19,18 +19,23 @@ $filters = [
     'status' => (string)       ($_GET['status'] ?? 'active'),
     'sort'   => (string)       ($_GET['sort']   ?? 'created_at'),
     'dir'    => (string)       ($_GET['dir']    ?? 'DESC'),
+    'period' => (string)       ($_GET['period'] ?? 'all'),
 ];
 if (!in_array($filters['status'], ['active', 'inactive', 'all'], true)) {
     $filters['status'] = 'active';
 }
+if (!in_array($filters['period'], ['all', '7d', '30d', '90d'], true)) {
+    $filters['period'] = 'all';
+}
 
 $page = max(1, (int) ($_GET['page'] ?? 1));
 $data = Student::listByTenant($tenantId, $filters, $page);
-$noFilters = $filters['q'] === '' && $filters['status'] === 'active';
+$noFilters = $filters['q'] === '' && $filters['status'] === 'active' && $filters['period'] === 'all';
 
 $qsBase = array_filter([
     'q'      => $filters['q']      !== ''        ? $filters['q']      : null,
     'status' => $filters['status'] !== 'active'  ? $filters['status'] : null,
+    'period' => $filters['period'] !== 'all'     ? $filters['period'] : null,
 ], static fn($v) => $v !== null);
 
 $sortLink = static function (string $col, string $label) use ($filters, $qsBase): string {
@@ -73,18 +78,26 @@ ob_start();
 </header>
 
 <form method="GET" action="/teacher/students" class="row g-2 mb-3">
-    <div class="col-12 col-md-6">
+    <div class="col-12 col-md-5">
         <input type="search" name="q" value="<?= e($filters['q']) ?>"
                class="form-control" placeholder="<?= e(__t('students.search_placeholder')) ?>">
     </div>
-    <div class="col-8 col-md-4">
+    <div class="col-6 col-md-3">
         <select name="status" class="form-select">
             <option value="active"   <?= $filters['status'] === 'active'   ? 'selected' : '' ?>><?= e(__t('students.filter.active')) ?></option>
             <option value="inactive" <?= $filters['status'] === 'inactive' ? 'selected' : '' ?>><?= e(__t('students.filter.inactive')) ?></option>
             <option value="all"      <?= $filters['status'] === 'all'      ? 'selected' : '' ?>><?= e(__t('students.filter.all')) ?></option>
         </select>
     </div>
-    <div class="col-4 col-md-2 d-grid">
+    <div class="col-6 col-md-2">
+        <select name="period" class="form-select" aria-label="<?= e(__t('students.filter.period_label')) ?>">
+            <option value="all" <?= $filters['period'] === 'all' ? 'selected' : '' ?>><?= e(__t('students.filter.period_all')) ?></option>
+            <option value="7d"  <?= $filters['period'] === '7d'  ? 'selected' : '' ?>><?= e(__t('students.filter.period_7d')) ?></option>
+            <option value="30d" <?= $filters['period'] === '30d' ? 'selected' : '' ?>><?= e(__t('students.filter.period_30d')) ?></option>
+            <option value="90d" <?= $filters['period'] === '90d' ? 'selected' : '' ?>><?= e(__t('students.filter.period_90d')) ?></option>
+        </select>
+    </div>
+    <div class="col-12 col-md-2 d-grid">
         <button type="submit" class="btn btn-outline-secondary"><?= e(__t('common.search')) ?></button>
     </div>
 </form>
@@ -115,6 +128,10 @@ ob_start();
                     <th class="text-end"><?= e(__t('students.col.groups')) ?></th>
                     <th><?= $sortLink('created_at', __t('students.col.created_at')) ?></th>
                     <th><?= $sortLink('last_login_at', __t('students.col.last_login')) ?></th>
+                    <th><?= $sortLink('last_ping_at', __t('students.col.last_access')) ?></th>
+                    <th class="text-end"><?= $sortLink('access_count', __t('students.col.access_count')) ?></th>
+                    <th class="text-end"><?= $sortLink('time_total', __t('students.col.time_total')) ?></th>
+                    <th class="text-end"><?= $sortLink('time_avg', __t('students.col.time_avg')) ?></th>
                     <th class="text-end"><?= e(__t('students.col.actions')) ?></th>
                 </tr>
             </thead>
@@ -151,6 +168,20 @@ ob_start();
                             ? e(substr((string) $row['last_login_at'], 0, 16))
                             : '<span class="text-muted">' . e(__t('students.never')) . '</span>' ?>
                     </td>
+                    <td class="small text-muted">
+                        <?= $row['last_ping_at'] !== null
+                            ? e(substr((string) $row['last_ping_at'], 0, 16))
+                            : '<span class="text-muted">—</span>' ?>
+                    </td>
+                    <td class="text-end small">
+                        <?= $row['access_count'] !== null ? (int) $row['access_count'] : '<span class="text-muted">—</span>' ?>
+                    </td>
+                    <td class="text-end small">
+                        <?= e(format_duration($row['time_total'] !== null ? (int) $row['time_total'] : null)) ?>
+                    </td>
+                    <td class="text-end small">
+                        <?= e(format_duration($row['time_avg'] !== null ? (int) $row['time_avg'] : null)) ?>
+                    </td>
                     <td class="text-end">
                         <div class="d-flex justify-content-end gap-1">
                             <a href="/teacher/students/<?= (int) $row['id'] ?>" class="btn btn-sm btn-outline-primary">
@@ -185,6 +216,14 @@ ob_start();
                         <div><strong><?= e(__t('students.col.language')) ?>:</strong> <?= e(strtoupper((string) $row['language'])) ?></div>
                         <div><strong><?= e(__t('students.col.enrollments')) ?>:</strong> <?= (int) $row['enrollments_count'] ?></div>
                         <div><strong><?= e(__t('students.col.groups')) ?>:</strong> <?= (int) $row['groups_count'] ?></div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-3 small text-muted mb-2">
+                        <div><strong><?= e(__t('students.col.access_count')) ?>:</strong> <?= $row['access_count'] !== null ? (int) $row['access_count'] : '—' ?></div>
+                        <div><strong><?= e(__t('students.col.time_total')) ?>:</strong> <?= e(format_duration($row['time_total'] !== null ? (int) $row['time_total'] : null)) ?></div>
+                        <div><strong><?= e(__t('students.col.time_avg')) ?>:</strong> <?= e(format_duration($row['time_avg'] !== null ? (int) $row['time_avg'] : null)) ?></div>
+                        <?php if ($row['last_ping_at'] !== null): ?>
+                            <div><strong><?= e(__t('students.col.last_access')) ?>:</strong> <?= e(substr((string) $row['last_ping_at'], 0, 16)) ?></div>
+                        <?php endif; ?>
                     </div>
                     <div class="d-flex gap-2 flex-wrap">
                         <a href="/teacher/students/<?= (int) $row['id'] ?>" class="btn btn-sm btn-outline-primary">

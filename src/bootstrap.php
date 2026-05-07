@@ -34,6 +34,11 @@ ini_set('default_charset', 'UTF-8');
 
 // 3. Sessão (apenas web) --------------------------------------------------
 if (PHP_SAPI !== 'cli' && session_status() === PHP_SESSION_NONE) {
+    // Default do PHP é 1440s (24min). Professores escrevendo conteudo longo
+    // no TinyMCE perdiam trabalho ao salvar apos 25min de digitacao (sem
+    // navegacao = sem refresh de sessao). Bumpa pra 4h. Cookie continua em
+    // browser-session (lifetime: 0) por seguranca — fechar o browser desloga.
+    ini_set('session.gc_maxlifetime', '14400');
     session_name('lms_session');
     session_set_cookie_params([
         'lifetime' => 0,

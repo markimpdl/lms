@@ -937,7 +937,8 @@ body.lms-student-area .lms-student-main {
 
 /* Section tabs */
 .lms-section-tabs {
-    display: inline-flex;
+    display: flex;
+    width: fit-content;
     gap: 4px;
     padding: 5px;
     background: var(--lms-card-bg);
@@ -946,6 +947,10 @@ body.lms-student-area .lms-student-main {
     margin-bottom: 24px;
     overflow-x: auto;
     max-width: 100%;
+    position: sticky;
+    top: 72px; /* navbar (64px) + 8px de respiro; navbar fica acima */
+    z-index: 20;
+    box-shadow: var(--lms-shadow-card);
 }
 .lms-section-tab {
     display: inline-flex;
@@ -1006,6 +1011,26 @@ body.lms-student-area .lms-student-main {
     padding: 28px;
     box-shadow: var(--lms-shadow-card);
 }
+.lms-content-card__body.is-collapsed {
+    max-height: 1500px;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 100px), transparent);
+            mask-image: linear-gradient(to bottom, black calc(100% - 100px), transparent);
+}
+.lms-content-card__toggle { text-align: center; margin-top: 16px; }
+.lms-content-card__toggle-btn {
+    background: var(--lms-card-bg);
+    border: 1px solid var(--lms-neutral-200);
+    border-radius: var(--lms-radius-chip);
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--lms-neutral-700);
+    cursor: pointer;
+    transition: background 160ms ease, color 160ms ease;
+}
+.lms-content-card__toggle-btn:hover { background: var(--lms-neutral-100); color: var(--lms-neutral-900); }
+
 .lms-content-card--empty { text-align: center; color: var(--lms-neutral-500); }
 .lms-content-card__empty-title {
     font-family: 'Plus Jakarta Sans', sans-serif;
@@ -1048,7 +1073,7 @@ body.lms-student-area .lms-student-main {
     color: var(--lms-neutral-700);
     font-style: italic;
 }
-.unit-prose pre {
+.unit-prose pre:not([class*="language-"]) {
     background: #0F172A;
     color: #E2E8F0;
     padding: 16px 18px;
@@ -1058,7 +1083,8 @@ body.lms-student-area .lms-student-main {
     line-height: 1.6;
     margin: 18px 0;
 }
-.unit-prose pre code { background: transparent; color: inherit; padding: 0; }
+.unit-prose pre:not([class*="language-"]) code { background: transparent; color: inherit; padding: 0; }
+.unit-prose pre[class*="language-"] { margin: 18px 0; border-radius: var(--lms-radius-inner); }
 .unit-prose code {
     background: var(--lms-neutral-100);
     color: var(--lms-neutral-900);

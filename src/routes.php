@@ -36,6 +36,8 @@ return [
         '/notifications/mark-all-read'  => '/src/pages/notifications/mark-all-read.php',
         '/settings/language'            => '/src/pages/settings/language.php',
         '/api/code/run'                 => '/src/pages/api/code/run.php',
+        '/api/student/heartbeat'        => '/src/pages/api/student/heartbeat.php',
+        '/api/student/session-end'      => '/src/pages/api/student/session-end.php',
     ],
 
     'roles' => [
@@ -55,6 +57,7 @@ return [
         '/teacher/ranks'        => ['file' => '/src/pages/teacher/ranks/index.php',    'role' => 'teacher'],
         '/teacher/ranks/save'   => ['file' => '/src/pages/teacher/ranks/save.php',     'role' => 'teacher'],
         '/teacher/ranking'      => ['file' => '/src/pages/teacher/ranking.php',        'role' => 'teacher'],
+        '/teacher/submissions'  => ['file' => '/src/pages/teacher/submissions/index.php', 'role' => 'teacher'],
         '/teacher/settings'     => ['file' => '/src/pages/teacher/settings/index.php', 'role' => 'teacher'],
         '/teacher/settings/notifications' => ['file' => '/src/pages/teacher/settings/notifications.php', 'role' => 'teacher'],
         '/student'             => ['file' => '/src/pages/dashboard/student.php',     'role' => 'student'],
