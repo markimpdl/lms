@@ -561,6 +561,7 @@ return [
     'evaluations.form.type'             => 'Tipo',
     'evaluations.form.type_hint'        => 'Projeto: aluno envia PDF ou ZIP e você corrige manualmente. Quiz: questões de múltipla escolha com nota automática.',
     'evaluations.form.type_hint_lo'     => 'Curso em modo Learning Outcomes: só Projeto é compatível (Quiz é nota automática e não combina com avaliação por critério).',
+    'evaluations.form.type_immutable_hint' => 'Tipo é definido na criação e não pode ser alterado depois (Quiz e Projeto têm conteúdo incompatível). Para mudar, exclua e crie de novo.',
     'evaluations.form.err.type'         => 'Tipo de avaliação inválido.',
     'evaluations.form.quiz_hint'        => 'Esta é uma avaliação tipo Quiz.',
     'evaluations.form.quiz_edit_btn'    => 'Editar questões',

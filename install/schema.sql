@@ -713,23 +713,22 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- [Post-E6-05] Reduzir ENUM de activities.type para só `projeto` e `codigo`.
--- Tipos `quiz`, `pesquisa`, `formulario` foram retirados até a modelagem
--- correta ser definida. Antes do ALTER ENUM, rows com valores antigos são
--- migradas pra `projeto` (valor seguro por default). As duas statements
--- são idempotentes: a UPDATE filtra pelos tipos antigos (zero linhas após
--- primeira execução) e o MODIFY reaplica a mesma definição em runs
--- seguintes sem efeito visível. Guarda por INFORMATION_SCHEMA pra pular
--- quando a ENUM já tem só os dois valores.
+-- [Post-E6-05] Reduzir ENUM de activities.type pra remover `pesquisa` e
+-- `formulario` (placeholders nunca implementados). `quiz` ficou de fora
+-- nessa fase e foi reintroduzido depois pelo E20-01 — por isso o gate
+-- abaixo NÃO checa quiz: senão, depois do E20-01 expandir a ENUM, este
+-- bloco voltaria a casar e nukearia as atividades-quiz a cada deploy.
+-- Statements idempotentes: gate só casa em bases pré-E20-01 que ainda
+-- carregam pesquisa/formulario na ENUM.
 SET @has_old_types := (
     SELECT COUNT(*) FROM information_schema.COLUMNS
      WHERE TABLE_SCHEMA = DATABASE()
        AND TABLE_NAME   = 'activities'
        AND COLUMN_NAME  = 'type'
-       AND (COLUMN_TYPE LIKE '%quiz%' OR COLUMN_TYPE LIKE '%pesquisa%' OR COLUMN_TYPE LIKE '%formulario%')
+       AND (COLUMN_TYPE LIKE '%pesquisa%' OR COLUMN_TYPE LIKE '%formulario%')
 );
 SET @sql := IF(@has_old_types > 0,
-    "UPDATE activities SET type = 'projeto' WHERE type IN ('quiz','pesquisa','formulario')",
+    "UPDATE activities SET type = 'projeto' WHERE type IN ('pesquisa','formulario')",
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
@@ -1214,6 +1213,24 @@ SET @sql := IF(@col_exists = 0,
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
+
+-- [v0.30.x bugfix] Restaura type='quiz' em activities/evaluations zeradas.
+-- Dois bugs anteriores viravam quizzes pra projeto: (1) o gate da migração
+-- [Post-E6-05] casava em '%quiz%' depois do E20-01 e re-rodava o UPDATE
+-- destrutivo; (2) Evaluation::update tinha default `?? 'projeto'` no campo
+-- type e o /edit não passava o type, então cada save flipava. Reidentifica
+-- quem era quiz via JOIN com `quizzes` (1:1 polimórfico por owner_type/
+-- owner_id) e restaura. Idempotente: WHERE type != 'quiz' filtra zerando-se
+-- após primeira execução.
+UPDATE activities a
+  JOIN quizzes q ON q.owner_type = 'activity' AND q.owner_id = a.id
+   SET a.type = 'quiz'
+ WHERE a.type != 'quiz';
+
+UPDATE evaluations e
+  JOIN quizzes q ON q.owner_type = 'evaluation' AND q.owner_id = e.id
+   SET e.type = 'quiz'
+ WHERE e.type != 'quiz';
 
 -- [E24-01] tenants.is_actvet, platform_name, logo_path — white-label per
 -- professor (cada prof = 1 tenant). is_actvet flag setada pelo super-admin
