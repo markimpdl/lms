@@ -562,6 +562,7 @@ return [
     'evaluations.form.type_hint'        => 'Project: student uploads a PDF or ZIP for manual grading. Quiz: multiple-choice questions with automatic grading.',
     'evaluations.form.type_hint_lo'     => 'Course in Learning Outcomes mode: only Project is compatible (Quiz is auto-graded and conflicts with per-criterion grading).',
     'evaluations.form.type_immutable_hint' => 'Type is set on creation and cannot be changed later (Quiz and Project have incompatible content). To change it, delete and recreate.',
+    'submissions.run.no_stdin_hint'     => '<strong>Run</strong> executes your code without interactive input — calls like :fn will hang waiting for something that never arrives. To test, assign values directly to your variables.',
     'evaluations.form.err.type'         => 'Invalid evaluation type.',
     'evaluations.form.quiz_hint'        => 'This is a Quiz-type evaluation.',
     'evaluations.form.quiz_edit_btn'    => 'Edit questions',
