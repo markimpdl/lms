@@ -128,6 +128,16 @@ $codeLang   = $activity['code_language'] ?? null;
 $useEditor  = $isCode && (int) ($activity['allow_online_code_run'] ?? 0) === 1 && $codeLang !== null;
 $errors     = [];
 
+// Aviso sobre stdin: Judge0 roda sem entrada interativa, então input()/
+// Console.ReadLine()/prompt() travam. HTML usa iframe (sem stdin) — não
+// se aplica. Mostra só quando o "Executar" está disponível.
+$stdinFnByLang = [
+    'python'     => 'input()',
+    'csharp'     => 'Console.ReadLine()',
+    'javascript' => 'prompt()',
+];
+$stdinFn = $useEditor ? ($stdinFnByLang[$codeLang] ?? null) : null;
+
 // Allowlist de extensões pro input file. Atividade tipo código com
 // linguagem definida estende com a extensão da linguagem (.py/.cs/.js/.html);
 // .zip e .txt continuam universais (zip pra projetos com vários arquivos).
@@ -357,6 +367,11 @@ ob_start();
                                         </button>
                                     <?php endif; ?>
                                 </div>
+                                <?php if ($stdinFn !== null): ?>
+                                    <div class="alert alert-info small py-2 px-3 mb-2" role="alert">
+                                        <?= __t('submissions.run.no_stdin_hint', ['fn' => '<code>' . e($stdinFn) . '</code>']) ?>
+                                    </div>
+                                <?php endif; ?>
                                 <?php if ($useEditor): ?>
                                     <div id="f-code-editor" class="lms-code-editor" data-code-language="<?= e((string) $codeLang) ?>"></div>
                                 <?php endif; ?>
