@@ -41,11 +41,18 @@ $page_title = __t('teacher_submissions.page.title');
 
 ob_start();
 ?>
+<?= breadcrumbs([
+    ['label' => __t('dashboard.teacher.title'), 'url' => '/teacher'],
+    ['label' => __t('teacher_submissions.page.title')],
+]) ?>
 <header class="lms-dashboard-header">
     <div>
         <span class="lms-dashboard-eyebrow"><?= e(__t('teacher.dashboard.eyebrow')) ?></span>
         <h1 class="lms-dashboard-title"><?= e(__t('teacher_submissions.page.title')) ?></h1>
     </div>
+    <a href="/teacher" class="btn btn-outline-secondary">
+        <?= e(__t('common.back')) ?>
+    </a>
 </header>
 
 <ul class="nav nav-pills mb-3">

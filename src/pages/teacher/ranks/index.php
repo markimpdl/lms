@@ -22,14 +22,23 @@ $page_title = __t('ranks.title');
 
 ob_start();
 ?>
+<?= breadcrumbs([
+    ['label' => __t('dashboard.teacher.title'), 'url' => '/teacher'],
+    ['label' => __t('ranks.title')],
+]) ?>
 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
     <div>
         <h1 class="h4 mb-0"><?= e(__t('ranks.title')) ?></h1>
         <small class="text-muted"><?= e(__t('ranks.subtitle')) ?></small>
     </div>
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#rankFormModal" data-rank-mode="new">
-        + <?= e(__t('ranks.new_button')) ?>
-    </button>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="/teacher" class="btn btn-outline-secondary">
+            <?= e(__t('common.back')) ?>
+        </a>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#rankFormModal" data-rank-mode="new">
+            + <?= e(__t('ranks.new_button')) ?>
+        </button>
+    </div>
 </div>
 
 <?php if ($ranks === []): ?>

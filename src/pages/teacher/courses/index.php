@@ -46,14 +46,23 @@ $page_title = __t('courses.index.title');
 
 ob_start();
 ?>
+<?= breadcrumbs([
+    ['label' => __t('dashboard.teacher.title'), 'url' => '/teacher'],
+    ['label' => __t('courses.index.title')],
+]) ?>
 <header class="lms-dashboard-header">
     <div>
         <span class="lms-dashboard-eyebrow"><?= e(__t('teacher.courses.eyebrow')) ?></span>
         <h1 class="lms-dashboard-title"><?= e(__t('courses.index.title')) ?></h1>
     </div>
-    <a href="/teacher/courses/new" class="btn btn-primary">
-        + <?= e(__t('courses.new_button')) ?>
-    </a>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="/teacher" class="btn btn-outline-secondary">
+            <?= e(__t('common.back')) ?>
+        </a>
+        <a href="/teacher/courses/new" class="btn btn-primary">
+            + <?= e(__t('courses.new_button')) ?>
+        </a>
+    </div>
 </header>
 
 <form method="GET" action="/teacher/courses" class="row g-2 mb-3">

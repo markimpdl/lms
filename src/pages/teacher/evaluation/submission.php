@@ -241,7 +241,7 @@ ob_start();
                     · <?= e((string) $evaluation['cu_name']) ?>
                 </small>
             </div>
-            <a href="/teacher/evaluation/<?= $evaluationId ?>/edit" class="btn btn-sm btn-outline-secondary">
+            <a href="/teacher/evaluation/<?= $evaluationId ?>/submissions" class="btn btn-sm btn-outline-secondary">
                 <?= e(__t('common.back')) ?>
             </a>
         </div>
