@@ -267,6 +267,9 @@ ob_start();
                         <td class="lms-ranking-table__xp">
                             <span class="lms-ranking-xp"><?= e(number_format((int) $row['xp'], 0, ',', '.')) ?></span>
                             <span class="lms-ranking-xp-unit">XP</span>
+                            <span class="lms-ranking-hours" title="<?= e(__t('ranking.col.online_hours')) ?>">
+                                · <?= e(format_hours_compact((int) $row['online_seconds'])) ?>
+                            </span>
                         </td>
                     </tr>
                 <?php endforeach; ?>

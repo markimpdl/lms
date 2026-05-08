@@ -1696,6 +1696,13 @@ body.lms-student-area .lms-ranking-xp-unit {
     font-size: 12px;
     font-weight: 600;
 }
+body.lms-student-area .lms-ranking-hours {
+    margin-left: 4px;
+    color: var(--lms-neutral-500);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
 
 @media (max-width: 575.98px) {
     body.lms-student-area .lms-ranking-table thead th,

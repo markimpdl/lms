@@ -37,7 +37,8 @@ final class RankingService
      *   rows: list<array{
      *     position:int, student_id:int, name:string,
      *     group_names:string, xp:int, last_event_at:?string,
-     *     rank_id:?int, rank_name:?string, rank_color_hex:?string
+     *     rank_id:?int, rank_name:?string, rank_color_hex:?string,
+     *     online_seconds:int
      *   }>,
      *   total:int
      * }
@@ -94,6 +95,8 @@ final class RankingService
         $stmtTotal->execute();
         $total = (int) $stmtTotal->fetchColumn();
 
+        // online_seconds: total acumulado historico (sem janela). Sessao
+        // ativa entra via TIMESTAMPDIFF (mesmo padrao de StudentSession::statsForStudent).
         $rowsSql = "SELECT u.id   AS student_id,
                            u.name AS name,
                            COALESCE(SUM(x.value), 0) AS xp,
@@ -104,7 +107,8 @@ final class RankingService
                              WHERE gm2.student_user_id = u.id) AS group_names,
                            MAX(rk.id)        AS rank_id,
                            MAX(rk.name)      AS rank_name,
-                           MAX(rk.color_hex) AS rank_color_hex
+                           MAX(rk.color_hex) AS rank_color_hex,
+                           COALESCE(MAX(ss.total_seconds), 0) AS online_seconds
                       FROM users u
                       {$groupJoinSql}
                       LEFT JOIN xp_events x
@@ -120,6 +124,14 @@ final class RankingService
                              ON rk.tenant_id = :tenant_id_rank
                             AND rk.xp_min   <= COALESCE(ta.total_xp, 0)
                             AND (rk.xp_max IS NULL OR rk.xp_max > COALESCE(ta.total_xp, 0))
+                      LEFT JOIN (
+                          SELECT user_id,
+                                 SUM(COALESCE(duration_seconds,
+                                              TIMESTAMPDIFF(SECOND, started_at, NOW()))) AS total_seconds
+                            FROM student_sessions
+                           WHERE tenant_id = :tenant_id_sessions
+                           GROUP BY user_id
+                      ) ss ON ss.user_id = u.id
                      WHERE u.tenant_id = :tenant_id
                        AND u.role      = 'student'
                        AND u.active    = 1
@@ -130,11 +142,12 @@ final class RankingService
                      LIMIT :lim OFFSET :off";
         $stmt = $pdo->prepare($rowsSql);
         self::bindFilters($stmt, $f, $xpParams, $enrollParams);
-        $stmt->bindValue(':tenant_id',       $tenantId, PDO::PARAM_INT);
-        $stmt->bindValue(':tenant_id_total', $tenantId, PDO::PARAM_INT);
-        $stmt->bindValue(':tenant_id_rank',  $tenantId, PDO::PARAM_INT);
-        $stmt->bindValue(':lim',             $perPage,  PDO::PARAM_INT);
-        $stmt->bindValue(':off',             $offset,   PDO::PARAM_INT);
+        $stmt->bindValue(':tenant_id',          $tenantId, PDO::PARAM_INT);
+        $stmt->bindValue(':tenant_id_total',    $tenantId, PDO::PARAM_INT);
+        $stmt->bindValue(':tenant_id_rank',     $tenantId, PDO::PARAM_INT);
+        $stmt->bindValue(':tenant_id_sessions', $tenantId, PDO::PARAM_INT);
+        $stmt->bindValue(':lim',                $perPage,  PDO::PARAM_INT);
+        $stmt->bindValue(':off',                $offset,   PDO::PARAM_INT);
         $stmt->execute();
 
         $rows     = [];
@@ -151,6 +164,7 @@ final class RankingService
                 'rank_id'        => $r['rank_id']        !== null ? (int) $r['rank_id']           : null,
                 'rank_name'      => $r['rank_name']      !== null ? (string) $r['rank_name']      : null,
                 'rank_color_hex' => $r['rank_color_hex'] !== null ? (string) $r['rank_color_hex'] : null,
+                'online_seconds' => (int) ($r['online_seconds'] ?? 0),
             ];
         }
 
