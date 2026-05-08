@@ -71,6 +71,21 @@ if ($nextRank !== null) {
 $recentAchievements = $tenantId > 0
     ? student_recent_achievements($studentId, $tenantId, 3)
     : [];
+
+$branding     = $tenantId > 0 ? tenant_branding($tenantId) : null;
+$whatsappHref = null;
+if ($branding !== null && $branding['whatsapp_number'] !== null) {
+    $courseName = student_primary_course_name($studentId);
+    $msgKey     = $courseName !== null
+        ? 'sidebar.whatsapp_message'
+        : 'sidebar.whatsapp_message_no_course';
+    $msg = __t($msgKey, [
+        'name'     => $name,
+        'course'   => (string) $courseName,
+        'platform' => $branding['name'],
+    ]);
+    $whatsappHref = 'https://wa.me/' . $branding['whatsapp_number'] . '?text=' . rawurlencode($msg);
+}
 ?>
 <aside class="lms-student-sidebar">
     <div class="lms-sidebar-card"
@@ -167,5 +182,13 @@ $recentAchievements = $tenantId > 0
                 <?= e(__t('sidebar.see_ranking')) ?>
             </a>
         </div>
+
+        <?php if ($whatsappHref !== null): ?>
+            <a href="<?= e($whatsappHref) ?>" target="_blank" rel="noopener noreferrer"
+               class="lms-sidebar-whatsapp">
+                <i class="bi bi-whatsapp" aria-hidden="true"></i>
+                <span><?= e(__t('sidebar.talk_to_teacher')) ?></span>
+            </a>
+        <?php endif; ?>
     </div>
 </aside>

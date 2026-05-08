@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS tenants (
     is_actvet       TINYINT(1) NOT NULL DEFAULT 0,
     platform_name   VARCHAR(60)  NULL DEFAULT NULL,
     logo_path       VARCHAR(255) NULL DEFAULT NULL,
+    whatsapp_number VARCHAR(32)  NULL DEFAULT NULL,
     avatar_style    ENUM('arabe','ocidental') NOT NULL DEFAULT 'arabe',
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1389,6 +1390,23 @@ CREATE TABLE IF NOT EXISTS student_sessions (
     CONSTRAINT fk_ss_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
     CONSTRAINT fk_ss_user   FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- [v0.31.0] tenants.whatsapp_number — numero opcional do professor para o
+-- botao "Talk to the teacher" na sidebar do aluno. Sanitizado para digitos
+-- only (com country code, ex.: 5511999998888) ao gravar; UI mostra na forma
+-- bruta digitada. NULL = botao oculto na sidebar.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'tenants'
+       AND COLUMN_NAME  = 'whatsapp_number'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE tenants ADD COLUMN whatsapp_number VARCHAR(32) NULL DEFAULT NULL AFTER logo_path",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- ----------------------------------------------------------------------------
 SET FOREIGN_KEY_CHECKS = 1;

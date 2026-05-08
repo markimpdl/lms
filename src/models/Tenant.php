@@ -53,7 +53,7 @@ final class Tenant
     {
         $stmt = Database::pdo()->prepare(
             'SELECT id, owner_user_id, name, active, is_actvet, platform_name, logo_path,
-                    avatar_style, created_at, updated_at
+                    whatsapp_number, avatar_style, created_at, updated_at
                FROM tenants WHERE id = ? LIMIT 1'
         );
         $stmt->execute([$tenantId]);
@@ -104,6 +104,13 @@ final class Tenant
         Database::pdo()->prepare(
             'UPDATE tenants SET platform_name = ?, logo_path = ? WHERE id = ?'
         )->execute([$name, $logo, $tenantId]);
+    }
+
+    /** String vazia normaliza para NULL. */
+    public static function updateWhatsapp(int $tenantId, ?string $whatsappDigits): void
+    {
+        Database::pdo()->prepare('UPDATE tenants SET whatsapp_number = ? WHERE id = ?')
+            ->execute([$whatsappDigits === '' ? null : $whatsappDigits, $tenantId]);
     }
 
     /**
