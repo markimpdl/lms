@@ -51,6 +51,35 @@ ob_start();
 </header>
 <div class="py-1">
 
+    <!-- Atalhos pros hubs -->
+    <h2 class="h5 mb-3"><?= e(__t('teacher_dashboard.hubs.title')) ?></h2>
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-6 col-lg-3">
+            <a href="/teacher/courses" class="card card-body shadow-sm h-100 text-decoration-none">
+                <h3 class="h6 mb-1"><?= e(__t('courses.index.title')) ?></h3>
+                <p class="text-muted small mb-0"><?= e(__t('dashboard.teacher.courses_hint')) ?></p>
+            </a>
+        </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <a href="/teacher/students" class="card card-body shadow-sm h-100 text-decoration-none">
+                <h3 class="h6 mb-1"><?= e(__t('students.title')) ?></h3>
+                <p class="text-muted small mb-0"><?= e(__t('dashboard.teacher.students_hint')) ?></p>
+            </a>
+        </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <a href="/teacher/groups" class="card card-body shadow-sm h-100 text-decoration-none">
+                <h3 class="h6 mb-1"><?= e(__t('groups.title')) ?></h3>
+                <p class="text-muted small mb-0"><?= e(__t('dashboard.teacher.groups_hint')) ?></p>
+            </a>
+        </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <a href="/teacher/ranks" class="card card-body shadow-sm h-100 text-decoration-none">
+                <h3 class="h6 mb-1"><?= e(__t('ranks.title')) ?></h3>
+                <p class="text-muted small mb-0"><?= e(__t('dashboard.teacher.ranks_hint')) ?></p>
+            </a>
+        </div>
+    </div>
+
     <!-- Totalizadores -->
     <div class="row g-3 mb-4">
         <div class="col-12 col-md-4">
@@ -160,34 +189,6 @@ ob_start();
         </div>
     </div>
 
-    <!-- Atalhos pros hubs -->
-    <h2 class="h5 mb-3"><?= e(__t('teacher_dashboard.hubs.title')) ?></h2>
-    <div class="row g-3">
-        <div class="col-12 col-md-6 col-lg-3">
-            <a href="/teacher/courses" class="card card-body shadow-sm h-100 text-decoration-none">
-                <h3 class="h6 mb-1"><?= e(__t('courses.index.title')) ?></h3>
-                <p class="text-muted small mb-0"><?= e(__t('dashboard.teacher.courses_hint')) ?></p>
-            </a>
-        </div>
-        <div class="col-12 col-md-6 col-lg-3">
-            <a href="/teacher/students" class="card card-body shadow-sm h-100 text-decoration-none">
-                <h3 class="h6 mb-1"><?= e(__t('students.title')) ?></h3>
-                <p class="text-muted small mb-0"><?= e(__t('dashboard.teacher.students_hint')) ?></p>
-            </a>
-        </div>
-        <div class="col-12 col-md-6 col-lg-3">
-            <a href="/teacher/groups" class="card card-body shadow-sm h-100 text-decoration-none">
-                <h3 class="h6 mb-1"><?= e(__t('groups.title')) ?></h3>
-                <p class="text-muted small mb-0"><?= e(__t('dashboard.teacher.groups_hint')) ?></p>
-            </a>
-        </div>
-        <div class="col-12 col-md-6 col-lg-3">
-            <a href="/teacher/ranks" class="card card-body shadow-sm h-100 text-decoration-none">
-                <h3 class="h6 mb-1"><?= e(__t('ranks.title')) ?></h3>
-                <p class="text-muted small mb-0"><?= e(__t('dashboard.teacher.ranks_hint')) ?></p>
-            </a>
-        </div>
-    </div>
 </div>
 <?php
 $page_content = ob_get_clean();
