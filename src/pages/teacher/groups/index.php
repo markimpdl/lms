@@ -42,14 +42,23 @@ $page_title = __t('groups.title');
 
 ob_start();
 ?>
+<?= breadcrumbs([
+    ['label' => __t('dashboard.teacher.title'), 'url' => '/teacher'],
+    ['label' => __t('groups.title')],
+]) ?>
 <header class="lms-dashboard-header">
     <div>
         <span class="lms-dashboard-eyebrow"><?= e(__t('teacher.groups.eyebrow')) ?></span>
         <h1 class="lms-dashboard-title"><?= e(__t('groups.title')) ?></h1>
     </div>
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newGroupModal">
-        + <?= e(__t('groups.new_button')) ?>
-    </button>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="/teacher" class="btn btn-outline-secondary">
+            <?= e(__t('common.back')) ?>
+        </a>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newGroupModal">
+            + <?= e(__t('groups.new_button')) ?>
+        </button>
+    </div>
 </header>
 
 <form method="GET" action="/teacher/groups" class="row g-2 mb-3">
