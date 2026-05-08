@@ -1380,6 +1380,7 @@ return [
     'ranking.col.groups'           => 'Grupos',
     'ranking.col.rank'             => 'Patente',
     'ranking.col.xp'               => 'XP',
+    'ranking.col.hours'            => 'Horas',
     'ranking.col.online_hours'     => 'Tempo online',
     'ranking.no_rank'              => 'Sem patente cadastrada',
     'ranking.you'                  => 'Você',

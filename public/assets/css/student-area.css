@@ -1696,10 +1696,13 @@ body.lms-student-area .lms-ranking-xp-unit {
     font-size: 12px;
     font-weight: 600;
 }
+body.lms-student-area .lms-ranking-table__hours {
+    width: 80px;
+    text-align: right;
+}
 body.lms-student-area .lms-ranking-hours {
-    margin-left: 4px;
     color: var(--lms-neutral-500);
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     white-space: nowrap;
 }
