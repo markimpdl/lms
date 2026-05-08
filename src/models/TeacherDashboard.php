@@ -68,8 +68,9 @@ final class TeacherDashboard
 
     /**
      * Últimas submissões do tenant — mix de activities + evaluations
-     * (tentativa corrente), ordenadas por `created_at DESC`. Cada row
-     * traz o suficiente pra linkar direto na correção.
+     * (tentativa corrente). Pendentes (sem feedback) vem primeiro;
+     * dentro de cada bucket, mais recente primeiro. Cada row traz o
+     * suficiente pra linkar direto na correção.
      *
      * @return list<array{
      *   src:'activity'|'evaluation',
@@ -103,7 +104,7 @@ final class TeacherDashboard
                 FROM evaluation_submissions s
                 JOIN evaluations e         ON e.id  = s.evaluation_id AND e.tenant_id = ?
                 JOIN users u               ON u.id  = s.student_user_id)
-             ORDER BY created_at DESC
+             ORDER BY (feedback_at IS NOT NULL), created_at DESC
              LIMIT ?'
         );
         $stmt->execute([$tenantId, $tenantId, $limit]);
