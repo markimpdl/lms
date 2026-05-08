@@ -220,6 +220,7 @@ ob_start();
                     <th><?= e(__t('ranking.col.name')) ?></th>
                     <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.rank')) ?></th>
                     <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.groups')) ?></th>
+                    <th class="lms-ranking-table__hours"><?= e(__t('ranking.col.hours')) ?></th>
                     <th class="lms-ranking-table__xp"><?= e(__t('ranking.col.xp')) ?></th>
                 </tr>
             </thead>
@@ -264,12 +265,12 @@ ob_start();
                         <td class="d-none d-md-table-cell lms-ranking-groups">
                             <?= $row['group_names'] !== '' ? e($row['group_names']) : '<span class="lms-ranking-muted">—</span>' ?>
                         </td>
+                        <td class="lms-ranking-table__hours">
+                            <span class="lms-ranking-hours"><?= e(format_hours_compact((int) $row['online_seconds'])) ?></span>
+                        </td>
                         <td class="lms-ranking-table__xp">
                             <span class="lms-ranking-xp"><?= e(number_format((int) $row['xp'], 0, ',', '.')) ?></span>
                             <span class="lms-ranking-xp-unit">XP</span>
-                            <span class="lms-ranking-hours" title="<?= e(__t('ranking.col.online_hours')) ?>">
-                                · <?= e(format_hours_compact((int) $row['online_seconds'])) ?>
-                            </span>
                         </td>
                     </tr>
                 <?php endforeach; ?>

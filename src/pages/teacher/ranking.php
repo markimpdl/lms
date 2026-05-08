@@ -203,6 +203,7 @@ ob_start();
                         <th><?= e(__t('ranking.col.name')) ?></th>
                         <th class="d-none d-md-table-cell" style="width: 130px;"><?= e(__t('ranking.col.rank')) ?></th>
                         <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.groups')) ?></th>
+                        <th class="text-end" style="width: 80px;"><?= e(__t('ranking.col.hours')) ?></th>
                         <th class="text-end" style="width: 110px;"><?= e(__t('ranking.col.xp')) ?></th>
                         <th class="d-none d-lg-table-cell" style="width: 140px;">
                             <?= e(__t('ranking.col.last_event')) ?>
@@ -243,6 +244,9 @@ ob_start();
                             </td>
                             <td class="d-none d-md-table-cell text-muted small">
                                 <?= $row['group_names'] !== '' ? e($row['group_names']) : '<span class="text-muted">—</span>' ?>
+                            </td>
+                            <td class="text-end text-muted small">
+                                <?= e(format_hours_compact((int) $row['online_seconds'])) ?>
                             </td>
                             <td class="text-end">
                                 <strong><?= e(number_format((int) $row['xp'], 0, ',', '.')) ?></strong>
