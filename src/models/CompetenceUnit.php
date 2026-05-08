@@ -92,6 +92,7 @@ final class CompetenceUnit
     {
         $stmt = Database::pdo()->prepare(
             'SELECT cu.id, cu.core_competency_id, cu.name, cu.position,
+                    cu.manual_completion_enabled, cu.manual_completion_xp,
                     cc.course_id, c.archived AS course_archived,
                     c.grading_mode AS course_grading_mode
                FROM competence_units cu
@@ -138,6 +139,7 @@ final class CompetenceUnit
     {
         $stmt = Database::pdo()->prepare(
             'SELECT cu.id, cu.name, cu.position AS cu_position, cu.workload_hours,
+                    cu.manual_completion_enabled, cu.manual_completion_xp,
                     cc.id AS cc_id, cc.name AS cc_name,
                     c.id AS course_id, c.name AS course_name, c.language AS course_language,
                     (SELECT COUNT(*) + 1
@@ -232,6 +234,19 @@ final class CompetenceUnit
         );
         $stmt->execute([$courseId]);
         return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Atualiza config de "Mark as completed" (v0.31.0). Caller valida que
+     * a CU pertence ao tenant e que nao tem evaluation cadastrada.
+     */
+    public static function setManualCompletion(int $id, bool $enabled, int $xp): void
+    {
+        Database::pdo()->prepare(
+            'UPDATE competence_units
+                SET manual_completion_enabled = ?, manual_completion_xp = ?
+              WHERE id = ?'
+        )->execute([$enabled ? 1 : 0, max(0, $xp), $id]);
     }
 
     public static function moveUp(int $id, int $tenantId): bool

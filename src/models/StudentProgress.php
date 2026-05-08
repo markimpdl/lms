@@ -31,6 +31,9 @@ final class StudentProgress
      */
     public static function cuPercent(int $cuId, int $studentId): int
     {
+        // manual_completion conta como "slot avaliativo" mutuamente exclusivo
+        // com evaluation (UI gateia), entrando no denominador como +1 e no
+        // numerador quando o aluno clicou em "Mark as completed" (v0.31.0).
         $stmt = Database::pdo()->prepare(
             'SELECT
                 (SELECT COUNT(*) FROM activities WHERE competence_unit_id = ?) AS activities_total,
@@ -43,13 +46,26 @@ final class StudentProgress
                   WHERE e.competence_unit_id = ?
                     AND es.student_user_id = ?
                     AND es.grade IS NOT NULL
-                    AND es.grade >= 6.0) AS evaluation_approved'
+                    AND es.grade >= 6.0) AS evaluation_approved,
+                (SELECT manual_completion_enabled FROM competence_units WHERE id = ?) AS has_manual_completion,
+                (SELECT COUNT(*) FROM cu_manual_completions
+                  WHERE cu_id = ? AND student_user_id = ?) AS manual_completed'
         );
-        $stmt->execute([$cuId, $cuId, $studentId, $cuId, $cuId, $studentId]);
+        $stmt->execute([$cuId, $cuId, $studentId, $cuId, $cuId, $studentId, $cuId, $cuId, $studentId]);
         $row = $stmt->fetch();
 
-        $total = (int) ($row['activities_total']    ?? 0) + (int) ($row['has_evaluation']      ?? 0);
-        $done  = (int) ($row['activities_done']     ?? 0) + (int) ($row['evaluation_approved'] ?? 0);
+        // Disable retroativo do manual_completion zera a contribuicao do
+        // slot inteiro (denominador + numerador) — caso contrario denominador
+        // dropa mas linha em cu_manual_completions sobra no numerador,
+        // gerando percent > 100.
+        $hasManual    = (int) ($row['has_manual_completion'] ?? 0);
+        $manualDone   = (int) ($row['manual_completed']      ?? 0) * $hasManual;
+        $total = (int) ($row['activities_total'] ?? 0)
+               + (int) ($row['has_evaluation']   ?? 0)
+               + $hasManual;
+        $done  = (int) ($row['activities_done']     ?? 0)
+               + (int) ($row['evaluation_approved'] ?? 0)
+               + $manualDone;
 
         if ($total === 0) {
             return 0;

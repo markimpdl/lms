@@ -346,6 +346,16 @@ return [
             'role'   => 'teacher',
             'params' => ['id'],
         ],
+        '#^/teacher/cu/(\d+)/manual-completion$#' => [
+            'file'   => '/src/pages/teacher/cu/manual-completion.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/student/cu/(\d+)/mark-complete$#' => [
+            'file'   => '/src/pages/student/cu/mark-complete.php',
+            'role'   => 'student',
+            'params' => ['id'],
+        ],
         '#^/teacher/students/(\d+)$#' => [
             'file'   => '/src/pages/teacher/students/show.php',
             'role'   => 'teacher',
