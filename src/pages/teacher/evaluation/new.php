@@ -38,6 +38,12 @@ if ($existing !== null) {
     return;
 }
 
+if ((int) ($cu['manual_completion_enabled'] ?? 0) === 1) {
+    flash('danger', __t('evaluations.err.manual_completion_active'));
+    header('Location: /teacher/cu/' . $cuId, true, 303);
+    return;
+}
+
 // E25-04: curso em LO mode esconde quiz no select (auto-corrigido vs LO
 // exige feedback manual). Pre-loaded via CompetenceUnit::findForTenant
 // (audit em #318).

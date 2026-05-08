@@ -95,4 +95,39 @@ final class XpEvents
             )
             ->execute([$studentId, $evaluationId]);
     }
+
+    /**
+     * Credita XP por conclusao manual de CU (v0.31.0). XP definido em
+     * competence_units.manual_completion_xp. Idempotente via UK composite —
+     * caller pode chamar quantas vezes quiser sem duplicar.
+     */
+    public static function awardCuManual(int $studentId, int $cuId): bool
+    {
+        $stmt = Database::pdo()->prepare(
+            'INSERT IGNORE INTO xp_events
+                (student_user_id, tenant_id, course_id, source_type, source_id, value)
+             SELECT ?, u.tenant_id, c.id, ?, ?, cu.manual_completion_xp
+               FROM competence_units cu
+               JOIN core_competencies cc ON cc.id = cu.core_competency_id
+               JOIN courses c            ON c.id  = cc.course_id
+               JOIN users u              ON u.id  = ? AND u.tenant_id = c.tenant_id
+              WHERE cu.id = ?
+              LIMIT 1'
+        );
+        $stmt->execute([$studentId, 'cu_manual', $cuId, $studentId, $cuId]);
+        return $stmt->rowCount() > 0;
+    }
+
+    /** Revoga XP de conclusao manual — usado quando o professor desabilita o botao. */
+    public static function revokeCuManual(int $studentId, int $cuId): void
+    {
+        Database::pdo()
+            ->prepare(
+                'DELETE FROM xp_events
+                  WHERE student_user_id = ?
+                    AND source_type     = \'cu_manual\'
+                    AND source_id       = ?'
+            )
+            ->execute([$studentId, $cuId]);
+    }
 }

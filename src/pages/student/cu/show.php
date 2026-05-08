@@ -184,6 +184,36 @@ if ($activityMode === 'sequential') {
 $tenantId   = (int) ($user['tenant_id'] ?? 0);
 $evaluation = $tenantId > 0 ? Evaluation::findByCu($cuId, $tenantId) : null;
 
+// Conclusao manual (v0.31.0): substitui a Assessment quando habilitado e
+// sem evaluation. Estado "completed" persiste em cu_manual_completions
+// independente do flag — uma vez fechada, permanece fechada.
+$manualEnabled  = (int) ($cu['manual_completion_enabled'] ?? 0) === 1;
+$manualXpValue  = (int) ($cu['manual_completion_xp'] ?? 0);
+$manualDoneStmt = Database::pdo()->prepare(
+    'SELECT completed_at FROM cu_manual_completions
+      WHERE cu_id = ? AND student_user_id = ? LIMIT 1'
+);
+$manualDoneStmt->execute([$cuId, $studentId]);
+$manualCompletedAt = $manualDoneStmt->fetchColumn();
+$manualCompleted   = $manualCompletedAt !== false;
+$showManualCard    = $evaluation === null && ($manualEnabled || $manualCompleted);
+
+// Activities pending para gate visual + server-side.
+$activitiesPending = false;
+foreach ($activitiesCards as $card) {
+    if (empty($card['has_submission'])) {
+        $activitiesPending = true;
+        break;
+    }
+}
+
+if ($showManualCard) {
+    $xpTotal += $manualXpValue;
+    if ($manualCompleted) {
+        $xpEarned += $manualXpValue;
+    }
+}
+
 $assessmentCard = null;
 if ($evaluation !== null) {
     $evId = (int) $evaluation['id'];
@@ -284,7 +314,7 @@ $tabs = [
     ['anchor' => '#content',     'label' => __t('student.unit.tab.content')],
     ['anchor' => '#activities',  'label' => __t('student.unit.tab.activities'),  'count' => $activitiesCount],
 ];
-if ($assessmentCard !== null) {
+if ($assessmentCard !== null || $showManualCard) {
     $tabs[] = ['anchor' => '#assessment', 'label' => __t('student.unit.tab.assessment')];
 }
 if ($attachmentsCount > 0) {
@@ -380,6 +410,60 @@ ob_start();
         $activityLockedByName = null; // overlay da avaliação usa msg própria
         require LMS_ROOT . '/src/templates/partials/activity_card.php';
     ?>
+</section>
+<?php elseif ($showManualCard): ?>
+<section class="lms-unit-section" id="assessment">
+    <?php
+        $title = __t('student.unit.tab.assessment');
+        $count = null;
+        $accent = 'linear-gradient(135deg, #10B981, #059669)';
+        require LMS_ROOT . '/src/templates/partials/section_header.php';
+    ?>
+    <div class="lms-manual-completion-card<?= $manualCompleted ? ' is-completed' : '' ?>">
+        <?php if ($manualCompleted): ?>
+            <div class="lms-manual-completion-card__icon" aria-hidden="true">
+                <i class="bi bi-check-circle-fill"></i>
+            </div>
+            <div class="lms-manual-completion-card__body">
+                <h3 class="lms-manual-completion-card__title">
+                    <?= e(__t('manual_completion.student.completed_title')) ?>
+                </h3>
+                <p class="lms-manual-completion-card__hint">
+                    <?= e(__t('manual_completion.student.completed_at', [
+                        'when' => format_short_datetime((string) $manualCompletedAt),
+                    ])) ?>
+                    <?php if ($manualXpValue > 0): ?>
+                        · <?= (int) $manualXpValue ?> XP
+                    <?php endif; ?>
+                </p>
+            </div>
+        <?php else: ?>
+            <div class="lms-manual-completion-card__body">
+                <h3 class="lms-manual-completion-card__title">
+                    <?= e(__t('manual_completion.student.title')) ?>
+                </h3>
+                <p class="lms-manual-completion-card__hint">
+                    <?php if ($activitiesPending): ?>
+                        <?= e(__t('manual_completion.student.activities_pending')) ?>
+                    <?php else: ?>
+                        <?= e(__t('manual_completion.student.ready')) ?>
+                        <?php if ($manualXpValue > 0): ?>
+                            · <?= (int) $manualXpValue ?> XP
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </p>
+            </div>
+            <form method="POST" action="/student/cu/<?= $cuId ?>/mark-complete" class="lms-manual-completion-card__form">
+                <?= csrf_field() ?>
+                <button type="submit"
+                        class="btn btn-success btn-lg lms-manual-completion-card__btn"
+                        <?= $activitiesPending ? 'disabled' : '' ?>>
+                    <i class="bi bi-check-circle me-1" aria-hidden="true"></i>
+                    <?= e(__t('manual_completion.student.cta')) ?>
+                </button>
+            </form>
+        <?php endif; ?>
+    </div>
 </section>
 <?php endif; ?>
 

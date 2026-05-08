@@ -270,6 +270,46 @@ body.lms-student-area .lms-student-main {
 }
 .lms-sidebar-whatsapp i { font-size: 16px; }
 
+/* Manual completion card (v0.31.0) — substitui Assessment quando o
+   professor habilitou o "Mark as completed". Verde no ready/completed,
+   greyed quando aguardando atividades. */
+.lms-manual-completion-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    background: var(--lms-neutral-100);
+    border: 1px solid var(--lms-neutral-200);
+    border-radius: 16px;
+    flex-wrap: wrap;
+}
+.lms-manual-completion-card.is-completed {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(5, 150, 105, 0.04));
+    border-color: rgba(16, 185, 129, 0.4);
+}
+.lms-manual-completion-card__icon {
+    font-size: 36px;
+    color: #10B981;
+    flex-shrink: 0;
+}
+.lms-manual-completion-card__body {
+    flex: 1 1 240px;
+    min-width: 0;
+}
+.lms-manual-completion-card__title {
+    margin: 0 0 4px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--lms-neutral-900);
+}
+.lms-manual-completion-card__hint {
+    margin: 0;
+    color: var(--lms-neutral-500);
+    font-size: 13px;
+}
+.lms-manual-completion-card__form { margin: 0; }
+.lms-manual-completion-card__btn { white-space: nowrap; }
+
 .lms-xp-star {
     color: var(--lms-warning);
     flex-shrink: 0;

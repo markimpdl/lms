@@ -139,13 +139,15 @@ CREATE TABLE IF NOT EXISTS core_competencies (
 -- 6. competence_units
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS competence_units (
-    id                  BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    core_competency_id  BIGINT UNSIGNED NOT NULL,
-    name                VARCHAR(150) NOT NULL,
-    position            INT UNSIGNED NOT NULL DEFAULT 0,
-    workload_hours      INT UNSIGNED NOT NULL DEFAULT 0,
-    created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    id                          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    core_competency_id          BIGINT UNSIGNED NOT NULL,
+    name                        VARCHAR(150) NOT NULL,
+    position                    INT UNSIGNED NOT NULL DEFAULT 0,
+    workload_hours              INT UNSIGNED NOT NULL DEFAULT 0,
+    manual_completion_enabled   TINYINT(1)   NOT NULL DEFAULT 0,
+    manual_completion_xp        INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at                  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at                  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_cu_cc_pos (core_competency_id, position),
     CONSTRAINT fk_cu_cc FOREIGN KEY (core_competency_id) REFERENCES core_competencies(id) ON DELETE CASCADE
@@ -1389,6 +1391,57 @@ CREATE TABLE IF NOT EXISTS student_sessions (
     KEY idx_ss_open_recent (ended_at, last_ping_at),
     CONSTRAINT fk_ss_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
     CONSTRAINT fk_ss_user   FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- [v0.31.0] competence_units.manual_completion_* — botao "Mark as completed"
+-- pra CU sem evaluation. Quando habilitado, o aluno conclui a CU clicando
+-- e ganha o XP definido. Mutuamente exclusivo com evaluation (UI gateia +
+-- helper student_cu_status conta como avaliacao). Default off pra todas as
+-- CUs existentes.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'competence_units'
+       AND COLUMN_NAME  = 'manual_completion_enabled'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE competence_units ADD COLUMN manual_completion_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER workload_hours",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'competence_units'
+       AND COLUMN_NAME  = 'manual_completion_xp'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE competence_units ADD COLUMN manual_completion_xp INT UNSIGNED NOT NULL DEFAULT 0 AFTER manual_completion_enabled",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [v0.31.0] xp_events.source_type — adiciona 'cu_manual' pra creditar XP
+-- quando aluno clica "Mark as completed". MODIFY COLUMN com mesmo set
+-- estendido eh idempotente; UK existente cobre dedup por (student, type, id).
+ALTER TABLE xp_events
+    MODIFY COLUMN source_type ENUM('activity','evaluation','cu_manual') NOT NULL;
+
+-- [v0.31.0] cu_manual_completions — registra quando o aluno clicou em
+-- "Mark as completed" pra uma CU. PK composta = idempotencia (1 linha
+-- por aluno+CU). XP eh creditado em xp_events em paralelo. ON DELETE
+-- CASCADE: deletar CU ou aluno limpa as marcacoes.
+CREATE TABLE IF NOT EXISTS cu_manual_completions (
+    cu_id            BIGINT UNSIGNED NOT NULL,
+    student_user_id  BIGINT UNSIGNED NOT NULL,
+    completed_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (cu_id, student_user_id),
+    KEY idx_cmc_student (student_user_id),
+    CONSTRAINT fk_cmc_cu      FOREIGN KEY (cu_id)           REFERENCES competence_units(id) ON DELETE CASCADE,
+    CONSTRAINT fk_cmc_student FOREIGN KEY (student_user_id) REFERENCES users(id)            ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- [v0.31.0] tenants.whatsapp_number — numero opcional do professor para o

@@ -230,11 +230,65 @@ ob_start();
             <?php endif; ?>
         </div>
 
+        <!-- Conclusão manual (v0.31.0) — alternativa à avaliação para CUs
+             content-only. Mutuamente exclusivo com evaluation: enquanto
+             existir avaliação, esta seção fica em modo informativo. -->
+        <?php
+            $manualEnabled = (int) $cu['manual_completion_enabled'] === 1;
+            $manualXp      = (int) $cu['manual_completion_xp'];
+            $manualLocked  = $evaluation !== null;
+        ?>
+        <div class="card shadow-sm mb-3">
+            <div class="card-header d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                <h2 class="h6 mb-0"><?= e(__t('manual_completion.section.title')) ?></h2>
+                <?php if ($manualEnabled && !$manualLocked): ?>
+                    <span class="badge text-bg-success"><?= e(__t('manual_completion.badge.enabled')) ?></span>
+                <?php endif; ?>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3"><?= e(__t('manual_completion.section.help')) ?></p>
+                <?php if ($manualLocked): ?>
+                    <div class="alert alert-info mb-0" role="alert">
+                        <?= e(__t('manual_completion.locked_by_evaluation')) ?>
+                    </div>
+                <?php elseif (!$isArchived): ?>
+                    <form method="POST" action="/teacher/cu/<?= $cuId ?>/manual-completion"
+                          class="row g-2 align-items-end" x-data="{ enabled: <?= $manualEnabled ? 'true' : 'false' ?> }">
+                        <?= csrf_field() ?>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch"
+                                       id="f-manual-enabled" name="enabled" value="1"
+                                       x-model="enabled"
+                                       <?= $manualEnabled ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="f-manual-enabled">
+                                    <?= e(__t('manual_completion.toggle_label')) ?>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-auto">
+                            <label for="f-manual-xp" class="form-label small text-muted mb-1"><?= e(__t('manual_completion.xp_label')) ?></label>
+                            <input type="number" name="xp" id="f-manual-xp"
+                                   class="form-control form-control-sm"
+                                   value="<?= (int) $manualXp ?>" min="0" max="9999" step="10"
+                                   :disabled="!enabled"
+                                   style="max-width: 8rem;">
+                        </div>
+                        <div class="col-12 col-sm-auto">
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                <?= e(__t('common.save')) ?>
+                            </button>
+                        </div>
+                    </form>
+                <?php endif; ?>
+            </div>
+        </div>
+
         <!-- Avaliação (E7-01) — 1 por CU (ADR-007) -->
         <div class="card shadow-sm mb-3">
             <div class="card-header d-flex align-items-center justify-content-between gap-2 flex-wrap">
                 <h2 class="h6 mb-0"><?= e(__t('evaluations.section.title')) ?></h2>
-                <?php if ($evaluation === null && !$isArchived): ?>
+                <?php if ($evaluation === null && !$isArchived && !$manualEnabled): ?>
                     <a href="/teacher/cu/<?= $cuId ?>/evaluation/new" class="btn btn-sm btn-primary">
                         + <?= e(__t('evaluations.new_button')) ?>
                     </a>
@@ -242,7 +296,7 @@ ob_start();
             </div>
             <?php if ($evaluation === null): ?>
                 <div class="card-body text-center text-muted py-4">
-                    <p class="mb-0"><?= e(__t('evaluations.empty')) ?></p>
+                    <p class="mb-0"><?= e(__t($manualEnabled ? 'evaluations.empty_manual_active' : 'evaluations.empty')) ?></p>
                 </div>
             <?php else: ?>
                 <?php
