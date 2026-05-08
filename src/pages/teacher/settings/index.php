@@ -29,6 +29,7 @@ $style        = (string) $tenant['avatar_style'];
 $isActvet     = (int) ($tenant['is_actvet'] ?? 0) === 1;
 $platformName = (string) ($tenant['platform_name'] ?? '');
 $logoBasename = (string) ($tenant['logo_path'] ?? '');
+$whatsappRaw  = (string) ($tenant['whatsapp_number'] ?? '');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
@@ -58,6 +59,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors['platform_name'] = 'teacher.settings.platform_name_too_long';
         }
 
+        // WhatsApp: opcional. Aceita qualquer formatacao (+, espaco, hifen,
+        // parenteses) e normaliza pra digits-only com country code. Range
+        // E.164 minimo/maximo: 7-15 digitos. Vazio = remove.
+        $whatsappInput  = (string) ($_POST['whatsapp_number'] ?? '');
+        $whatsappDigits = preg_replace('/\D+/', '', $whatsappInput) ?? '';
+        if ($whatsappDigits !== '') {
+            $len = strlen($whatsappDigits);
+            if ($len < 7 || $len > 15) {
+                $errors['whatsapp_number'] = 'teacher.settings.whatsapp_invalid';
+            }
+        }
+
         // Logo: aceita só pra não-Actvet. Pra Actvet, força ignorar mesmo se
         // o user enviou via POST manual (DevTools) — defesa server-side.
         $newLogoBasename = $logoBasename;
@@ -85,6 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $newName === '' ? null : $newName,
                 $newLogoBasename === '' ? null : $newLogoBasename
             );
+            Tenant::updateWhatsapp($tenantId, $whatsappDigits === '' ? null : $whatsappDigits);
             flash('success', __t('settings.success'));
             header('Location: /teacher/settings', true, 303);
             exit;
@@ -92,6 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Em caso de erro, preserva o que o user digitou pra re-render.
         $platformName = $newName;
+        $whatsappRaw  = $whatsappInput;
     } elseif ($form === 'delete_logo') {
         // Remove logo customizada (volta pro fallback do sistema). Defesa
         // server-side: Actvet nao tem logo custom (UI nao mostra o botao,
@@ -252,6 +267,23 @@ ob_start();
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
+
+            <div class="mb-3">
+                <label for="f-whatsapp" class="form-label">
+                    <?= e(__t('teacher.settings.whatsapp_label')) ?>
+                </label>
+                <input type="tel" name="whatsapp_number" id="f-whatsapp"
+                       class="form-control<?= isset($errors['whatsapp_number']) ? ' is-invalid' : '' ?>"
+                       value="<?= e($whatsappRaw) ?>"
+                       maxlength="32"
+                       inputmode="tel"
+                       autocomplete="tel"
+                       placeholder="<?= e(__t('teacher.settings.whatsapp_placeholder')) ?>">
+                <div class="form-text"><?= e(__t('teacher.settings.whatsapp_hint')) ?></div>
+                <?php if (isset($errors['whatsapp_number'])): ?>
+                    <div class="invalid-feedback"><?= e(__t($errors['whatsapp_number'])) ?></div>
+                <?php endif; ?>
+            </div>
 
             <div class="d-flex flex-wrap gap-2">
                 <button type="submit" class="btn btn-primary"><?= e(__t('common.save')) ?></button>

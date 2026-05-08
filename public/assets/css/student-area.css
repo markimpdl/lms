@@ -247,6 +247,29 @@ body.lms-student-area .lms-student-main {
     color: #fff;
 }
 
+/* "Talk to the teacher" — botao WhatsApp na base da sidebar do aluno
+   (v0.31.0). Aparece apos ranking se professor configurou o numero. */
+.lms-sidebar-whatsapp {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: var(--lms-radius-chip);
+    background: #25D366;
+    color: #fff;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    transition: background 160ms ease;
+}
+.lms-sidebar-whatsapp:hover,
+.lms-sidebar-whatsapp:focus {
+    background: #1DA851;
+    color: #fff;
+}
+.lms-sidebar-whatsapp i { font-size: 16px; }
+
 .lms-xp-star {
     color: var(--lms-warning);
     flex-shrink: 0;

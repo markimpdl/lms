@@ -400,7 +400,7 @@ function student_avatar_url(int $studentId): string
  * Cache estático por request — header pode chamar em qualquer página, e
  * partials que renderizam nome do tenant também.
  *
- * @return array{name:string, logo_url:?string}
+ * @return array{name:string, logo_url:?string, whatsapp_number:?string}
  */
 function tenant_branding(int $tenantId): array
 {
@@ -410,21 +410,23 @@ function tenant_branding(int $tenantId): array
     }
 
     $stmt = Database::pdo()->prepare(
-        'SELECT is_actvet, platform_name, logo_path FROM tenants WHERE id = ? LIMIT 1'
+        'SELECT is_actvet, platform_name, logo_path, whatsapp_number FROM tenants WHERE id = ? LIMIT 1'
     );
     $stmt->execute([$tenantId]);
     $row = $stmt->fetch();
 
     if ($row === false) {
         return $cache[$tenantId] = [
-            'name'     => __t('branding.default_name'),
-            'logo_url' => null,
+            'name'            => __t('branding.default_name'),
+            'logo_url'        => null,
+            'whatsapp_number' => null,
         ];
     }
 
     $isActvet     = (int) $row['is_actvet'] === 1;
-    $platformName = ($row['platform_name'] ?? '') !== '' ? (string) $row['platform_name'] : null;
-    $logoPath     = ($row['logo_path']     ?? '') !== '' ? (string) $row['logo_path']     : null;
+    $platformName = ($row['platform_name']   ?? '') !== '' ? (string) $row['platform_name']   : null;
+    $logoPath     = ($row['logo_path']       ?? '') !== '' ? (string) $row['logo_path']       : null;
+    $whatsapp     = ($row['whatsapp_number'] ?? '') !== '' ? (string) $row['whatsapp_number'] : null;
 
     if ($isActvet) {
         $name    = $platformName ?? 'Skills Hub';
@@ -434,7 +436,11 @@ function tenant_branding(int $tenantId): array
         $logoUrl = $logoPath !== null ? '/uploads/logos/' . $logoPath : null;
     }
 
-    return $cache[$tenantId] = ['name' => $name, 'logo_url' => $logoUrl];
+    return $cache[$tenantId] = [
+        'name'            => $name,
+        'logo_url'        => $logoUrl,
+        'whatsapp_number' => $whatsapp,
+    ];
 }
 
 /**
@@ -670,6 +676,25 @@ function student_recent_course_name(int $studentId): ?string
            JOIN courses c ON c.id = e.course_id
           WHERE e.student_user_id = ? AND e.last_access_at IS NOT NULL
           ORDER BY e.last_access_at DESC
+          LIMIT 1'
+    );
+    $stmt->execute([$studentId]);
+    $name = $stmt->fetchColumn();
+    return $name !== false ? (string) $name : null;
+}
+
+/**
+ * Curso "principal" do aluno pra mensagens. Mais recente acessado primeiro;
+ * fallback pra matricula mais recente. null quando o aluno nao tem matricula.
+ */
+function student_primary_course_name(int $studentId): ?string
+{
+    $stmt = Database::pdo()->prepare(
+        'SELECT c.name
+           FROM enrollments e
+           JOIN courses c ON c.id = e.course_id
+          WHERE e.student_user_id = ?
+          ORDER BY (e.last_access_at IS NULL), e.last_access_at DESC, e.enrolled_at DESC
           LIMIT 1'
     );
     $stmt->execute([$studentId]);

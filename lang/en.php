@@ -1062,6 +1062,10 @@ return [
     'teacher.settings.logo_delete_button'    => 'Delete logo',
     'teacher.settings.logo_delete_confirm'   => 'Delete the custom logo? The platform falls back to the default logo.',
     'teacher.settings.logo_deleted'          => 'Custom logo removed.',
+    'teacher.settings.whatsapp_label'        => 'Teacher WhatsApp',
+    'teacher.settings.whatsapp_placeholder'  => '+971 50 123 4567',
+    'teacher.settings.whatsapp_hint'         => 'Optional. Include the country code. When set, your students see a "Talk to the teacher" button on their sidebar that opens WhatsApp Web with a pre-filled message.',
+    'teacher.settings.whatsapp_invalid'      => 'Invalid number. Include the country code and use 7 to 15 digits.',
 
     // Configurable notifications (E21-03).
     'notifications.settings.title'      => 'Notifications',
@@ -1330,6 +1334,9 @@ return [
     'sidebar.achievements'     => 'ACHIEVEMENTS',
     'sidebar.see_achievements' => 'See all →',
     'sidebar.no_achievements'  => 'Start studying to unlock',
+    'sidebar.talk_to_teacher'  => 'Talk to the teacher',
+    'sidebar.whatsapp_message' => 'Hi, my name is :name and I am from the :course course at :platform LMS. I have a question.',
+    'sidebar.whatsapp_message_no_course' => 'Hi, my name is :name, at :platform LMS. I have a question.',
 
     // Navbar — primary link (E9-03)
     'nav.primary_aria' => 'Primary navigation',
