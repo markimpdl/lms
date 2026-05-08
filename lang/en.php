@@ -1378,6 +1378,7 @@ return [
     'ranking.col.groups'           => 'Groups',
     'ranking.col.rank'             => 'Tier',
     'ranking.col.xp'               => 'XP',
+    'ranking.col.online_hours'     => 'Online time',
     'ranking.no_rank'              => 'No tier yet',
     'ranking.you'                  => 'You',
     'ranking.online'               => 'Online now',

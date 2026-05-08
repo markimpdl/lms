@@ -620,6 +620,23 @@ function format_user_agent_short(?string $ua): string
 }
 
 /**
+ * Formata horas em formato compacto pro ranking (v0.31.0):
+ *   <= 0         -> '0h'
+ *   < 3600       -> '<1h'
+ *   >= 3600      -> '5h'   (truncado, sem minutos)
+ */
+function format_hours_compact(int $seconds): string
+{
+    if ($seconds <= 0) {
+        return '0h';
+    }
+    if ($seconds < 3600) {
+        return '<1h';
+    }
+    return intdiv($seconds, 3600) . 'h';
+}
+
+/**
  * Formata duracao em segundos pra string legivel (TIME-04).
  *   null ou <= 0   -> '—'
  *   1..59s         -> '45s'
