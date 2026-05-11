@@ -840,6 +840,7 @@ return [
     'submissions.form.submit'           => 'Enviar entrega',
     'submissions.form.update'           => 'Atualizar entrega',
     'submissions.form.delete'           => 'Remover entrega',
+    'submissions.form.continue'         => 'Continuar para a unidade',
     'submissions.err.size'              => 'Arquivo maior que 10 MB.',
     'submissions.err.mime'              => 'Tipo de arquivo não aceito. Use PDF, ZIP ou TXT.',
     'submissions.err.no_file'           => 'Nenhum arquivo selecionado.',

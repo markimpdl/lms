@@ -83,8 +83,9 @@ ob_start();
                     $refId      = (int) $r['ref_id'];
                     $studentId  = (int) $r['student_id'];
                     $feedbacked = $r['feedback_at'] !== null;
+                    $fromQs = '?from=' . urlencode('/teacher/submissions?status=' . $status);
                     $url = $src === 'activity'
-                        ? '/teacher/activity/' . $refId . '/submission/' . $studentId
+                        ? '/teacher/activity/' . $refId . '/submission/' . $studentId . $fromQs
                         : '/teacher/evaluation/' . $refId . '/submission/' . $studentId;
                     $badgeClass = $src === 'activity' ? 'text-bg-primary' : 'text-bg-info';
                     $badgeLabel = $src === 'activity'

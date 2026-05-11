@@ -435,6 +435,9 @@ ob_start();
                                 <?= e(__t($submission === null ? 'submissions.form.submit' : 'submissions.form.update')) ?>
                             </button>
                             <?php if ($submission !== null): ?>
+                                <a href="/student/cu/<?= (int) $activity['cu_id'] ?>" class="btn btn-success btn-lg">
+                                    <?= e(__t('submissions.form.continue')) ?>
+                                </a>
                                 <form method="POST" action="/student/activity/<?= $activityId ?>/delete"
                                       class="d-inline m-0"
                                       onsubmit="return confirm(<?= e(json_encode(__t('submissions.delete_confirm'), JSON_UNESCAPED_UNICODE)) ?>);">
@@ -449,6 +452,14 @@ ob_start();
                 <?php endif; ?>
             </div>
         </div>
+
+        <?php if ($submission !== null && !$mutable): ?>
+            <div class="d-flex justify-content-end mt-3">
+                <a href="/student/cu/<?= (int) $activity['cu_id'] ?>" class="btn btn-success btn-lg">
+                    <?= e(__t('submissions.form.continue')) ?>
+                </a>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 <?php if ($useEditor): ?>

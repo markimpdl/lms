@@ -387,7 +387,7 @@ ob_start();
                                     };
                                     $cellContent = '<span class="d-inline-block px-2 py-1 rounded ' . $bg . '" title="' . e($label) . '">' . $icon . '</span>';
                                     $cellHref = $status !== 'not_submitted'
-                                        ? '/teacher/activity/' . $aid . '/submission/' . (int) $r['id']
+                                        ? '/teacher/activity/' . $aid . '/submission/' . (int) $r['id'] . '?from=' . urlencode('/teacher/cu/' . $cuId)
                                         : null;
                                 ?>
                                     <td class="text-center">

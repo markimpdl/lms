@@ -838,6 +838,7 @@ return [
     'submissions.form.submit'           => 'Submit',
     'submissions.form.update'           => 'Update submission',
     'submissions.form.delete'           => 'Remove submission',
+    'submissions.form.continue'         => 'Continue to unit',
     'submissions.err.size'              => 'File larger than 10 MB.',
     'submissions.err.mime'              => 'File type not accepted. Use PDF, ZIP or TXT.',
     'submissions.err.no_file'           => 'No file selected.',
