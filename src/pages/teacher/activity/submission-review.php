@@ -17,6 +17,20 @@ if ($tenantId === null) {
 $activityId = (int) ($_REQUEST['id'] ?? 0);
 $studentId  = (int) ($_REQUEST['student_id'] ?? 0);
 
+// `from` opcional: URL pra onde voltar (Back / Cancel / pós-save).
+// Allowlist estrito: caminho relativo começando com `/teacher` (sem
+// `//` que viraria protocol-relative), sem CR/LF que poderiam injetar
+// header, e tamanho razoável. Default: lista de submissões da atividade.
+$rawFrom  = (string) ($_REQUEST['from'] ?? '');
+$fromSafe = '';
+if ($rawFrom !== ''
+    && strlen($rawFrom) <= 200
+    && (str_starts_with($rawFrom, '/teacher/') || str_starts_with($rawFrom, '/teacher?') || $rawFrom === '/teacher')
+    && strpbrk($rawFrom, "\r\n") === false) {
+    $fromSafe = $rawFrom;
+}
+$backUrl = $fromSafe !== '' ? $fromSafe : ('/teacher/activity/' . $activityId . '/submissions');
+
 $ctx = ActivitySubmission::findForTeacher($activityId, $studentId, $tenantId);
 if ($ctx === null) {
     http_response_code(404);
@@ -43,7 +57,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         csrf_verify();
     } catch (RuntimeException) {
         flash('danger', __t('auth.forbidden'));
-        header('Location: /teacher/activity/' . $activityId . '/submission/' . $studentId);
+        $loc = '/teacher/activity/' . $activityId . '/submission/' . $studentId;
+        if ($fromSafe !== '') {
+            $loc .= '?from=' . urlencode($fromSafe);
+        }
+        header('Location: ' . $loc);
         return;
     }
 
@@ -70,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
 
         flash('success', __t('submissions.teacher.feedback_saved', ['name' => (string) $student['name']]));
-        header('Location: /teacher/activity/' . $activityId . '/submissions', true, 303);
+        header('Location: ' . $backUrl, true, 303);
         return;
     }
 }
@@ -93,7 +111,7 @@ ob_start();
                     <?= e((string) $activity['title']) ?>
                 </small>
             </div>
-            <a href="/teacher/activity/<?= $activityId ?>/submissions" class="btn btn-sm btn-outline-secondary">
+            <a href="<?= e($backUrl) ?>" class="btn btn-sm btn-outline-secondary">
                 <?= e(__t('common.back')) ?>
             </a>
         </div>
@@ -145,6 +163,7 @@ ob_start();
         <form method="POST" action="/teacher/activity/<?= $activityId ?>/submission/<?= (int) $student['id'] ?>"
               class="card card-body shadow-sm" novalidate>
             <?= csrf_field() ?>
+            <input type="hidden" name="from" value="<?= e($fromSafe) ?>">
 
             <label for="f-feedback" class="form-label">
                 <?= e(__t($wasReviewed ? 'submissions.teacher.feedback_edit' : 'submissions.teacher.feedback_new')) ?>
@@ -163,7 +182,7 @@ ob_start();
                 <button type="submit" class="btn btn-primary btn-lg">
                     <?= e(__t('common.save')) ?>
                 </button>
-                <a href="/teacher/activity/<?= $activityId ?>/submissions" class="btn btn-outline-secondary btn-lg">
+                <a href="<?= e($backUrl) ?>" class="btn btn-outline-secondary btn-lg">
                     <?= e(__t('common.cancel')) ?>
                 </a>
             </div>

@@ -127,7 +127,7 @@ ob_start();
                                 $studentId  = (int) $r['student_id'];
                                 $feedbacked = $r['feedback_at'] !== null;
                                 $url = $src === 'activity'
-                                    ? '/teacher/activity/' . $refId . '/submission/' . $studentId
+                                    ? '/teacher/activity/' . $refId . '/submission/' . $studentId . '?from=' . urlencode('/teacher')
                                     : '/teacher/evaluation/' . $refId . '/submission/' . $studentId;
                                 $badgeClass = $src === 'activity' ? 'text-bg-primary' : 'text-bg-info';
                                 $badgeLabel = $src === 'activity'
