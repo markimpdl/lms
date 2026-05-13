@@ -107,6 +107,9 @@ ob_start();
                     <div class="small text-muted mt-1">
                         <?= e((string) $r['student_name']) ?> · <?= e(format_short_datetime((string) $r['created_at'])) ?>
                     </div>
+                    <div class="small text-muted">
+                        <?= e((string) $r['course_name']) ?> › <?= e((string) $r['cc_name']) ?> › <?= e((string) $r['cu_name']) ?>
+                    </div>
                 </li>
             <?php endforeach; ?>
         </ul>
