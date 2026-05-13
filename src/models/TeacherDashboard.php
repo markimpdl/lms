@@ -70,7 +70,9 @@ final class TeacherDashboard
      * Últimas submissões do tenant — mix de activities + evaluations
      * (tentativa corrente). Pendentes (sem feedback) vem primeiro;
      * dentro de cada bucket, mais recente primeiro. Cada row traz o
-     * suficiente pra linkar direto na correção.
+     * suficiente pra linkar direto na correção e identificar o contexto
+     * (curso › módulo › unidade) sem clicar — caso contrário o professor
+     * com muitos cursos não sabe de qual unidade veio a entrega.
      *
      * @return list<array{
      *   src:'activity'|'evaluation',
@@ -79,7 +81,10 @@ final class TeacherDashboard
      *   student_id:int,
      *   student_name:string,
      *   created_at:string,
-     *   feedback_at:?string
+     *   feedback_at:?string,
+     *   course_name:string,
+     *   cc_name:string,
+     *   cu_name:string
      * }>
      */
     public static function recentSubmissions(int $tenantId, int $limit = 10): array
@@ -89,7 +94,8 @@ final class TeacherDashboard
             '(SELECT \'activity\' AS src, s.activity_id AS ref_id,
                      a.title AS ref_title,
                      s.student_user_id AS student_id, u.name AS student_name,
-                     s.created_at, s.feedback_at
+                     s.created_at, s.feedback_at,
+                     c.name AS course_name, cc.name AS cc_name, cu.name AS cu_name
                 FROM activity_submissions s
                 JOIN activities a          ON a.id  = s.activity_id
                 JOIN competence_units cu   ON cu.id = a.competence_unit_id
@@ -100,9 +106,13 @@ final class TeacherDashboard
              (SELECT \'evaluation\' AS src, s.evaluation_id AS ref_id,
                      e.title AS ref_title,
                      s.student_user_id AS student_id, u.name AS student_name,
-                     s.created_at, s.feedback_at
+                     s.created_at, s.feedback_at,
+                     c.name AS course_name, cc.name AS cc_name, cu.name AS cu_name
                 FROM evaluation_submissions s
                 JOIN evaluations e         ON e.id  = s.evaluation_id AND e.tenant_id = ?
+                JOIN competence_units cu   ON cu.id = e.competence_unit_id
+                JOIN core_competencies cc  ON cc.id = cu.core_competency_id
+                JOIN courses c             ON c.id  = cc.course_id
                 JOIN users u               ON u.id  = s.student_user_id)
              ORDER BY (feedback_at IS NOT NULL), created_at DESC
              LIMIT ?'
@@ -123,7 +133,10 @@ final class TeacherDashboard
      *   student_id:int,
      *   student_name:string,
      *   created_at:string,
-     *   feedback_at:?string
+     *   feedback_at:?string,
+     *   course_name:string,
+     *   cc_name:string,
+     *   cu_name:string
      * }>
      */
     public static function findAllSubmissions(
@@ -140,7 +153,8 @@ final class TeacherDashboard
                 '(SELECT \'activity\' AS src, s.activity_id AS ref_id,
                          a.title AS ref_title,
                          s.student_user_id AS student_id, u.name AS student_name,
-                         s.created_at, s.feedback_at
+                         s.created_at, s.feedback_at,
+                         c.name AS course_name, cc.name AS cc_name, cu.name AS cu_name
                     FROM activity_submissions s
                     JOIN activities a          ON a.id  = s.activity_id
                     JOIN competence_units cu   ON cu.id = a.competence_unit_id
@@ -152,9 +166,13 @@ final class TeacherDashboard
                  (SELECT \'evaluation\' AS src, s.evaluation_id AS ref_id,
                          e.title AS ref_title,
                          s.student_user_id AS student_id, u.name AS student_name,
-                         s.created_at, s.feedback_at
+                         s.created_at, s.feedback_at,
+                         c.name AS course_name, cc.name AS cc_name, cu.name AS cu_name
                     FROM evaluation_submissions s
                     JOIN evaluations e         ON e.id  = s.evaluation_id AND e.tenant_id = ?
+                    JOIN competence_units cu   ON cu.id = e.competence_unit_id
+                    JOIN core_competencies cc  ON cc.id = cu.core_competency_id
+                    JOIN courses c             ON c.id  = cc.course_id
                     JOIN users u               ON u.id  = s.student_user_id
                    WHERE s.feedback_at IS NULL)
                  ORDER BY created_at DESC
@@ -166,7 +184,8 @@ final class TeacherDashboard
                 '(SELECT \'activity\' AS src, s.activity_id AS ref_id,
                          a.title AS ref_title,
                          s.student_user_id AS student_id, u.name AS student_name,
-                         s.created_at, s.feedback_at
+                         s.created_at, s.feedback_at,
+                         c.name AS course_name, cc.name AS cc_name, cu.name AS cu_name
                     FROM activity_submissions s
                     JOIN activities a          ON a.id  = s.activity_id
                     JOIN competence_units cu   ON cu.id = a.competence_unit_id
@@ -177,9 +196,13 @@ final class TeacherDashboard
                  (SELECT \'evaluation\' AS src, s.evaluation_id AS ref_id,
                          e.title AS ref_title,
                          s.student_user_id AS student_id, u.name AS student_name,
-                         s.created_at, s.feedback_at
+                         s.created_at, s.feedback_at,
+                         c.name AS course_name, cc.name AS cc_name, cu.name AS cu_name
                     FROM evaluation_submissions s
                     JOIN evaluations e         ON e.id  = s.evaluation_id AND e.tenant_id = ?
+                    JOIN competence_units cu   ON cu.id = e.competence_unit_id
+                    JOIN core_competencies cc  ON cc.id = cu.core_competency_id
+                    JOIN courses c             ON c.id  = cc.course_id
                     JOIN users u               ON u.id  = s.student_user_id)
                  ORDER BY created_at DESC
                  LIMIT ? OFFSET ?'
