@@ -425,6 +425,8 @@ return [
     'content.edit_button'        => 'Editar conteúdo',
     'content.edit.title'         => 'Conteúdo de :name',
     'content.edit.breadcrumb'    => 'Editar conteúdo',
+    'content.print_button'       => 'Visualizar para impressão',
+    'content.print.action'       => 'Imprimir / Salvar PDF',
     'content.form.body'          => 'Material de estudo',
     'content.form.body_hint'     => 'Use títulos, listas, tabelas e blocos de código. Tags fora da lista permitida são removidas automaticamente ao salvar.',
     'content.form.publish'       => 'Publicar para os alunos',

@@ -102,8 +102,14 @@ ob_start();
                     <span class="badge text-bg-light border"><?= e(__t('content.status.empty')) ?></span>
                 <?php endif; ?>
             </div>
-            <?php if (!$isArchived): ?>
-                <div class="d-flex gap-2 flex-wrap">
+            <div class="d-flex gap-2 flex-wrap">
+                <?php if ($hasContent): ?>
+                    <a href="/teacher/cu/<?= $cuId ?>/content/print"
+                       class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">
+                        <?= e(__t('content.print_button')) ?>
+                    </a>
+                <?php endif; ?>
+                <?php if (!$isArchived): ?>
                     <?php if ($showLoLink): ?>
                         <a href="/teacher/cu/<?= $cuId ?>/learning-outcomes"
                            class="btn btn-sm btn-outline-primary">
@@ -115,8 +121,8 @@ ob_start();
                        class="btn btn-sm btn-primary">
                         <?= e(__t($hasContent ? 'content.edit_button' : 'content.create_button')) ?>
                     </a>
-                </div>
-            <?php endif; ?>
+                <?php endif; ?>
+            </div>
         </div>
 
         <?php if ($isArchived): ?>

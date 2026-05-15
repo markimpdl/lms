@@ -425,6 +425,8 @@ return [
     'content.edit_button'        => 'Edit content',
     'content.edit.title'         => 'Content for :name',
     'content.edit.breadcrumb'    => 'Edit content',
+    'content.print_button'       => 'Print view',
+    'content.print.action'       => 'Print / Save as PDF',
     'content.form.body'          => 'Study material',
     'content.form.body_hint'     => 'Use headings, lists, tables and code blocks. Tags outside the allowlist are removed automatically on save.',
     'content.form.publish'       => 'Publish to students',

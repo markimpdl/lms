@@ -161,6 +161,11 @@ return [
             'role'   => 'teacher',
             'params' => ['id'],
         ],
+        '#^/teacher/cu/(\d+)/content/print$#' => [
+            'file'   => '/src/pages/teacher/cu/content-print.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
         '#^/teacher/cu/(\d+)/learning-outcomes$#' => [
             'file'   => '/src/pages/teacher/cu/learning-outcomes.php',
             'role'   => 'teacher',
