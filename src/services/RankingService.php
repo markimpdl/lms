@@ -295,10 +295,7 @@ final class RankingService
                            u.name AS name,
                            COALESCE(SUM(x.value), 0) AS xp,
                            MAX(x.created_at)         AS last_event_at,
-                           (SELECT GROUP_CONCAT(g.name ORDER BY g.name SEPARATOR ', ')
-                              FROM group_members gm2
-                              INNER JOIN `groups` g ON g.id = gm2.group_id
-                             WHERE gm2.student_user_id = u.id) AS group_names,
+                           '' AS group_names,
                            MAX(rk.id)        AS rank_id,
                            MAX(rk.name)      AS rank_name,
                            MAX(rk.color_hex) AS rank_color_hex,
