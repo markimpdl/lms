@@ -33,6 +33,25 @@ $activeCcId = $ccId;
 $activeCuId = 0;
 $ccCountsFormatted = format_delete_counts(CoreCompetency::countDescendants($ccId, $tenantId));
 
+// E31-04: destinos para "Copiar CU para…" — cursos ativos do tenant que têm
+// ao menos uma CC (sem CC não há destino válido). Cada curso carrega suas CCs
+// para o seletor em cascata (curso → CC) no modal.
+$copyTargets = [];
+foreach (Course::listActiveForSelect($tenantId) as $tc) {
+    $ccsOfCourse = CoreCompetency::listByCourse((int) $tc['id'], $tenantId);
+    if ($ccsOfCourse === []) {
+        continue;
+    }
+    $copyTargets[] = [
+        'id'   => (int) $tc['id'],
+        'name' => (string) $tc['name'] . ' (' . (int) $tc['year'] . ')',
+        'ccs'  => array_map(
+            static fn(array $c): array => ['id' => (int) $c['id'], 'name' => (string) $c['name']],
+            $ccsOfCourse
+        ),
+    ];
+}
+
 $page_title = (string) $cc['name'];
 
 ob_start();
@@ -122,6 +141,10 @@ ob_start();
                                     data-cu-id="<?= $cuId ?>" data-cu-name="<?= e($cuName) ?>"
                                     data-cu-workload="<?= (int) ($cu['workload_hours'] ?? 0) ?>"
                                     aria-label="<?= e(__t('cu.action.rename')) ?>">✎</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                    data-bs-toggle="modal" data-bs-target="#cuCopyModal"
+                                    data-cu-id="<?= $cuId ?>" data-cu-name="<?= e($cuName) ?>"
+                                    aria-label="<?= e(__t('cu.action.copy')) ?>">⧉</button>
                             <button type="button" class="btn btn-sm btn-outline-danger"
                                     data-bs-toggle="modal" data-bs-target="#deleteConfirmModal"
                                     data-item-name="<?= e($cuName) ?>"
@@ -213,6 +236,77 @@ ob_start();
         form.action = '/teacher/cu/' + id + '/rename';
         document.getElementById('cuEditName').value = name;
         document.getElementById('cuEditWorkload').value = workload;
+    });
+})();
+</script>
+
+<!-- Modal: Copiar CU para outro curso/CC (E31-04) -->
+<div class="modal fade" id="cuCopyModal" tabindex="-1" aria-hidden="true" aria-labelledby="cuCopyTitle">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <form method="POST" action="" id="cuCopyForm" class="modal-content" novalidate>
+            <?= csrf_field() ?>
+            <div class="modal-header">
+                <h5 class="modal-title" id="cuCopyTitle"><?= e(__t('cu.copy.title')) ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= e(__t('common.cancel')) ?>"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2"><?= e(__t('cu.copy.intro')) ?> <strong id="cuCopyName"></strong></p>
+                <?php if ($copyTargets === []): ?>
+                    <p class="text-muted mb-0"><?= e(__t('copy.no_targets_cu')) ?></p>
+                <?php else: ?>
+                    <div class="mb-3">
+                        <label for="cuCopyCourse" class="form-label"><?= e(__t('copy.target_course')) ?></label>
+                        <select id="cuCopyCourse" class="form-select form-select-lg">
+                            <?php foreach ($copyTargets as $t): ?>
+                                <option value="<?= (int) $t['id'] ?>"><?= e((string) $t['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-0">
+                        <label for="cuCopyCc" class="form-label"><?= e(__t('copy.target_cc')) ?></label>
+                        <select id="cuCopyCc" name="target_cc_id" class="form-select form-select-lg" required></select>
+                        <p class="form-text mb-0"><?= e(__t('copy.hint')) ?></p>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= e(__t('common.cancel')) ?></button>
+                <button type="submit" class="btn btn-primary" <?= $copyTargets === [] ? 'disabled' : '' ?>><?= e(__t('cu.action.copy')) ?></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    var modal = document.getElementById('cuCopyModal');
+    if (!modal) return;
+    var ccByCourse = <?= json_encode(
+        array_column($copyTargets, 'ccs', 'id'),
+        JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR
+    ) ?>;
+    var courseSel = document.getElementById('cuCopyCourse');
+    var ccSel     = document.getElementById('cuCopyCc');
+
+    function fillCcs() {
+        if (!courseSel || !ccSel) return;
+        var list = ccByCourse[courseSel.value] || [];
+        ccSel.innerHTML = '';
+        list.forEach(function (cc) {
+            var opt = document.createElement('option');
+            opt.value = cc.id;
+            opt.textContent = cc.name;
+            ccSel.appendChild(opt);
+        });
+    }
+    if (courseSel) courseSel.addEventListener('change', fillCcs);
+
+    modal.addEventListener('show.bs.modal', function (event) {
+        var btn = event.relatedTarget;
+        if (!btn) return;
+        document.getElementById('cuCopyForm').action = '/teacher/cu/' + btn.getAttribute('data-cu-id') + '/copy';
+        document.getElementById('cuCopyName').textContent = btn.getAttribute('data-cu-name') || '';
+        fillCcs();
     });
 })();
 </script>
