@@ -36,15 +36,18 @@ final class CourseCopyService
     /** Duplica um curso inteiro no mesmo tenant. Retorna id do novo curso. */
     public static function duplicateCourse(int $courseId, int $tenantId): ?int
     {
+        // Valida ANTES de abrir a transação: dentro do tx, o callback só pode
+        // terminar retornando o id ou lançando — um `return null` no meio seria
+        // interpretado como sucesso e cometeria uma cópia parcial sem limpar os
+        // arquivos já gravados (cleanup só roda no catch).
+        $src = self::fetchCourse(Database::pdo(), $courseId, $tenantId);
+        if ($src === null) {
+            return null;
+        }
+
         $files = [];
         try {
-            return Database::tx(function (PDO $pdo) use ($courseId, $tenantId, &$files): ?int {
-                $src = self::fetchCourse($pdo, $courseId, $tenantId);
-                if ($src === null) {
-                    return null;
-                }
-
-                $newName     = mb_substr($src['name'] . ' (cópia)', 0, 150);
+            return Database::tx(function (PDO $pdo) use ($src, $courseId, $tenantId, &$files): int {
                 $newCourseId = self::insertId(
                     $pdo,
                     'INSERT INTO courses
@@ -52,7 +55,7 @@ final class CourseCopyService
                         cc_mode, activity_mode, eval_after_activities, grading_mode, report_mode)
                      VALUES (?, ?, ?, ?, ?, 0, NULL, ?, ?, ?, ?, ?)',
                     [
-                        $tenantId, $newName, $src['description'], (int) $src['year'], $src['language'],
+                        $tenantId, self::copyName((string) $src['name']), $src['description'], (int) $src['year'], $src['language'],
                         $src['cc_mode'], $src['activity_mode'], (int) $src['eval_after_activities'],
                         $src['grading_mode'], $src['report_mode'],
                     ]
@@ -82,17 +85,19 @@ final class CourseCopyService
      */
     public static function copyCoreCompetence(int $ccId, int $targetCourseId, int $actingTenantId): ?int
     {
+        $pdo = Database::pdo();
+        $cc  = self::fetchCcOwned($pdo, $ccId, $actingTenantId);
+        if ($cc === null) {
+            return null;
+        }
+        $destTenantId = self::fetchEditableCourseTenant($pdo, $targetCourseId, $actingTenantId);
+        if ($destTenantId === null) {
+            return null;
+        }
+
         $files = [];
         try {
-            return Database::tx(function (PDO $pdo) use ($ccId, $targetCourseId, $actingTenantId, &$files): ?int {
-                $cc = self::fetchCcOwned($pdo, $ccId, $actingTenantId);
-                if ($cc === null) {
-                    return null;
-                }
-                $destTenantId = self::fetchEditableCourseTenant($pdo, $targetCourseId, $actingTenantId);
-                if ($destTenantId === null) {
-                    return null;
-                }
+            return Database::tx(function (PDO $pdo) use ($ccId, $cc, $targetCourseId, $destTenantId, &$files): int {
                 $position = self::nextPosition($pdo, 'core_competencies', 'course_id', $targetCourseId);
                 return self::copyCcInto($pdo, $ccId, (string) $cc['name'], $position, $targetCourseId, $destTenantId, $files);
             });
@@ -110,17 +115,19 @@ final class CourseCopyService
      */
     public static function copyCompetenceUnit(int $cuId, int $targetCcId, int $actingTenantId): ?int
     {
+        $pdo = Database::pdo();
+        $cu  = self::fetchCuOwned($pdo, $cuId, $actingTenantId);
+        if ($cu === null) {
+            return null;
+        }
+        $destTenantId = self::fetchEditableCcTenant($pdo, $targetCcId, $actingTenantId);
+        if ($destTenantId === null) {
+            return null;
+        }
+
         $files = [];
         try {
-            return Database::tx(function (PDO $pdo) use ($cuId, $targetCcId, $actingTenantId, &$files): ?int {
-                $cu = self::fetchCuOwned($pdo, $cuId, $actingTenantId);
-                if ($cu === null) {
-                    return null;
-                }
-                $destTenantId = self::fetchEditableCcTenant($pdo, $targetCcId, $actingTenantId);
-                if ($destTenantId === null) {
-                    return null;
-                }
+            return Database::tx(function (PDO $pdo) use ($cuId, $cu, $targetCcId, $destTenantId, &$files): int {
                 $position = self::nextPosition($pdo, 'competence_units', 'core_competency_id', $targetCcId);
                 return self::copyCuInto($pdo, $cuId, $cu, $position, $targetCcId, $destTenantId, $files);
             });
@@ -438,6 +445,21 @@ final class CourseCopyService
 
         $files[] = $absDest;
         return true;
+    }
+
+    /**
+     * Acrescenta " (cópia)" ao nome do curso duplicado, truncando a BASE (não
+     * o sufixo) para caber em courses.name VARCHAR(150). Garante que o marcador
+     * "(cópia)" sempre apareça, mesmo para nomes próximos do limite.
+     */
+    private static function copyName(string $name): string
+    {
+        $suffix = ' (cópia)';
+        $max    = 150;
+        if (mb_strlen($name) + mb_strlen($suffix) > $max) {
+            $name = mb_substr($name, 0, $max - mb_strlen($suffix));
+        }
+        return $name . $suffix;
     }
 
     /** Executa um INSERT e retorna o id gerado. */

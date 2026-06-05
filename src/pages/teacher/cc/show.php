@@ -34,23 +34,9 @@ $activeCuId = 0;
 $ccCountsFormatted = format_delete_counts(CoreCompetency::countDescendants($ccId, $tenantId));
 
 // E31-04: destinos para "Copiar CU para…" — cursos ativos do tenant que têm
-// ao menos uma CC (sem CC não há destino válido). Cada curso carrega suas CCs
-// para o seletor em cascata (curso → CC) no modal.
-$copyTargets = [];
-foreach (Course::listActiveForSelect($tenantId) as $tc) {
-    $ccsOfCourse = CoreCompetency::listByCourse((int) $tc['id'], $tenantId);
-    if ($ccsOfCourse === []) {
-        continue;
-    }
-    $copyTargets[] = [
-        'id'   => (int) $tc['id'],
-        'name' => (string) $tc['name'] . ' (' . (int) $tc['year'] . ')',
-        'ccs'  => array_map(
-            static fn(array $c): array => ['id' => (int) $c['id'], 'name' => (string) $c['name']],
-            $ccsOfCourse
-        ),
-    ];
-}
+// ao menos uma CC (sem CC não há destino válido), já com suas CCs, numa única
+// query (evita N+1). Alimenta o seletor em cascata (curso → CC) no modal.
+$copyTargets = Course::listActiveWithCcsForSelect($tenantId);
 
 $page_title = (string) $cc['name'];
 
@@ -258,7 +244,7 @@ ob_start();
                         <label for="cuCopyCourse" class="form-label"><?= e(__t('copy.target_course')) ?></label>
                         <select id="cuCopyCourse" class="form-select form-select-lg">
                             <?php foreach ($copyTargets as $t): ?>
-                                <option value="<?= (int) $t['id'] ?>"><?= e((string) $t['name']) ?></option>
+                                <option value="<?= (int) $t['id'] ?>"><?= e((string) $t['name']) ?> (<?= (int) $t['year'] ?>)</option>
                             <?php endforeach; ?>
                         </select>
                     </div>
