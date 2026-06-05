@@ -1163,6 +1163,7 @@ return [
     'enrollments.add.confirm'                => 'Matricular',
     'enrollments.form.enroll_in'             => 'Matricular nestes cursos (opcional)',
     'enrollments.form.enroll_in_hint'        => 'Segure Ctrl (ou Cmd no Mac) para escolher mais de um. Você também pode matricular depois.',
+    'enrollments.shared_course_tag'          => 'compartilhado',
     'enrollments.form.pick_courses'          => 'Escolha os cursos',
     'enrollments.form.pick_courses_hint'     => 'Segure Ctrl (ou Cmd no Mac) para selecionar mais de um curso.',
     'enrollments.created_count'              => ':count matrícula(s) criada(s).',

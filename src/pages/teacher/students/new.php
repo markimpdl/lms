@@ -8,7 +8,10 @@ declare(strict_types=1);
  */
 
 $tenantId     = current_tenant_id();
-$activeCourses = $tenantId !== null ? Course::listActiveForSelect($tenantId) : [];
+// E32-05: inclui cursos compartilhados comigo como destino de matrícula.
+$activeCourses = $tenantId !== null
+    ? Course::listEnrollableForSelect($tenantId, (int) (current_user()['id'] ?? 0))
+    : [];
 
 $errors = [];
 $old = [
@@ -169,7 +172,7 @@ ob_start();
                         <?php foreach ($activeCourses as $c): ?>
                             <option value="<?= (int) $c['id'] ?>"
                                     <?= in_array((int) $c['id'], $old['course_ids'], true) ? 'selected' : '' ?>>
-                                <?= e($c['name']) ?> (<?= (int) $c['year'] ?>)
+                                <?= e($c['name']) ?> (<?= (int) $c['year'] ?>)<?= !empty($c['shared']) ? ' · ' . e(__t('enrollments.shared_course_tag')) : '' ?>
                             </option>
                         <?php endforeach; ?>
                     </select>

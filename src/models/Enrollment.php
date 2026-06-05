@@ -439,7 +439,11 @@ final class Enrollment
     /**
      * Ids de alunos ativos matriculados num curso — usado pra fanout de
      * notificações (E10-04 new_evaluation; E10-05 activity_new / submission_closed).
-     * Valida que o curso pertence ao tenant e que os alunos são do mesmo.
+     *
+     * E32 (ADR-033): notifica TODOS os alunos matriculados ativos do curso,
+     * de qualquer tenant — conteúdo novo num curso compartilhado vale para os
+     * alunos dos dois professores. ($tenantId mantido na assinatura por compat
+     * com os callers; o filtro de tenant foi removido de propósito.)
      *
      * @return list<int>
      */
@@ -448,15 +452,12 @@ final class Enrollment
         $stmt = Database::pdo()->prepare(
             'SELECT e.student_user_id
                FROM enrollments e
-               JOIN users   u ON u.id = e.student_user_id
-               JOIN courses c ON c.id = e.course_id
+               JOIN users u ON u.id = e.student_user_id
               WHERE e.course_id = ?
-                AND c.tenant_id = ?
-                AND u.tenant_id = ?
                 AND u.role   = "student"
                 AND u.active = 1'
         );
-        $stmt->execute([$courseId, $tenantId, $tenantId]);
+        $stmt->execute([$courseId]);
         return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
     }
 }
