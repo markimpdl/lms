@@ -27,6 +27,11 @@ if (!in_array($filters['status'], ['active', 'archived', 'all'], true)) {
 $page = max(1, (int) ($_GET['page'] ?? 1));
 $data = Course::listByTenant($tenantId, $filters, $page);
 
+// E32-04: badge "Compartilhado por você" (cursos próprios com colaborador) e
+// seção "Compartilhados comigo" (cursos onde sou colaborador).
+$sharedByMeIds = array_fill_keys(CourseCollaborator::courseIdsSharedByOwner($tenantId), true);
+$sharedWithMe  = Course::listSharedWith((int) (current_user()['id'] ?? 0));
+
 $qsBase = array_filter([
     'q'      => $filters['q']  !== '' ? $filters['q']  : null,
     'status' => $filters['status'] !== 'active' ? $filters['status'] : null,
@@ -117,6 +122,9 @@ ob_start();
                         <?php else: ?>
                             <span class="badge text-bg-success"><?= e(__t('courses.status.active')) ?></span>
                         <?php endif; ?>
+                        <?php if (isset($sharedByMeIds[(int) $c['id']])): ?>
+                            <span class="badge text-bg-info" title="<?= e(__t('collab.badge.shared_by_you')) ?>"><?= e(__t('collab.badge.shared_by_you')) ?></span>
+                        <?php endif; ?>
                     </td>
                     <td class="small text-muted"><?= e(date('Y-m-d', strtotime((string) $c['created_at']))) ?></td>
                     <td class="text-end">
@@ -143,11 +151,16 @@ ob_start();
                             <a href="/teacher/courses/<?= (int) $c['id'] ?>" class="h6 mb-1 d-block text-decoration-none"><?= e((string) $c['name']) ?></a>
                             <small class="text-muted"><?= (int) $c['year'] ?> · <?= e(strtoupper((string) $c['language'])) ?></small>
                         </div>
-                        <?php if ((int) $c['archived'] === 1): ?>
-                            <span class="badge text-bg-warning"><?= e(__t('courses.status.archived')) ?></span>
-                        <?php else: ?>
-                            <span class="badge text-bg-success"><?= e(__t('courses.status.active')) ?></span>
-                        <?php endif; ?>
+                        <div class="text-end">
+                            <?php if ((int) $c['archived'] === 1): ?>
+                                <span class="badge text-bg-warning"><?= e(__t('courses.status.archived')) ?></span>
+                            <?php else: ?>
+                                <span class="badge text-bg-success"><?= e(__t('courses.status.active')) ?></span>
+                            <?php endif; ?>
+                            <?php if (isset($sharedByMeIds[(int) $c['id']])): ?>
+                                <span class="badge text-bg-info"><?= e(__t('collab.badge.shared_by_you')) ?></span>
+                            <?php endif; ?>
+                        </div>
                     </div>
                     <div class="small text-muted mt-2">
                         <?= (int) $c['cc_count'] ?> <?= e(__t('courses.col.cc_count')) ?> ·
@@ -213,6 +226,33 @@ ob_start();
             </ul>
         </nav>
     <?php endif; ?>
+<?php endif; ?>
+
+<?php if ($sharedWithMe !== []): ?>
+    <!-- E32-04: cursos compartilhados comigo (sou colaborador) -->
+    <h2 class="h5 mt-4 mb-2"><?= e(__t('collab.shared_with_me.title')) ?></h2>
+    <div class="row g-2">
+        <?php foreach ($sharedWithMe as $sc): ?>
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <a href="/teacher/courses/<?= (int) $sc['id'] ?>" class="h6 mb-1 d-block text-decoration-none"><?= e((string) $sc['name']) ?></a>
+                            <?php if ((int) $sc['archived'] === 1): ?>
+                                <span class="badge text-bg-warning"><?= e(__t('courses.status.archived')) ?></span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="small text-muted">
+                            <?= (int) $sc['year'] ?> · <?= e(strtoupper((string) $sc['language'])) ?> ·
+                            <?= (int) $sc['cc_count'] ?> <?= e(__t('courses.col.cc_count')) ?> ·
+                            <?= (int) $sc['cu_count'] ?> <?= e(__t('courses.col.cu_count')) ?>
+                        </div>
+                        <span class="badge text-bg-info mt-2"><?= e(__t('collab.badge.shared_with_you', ['owner' => (string) $sc['owner_name']])) ?></span>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
 <?php endif; ?>
 <?php
 $page_content = ob_get_clean();

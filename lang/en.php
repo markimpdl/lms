@@ -436,6 +436,26 @@ return [
     'copy.err.target_archived' => 'The target course is archived.',
     'copy.err.failed'          => 'Could not copy. Please try again.',
 
+    // E32-03 — Course collaborators (F23)
+    'collab.section.title'      => 'Collaborators',
+    'collab.section.subtitle'   => 'Teachers who co-author this course',
+    'collab.empty'              => 'No collaborators yet.',
+    'collab.form.email'         => "Teacher's email",
+    'collab.form.email_placeholder' => 'teacher@example.com',
+    'collab.action.add'         => 'Share',
+    'collab.action.remove'      => 'Remove',
+    'collab.undo'               => 'Undo',
+    'collab.help'               => 'The teacher must already have an account. They will be able to edit content and enroll their own students, but not delete the course.',
+    'collab.added'              => 'Course shared with :name.',
+    'collab.removed'            => ':name is no longer a collaborator.',
+    'collab.err.not_teacher'    => 'No active teacher found with that email.',
+    'collab.err.self'           => 'You cannot share the course with yourself.',
+    'collab.err.already'        => 'That teacher is already a collaborator of this course.',
+    'collab.badge.shared_by_you'         => 'Shared by you',
+    'collab.badge.shared_with_you'       => 'Shared by :owner',
+    'collab.badge.shared_with_you_short' => 'Shared with you',
+    'collab.shared_with_me.title'        => 'Shared with me',
+
     // Hierarchical nav (E3-04)
     'nav.curriculum.title' => 'Course structure',
     'nav.curriculum.open'  => 'Course structure',

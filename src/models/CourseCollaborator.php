@@ -93,6 +93,51 @@ final class CourseCollaborator
         ], $st->fetchAll());
     }
 
+    /**
+     * Dados (id, nome, email) de um colaborador específico do curso, ou null
+     * se não for colaborador. Usado para capturar o "desfazer" na remoção.
+     *
+     * @return array{id:int,name:string,email:string}|null
+     */
+    public static function findCollaboratorUser(int $courseId, int $userId): ?array
+    {
+        $st = Database::pdo()->prepare(
+            'SELECT u.id, u.name, u.email
+               FROM course_collaborators cc
+               JOIN users u ON u.id = cc.user_id
+              WHERE cc.course_id = ? AND cc.user_id = ?
+              LIMIT 1'
+        );
+        $st->execute([$courseId, $userId]);
+        $row = $st->fetch();
+        if ($row === false) {
+            return null;
+        }
+        return [
+            'id'    => (int) $row['id'],
+            'name'  => (string) $row['name'],
+            'email' => (string) $row['email'],
+        ];
+    }
+
+    /**
+     * IDs dos cursos de um tenant que TÊM ao menos um colaborador — para
+     * marcar o badge "Compartilhado por você" na listagem do dono (E32-04).
+     *
+     * @return list<int>
+     */
+    public static function courseIdsSharedByOwner(int $ownerTenantId): array
+    {
+        $st = Database::pdo()->prepare(
+            'SELECT DISTINCT cc.course_id
+               FROM course_collaborators cc
+               JOIN courses c ON c.id = cc.course_id
+              WHERE c.tenant_id = ?'
+        );
+        $st->execute([$ownerTenantId]);
+        return array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
+    }
+
     /** True se $userId é colaborador de $courseId. */
     public static function isCollaborator(int $courseId, int $userId): bool
     {

@@ -6,14 +6,16 @@ declare(strict_types=1);
  * Bloqueia submit quando curso arquivado — o controller reforça no servidor.
  */
 
-$tenantId = current_tenant_id();
+$courseId = (int) ($_REQUEST['id'] ?? 0);
+// E32 (ADR-033): editar config do curso é autoria compartilhada (dono ou
+// colaborador). effective_authoring_tenant devolve o tenant do dono.
+$tenantId = effective_authoring_tenant($courseId);
 if ($tenantId === null) {
-    http_response_code(403);
-    require LMS_ROOT . '/src/templates/errors/403.php';
+    http_response_code(404);
+    require LMS_ROOT . '/src/templates/errors/404.php';
     return;
 }
 
-$courseId = (int) ($_REQUEST['id'] ?? 0);
 $course = Course::findForTenant($courseId, $tenantId);
 if ($course === null) {
     http_response_code(404);

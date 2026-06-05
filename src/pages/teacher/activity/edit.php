@@ -6,10 +6,13 @@ declare(strict_types=1);
  * POST atualiza os campos. Alert amarelo quando há submissões (doc 06).
  */
 
-$tenantId = current_tenant_id();
+// E32 (ADR-033): conteúdo via tenant do dono (dono ou colaborador).
+$__activityId = (int) ($_REQUEST['id'] ?? 0);
+$__courseId   = Activity::courseIdOf($__activityId);
+$tenantId     = $__courseId !== null ? effective_authoring_tenant($__courseId) : null;
 if ($tenantId === null) {
-    http_response_code(403);
-    require LMS_ROOT . '/src/templates/errors/403.php';
+    http_response_code(404);
+    require LMS_ROOT . '/src/templates/errors/404.php';
     return;
 }
 
