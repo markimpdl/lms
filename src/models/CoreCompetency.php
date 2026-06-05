@@ -121,6 +121,19 @@ final class CoreCompetency
     }
 
     /**
+     * course_id da CC, SEM filtro de tenant. Usado pelo gating de acesso
+     * compartilhado (E32): a página resolve o curso e chama
+     * effective_authoring_tenant(). Retorna null se a CC não existe.
+     */
+    public static function courseIdOf(int $ccId): ?int
+    {
+        $st = Database::pdo()->prepare('SELECT course_id FROM core_competencies WHERE id = ? LIMIT 1');
+        $st->execute([$ccId]);
+        $v = $st->fetchColumn();
+        return $v === false ? null : (int) $v;
+    }
+
+    /**
      * Cria CC com position = max(position)+1 dentro do curso. Retorna o id
      * novo ou null se o curso não pertence ao tenant ou está arquivado.
      */

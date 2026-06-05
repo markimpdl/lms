@@ -45,6 +45,24 @@ final class Activity
     }
 
     /**
+     * course_id da atividade, SEM filtro de tenant — para o gating de acesso
+     * compartilhado (E32). Retorna null se a atividade não existe.
+     */
+    public static function courseIdOf(int $activityId): ?int
+    {
+        $st = Database::pdo()->prepare(
+            'SELECT cc.course_id
+               FROM activities a
+               JOIN competence_units cu  ON cu.id = a.competence_unit_id
+               JOIN core_competencies cc ON cc.id = cu.core_competency_id
+              WHERE a.id = ? LIMIT 1'
+        );
+        $st->execute([$activityId]);
+        $v = $st->fetchColumn();
+        return $v === false ? null : (int) $v;
+    }
+
+    /**
      * Cria atividade com position = MAX+1 da CU. Valida que a CU pertence ao
      * tenant e que o curso não está arquivado. Retorna id novo, ou 'not_found'
      * / 'course_archived'.

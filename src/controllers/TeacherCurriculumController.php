@@ -4,8 +4,11 @@ declare(strict_types=1);
 /**
  * Controller do currículo hierárquico do professor — CCs e CUs (E3-02 e E3-03).
  *
- * Hoje só atende CC. E3-03 estende com equivalentes para CompetenceUnit.
- * Tenant vem sempre de current_tenant_id() — nunca do input.
+ * E32 (F23/ADR-033): autoriza por ACESSO COMPARTILHADO. Em vez de
+ * `current_tenant_id()`, resolve o curso da entidade e usa
+ * `effective_authoring_tenant()` — devolve o tenant do dono quando o professor
+ * atual (dono OU colaborador) pode editar. Para o dono, é idêntico ao
+ * comportamento anterior. Dados de aluno seguem por tenant (outras telas).
  */
 final class TeacherCurriculumController
 {
@@ -22,7 +25,7 @@ final class TeacherCurriculumController
     /** POST /teacher/cc/new — cria CC e redireciona para o show do curso. */
     public static function createCc(int $courseId, string $name): void
     {
-        $tenantId = current_tenant_id();
+        $tenantId = effective_authoring_tenant($courseId);
         if ($tenantId === null) {
             http_response_code(403);
             require LMS_ROOT . '/src/templates/errors/403.php';
@@ -53,20 +56,13 @@ final class TeacherCurriculumController
     /** POST /teacher/cc/{id}/rename — renomeia CC. */
     public static function renameCc(int $ccId, string $name): void
     {
-        $tenantId = current_tenant_id();
-        if ($tenantId === null) {
-            http_response_code(403);
-            require LMS_ROOT . '/src/templates/errors/403.php';
-            exit;
-        }
-
-        $cc = CoreCompetency::findForTenant($ccId, $tenantId);
-        if ($cc === null) {
+        $courseId = CoreCompetency::courseIdOf($ccId);
+        $tenantId = $courseId !== null ? effective_authoring_tenant($courseId) : null;
+        if ($courseId === null || $tenantId === null) {
             http_response_code(404);
             require LMS_ROOT . '/src/templates/errors/404.php';
             exit;
         }
-        $courseId = (int) $cc['course_id'];
 
         $name = trim($name);
         $err = self::validateName($name);
@@ -89,10 +85,11 @@ final class TeacherCurriculumController
     /** POST /teacher/cc/{id}/delete — exclusão com confirmação por nome (E3-05). */
     public static function deleteCc(int $ccId, string $expectedName): void
     {
-        $tenantId = current_tenant_id();
-        if ($tenantId === null) {
-            http_response_code(403);
-            require LMS_ROOT . '/src/templates/errors/403.php';
+        $courseId = CoreCompetency::courseIdOf($ccId);
+        $tenantId = $courseId !== null ? effective_authoring_tenant($courseId) : null;
+        if ($courseId === null || $tenantId === null) {
+            http_response_code(404);
+            require LMS_ROOT . '/src/templates/errors/404.php';
             exit;
         }
 
@@ -102,7 +99,6 @@ final class TeacherCurriculumController
             require LMS_ROOT . '/src/templates/errors/404.php';
             exit;
         }
-        $courseId = (int) $cc['course_id'];
 
         $result = CoreCompetency::delete($ccId, $tenantId, $expectedName);
         if ($result === 'name_mismatch') {
@@ -124,20 +120,13 @@ final class TeacherCurriculumController
     /** POST /teacher/cc/{id}/move-up|move-down — reordena. */
     public static function moveCc(int $ccId, string $direction): void
     {
-        $tenantId = current_tenant_id();
-        if ($tenantId === null) {
-            http_response_code(403);
-            require LMS_ROOT . '/src/templates/errors/403.php';
-            exit;
-        }
-
-        $cc = CoreCompetency::findForTenant($ccId, $tenantId);
-        if ($cc === null) {
+        $courseId = CoreCompetency::courseIdOf($ccId);
+        $tenantId = $courseId !== null ? effective_authoring_tenant($courseId) : null;
+        if ($courseId === null || $tenantId === null) {
             http_response_code(404);
             require LMS_ROOT . '/src/templates/errors/404.php';
             exit;
         }
-        $courseId = (int) $cc['course_id'];
 
         $ok = $direction === 'up'
             ? CoreCompetency::moveUp($ccId, $tenantId)
@@ -169,7 +158,7 @@ final class TeacherCurriculumController
     /** POST /teacher/cu/new — cria CU e redireciona para a página da CC. */
     public static function createCu(int $courseId, int $ccId, string $name, int $workloadHours = 0): void
     {
-        $tenantId = current_tenant_id();
+        $tenantId = effective_authoring_tenant($courseId);
         if ($tenantId === null) {
             http_response_code(403);
             require LMS_ROOT . '/src/templates/errors/403.php';
@@ -201,10 +190,11 @@ final class TeacherCurriculumController
     /** POST /teacher/cu/{id}/rename. `workloadHours=null` mantém o valor. */
     public static function renameCu(int $cuId, string $name, ?int $workloadHours = null): void
     {
-        $tenantId = current_tenant_id();
-        if ($tenantId === null) {
-            http_response_code(403);
-            require LMS_ROOT . '/src/templates/errors/403.php';
+        $courseId = CompetenceUnit::courseIdOf($cuId);
+        $tenantId = $courseId !== null ? effective_authoring_tenant($courseId) : null;
+        if ($courseId === null || $tenantId === null) {
+            http_response_code(404);
+            require LMS_ROOT . '/src/templates/errors/404.php';
             exit;
         }
 
@@ -214,9 +204,8 @@ final class TeacherCurriculumController
             require LMS_ROOT . '/src/templates/errors/404.php';
             exit;
         }
-        $courseId = (int) $cu['course_id'];
-        $ccId     = (int) $cu['core_competency_id'];
-        $backUrl  = '/teacher/courses/' . $courseId . '/cc/' . $ccId;
+        $ccId    = (int) $cu['core_competency_id'];
+        $backUrl = '/teacher/courses/' . $courseId . '/cc/' . $ccId;
 
         $name = trim($name);
         $err = self::validateCuName($name);
@@ -239,10 +228,11 @@ final class TeacherCurriculumController
     /** POST /teacher/cu/{id}/delete — exclusão com confirmação por nome (E3-05). */
     public static function deleteCu(int $cuId, string $expectedName): void
     {
-        $tenantId = current_tenant_id();
-        if ($tenantId === null) {
-            http_response_code(403);
-            require LMS_ROOT . '/src/templates/errors/403.php';
+        $courseId = CompetenceUnit::courseIdOf($cuId);
+        $tenantId = $courseId !== null ? effective_authoring_tenant($courseId) : null;
+        if ($courseId === null || $tenantId === null) {
+            http_response_code(404);
+            require LMS_ROOT . '/src/templates/errors/404.php';
             exit;
         }
 
@@ -252,9 +242,8 @@ final class TeacherCurriculumController
             require LMS_ROOT . '/src/templates/errors/404.php';
             exit;
         }
-        $courseId = (int) $cu['course_id'];
-        $ccId     = (int) $cu['core_competency_id'];
-        $backUrl  = '/teacher/courses/' . $courseId . '/cc/' . $ccId;
+        $ccId    = (int) $cu['core_competency_id'];
+        $backUrl = '/teacher/courses/' . $courseId . '/cc/' . $ccId;
 
         $result = CompetenceUnit::delete($cuId, $tenantId, $expectedName);
         if ($result === 'name_mismatch') {
@@ -276,10 +265,11 @@ final class TeacherCurriculumController
     /** POST /teacher/cu/{id}/move-up|move-down. */
     public static function moveCu(int $cuId, string $direction): void
     {
-        $tenantId = current_tenant_id();
-        if ($tenantId === null) {
-            http_response_code(403);
-            require LMS_ROOT . '/src/templates/errors/403.php';
+        $courseId = CompetenceUnit::courseIdOf($cuId);
+        $tenantId = $courseId !== null ? effective_authoring_tenant($courseId) : null;
+        if ($courseId === null || $tenantId === null) {
+            http_response_code(404);
+            require LMS_ROOT . '/src/templates/errors/404.php';
             exit;
         }
 
@@ -289,8 +279,7 @@ final class TeacherCurriculumController
             require LMS_ROOT . '/src/templates/errors/404.php';
             exit;
         }
-        $courseId = (int) $cu['course_id'];
-        $ccId     = (int) $cu['core_competency_id'];
+        $ccId = (int) $cu['core_competency_id'];
 
         $ok = $direction === 'up'
             ? CompetenceUnit::moveUp($cuId, $tenantId)
@@ -305,6 +294,9 @@ final class TeacherCurriculumController
 
     // =========================================================================
     // Cópia de conteúdo (E31 / F22 — ADR-034)
+    //
+    // Mantida owner-scoped (current_tenant_id) nesta fase: copiar a partir de
+    // cursos compartilhados será habilitado num polimento posterior do E32.
     // =========================================================================
 
     /**

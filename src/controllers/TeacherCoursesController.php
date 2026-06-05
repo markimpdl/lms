@@ -130,7 +130,9 @@ final class TeacherCoursesController
      */
     public static function update(int $courseId, array $input): array
     {
-        $tenantId = current_tenant_id();
+        // E32: editar configurações do curso é autoria compartilhada (dono OU
+        // colaborador). effective_authoring_tenant devolve o tenant do dono.
+        $tenantId = effective_authoring_tenant($courseId);
         if ($tenantId === null) {
             http_response_code(403);
             require LMS_ROOT . '/src/templates/errors/403.php';
