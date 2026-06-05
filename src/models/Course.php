@@ -191,6 +191,36 @@ final class Course
     }
 
     /**
+     * Cursos COMPARTILHADOS com o professor (onde ele é colaborador, E32-04),
+     * com resumo (counts) + nome do dono. Para a seção "Compartilhados comigo"
+     * em /teacher/courses. Ordena por ano desc + nome.
+     *
+     * @return list<array<string,mixed>>
+     */
+    public static function listSharedWith(int $userId): array
+    {
+        $sql = <<<SQL
+            SELECT c.id, c.name, c.year, c.language, c.archived,
+                   u.name AS owner_name,
+                   COUNT(DISTINCT cc.id) AS cc_count,
+                   COUNT(DISTINCT cu.id) AS cu_count
+              FROM course_collaborators col
+              JOIN courses c ON c.id = col.course_id
+              JOIN tenants t ON t.id = c.tenant_id
+              JOIN users   u ON u.id = t.owner_user_id
+              LEFT JOIN core_competencies cc ON cc.course_id = c.id
+              LEFT JOIN competence_units  cu ON cu.core_competency_id = cc.id
+             WHERE col.user_id = :uid
+             GROUP BY c.id, c.name, c.year, c.language, c.archived, u.name
+             ORDER BY c.year DESC, c.name ASC, c.id DESC
+            SQL;
+        $stmt = Database::pdo()->prepare($sql);
+        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    /**
      * @param array{name:string, description:?string, year:int, language:string, cc_mode:string, activity_mode:string, eval_after_activities:int, grading_mode:string, report_mode:string} $data
      */
     public static function create(int $tenantId, array $data): int

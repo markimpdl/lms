@@ -97,6 +97,11 @@ ob_start();
                     <?php else: ?>
                         <span class="badge text-bg-success"><?= e(__t('courses.status.active')) ?></span>
                     <?php endif; ?>
+                    <?php if ($isOwner && $collaborators !== []): ?>
+                        <span class="badge text-bg-info"><?= e(__t('collab.badge.shared_by_you')) ?></span>
+                    <?php elseif (!$isOwner): ?>
+                        <span class="badge text-bg-info"><?= e(__t('collab.badge.shared_with_you_short')) ?></span>
+                    <?php endif; ?>
                 </div>
             </div>
             <div class="d-flex gap-2 flex-wrap">

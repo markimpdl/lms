@@ -451,6 +451,10 @@ return [
     'collab.err.not_teacher'    => 'No active teacher found with that email.',
     'collab.err.self'           => 'You cannot share the course with yourself.',
     'collab.err.already'        => 'That teacher is already a collaborator of this course.',
+    'collab.badge.shared_by_you'         => 'Shared by you',
+    'collab.badge.shared_with_you'       => 'Shared by :owner',
+    'collab.badge.shared_with_you_short' => 'Shared with you',
+    'collab.shared_with_me.title'        => 'Shared with me',
 
     // Hierarchical nav (E3-04)
     'nav.curriculum.title' => 'Course structure',

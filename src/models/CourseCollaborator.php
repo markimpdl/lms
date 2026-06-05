@@ -120,6 +120,24 @@ final class CourseCollaborator
         ];
     }
 
+    /**
+     * IDs dos cursos de um tenant que TÊM ao menos um colaborador — para
+     * marcar o badge "Compartilhado por você" na listagem do dono (E32-04).
+     *
+     * @return list<int>
+     */
+    public static function courseIdsSharedByOwner(int $ownerTenantId): array
+    {
+        $st = Database::pdo()->prepare(
+            'SELECT DISTINCT cc.course_id
+               FROM course_collaborators cc
+               JOIN courses c ON c.id = cc.course_id
+              WHERE c.tenant_id = ?'
+        );
+        $st->execute([$ownerTenantId]);
+        return array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
+    }
+
     /** True se $userId é colaborador de $courseId. */
     public static function isCollaborator(int $courseId, int $userId): bool
     {

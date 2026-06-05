@@ -451,6 +451,10 @@ return [
     'collab.err.not_teacher'    => 'Não encontramos um professor ativo com esse email.',
     'collab.err.self'           => 'Você não pode compartilhar o curso consigo mesmo.',
     'collab.err.already'        => 'Esse professor já é colaborador deste curso.',
+    'collab.badge.shared_by_you'         => 'Compartilhado por você',
+    'collab.badge.shared_with_you'       => 'Compartilhado por :owner',
+    'collab.badge.shared_with_you_short' => 'Compartilhado com você',
+    'collab.shared_with_me.title'        => 'Compartilhados comigo',
 
     // Navegação hierárquica (E3-04)
     'nav.curriculum.title' => 'Estrutura do curso',

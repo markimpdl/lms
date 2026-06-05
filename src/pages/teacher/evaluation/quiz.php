@@ -6,10 +6,13 @@ declare(strict_types=1);
  * (E20-02). Validação ownership + delega pra TeacherQuizController.
  */
 
-$tenantId = current_tenant_id();
+// E32 (ADR-033): conteúdo via tenant do dono (dono ou colaborador).
+$__evaluationId = (int) ($_REQUEST['id'] ?? 0);
+$__courseId     = Evaluation::courseIdOf($__evaluationId);
+$tenantId       = $__courseId !== null ? effective_authoring_tenant($__courseId) : null;
 if ($tenantId === null) {
-    http_response_code(403);
-    require LMS_ROOT . '/src/templates/errors/403.php';
+    http_response_code(404);
+    require LMS_ROOT . '/src/templates/errors/404.php';
     return;
 }
 
