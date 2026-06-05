@@ -1214,6 +1214,249 @@ A v1 (atual) não foi assumida como "fiel ao Word" desde o início — `Save as 
 
 ---
 
+## F22 — Duplicar curso e copiar CC/CU entre cursos
+
+> **Adicionado em 2026-06-05.** Demanda do PO: reaproveitar conteúdo já produzido ao começar uma nova turma, ou mover/clonar partes de um curso pra outro, sem refazer do zero.
+
+### Contexto
+O professor frequentemente começa uma nova turma a partir de um curso anterior, fazendo só pequenas adaptações. Hoje não há reaproveitamento: ou edita o curso existente (e perde a versão antiga) ou recria tudo manualmente. Três operações de cópia resolvem isso.
+
+### Decisões consolidadas (2026-06-05)
+
+#### Três operações
+1. **Duplicar curso inteiro** — gera um curso novo, cópia profunda de toda a árvore de conteúdo.
+2. **Copiar uma Core Competence** de um curso pra outro — leva junto todas as CUs (e o conteúdo de cada CU).
+3. **Copiar uma Competence Unit** — professor escolhe o **curso + Core Competence de destino**.
+
+#### Escopo da cópia (decisão do PO: "só estrutura + conteúdo")
+**Copia:**
+- Configs do curso (`cc_mode`, `activity_mode`, `eval_after_activities`, `grading_mode`, `report_mode`, `language`, `year` — só na duplicação de curso inteiro)
+- Core Competences + posições
+- Competence Units + posições + `workload_hours` + `manual_completion_enabled`/`manual_completion_xp`
+- Conteúdo HTML (`contents.html` + flag `published`)
+- **Anexos de conteúdo** (`content_attachments`) — arquivos físicos copiados em disco (novo `stored_path`, novo `tenant_<tid>/...`), pra cópia ser de verdade independente
+- Atividades (incluindo `pdf_path` do enunciado → arquivo físico copiado; `type`, `code_language`, `xp_value`, `submission_open`, `allow_online_code_run`, `position`)
+- Avaliações (incluindo `pdf_path` → arquivo copiado; `type`, `instructions`, `xp_value`, `submission_open`)
+- **Quizzes** vinculados (activity ou evaluation) → `quiz_questions` + `quiz_options` + `show_answers`
+- **Learning outcomes** (`learning_outcomes`) das CUs, quando o curso é modo LO
+
+**NÃO copia (turma nova começa zerada):**
+- Matrículas (`enrollments`)
+- Entregas (`activity_submissions`, `evaluation_submissions`) e arquivos de entrega
+- Notas, feedback, `evaluation_submission_lo_grades`, `report_pdf_path`
+- XP (`xp_events`), conquistas, `cu_manual_completions`
+- Colaboradores do curso (F23) — a cópia nasce só do professor que duplicou
+
+#### Cópia real e independente
+A nova entidade é uma **cópia física** — editar a cópia nunca afeta a origem (novas rows, novos IDs, novos arquivos em disco). Nenhum compartilhamento de referência.
+
+#### Confirmação obrigatória
+Toda operação de cópia pede confirmação explícita ("Tem certeza que quer duplicar/copiar X?") antes de executar.
+
+#### Nome e destino
+- Curso duplicado: nome vira `"<nome> (cópia)"`, editável depois.
+- Copiar CC/CU: o destino só pode ser um **curso que o professor pode editar** — seus próprios cursos **+ cursos compartilhados com ele** (depois de F23). Curso de destino não pode estar arquivado.
+- Conflito de nome de CC/CU no destino é permitido (não há UK de nome); posição = MAX+1 no destino.
+
+### Schema
+**Zero mudança.** Operação puramente de aplicação (deep copy via service novo `CourseCopyService`), transacional, reusando os models existentes. Cópia de arquivos via helper de storage (`copy` físico + novo registro).
+
+### Critérios de aceite (top-level)
+- [ ] `CourseCopyService::duplicateCourse(courseId, tenantId): int` — cópia profunda, retorna id do novo curso
+- [ ] `CourseCopyService::copyCoreCompetence(ccId, targetCourseId, actingTenantId): int`
+- [ ] `CourseCopyService::copyCompetenceUnit(cuId, targetCcId, actingTenantId): int`
+- [ ] Toda operação roda em transação (rollback total se qualquer passo falhar)
+- [ ] Arquivos físicos (anexos de conteúdo, PDFs de enunciado de atividade/avaliação) copiados pra novos paths; nenhum path compartilhado com a origem
+- [ ] Quizzes, opções, pesos e learning outcomes replicados fielmente
+- [ ] **Nada** de dados de aluno é copiado (sem enrollments, submissions, notas, XP)
+- [ ] Modal de confirmação antes de cada cópia (CSRF + auth teacher + ownership/acesso ao destino)
+- [ ] Destino de CC/CU restrito a cursos acessíveis pelo professor (próprios + compartilhados); rejeita curso arquivado ou de outro tenant não-compartilhado
+- [ ] i18n PT/EN dos botões, modais e flashes
+- [ ] Mobile 360px
+
+### Tamanho
+**M-G** — épico de ~3-4 stories:
+1. `CourseCopyService` + cópia de árvore + cópia de arquivos (M)
+2. Duplicar curso inteiro (UI: botão em `/teacher/courses` + confirmação) (M)
+3. Copiar CC e copiar CU (UI: seletor de curso/CC de destino) (M)
+4. Polish + i18n + mobile (P)
+
+### Dependências
+- Independente pra duplicar curso e copiar CC/CU entre cursos próprios.
+- **Sinergia com F23:** quando F23 existir, o destino de cópia inclui cursos compartilhados — a noção de "curso acessível pelo professor" deve ser a mesma helper (ver ADR-033).
+
+### Doc dedicado futuro
+`doc/21-copia-de-conteudo.md` se a lógica de deep copy crescer.
+
+---
+
+## F23 — Compartilhar autoria de curso entre professores
+
+> **Adicionado em 2026-06-05.** Demanda do PO: dois (ou mais) professores produzindo e usando o **mesmo** curso, cada um com sua própria turma de alunos.
+
+### Contexto
+Hoje um curso pertence a exatamente um tenant (`courses.tenant_id`) e não há associação curso↔usuário. O PO quer compartilhar a **autoria** de um curso com outro professor por email: a partir daí, os dois editam o mesmo conteúdo, mas **cada um mantém seus próprios alunos e seu próprio ranking**.
+
+### Decisão central (ver ADR-033) — o que é e o que NÃO é compartilhado
+
+| Camada | Compartilhada? | Comportamento |
+|--------|----------------|---------------|
+| **Conteúdo** (CC, CU, conteúdo HTML, anexos, atividades, avaliações, quizzes, LOs) | ✅ Sim | Árvore única. O que um professor cria/edita/exclui vale pra todos os colaboradores. |
+| **Alunos** (`enrollments`, `users` do tenant) | ❌ Não | Cada professor matricula e gerencia **os alunos do seu próprio tenant**. Não vê os do outro. |
+| **Entregas, notas, feedback** | ❌ Não | Cada professor corrige só os seus alunos. |
+| **XP, ranking, conquistas** | ❌ Não | Por tenant — o ranking de cada professor lista **só os alunos dele**. |
+| **Exclusão do curso** | ❌ Só o dono | Colaborador não pode excluir o curso. |
+| **Gestão de colaboradores** | ❌ Só o dono | Só o dono adiciona/remove colaboradores. |
+
+### Decisões consolidadas (2026-06-05)
+
+#### Convite por email de professor já cadastrado
+- O dono informa o **email de um professor já existente** no sistema (`role='teacher'`, ativo). Se o email não existir ou não for de um professor, retorna erro. Sem fluxo de convite/aceite/criação de conta no MVP desta feature.
+- Não pode compartilhar consigo mesmo; não duplica colaborador já existente.
+
+#### Permissões do colaborador
+- Pode: ver e editar todo o conteúdo; criar/editar/excluir CC, CU, conteúdo, atividade, avaliação, quiz, LO; matricular **seus** alunos; corrigir **seus** alunos.
+- **Não pode:** excluir o curso; adicionar/remover colaboradores; ver/gerenciar alunos, entregas, notas ou ranking do outro professor.
+- O **dono** mantém tudo do colaborador **+** excluir o curso e gerenciar a lista de colaboradores.
+
+#### Indicador visual de curso compartilhado
+- Badge "Compartilhado" no card/listagem do curso (`/teacher/courses`) e no header do curso.
+- Distinguir: **"Compartilhado por você"** (sou o dono e há colaboradores) × **"Compartilhado com você"** (sou colaborador; mostrar o nome do dono).
+- Tela de gestão de colaboradores (só pro dono): lista de colaboradores + remover + adicionar por email.
+
+#### Mecânica multi-tenant (resumo técnico — detalhe em ADR-033)
+- O curso **continua sob o tenant do dono** (`courses.tenant_id` inalterado).
+- Tabela nova `course_collaborators(course_id, user_id, invited_by, created_at)` liga o curso a professores de **outros** tenants.
+- **Acesso de conteúdo** do professor = "curso do meu tenant **OU** curso em que sou colaborador". Introduzir helper único `teacher_can_access_course($userId, $courseId)` / `courses_accessible_by_teacher($userId)` e refatorar os callsites de **autoria** (não os de dados de aluno).
+- **Matrícula cross-tenant:** `Enrollment::create` passa a permitir matricular um aluno do meu tenant num curso **compartilhado comigo** (hoje exige `course.tenant_id = meu tenant`). A matrícula carrega o `student_user_id` (do meu tenant) + `course_id` (do tenant do dono).
+- **XP/ranking:** `xp_events.tenant_id` de cada aluno = o **tenant do próprio aluno** (não o do dono do curso). Isso mantém o ranking por tenant correto. ⚠️ Atenção: `evaluations.tenant_id` e `evaluation_submissions.tenant_id` são denormalizados pro tenant do dono — o XP **não** pode herdar daí; precisa vir do aluno. (Ponto de cuidado na implementação.)
+- **Notificações** (ex.: `content_published`): fanout por `enrollments` do curso → alcança alunos de **ambos** os tenants automaticamente (correto, é o que se espera).
+- **Revogar acesso:** o dono remove um colaborador → o colaborador perde acesso ao conteúdo. As **matrículas dos alunos do colaborador permanecem** (dados não se perdem). A remoção é **reversível: a UI oferece "desfazer"** — re-adicionar o mesmo colaborador restaura o acesso integralmente. (Alternativa — desmatricular em cascata — descartada por destruir dados de aluno.)
+
+### Schema
+```sql
+CREATE TABLE IF NOT EXISTS course_collaborators (
+    course_id   BIGINT UNSIGNED NOT NULL,
+    user_id     BIGINT UNSIGNED NOT NULL,   -- professor colaborador (role='teacher')
+    invited_by  BIGINT UNSIGNED NOT NULL,   -- dono que compartilhou
+    created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (course_id, user_id),
+    KEY idx_ccollab_user (user_id),
+    CONSTRAINT fk_ccollab_course  FOREIGN KEY (course_id)  REFERENCES courses(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ccollab_user    FOREIGN KEY (user_id)    REFERENCES users(id)   ON DELETE CASCADE,
+    CONSTRAINT fk_ccollab_inviter FOREIGN KEY (invited_by) REFERENCES users(id)   ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+> Vai pela skill `/mysql-schema` na execução real. **Atenção:** a matrícula cross-tenant exige revisar a validação de `Enrollment::create` (hoje recusa curso de outro tenant).
+
+### Critérios de aceite (top-level)
+- [ ] Schema `course_collaborators` migrado idempotente
+- [ ] Model `CourseCollaborator` (add por email, list, remove) + validações (email de professor ativo existente, não-duplicado, não-self)
+- [ ] Helper único `courses_accessible_by_teacher($userId)` / `teacher_can_access_course($userId, $courseId)`
+- [ ] Refactor dos callsites de **autoria de conteúdo** (Course/CoreCompetency/CompetenceUnit/Content/Activity/Evaluation/quiz/LO models + pages do professor) pra usar acesso compartilhado em vez de só `tenant_id`
+- [ ] **Exclusão do curso permanece exclusiva do dono** (colaborador recebe 403)
+- [ ] **Gestão de colaboradores exclusiva do dono**
+- [ ] `Enrollment::create` permite matrícula em curso compartilhado comigo (aluno do meu tenant)
+- [ ] Dados de aluno (roster, entregas, notas, XP, ranking) continuam **estritamente por tenant** — colaborador só vê os seus
+- [ ] `xp_events.tenant_id` = tenant do aluno (não do dono do curso) em cursos compartilhados
+- [ ] Badge "Compartilhado por você" / "Compartilhado com você" em `/teacher/courses` e no header do curso
+- [ ] Tela de gestão de colaboradores (dono): listar, adicionar por email, remover
+- [ ] Notificação ao professor convidado (sino + email, respeitando F9) quando recebe um curso compartilhado
+- [ ] CSRF + auth teacher em todas as actions; cobertura de testes pra isolamento cross-tenant de dados de aluno
+- [ ] i18n PT/EN
+- [ ] Mobile 360px
+
+### Tamanho
+**G** — épico próprio (~5-7 stories):
+1. Schema + `CourseCollaborator` model + helper de acesso (M)
+2. Refactor dos callsites de autoria pra acesso compartilhado (M-G) — maior risco de regressão
+3. UI de gestão de colaboradores + convite por email + notificação (M)
+4. Badge "compartilhado" nas listagens e header (P)
+5. Matrícula cross-tenant + ajuste de XP/tenant do aluno (M)
+6. Testes de isolamento (dados de aluno por tenant) + polish + i18n + mobile (M)
+
+### Dependências
+- **Habilita F24** (auditoria) — só faz sentido depois que há 2+ autores no mesmo conteúdo.
+- **Sinergia com F22** (destino de cópia inclui cursos compartilhados).
+- Reusa F9 (notificações) pro aviso de compartilhamento.
+
+### Doc dedicado futuro
+`doc/22-cursos-compartilhados.md` — recomendado, dado o impacto multi-tenant.
+
+---
+
+## F24 — Auditoria de conteúdo por curso
+
+> **Adicionado em 2026-06-05.** Depende de F23. Revisita o ADR-030 (que decidiu não ter audit log) — ver ADR-035.
+
+### Contexto
+Com 2+ professores editando o mesmo conteúdo (F23), surge a necessidade de saber **quem fez o quê**. Cada curso passa a exibir aos professores um log de auditoria das ações de conteúdo.
+
+### Decisão consolidada (2026-06-05) — escopo "só conteúdo"
+Registra **apenas** ações de **estrutura e conteúdo** dos professores:
+
+| Entidade | Ações registradas |
+|----------|-------------------|
+| Core Competence | create, update, delete |
+| Competence Unit | create, update, delete |
+| Conteúdo (HTML/anexos) | create, update, delete |
+| Atividade | create, update, delete |
+| Avaliação | create, update, delete |
+
+**Fora do escopo:** matrículas, notas, feedback, ações de aluno, login. (Reduz volume e mantém o foco em "quem mexeu no conteúdo compartilhado".)
+
+### Decisões consolidadas
+- **Quem vê:** qualquer professor com acesso ao curso (dono + colaboradores).
+- **O que mostra:** quem (nome do professor) · o quê (ação + tipo de entidade) · qual (rótulo da entidade) · quando.
+- **Rótulo-snapshot:** o log grava `entity_label` (nome da entidade no momento da ação) pra que entidades já **excluídas** continuem legíveis ("Excluiu a CU 'Variáveis'").
+- **Sem backfill:** começa a registrar quando entrar no ar; ações anteriores não aparecem.
+- **Retenção:** indefinida no MVP da feature (volume baixo). Revisitar com cron de purge se crescer.
+- **Visual:** seção/aba "Auditoria" no curso (`/teacher/courses/{id}/audit` ou aba na página do curso), ordem `created_at DESC`, paginada.
+
+### Schema
+```sql
+CREATE TABLE IF NOT EXISTS course_audit_log (
+    id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    course_id     BIGINT UNSIGNED NOT NULL,
+    actor_user_id BIGINT UNSIGNED NOT NULL,
+    action        ENUM('create','update','delete') NOT NULL,
+    entity_type   ENUM('core_competency','competence_unit','content','activity','evaluation') NOT NULL,
+    entity_id     BIGINT UNSIGNED NULL,            -- id da entidade afetada (pode já não existir)
+    entity_label  VARCHAR(255)    NOT NULL,        -- snapshot do nome, legível após delete
+    created_at    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_cal_course_recent (course_id, created_at),
+    CONSTRAINT fk_cal_course FOREIGN KEY (course_id)     REFERENCES courses(id) ON DELETE CASCADE,
+    CONSTRAINT fk_cal_actor  FOREIGN KEY (actor_user_id) REFERENCES users(id)   ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+> Vai pela skill `/mysql-schema` na execução real.
+
+### Critérios de aceite (top-level)
+- [ ] Schema `course_audit_log` migrado idempotente
+- [ ] Helper `course_audit(courseId, actorUserId, action, entityType, entityId, entityLabel)` chamado nos pontos de escrita de CC/CU/conteúdo/atividade/avaliação (create/update/delete)
+- [ ] `entity_label` capturado **antes** do delete (snapshot do nome)
+- [ ] Tela/aba de auditoria por curso, visível a dono + colaboradores, ordenada por mais recente, paginada
+- [ ] Mostra nome do professor (mesmo que de outro tenant), ação, tipo de entidade (i18n), rótulo e data/hora (timezone do app)
+- [ ] Sem registro de dados de aluno/matrícula/nota
+- [ ] CSRF/auth (só leitura, mas gateada por acesso ao curso)
+- [ ] i18n PT/EN dos rótulos de ação e tipo de entidade
+- [ ] Mobile 360px
+
+### Tamanho
+**M** — épico de ~2-3 stories:
+1. Schema + helper `course_audit()` + instrumentação dos pontos de escrita (M)
+2. Tela/aba de auditoria por curso (M)
+3. Polish + i18n + mobile (P)
+
+### Dependências
+- **Bloqueado por F23** (faz sentido com 2+ autores; o helper de "quem pode ver" reusa o acesso de F23).
+
+### Doc dedicado futuro
+`doc/23-auditoria-de-curso.md` se o catálogo de ações crescer.
+
+---
+
 # Resumo de épicos sugeridos
 
 | Épico | Features | Ordem | Tamanho |
@@ -1234,14 +1477,17 @@ A v1 (atual) não foi assumida como "fiel ao Word" desde o início — `Save as 
 | **E28 — Patentes no ranking** | F19 | 14º | 1-2 stories P |
 | **E29 — Identidade visual unificada** (teacher + admin) | F20 | 15º | 6-10 stories M (épico G) |
 | **E30 — Refazer template Skills Hub** | F21 | 16º — depende de E26 | 1 story M |
+| **E31 — Duplicar curso e copiar CC/CU** | F22 | 17º — **adicionado 2026-06-05** | 3-4 stories M-G |
+| **E32 — Cursos compartilhados** (autoria multi-professor) | F23 | 18º — **adicionado 2026-06-05** | 5-7 stories M-G (épico G) |
+| **E33 — Auditoria de conteúdo por curso** | F24 | 19º — depende de E32 — **adicionado 2026-06-05** | 2-3 stories M-P |
 
-**Total estimado:** ~56-71 stories distribuídas em 16 épicos. F1–F17 entregues em prod (E15–E26). E27 → E30 em sequência.
+**Total estimado:** ~66-83 stories distribuídas em 19 épicos. F1–F17 entregues em prod (E15–E26). E27 → E30 em sequência; E31–E33 (F22–F24) entram a seguir.
 
 ---
 
 # Pendências e dúvidas remanescentes
 
-Nenhuma. Decisões F1–F13 consolidadas em 2026-04-25; F14–F17 consolidadas em 2026-04-26 com PO Actvet; F18–F20 adicionadas pós-release v0.21.0 (mesmo dia); F21 adicionada pós-release v0.23.0 (mesmo dia, após smoke real do PO revelar gap de fidelidade do template MSO).
+Decisões F1–F13 consolidadas em 2026-04-25; F14–F17 consolidadas em 2026-04-26 com PO Actvet; F18–F20 adicionadas pós-release v0.21.0 (mesmo dia); F21 adicionada pós-release v0.23.0 (mesmo dia). F22–F24 adicionadas em 2026-06-05 (duplicação de conteúdo, cursos compartilhados, auditoria por curso) — decisões-chave consolidadas com o PO; ver ADR-033/034/035. Story breakdown de 2026-06-05 resolveu as dúvidas remanescentes: revogação de colaborador é **reversível** (com "desfazer"); notificação `course_shared` confirmada; cópia mantém o `published` da origem; auditoria registra todo save de conteúdo.
 
 # Próximos passos
 

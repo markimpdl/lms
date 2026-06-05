@@ -302,4 +302,106 @@ final class TeacherCurriculumController
         header('Location: /teacher/courses/' . $courseId . '/cc/' . $ccId, true, 303);
         exit;
     }
+
+    // =========================================================================
+    // Cópia de conteúdo (E31 / F22 — ADR-034)
+    // =========================================================================
+
+    /**
+     * POST /teacher/cc/{id}/copy — copia a CC (com suas CUs) para outro curso.
+     * Destino tem de ser um curso do tenant e não pode estar arquivado.
+     * Cópia física e independente; redireciona para o curso de destino.
+     */
+    public static function copyCc(int $ccId, int $targetCourseId): void
+    {
+        $tenantId = current_tenant_id();
+        if ($tenantId === null) {
+            http_response_code(403);
+            require LMS_ROOT . '/src/templates/errors/403.php';
+            exit;
+        }
+
+        $cc = CoreCompetency::findForTenant($ccId, $tenantId);
+        if ($cc === null) {
+            http_response_code(404);
+            require LMS_ROOT . '/src/templates/errors/404.php';
+            exit;
+        }
+        $backUrl = '/teacher/courses/' . (int) $cc['course_id'];
+
+        $targetCourse = Course::findForTenant($targetCourseId, $tenantId);
+        if ($targetCourse === null) {
+            flash('danger', __t('copy.err.target_invalid'));
+            header('Location: ' . $backUrl, true, 303);
+            exit;
+        }
+        if ((int) $targetCourse['archived'] === 1) {
+            flash('danger', __t('copy.err.target_archived'));
+            header('Location: ' . $backUrl, true, 303);
+            exit;
+        }
+
+        $newCcId = CourseCopyService::copyCoreCompetence($ccId, $targetCourseId, $tenantId);
+        if ($newCcId === null) {
+            flash('danger', __t('copy.err.failed'));
+            header('Location: ' . $backUrl, true, 303);
+            exit;
+        }
+
+        flash('success', __t('cc.copied', [
+            'name'   => (string) $cc['name'],
+            'course' => (string) $targetCourse['name'],
+        ]));
+        header('Location: /teacher/courses/' . $targetCourseId, true, 303);
+        exit;
+    }
+
+    /**
+     * POST /teacher/cu/{id}/copy — copia a CU para uma CC de destino.
+     * Destino tem de ser uma CC do tenant cujo curso não esteja arquivado.
+     * Cópia física e independente; redireciona para a CC de destino.
+     */
+    public static function copyCu(int $cuId, int $targetCcId): void
+    {
+        $tenantId = current_tenant_id();
+        if ($tenantId === null) {
+            http_response_code(403);
+            require LMS_ROOT . '/src/templates/errors/403.php';
+            exit;
+        }
+
+        $cu = CompetenceUnit::findForTenant($cuId, $tenantId);
+        if ($cu === null) {
+            http_response_code(404);
+            require LMS_ROOT . '/src/templates/errors/404.php';
+            exit;
+        }
+        $backUrl = '/teacher/courses/' . (int) $cu['course_id'] . '/cc/' . (int) $cu['core_competency_id'];
+
+        $targetCc = CoreCompetency::findForTenant($targetCcId, $tenantId);
+        if ($targetCc === null) {
+            flash('danger', __t('copy.err.target_invalid'));
+            header('Location: ' . $backUrl, true, 303);
+            exit;
+        }
+        if ((int) $targetCc['course_archived'] === 1) {
+            flash('danger', __t('copy.err.target_archived'));
+            header('Location: ' . $backUrl, true, 303);
+            exit;
+        }
+
+        $newCuId = CourseCopyService::copyCompetenceUnit($cuId, $targetCcId, $tenantId);
+        if ($newCuId === null) {
+            flash('danger', __t('copy.err.failed'));
+            header('Location: ' . $backUrl, true, 303);
+            exit;
+        }
+
+        flash('success', __t('cu.copied', [
+            'name' => (string) $cu['name'],
+            'cc'   => (string) $targetCc['name'],
+        ]));
+        header('Location: /teacher/courses/' . (int) $targetCc['course_id'] . '/cc/' . $targetCcId, true, 303);
+        exit;
+    }
 }

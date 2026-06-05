@@ -232,4 +232,37 @@ final class TeacherCoursesController
         header('Location: /teacher/courses/' . $courseId, true, 303);
         exit;
     }
+
+    /**
+     * POST /teacher/courses/{id}/duplicate → cópia profunda do curso (E31-02).
+     * Gera uma nova turma a partir da base existente: só estrutura + conteúdo,
+     * sem alunos/entregas/notas/XP (ADR-034). Redireciona para o curso novo.
+     */
+    public static function duplicate(int $courseId): void
+    {
+        $tenantId = current_tenant_id();
+        if ($tenantId === null) {
+            http_response_code(403);
+            require LMS_ROOT . '/src/templates/errors/403.php';
+            exit;
+        }
+
+        $course = Course::findForTenant($courseId, $tenantId);
+        if ($course === null) {
+            http_response_code(404);
+            require LMS_ROOT . '/src/templates/errors/404.php';
+            exit;
+        }
+
+        $newId = CourseCopyService::duplicateCourse($courseId, $tenantId);
+        if ($newId === null) {
+            flash('danger', __t('courses.err.duplicate_failed'));
+            header('Location: /teacher/courses/' . $courseId, true, 303);
+            exit;
+        }
+
+        flash('success', __t('courses.duplicated', ['name' => $course['name']]));
+        header('Location: /teacher/courses/' . $newId, true, 303);
+        exit;
+    }
 }

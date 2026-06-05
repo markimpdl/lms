@@ -29,6 +29,8 @@ $tree = curriculum_tree($courseId, $tenantId);
 $activeCcId = 0;
 $activeCuId = 0;
 $courseCountsFormatted = format_delete_counts(Course::countDescendants($courseId, $tenantId));
+// E31-03: cursos de destino para "Copiar CC para…" (ativos do tenant).
+$copyTargetCourses = Course::listActiveForSelect($tenantId);
 
 $enrolledPage = max(1, (int) ($_GET['students_page'] ?? 1));
 $enrolled = Enrollment::listByCourse($courseId, $tenantId, $enrolledPage);
@@ -201,6 +203,10 @@ ob_start();
                                             data-bs-toggle="modal" data-bs-target="#ccEditModal"
                                             data-cc-id="<?= $ccId ?>" data-cc-name="<?= e($ccName) ?>"
                                             aria-label="<?= e(__t('cc.action.rename')) ?>">✎</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                                            data-bs-toggle="modal" data-bs-target="#ccCopyModal"
+                                            data-cc-id="<?= $ccId ?>" data-cc-name="<?= e($ccName) ?>"
+                                            aria-label="<?= e(__t('cc.action.copy')) ?>">⧉</button>
                                     <button type="button" class="btn btn-sm btn-outline-danger"
                                             data-bs-toggle="modal" data-bs-target="#deleteConfirmModal"
                                             data-item-name="<?= e($ccName) ?>"
@@ -456,6 +462,50 @@ ob_start();
         var form = document.getElementById('ccEditForm');
         form.action = '/teacher/cc/' + id + '/rename';
         document.getElementById('ccEditName').value = name;
+    });
+})();
+</script>
+
+<!-- Modal: Copiar CC para outro curso (E31-03) -->
+<div class="modal fade" id="ccCopyModal" tabindex="-1" aria-hidden="true" aria-labelledby="ccCopyTitle">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <form method="POST" action="" id="ccCopyForm" class="modal-content" novalidate>
+            <?= csrf_field() ?>
+            <div class="modal-header">
+                <h5 class="modal-title" id="ccCopyTitle"><?= e(__t('cc.copy.title')) ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= e(__t('common.cancel')) ?>"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2"><?= e(__t('cc.copy.intro')) ?> <strong id="ccCopyName"></strong></p>
+                <?php if ($copyTargetCourses === []): ?>
+                    <p class="text-muted mb-0"><?= e(__t('copy.no_targets')) ?></p>
+                <?php else: ?>
+                    <label for="ccCopyTarget" class="form-label"><?= e(__t('copy.target_course')) ?></label>
+                    <select id="ccCopyTarget" name="target_course_id" class="form-select form-select-lg" required>
+                        <?php foreach ($copyTargetCourses as $tc): ?>
+                            <option value="<?= (int) $tc['id'] ?>"><?= e((string) $tc['name']) ?> (<?= (int) $tc['year'] ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="form-text mb-0"><?= e(__t('copy.hint')) ?></p>
+                <?php endif; ?>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= e(__t('common.cancel')) ?></button>
+                <button type="submit" class="btn btn-primary" <?= $copyTargetCourses === [] ? 'disabled' : '' ?>><?= e(__t('cc.action.copy')) ?></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    var modal = document.getElementById('ccCopyModal');
+    if (!modal) return;
+    modal.addEventListener('show.bs.modal', function (event) {
+        var btn = event.relatedTarget;
+        if (!btn) return;
+        document.getElementById('ccCopyForm').action = '/teacher/cc/' + btn.getAttribute('data-cc-id') + '/copy';
+        document.getElementById('ccCopyName').textContent = btn.getAttribute('data-cc-name') || '';
     });
 })();
 </script>

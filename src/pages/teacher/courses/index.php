@@ -121,6 +121,12 @@ ob_start();
                     <td class="small text-muted"><?= e(date('Y-m-d', strtotime((string) $c['created_at']))) ?></td>
                     <td class="text-end">
                         <a href="/teacher/courses/<?= (int) $c['id'] ?>" class="btn btn-sm btn-outline-secondary"><?= e(__t('courses.action.view')) ?></a>
+                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                data-bs-toggle="modal" data-bs-target="#courseDuplicateModal"
+                                data-course-id="<?= (int) $c['id'] ?>"
+                                data-course-name="<?= e((string) $c['name']) ?>">
+                            <?= e(__t('courses.action.duplicate')) ?>
+                        </button>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -147,10 +153,54 @@ ob_start();
                         <?= (int) $c['cc_count'] ?> <?= e(__t('courses.col.cc_count')) ?> ·
                         <?= (int) $c['cu_count'] ?> <?= e(__t('courses.col.cu_count')) ?>
                     </div>
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                data-bs-toggle="modal" data-bs-target="#courseDuplicateModal"
+                                data-course-id="<?= (int) $c['id'] ?>"
+                                data-course-name="<?= e((string) $c['name']) ?>">
+                            <?= e(__t('courses.action.duplicate')) ?>
+                        </button>
+                    </div>
                 </div>
             </div>
         <?php endforeach; ?>
     </div>
+
+    <!-- Modal de confirmação de duplicação (E31-02); populado via show.bs.modal -->
+    <div class="modal fade" id="courseDuplicateModal" tabindex="-1" aria-hidden="true" aria-labelledby="courseDuplicateTitle">
+        <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+            <form id="courseDuplicateForm" method="POST" action="" class="modal-content">
+                <?= csrf_field() ?>
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="courseDuplicateTitle"><?= e(__t('courses.duplicate.title')) ?></h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= e(__t('common.cancel')) ?>"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2"><?= e(__t('courses.duplicate.confirm')) ?> <strong id="courseDuplicateName"></strong></p>
+                    <p class="form-text mb-0"><?= e(__t('courses.duplicate.hint')) ?></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= e(__t('common.cancel')) ?></button>
+                    <button type="submit" class="btn btn-primary"><?= e(__t('courses.action.duplicate')) ?></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        var modal = document.getElementById('courseDuplicateModal');
+        if (!modal) return;
+        modal.addEventListener('show.bs.modal', function (event) {
+            var btn = event.relatedTarget;
+            if (!btn) return;
+            document.getElementById('courseDuplicateForm').action =
+                '/teacher/courses/' + btn.getAttribute('data-course-id') + '/duplicate';
+            document.getElementById('courseDuplicateName').textContent =
+                btn.getAttribute('data-course-name') || '';
+        });
+    })();
+    </script>
 
     <?php if ($data['total_pages'] > 1): ?>
         <nav aria-label="pagination" class="mt-3">

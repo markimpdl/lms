@@ -101,6 +101,11 @@ return [
             'role'   => 'teacher',
             'params' => ['id'],
         ],
+        '#^/teacher/courses/(\d+)/duplicate$#' => [
+            'file'   => '/src/pages/teacher/courses/duplicate.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
         '#^/teacher/courses/(\d+)/matrix$#' => [
             'file'   => '/src/pages/teacher/courses/matrix.php',
             'role'   => 'teacher',
@@ -143,6 +148,11 @@ return [
         ],
         '#^/teacher/cc/(\d+)/delete$#' => [
             'file'   => '/src/pages/teacher/cc/delete.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/cc/(\d+)/copy$#' => [
+            'file'   => '/src/pages/teacher/cc/copy.php',
             'role'   => 'teacher',
             'params' => ['id'],
         ],
@@ -348,6 +358,11 @@ return [
         ],
         '#^/teacher/cu/(\d+)/delete$#' => [
             'file'   => '/src/pages/teacher/cu/delete.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/cu/(\d+)/copy$#' => [
+            'file'   => '/src/pages/teacher/cu/copy.php',
             'role'   => 'teacher',
             'params' => ['id'],
         ],

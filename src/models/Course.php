@@ -153,6 +153,44 @@ final class Course
     }
 
     /**
+     * Cursos ativos do tenant que têm ao menos uma CC, cada um já com a lista
+     * das suas CCs (id + name, em ordem), numa única query. Alimenta o seletor
+     * em cascata "Copiar CU para…" (E31-04). Cursos sem CC ficam de fora — não
+     * há destino válido para uma CU sem uma CC onde encaixá-la. O INNER JOIN
+     * garante isso e evita o N+1 de consultar as CCs curso a curso.
+     *
+     * @return list<array{id:int,name:string,year:int,ccs:list<array{id:int,name:string}>}>
+     */
+    public static function listActiveWithCcsForSelect(int $tenantId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT c.id AS course_id, c.name AS course_name, c.year AS course_year,
+                    cc.id AS cc_id, cc.name AS cc_name
+               FROM courses c
+               JOIN core_competencies cc ON cc.course_id = c.id
+              WHERE c.tenant_id = ? AND c.archived = 0
+              ORDER BY c.year DESC, c.name ASC, c.id ASC, cc.position ASC, cc.id ASC'
+        );
+        $stmt->execute([$tenantId]);
+
+        /** @var array<int,array{id:int,name:string,year:int,ccs:list<array{id:int,name:string}>}> $courses */
+        $courses = [];
+        foreach ($stmt->fetchAll() as $r) {
+            $cid = (int) $r['course_id'];
+            if (!isset($courses[$cid])) {
+                $courses[$cid] = [
+                    'id'   => $cid,
+                    'name' => (string) $r['course_name'],
+                    'year' => (int) $r['course_year'],
+                    'ccs'  => [],
+                ];
+            }
+            $courses[$cid]['ccs'][] = ['id' => (int) $r['cc_id'], 'name' => (string) $r['cc_name']];
+        }
+        return array_values($courses);
+    }
+
+    /**
      * @param array{name:string, description:?string, year:int, language:string, cc_mode:string, activity_mode:string, eval_after_activities:int, grading_mode:string, report_mode:string} $data
      */
     public static function create(int $tenantId, array $data): int

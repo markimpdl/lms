@@ -179,6 +179,41 @@
 
 **Materialização:** ver `doc/15-roadmap-pos-mvp.md` F13 (épico futuro E22, fora do roadmap original — adicionado em 2026-04-25).
 
+### ADR-033 — Curso compartilhado: autoria multi-professor, dados de aluno isolados por tenant
+**Decisão (F23/E32, 2026-06-05):** um curso pode ser compartilhado com outros professores (de outros tenants) por email. O compartilhamento abrange **apenas a camada de autoria de conteúdo** — a árvore Core Competence → Competence Unit → conteúdo/anexos/atividades/avaliações/quizzes/learning outcomes é **única e editável por todos os colaboradores** (o que um edita vale pra todos). A **camada de dados de aluno** (matrículas, entregas, notas, feedback, XP, ranking, conquistas) **permanece estritamente isolada por tenant**: cada professor matricula, corrige e vê o ranking **só dos seus próprios alunos**; um professor nunca enxerga os alunos do outro.
+
+**Mecânica:**
+- O curso continua sob o tenant do dono (`courses.tenant_id` inalterado). Tabela nova `course_collaborators(course_id, user_id, invited_by, created_at)` liga o curso a professores de outros tenants.
+- Acesso de conteúdo de um professor = "curso do meu tenant **OU** curso em que sou colaborador". Centralizar num helper único (`teacher_can_access_course` / `courses_accessible_by_teacher`) e refatorar **só** os callsites de autoria — os callsites de dados de aluno continuam filtrando por `tenant_id` como hoje.
+- Convite: email de um **professor já cadastrado e ativo**; sem fluxo de aceite/criação de conta nesta feature.
+- Permissões: colaborador edita conteúdo e gerencia os próprios alunos; **não pode excluir o curso** nem **gerenciar a lista de colaboradores** (ambos exclusivos do dono).
+- Matrícula cross-tenant: `Enrollment::create` passa a permitir matricular um aluno do meu tenant num curso compartilhado comigo (hoje recusa curso de outro tenant).
+- XP: `xp_events.tenant_id` = tenant do **aluno** (não do dono do curso) — preserva ranking por tenant. ⚠️ `evaluations.tenant_id`/`evaluation_submissions.tenant_id` são denormalizados pro tenant do dono; o XP não pode herdar daí.
+- Revogar colaborador: mantém matrículas/dados dos alunos dele (só remove o acesso de edição). Desmatrícula em cascata foi descartada (destruiria dados de aluno). **A remoção é reversível: a UI oferece "desfazer"** (re-adicionar o mesmo colaborador restaura integralmente o acesso de edição, já que os dados dos alunos dele permaneceram intactos).
+- Notificação: ao compartilhar, o professor convidado recebe evento `course_shared` (sino + email), respeitando a config de F9 (`notification_settings`).
+
+**Por quê:** atende o pedido do PO ("um curso, N professores, cada um com seus alunos") com o menor refactor possível e **sem violar o ADR-026** (aluno exclusivo do tenant) nem o ADR-001 (isolamento por coluna): só a autoria de conteúdo cruza tenants; o dado sensível do aluno nunca cruza.
+
+**Relação com outros ADRs:** relaxa parcialmente o pressuposto "curso pertence a 1 tenant e só o owner edita" implícito em ADR-001/ADR-025 — mas **apenas para autoria**; o isolamento de dados de aluno do ADR-026 segue intacto. ADR-025 (owner fixo) continua válido: compartilhar **não** transfere posse.
+
+**A revisar quando:** surgir necessidade de papéis mais finos por colaborador (ex.: read-only), de convite a quem ainda não tem conta, ou de compartilhar também populações de alunos.
+
+### ADR-034 — Cópia de conteúdo é deep copy física e independente, sem dados de aluno
+**Decisão (F22/E31, 2026-06-05):** duplicar um curso, copiar uma Core Competence ou copiar uma Competence Unit produz uma **cópia física e independente** (novas rows, novos IDs, arquivos copiados em disco com novos `stored_path`). Editar a cópia nunca afeta a origem. A cópia abrange só **estrutura + conteúdo** (configs do curso, CCs, CUs, conteúdo HTML, anexos, atividades, avaliações, quizzes/questões/opções, learning outcomes). **Não** copia matrículas, entregas, notas, feedback, XP, conquistas nem colaboradores — toda turma nova começa zerada. Cada operação exige confirmação explícita.
+
+**Por quê:** o PO quer reaproveitar conteúdo ao iniciar nova turma e adaptar sem mexer no original; turma nova com dados de aluno herdados não faz sentido (ADR-026: aluno é exclusivo do tenant, e a nova turma é um novo recorte). Cópia física (vs referência compartilhada) garante independência total de edição.
+
+**Implicação:** service novo `CourseCopyService` transacional; helper de storage pra `copy` físico dos arquivos. Sem mudança de schema. O destino de copiar CC/CU é restrito a cursos que o professor pode editar (próprios + compartilhados via ADR-033).
+
+### ADR-035 — Auditoria de conteúdo por curso (revisita ADR-030, escopo restrito)
+**Decisão (F24/E33, 2026-06-05):** introduz a tabela `course_audit_log` registrando **apenas ações de estrutura e conteúdo** dos professores (create/update/delete de Core Competence, Competence Unit, conteúdo, atividade, avaliação) por curso. Cada registro guarda: curso, professor-autor, ação, tipo de entidade, id da entidade e um **rótulo-snapshot** do nome (pra entidade já excluída continuar legível) + timestamp. Visível a qualquer professor com acesso ao curso (dono + colaboradores). **Fora do escopo:** matrículas, notas, feedback, ações de aluno, login. Sem backfill (registra a partir da ativação); retenção indefinida no MVP da feature.
+
+**Por quê:** o ADR-030 dispensou audit log porque havia 1 professor por tenant e nada compartilhado — rastro via git/logs/dados bastava. A F23 muda a premissa: com 2+ professores editando o **mesmo** conteúdo, "quem mexeu no quê" vira informação operacional necessária. O escopo restrito a conteúdo (não a todo evento de domínio que o E12 original previa) mantém o custo baixo e o foco no problema real.
+
+**Relação com ADR-030:** ADR-030 fica **parcialmente superado** — o veto a `audit_log` genérico/global do MVP continua de pé; abre-se exceção pontual para auditoria **de conteúdo por curso** motivada pela autoria compartilhada. Não ressuscita o Epic E12 inteiro (rota `/admin/audit` global, `audit()` genérico, catálogo de eventos de domínio) — só o recorte de conteúdo por curso.
+
+**A revisar quando:** (a) o volume exigir cron de retenção; (b) o PO pedir auditoria de matrículas/notas/ações de aluno; (c) houver demanda de auditoria global (aí reabrir a discussão do ADR-030 por inteiro).
+
 ## Pendências em aberto
 
-Nenhuma no momento. Novas dúvidas ou decisões a revisar devem ser adicionadas aqui à medida que aparecerem.
+Nenhuma no momento. (F22–F24 tiveram suas dúvidas resolvidas no story breakdown de 2026-06-05: revogação de colaborador é reversível com "desfazer"; notificação `course_shared` confirmada; cópia mantém `published` da origem; auditoria registra todo save de conteúdo.)
