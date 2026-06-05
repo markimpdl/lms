@@ -148,6 +148,16 @@ final class CourseCollaborator
         return $st->fetchColumn() !== false;
     }
 
+    /** True se o curso tem ao menos um colaborador (é compartilhado) — E32-05. */
+    public static function isShared(int $courseId): bool
+    {
+        $st = Database::pdo()->prepare(
+            'SELECT 1 FROM course_collaborators WHERE course_id = ? LIMIT 1'
+        );
+        $st->execute([$courseId]);
+        return $st->fetchColumn() !== false;
+    }
+
     /**
      * IDs dos cursos em que $userId é colaborador (não inclui os próprios).
      *

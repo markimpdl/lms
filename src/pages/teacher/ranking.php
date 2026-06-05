@@ -26,16 +26,20 @@ if ($tenantId === null) {
 // Escopo de curso (vindo do route pattern /teacher/courses/{id}/ranking).
 // Quando presente, valida que o curso pertence ao tenant. 404 amigável caso
 // contrário (cross-tenant ou curso inexistente).
-$courseId   = (int) ($_REQUEST['course_id'] ?? 0);
-$courseName = null;
+$courseId     = (int) ($_REQUEST['course_id'] ?? 0);
+$courseName   = null;
+$courseShared = false;
 if ($courseId > 0) {
-    $course = Course::findForTenant($courseId, $tenantId);
+    // E32-05: dono OU colaborador pode ver o ranking do curso compartilhado.
+    $accessTenant = effective_authoring_tenant($courseId);
+    $course = $accessTenant !== null ? Course::findForTenant($courseId, $accessTenant) : null;
     if ($course === null) {
         http_response_code(404);
         require LMS_ROOT . '/src/templates/errors/404.php';
         return;
     }
-    $courseName = (string) $course['name'];
+    $courseName   = (string) $course['name'];
+    $courseShared = CourseCollaborator::isShared($courseId);
 }
 
 $window = (string) ($_GET['window'] ?? 'all');
@@ -83,12 +87,17 @@ if ($rawYear === 'all') {
 $page    = max(1, (int) ($_GET['page'] ?? 1));
 $perPage = RankingService::DEFAULT_PER_PAGE;
 
-$filters = [];
-if ($groupId !== null) { $filters['group_id']  = $groupId; }
-if ($year    !== null) { $filters['year']      = $year; }
-if ($courseId > 0)     { $filters['course_id'] = $courseId; }
-
-$result   = RankingService::compute($tenantId, $window, $filters, $page, $perPage);
+if ($courseId > 0 && $courseShared) {
+    // E32-05: curso compartilhado → ranking UNIFICADO (todos os alunos
+    // matriculados dos dois professores juntos, por course_id).
+    $result = RankingService::computeForCourse($courseId, $window, $page, $perPage);
+} else {
+    $filters = [];
+    if ($groupId !== null) { $filters['group_id']  = $groupId; }
+    if ($year    !== null) { $filters['year']      = $year; }
+    if ($courseId > 0)     { $filters['course_id'] = $courseId; }
+    $result = RankingService::compute($tenantId, $window, $filters, $page, $perPage);
+}
 $rows     = $result['rows'];
 $total    = $result['total'];
 $lastPage = max(1, (int) ceil($total / $perPage));
