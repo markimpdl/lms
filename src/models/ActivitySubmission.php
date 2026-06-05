@@ -147,11 +147,13 @@ final class ActivitySubmission
                JOIN activities a          ON a.id = s.activity_id
                JOIN competence_units cu   ON cu.id = a.competence_unit_id
                JOIN core_competencies cc  ON cc.id = cu.core_competency_id
-               JOIN courses c             ON c.id  = cc.course_id AND c.tenant_id = ?
-               JOIN users u               ON u.id  = s.student_user_id
+               JOIN courses c             ON c.id  = cc.course_id
+               JOIN users u               ON u.id  = s.student_user_id AND u.tenant_id = ?
               WHERE s.activity_id = ?
               ORDER BY (s.feedback_at IS NULL) DESC, s.updated_at DESC, s.id DESC'
         );
+        // E32: alunos filtrados pelo tenant do professor agindo (só os seus);
+        // acesso à atividade gateado na página. Dono: idêntico.
         $stmt->execute([$tenantId, $activityId]);
         return $stmt->fetchAll();
     }
@@ -180,11 +182,13 @@ final class ActivitySubmission
                JOIN activities a          ON a.id = s.activity_id
                JOIN competence_units cu   ON cu.id = a.competence_unit_id
                JOIN core_competencies cc  ON cc.id = cu.core_competency_id
-               JOIN courses c             ON c.id  = cc.course_id AND c.tenant_id = ?
-               JOIN users u               ON u.id  = s.student_user_id
+               JOIN courses c             ON c.id  = cc.course_id
+               JOIN users u               ON u.id  = s.student_user_id AND u.tenant_id = ?
               WHERE s.activity_id = ? AND s.student_user_id = ?
               LIMIT 1'
         );
+        // E32: valida que a submissão é de aluno do MEU tenant (colaborador só
+        // corrige os seus); acesso à atividade gateado na página. Dono: idêntico.
         $stmt->execute([$tenantId, $activityId, $studentId]);
         $row = $stmt->fetch();
         if ($row === false) {

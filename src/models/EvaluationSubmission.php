@@ -91,13 +91,16 @@ final class EvaluationSubmission
                FROM evaluations e
                JOIN competence_units cu   ON cu.id = e.competence_unit_id
                JOIN core_competencies cc  ON cc.id = cu.core_competency_id
-               JOIN courses c             ON c.id  = cc.course_id AND c.tenant_id = ?
+               JOIN courses c             ON c.id  = cc.course_id
                JOIN enrollments enr       ON enr.course_id = c.id
                                          AND enr.student_user_id = ?
               WHERE e.id = ?
               LIMIT 1'
         );
-        $stmt->execute([$tenantId, $studentId, $evaluationId]);
+        // E32 (ADR-033): sem gate por tenant do curso (a página valida acesso
+        // via effective_authoring_tenant). O aluno é validado pelo MEU tenant
+        // abaixo — colaborador só corrige os próprios alunos.
+        $stmt->execute([$studentId, $evaluationId]);
         $evaluation = $stmt->fetch();
         if ($evaluation === false) {
             return null;
@@ -154,17 +157,20 @@ final class EvaluationSubmission
                FROM evaluations e
                JOIN competence_units cu   ON cu.id = e.competence_unit_id
                JOIN core_competencies cc  ON cc.id = cu.core_competency_id
-               JOIN courses c             ON c.id  = cc.course_id AND c.tenant_id = ?
+               JOIN courses c             ON c.id  = cc.course_id
                JOIN enrollments enr       ON enr.course_id = c.id
                JOIN users u               ON u.id  = enr.student_user_id
                                          AND u.role = \'student\'
                                          AND u.active = 1
+                                         AND u.tenant_id = ?
                LEFT JOIN evaluation_submissions s
                       ON s.evaluation_id = e.id
                      AND s.student_user_id = u.id
               WHERE e.id = ?
               ORDER BY u.name ASC, u.id ASC'
         );
+        // E32: filtra alunos pelo tenant do PROFESSOR agindo (cada um só os
+        // seus). Acesso à avaliação é gateado na página. Dono: idêntico.
         $stmt->execute([$tenantId, $evaluationId]);
         return $stmt->fetchAll();
     }
@@ -219,7 +225,7 @@ final class EvaluationSubmission
 
     /**
      * Busca 1 submissão específica pro professor baixar o arquivo. Valida
-     * que a avaliação pertence ao tenant. null se alheia.
+     * que a submissão pertence a aluno do MEU tenant (E32-05). null se alheia.
      *
      * @return array<string,mixed>|null
      */
@@ -229,11 +235,11 @@ final class EvaluationSubmission
             'SELECT s.id, s.evaluation_id, s.student_user_id, s.filename,
                     s.stored_path, s.attempt
                FROM evaluation_submissions s
-               JOIN evaluations e ON e.id = s.evaluation_id
-              WHERE s.id = ? AND e.tenant_id = ?
+               JOIN users u ON u.id = s.student_user_id AND u.tenant_id = ?
+              WHERE s.id = ?
               LIMIT 1'
         );
-        $stmt->execute([$submissionId, $tenantId]);
+        $stmt->execute([$tenantId, $submissionId]);
         $row = $stmt->fetch();
         return $row === false ? null : $row;
     }
