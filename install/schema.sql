@@ -339,6 +339,27 @@ CREATE TABLE IF NOT EXISTS enrollments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
+-- 13.b course_collaborators (E32 — autoria compartilhada, F23 / ADR-033)
+--
+-- Liga um curso a professores colaboradores de OUTROS tenants. Compartilha
+-- apenas a AUTORIA DE CONTEÚDO: o curso continua sob courses.tenant_id (do
+-- dono) e os dados de aluno seguem isolados por tenant. `invited_by` registra
+-- o dono que compartilhou. Sem tenant_id próprio — é um vínculo cross-tenant,
+-- não uma tabela "do tenant". PK composta evita colaborador duplicado.
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS course_collaborators (
+    course_id   BIGINT UNSIGNED NOT NULL,
+    user_id     BIGINT UNSIGNED NOT NULL,
+    invited_by  BIGINT UNSIGNED NOT NULL,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (course_id, user_id),
+    KEY idx_ccollab_user (user_id),
+    CONSTRAINT fk_ccollab_course  FOREIGN KEY (course_id)  REFERENCES courses(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ccollab_user    FOREIGN KEY (user_id)    REFERENCES users(id)   ON DELETE CASCADE,
+    CONSTRAINT fk_ccollab_inviter FOREIGN KEY (invited_by) REFERENCES users(id)   ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
 -- 14. groups — agrupamentos de alunos (ex.: Skills Challenge)
 -- Backticks obrigatórios: `groups` é palavra reservada no MySQL 8.
 -- ----------------------------------------------------------------------------

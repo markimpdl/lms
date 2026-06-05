@@ -964,6 +964,54 @@ function current_tenant_id(): ?int
 }
 
 /**
+ * Acesso de AUTORIA de um professor a um curso (E32 / F23 — ADR-033).
+ *
+ * Verdadeiro quando o professor é o DONO (o curso pertence ao tenant que ele
+ * possui) OU é COLABORADOR do curso (compartilhado com ele por outro tenant).
+ *
+ * Ponto único de verdade para autorizar edição de conteúdo — substitui o
+ * antigo "tenant_id = :tid" nos callsites de autoria (CC/CU/conteúdo/atividade
+ * /avaliação). NÃO use para dados de aluno (matrículas, entregas, notas, XP),
+ * que continuam estritamente por tenant.
+ */
+function teacher_can_access_course(int $userId, int $courseId): bool
+{
+    $pdo = Database::pdo();
+    // Dono: o curso pertence ao tenant deste professor.
+    $st = $pdo->prepare(
+        'SELECT 1 FROM courses c
+           JOIN tenants t ON t.id = c.tenant_id
+          WHERE c.id = ? AND t.owner_user_id = ? LIMIT 1'
+    );
+    $st->execute([$courseId, $userId]);
+    if ($st->fetchColumn() !== false) {
+        return true;
+    }
+    // Colaborador: curso compartilhado com este professor.
+    return CourseCollaborator::isCollaborator($courseId, $userId);
+}
+
+/**
+ * IDs de todos os cursos que um professor pode editar (próprios + comparti-
+ * lhados), em uma query. Para listagens e seletores de destino de cópia.
+ *
+ * @return list<int>
+ */
+function courses_accessible_by_teacher(int $userId): array
+{
+    $st = Database::pdo()->prepare(
+        'SELECT c.id
+           FROM courses c
+           JOIN tenants t ON t.id = c.tenant_id
+          WHERE t.owner_user_id = ?
+          UNION
+         SELECT course_id FROM course_collaborators WHERE user_id = ?'
+    );
+    $st->execute([$userId, $userId]);
+    return array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
+}
+
+/**
  * Tema visual do usuário atual (E27 — F18). Apenas aluno tem preferência;
  * teacher/super-admin/deslogado retornam 'light'. Decisão simplificadora
  * do MVP — dark mode pra teacher/admin entra em E29 (visual unificado).
