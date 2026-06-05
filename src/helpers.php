@@ -1012,6 +1012,35 @@ function courses_accessible_by_teacher(int $userId): array
 }
 
 /**
+ * Tenant EFETIVO de autoria para o professor logado operar num curso (E32 /
+ * F23 — ADR-033). Devolve o `tenant_id` do DONO do curso quando o professor
+ * atual (dono ou colaborador) pode editá-lo; `null` caso contrário.
+ *
+ * É a peça central da estratégia "tenant efetivo": as páginas/controllers de
+ * AUTORIA trocam `current_tenant_id()` por este valor e seguem chamando os
+ * models de conteúdo (tenant-scoped) sem alteração. Para o DONO, retorna
+ * exatamente `current_tenant_id()` — comportamento idêntico ao atual. Para o
+ * COLABORADOR, retorna o tenant do dono, dando-lhe acesso ao conteúdo.
+ *
+ * NÃO use para dados de aluno (matrículas, entregas, notas, XP) — esses
+ * continuam com `current_tenant_id()` (cada professor só os seus alunos).
+ */
+function effective_authoring_tenant(int $courseId): ?int
+{
+    $u = current_user();
+    if ($u === null || ($u['role'] ?? null) !== 'teacher') {
+        return null;
+    }
+    if (!teacher_can_access_course((int) $u['id'], $courseId)) {
+        return null;
+    }
+    $st = Database::pdo()->prepare('SELECT tenant_id FROM courses WHERE id = ? LIMIT 1');
+    $st->execute([$courseId]);
+    $tid = $st->fetchColumn();
+    return $tid === false ? null : (int) $tid;
+}
+
+/**
  * Tema visual do usuário atual (E27 — F18). Apenas aluno tem preferência;
  * teacher/super-admin/deslogado retornam 'light'. Decisão simplificadora
  * do MVP — dark mode pra teacher/admin entra em E29 (visual unificado).

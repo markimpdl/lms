@@ -67,6 +67,24 @@ final class Evaluation
     }
 
     /**
+     * course_id da avaliação, SEM filtro de tenant — para o gating de acesso
+     * compartilhado (E32). Retorna null se a avaliação não existe.
+     */
+    public static function courseIdOf(int $evalId): ?int
+    {
+        $st = Database::pdo()->prepare(
+            'SELECT cc.course_id
+               FROM evaluations e
+               JOIN competence_units cu  ON cu.id = e.competence_unit_id
+               JOIN core_competencies cc ON cc.id = cu.core_competency_id
+              WHERE e.id = ? LIMIT 1'
+        );
+        $st->execute([$evalId]);
+        $v = $st->fetchColumn();
+        return $v === false ? null : (int) $v;
+    }
+
+    /**
      * Cria avaliação. Valida CU/tenant + curso não arquivado + ausência de
      * avaliação prévia (ADR-007). Retorna id novo ou 'not_found' /
      * 'course_archived' / 'already_exists'.

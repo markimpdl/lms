@@ -162,6 +162,24 @@ final class CompetenceUnit
     }
 
     /**
+     * course_id da CU, SEM filtro de tenant. Usado pelo gating de acesso
+     * compartilhado (E32) — a página resolve o curso e chama
+     * effective_authoring_tenant(). Retorna null se a CU não existe.
+     */
+    public static function courseIdOf(int $cuId): ?int
+    {
+        $st = Database::pdo()->prepare(
+            'SELECT cc.course_id
+               FROM competence_units cu
+               JOIN core_competencies cc ON cc.id = cu.core_competency_id
+              WHERE cu.id = ? LIMIT 1'
+        );
+        $st->execute([$cuId]);
+        $v = $st->fetchColumn();
+        return $v === false ? null : (int) $v;
+    }
+
+    /**
      * Cria CU com position = MAX+1. Retorna id ou null se a CC não pertence
      * ao tenant ou o curso está arquivado. `workloadHours` é a carga horária
      * em horas cheias (E14-00); 0 é default (sem carga cadastrada).
