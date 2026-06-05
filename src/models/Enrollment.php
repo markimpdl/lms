@@ -60,35 +60,31 @@ final class Enrollment
     {
         $pdo = Database::pdo();
 
+        // E32 (ADR-033): filtra pelo tenant do ALUNO, não do curso. Em cursos
+        // compartilhados cada professor vê só os seus alunos (do seu tenant).
+        // Para o dono, é idêntico (aluno e curso no mesmo tenant).
         $stmtTotal = $pdo->prepare(
             'SELECT COUNT(*)
                FROM enrollments e
-               JOIN users   u ON u.id = e.student_user_id
-               JOIN courses c ON c.id = e.course_id
+               JOIN users u ON u.id = e.student_user_id
               WHERE e.course_id = ?
-                AND c.tenant_id = ?
                 AND u.tenant_id = ?
                 AND u.role = "student"'
         );
-        $stmtTotal->execute([$courseId, $tenantId, $tenantId]);
+        $stmtTotal->execute([$courseId, $tenantId]);
         $total = (int) $stmtTotal->fetchColumn();
 
         $totalPages = max(1, (int) ceil($total / self::PER_PAGE));
         $page       = max(1, min($page, $totalPages));
         $offset     = ($page - 1) * self::PER_PAGE;
 
-        // Placeholders posicionais em tudo: PDO (com emulação off) não aceita
-        // mistura de `?` e `:nome` no mesmo statement. Mantemos o mesmo estilo
-        // da query de COUNT acima, repetindo $tenantId nas duas posições.
         $sql = <<<SQL
             SELECT u.id AS student_id, u.name, u.email, u.language, u.active,
                    e.enrolled_at, e.status,
                    e.access_starts_at, e.access_ends_at, e.blocked_at
               FROM enrollments e
-              JOIN users   u ON u.id = e.student_user_id
-              JOIN courses c ON c.id = e.course_id
+              JOIN users u ON u.id = e.student_user_id
              WHERE e.course_id = ?
-               AND c.tenant_id = ?
                AND u.tenant_id = ?
                AND u.role = "student"
              ORDER BY u.name ASC, u.id ASC
@@ -98,9 +94,8 @@ final class Enrollment
         $stmt = $pdo->prepare($sql);
         $stmt->bindValue(1, $courseId,      PDO::PARAM_INT);
         $stmt->bindValue(2, $tenantId,      PDO::PARAM_INT);
-        $stmt->bindValue(3, $tenantId,      PDO::PARAM_INT);
-        $stmt->bindValue(4, self::PER_PAGE, PDO::PARAM_INT);
-        $stmt->bindValue(5, $offset,        PDO::PARAM_INT);
+        $stmt->bindValue(3, self::PER_PAGE, PDO::PARAM_INT);
+        $stmt->bindValue(4, $offset,        PDO::PARAM_INT);
         $stmt->execute();
 
         return [
@@ -128,26 +123,43 @@ final class Enrollment
     ): string {
         $pdo = Database::pdo();
 
-        // Validação composta em uma query só — evita race.
+        // E32 (ADR-033): matrícula pode ser cross-tenant — o aluno é do MEU
+        // tenant, mas o curso pode ser de outro tenant compartilhado comigo.
+        // 1) aluno tem de pertencer ao tenant que está agindo.
         $stmt = $pdo->prepare(
-            'SELECT u.active AS s_active, c.archived AS c_archived
-               FROM users u
-               JOIN courses c ON c.tenant_id = u.tenant_id
-              WHERE u.id = ?
-                AND c.id = ?
-                AND u.tenant_id = ?
-                AND u.role = "student"
-              LIMIT 1'
+            'SELECT active FROM users WHERE id = ? AND tenant_id = ? AND role = "student" LIMIT 1'
         );
-        $stmt->execute([$studentId, $courseId, $tenantId]);
-        $row = $stmt->fetch();
-        if ($row === false) {
+        $stmt->execute([$studentId, $tenantId]);
+        $sActive = $stmt->fetchColumn();
+        if ($sActive === false) {
             return 'wrong_tenant';
         }
-        if ((int) $row['s_active'] === 0) {
+        if ((int) $sActive === 0) {
             return 'student_inactive';
         }
-        if ((int) $row['c_archived'] === 1) {
+
+        // 2) curso tem de ser ACESSÍVEL pelo professor do tenant: do próprio
+        // tenant (dono) OU compartilhado com o owner do tenant (colaborador).
+        $stmt = $pdo->prepare(
+            'SELECT c.archived
+               FROM courses c
+               JOIN tenants t ON t.id = ?
+              WHERE c.id = ?
+                AND (
+                     c.tenant_id = ?
+                  OR EXISTS (
+                       SELECT 1 FROM course_collaborators col
+                        WHERE col.course_id = c.id AND col.user_id = t.owner_user_id
+                     )
+                )
+              LIMIT 1'
+        );
+        $stmt->execute([$tenantId, $courseId, $tenantId]);
+        $cArchived = $stmt->fetchColumn();
+        if ($cArchived === false) {
+            return 'wrong_tenant';
+        }
+        if ((int) $cArchived === 1) {
             return 'course_archived';
         }
 
