@@ -106,6 +106,16 @@ return [
             'role'   => 'teacher',
             'params' => ['id'],
         ],
+        '#^/teacher/courses/(\d+)/collaborators$#' => [
+            'file'   => '/src/pages/teacher/courses/collaborator-add.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/courses/(\d+)/collaborators/(\d+)/remove$#' => [
+            'file'   => '/src/pages/teacher/courses/collaborator-remove.php',
+            'role'   => 'teacher',
+            'params' => ['id', 'user_id'],
+        ],
         '#^/teacher/courses/(\d+)/matrix$#' => [
             'file'   => '/src/pages/teacher/courses/matrix.php',
             'role'   => 'teacher',

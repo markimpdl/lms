@@ -436,6 +436,22 @@ return [
     'copy.err.target_archived' => 'O curso de destino está arquivado.',
     'copy.err.failed'          => 'Não foi possível copiar. Tente novamente.',
 
+    // E32-03 — Colaboradores de curso (F23)
+    'collab.section.title'      => 'Colaboradores',
+    'collab.section.subtitle'   => 'Professores que coautoram este curso',
+    'collab.empty'              => 'Nenhum colaborador ainda.',
+    'collab.form.email'         => 'Email do professor',
+    'collab.form.email_placeholder' => 'professor@exemplo.com',
+    'collab.action.add'         => 'Compartilhar',
+    'collab.action.remove'      => 'Remover',
+    'collab.undo'               => 'Desfazer',
+    'collab.help'               => 'O professor precisa já ter conta no sistema. Ele poderá editar o conteúdo e matricular os próprios alunos, mas não excluir o curso.',
+    'collab.added'              => 'Curso compartilhado com :name.',
+    'collab.removed'            => ':name não é mais colaborador.',
+    'collab.err.not_teacher'    => 'Não encontramos um professor ativo com esse email.',
+    'collab.err.self'           => 'Você não pode compartilhar o curso consigo mesmo.',
+    'collab.err.already'        => 'Esse professor já é colaborador deste curso.',
+
     // Navegação hierárquica (E3-04)
     'nav.curriculum.title' => 'Estrutura do curso',
     'nav.curriculum.open'  => 'Estrutura do curso',

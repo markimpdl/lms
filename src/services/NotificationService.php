@@ -39,6 +39,13 @@ final class NotificationService
     public const EVENT_GRADE_EVALUATION  = 'grade_evaluation';
     public const EVENT_RETRY_ENABLED     = 'retry_enabled';
     public const EVENT_CONTENT_PUBLISHED = 'content_published';
+    /**
+     * E32-03 (F23): curso compartilhado com outro professor. Diferente dos
+     * demais, o destinatário é um PROFESSOR (não aluno), então não entra na
+     * matriz de config por-tenant (EVENTS) — é sempre disparado (gate null →
+     * default ON). Idioma do email segue o perfil do professor convidado.
+     */
+    public const EVENT_COURSE_SHARED     = 'course_shared';
 
     /**
      * Whitelist usada pela página de config (`/teacher/settings/notifications`

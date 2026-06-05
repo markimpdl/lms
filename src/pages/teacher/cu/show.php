@@ -11,15 +11,27 @@ declare(strict_types=1);
  * adicionais nesta mesma tela no futuro.
  */
 
-$tenantId = current_tenant_id();
-if ($tenantId === null) {
+$myTenantId = current_tenant_id();
+if ($myTenantId === null) {
     http_response_code(403);
     require LMS_ROOT . '/src/templates/errors/403.php';
     return;
 }
 
 $cuId = (int) ($_REQUEST['id'] ?? 0);
-$cu   = CompetenceUnit::findForTenant($cuId, $tenantId);
+
+// E32 (ADR-033): conteúdo via tenant do dono (dono ou colaborador); roster de
+// aluno via MEU tenant. Resolve o curso da CU sem filtro de tenant para gatear
+// o acesso compartilhado. Para o dono, $tenantId === current_tenant_id().
+$resolvedCourseId = CompetenceUnit::courseIdOf($cuId);
+$tenantId = $resolvedCourseId !== null ? effective_authoring_tenant($resolvedCourseId) : null;
+if ($tenantId === null) {
+    http_response_code(404);
+    require LMS_ROOT . '/src/templates/errors/404.php';
+    return;
+}
+
+$cu = CompetenceUnit::findForTenant($cuId, $tenantId);
 if ($cu === null) {
     http_response_code(404);
     require LMS_ROOT . '/src/templates/errors/404.php';
@@ -30,7 +42,8 @@ $courseId   = (int) $cu['course_id'];
 $ccId       = (int) $cu['core_competency_id'];
 $isArchived = (int) $cu['course_archived'] === 1;
 
-// E25-02: link "Editar critérios" só aparece em Actvet + LO mode.
+// E25-02: link "Editar critérios" só aparece em Actvet + LO mode. O flag
+// is_actvet é do tenant DONO do curso (autoria), não do colaborador.
 $tenant   = Tenant::findById($tenantId);
 $isActvet = $tenant !== null && (int) ($tenant['is_actvet'] ?? 0) === 1;
 $isLoMode = (string) ($cu['course_grading_mode'] ?? 'grade') === 'learning_outcomes';
@@ -45,7 +58,8 @@ $attachments = ContentAttachment::listByCu($cuId, $tenantId);
 $activities  = Activity::listByCu($cuId, $tenantId);
 $activityCount = count($activities);
 $evaluation    = Evaluation::findByCu($cuId, $tenantId);
-$roster        = CuRoster::listForCu($cuId, $tenantId);
+// Roster é dado de aluno — estritamente o MEU tenant (colaborador só os seus).
+$roster        = CuRoster::listForCu($cuId, $myTenantId);
 $rosterCount   = count($roster);
 
 $tree       = curriculum_tree($courseId, $tenantId);

@@ -8,8 +8,8 @@ declare(strict_types=1);
  * renomear CU, com editar populado via show.bs.modal + data-*.
  */
 
-$tenantId = current_tenant_id();
-if ($tenantId === null) {
+$myTenantId = current_tenant_id();
+if ($myTenantId === null) {
     http_response_code(403);
     require LMS_ROOT . '/src/templates/errors/403.php';
     return;
@@ -17,6 +17,16 @@ if ($tenantId === null) {
 
 $courseId = (int) ($_REQUEST['course_id'] ?? 0);
 $ccId     = (int) ($_REQUEST['cc_id']     ?? 0);
+
+// E32 (ADR-033): conteúdo via tenant do dono (dono ou colaborador). Página de
+// CC é puro conteúdo (lista de CUs) — sem dados de aluno. Para o dono,
+// $tenantId === current_tenant_id().
+$tenantId = effective_authoring_tenant($courseId);
+if ($tenantId === null) {
+    http_response_code(404);
+    require LMS_ROOT . '/src/templates/errors/404.php';
+    return;
+}
 
 $cc = CompetenceUnit::findCcInCourse($ccId, $courseId, $tenantId);
 if ($cc === null) {
@@ -33,10 +43,10 @@ $activeCcId = $ccId;
 $activeCuId = 0;
 $ccCountsFormatted = format_delete_counts(CoreCompetency::countDescendants($ccId, $tenantId));
 
-// E31-04: destinos para "Copiar CU para…" — cursos ativos do tenant que têm
-// ao menos uma CC (sem CC não há destino válido), já com suas CCs, numa única
-// query (evita N+1). Alimenta o seletor em cascata (curso → CC) no modal.
-$copyTargets = Course::listActiveWithCcsForSelect($tenantId);
+// E31-04: destinos para "Copiar CU para…" — MEUS cursos próprios que têm ao
+// menos uma CC, já com suas CCs, numa única query (evita N+1). Seletor em
+// cascata (curso → CC) no modal.
+$copyTargets = Course::listActiveWithCcsForSelect($myTenantId);
 
 $page_title = (string) $cc['name'];
 
