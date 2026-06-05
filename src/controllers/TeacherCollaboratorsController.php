@@ -64,7 +64,8 @@ final class TeacherCollaboratorsController
                 true
             );
         }
-        flash('success', __t('collab.added', ['name' => $teacher['name'] ?? $email]));
+        $shownName = $teacher !== null ? (string) $teacher['name'] : $email;
+        flash('success', __t('collab.added', ['name' => $shownName]));
         header('Location: ' . $back, true, 303);
         exit;
     }
