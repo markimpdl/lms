@@ -21,6 +21,12 @@ declare(strict_types=1);
 final class CourseMatrix
 {
     /**
+     * E32-05 (ADR-033): dois tenants. `$authoringTenantId` = tenant do DONO do
+     * curso (conteúdo: CCs/CUs/avaliações — compartilhado com o colaborador via
+     * `effective_authoring_tenant`). `$studentTenantId` = tenant do professor
+     * que está olhando (alunos/grupos: cada um vê só os seus). Para o dono, os
+     * dois coincidem — comportamento idêntico ao anterior.
+     *
      * @return array{
      *   course: array<string,mixed>,
      *   ccs:    list<array{id:int, name:string, cus: list<array{id:int, name:string}>}>,
@@ -29,15 +35,15 @@ final class CourseMatrix
      *   groups: list<array{id:int, name:string}>
      * }|null
      */
-    public static function forCourse(int $courseId, int $tenantId): ?array
+    public static function forCourse(int $courseId, int $authoringTenantId, int $studentTenantId): ?array
     {
         $pdo = Database::pdo();
 
-        // Valida curso pertence ao tenant; pega metadados.
+        // Valida curso pertence ao tenant de autoria; pega metadados.
         $stmt = $pdo->prepare(
             'SELECT id, name, archived FROM courses WHERE id = ? AND tenant_id = ? LIMIT 1'
         );
-        $stmt->execute([$courseId, $tenantId]);
+        $stmt->execute([$courseId, $authoringTenantId]);
         $course = $stmt->fetch();
         if ($course === false) {
             return null;
@@ -56,7 +62,7 @@ final class CourseMatrix
               WHERE cc.course_id = ?
               ORDER BY cc.position ASC, cc.id ASC, cu.position ASC, cu.id ASC'
         );
-        $stmt->execute([$tenantId, $courseId]);
+        $stmt->execute([$authoringTenantId, $courseId]);
         $cuRows = $stmt->fetchAll();
 
         $ccs      = [];
@@ -84,15 +90,17 @@ final class CourseMatrix
             ];
         }
 
-        // 2. Students enrolled no curso
+        // 2. Students enrolled no curso. E32-05 (ADR-033): filtra por
+        // u.tenant_id do ALUNO — num curso compartilhado cada professor vê só
+        // os seus alunos (a matriz é tela de roster/progresso, não de autoria).
         $stmt = $pdo->prepare(
             'SELECT u.id, u.name, u.email, u.active
                FROM enrollments e
                JOIN users u ON u.id = e.student_user_id
-              WHERE e.course_id = ? AND u.role = \'student\'
+              WHERE e.course_id = ? AND u.tenant_id = ? AND u.role = \'student\'
               ORDER BY u.name ASC, u.id ASC'
         );
-        $stmt->execute([$courseId]);
+        $stmt->execute([$courseId, $studentTenantId]);
         $studentRows = $stmt->fetchAll();
 
         // 3. Contagem de activity_submissions por (student, cu)
@@ -128,7 +136,7 @@ final class CourseMatrix
                     AND es.grade IS NOT NULL
                     AND es.grade >= 6.0'
             );
-            $stmt->execute([$tenantId, $courseId]);
+            $stmt->execute([$authoringTenantId, $courseId]);
             foreach ($stmt->fetchAll() as $row) {
                 $sid = (int) $row['student_user_id'];
                 $cid = (int) $row['cu_id'];
@@ -144,17 +152,17 @@ final class CourseMatrix
                    FROM group_members gm
                    JOIN `groups` g ON g.id = gm.group_id AND g.tenant_id = ?'
             );
-            $stmt->execute([$tenantId]);
+            $stmt->execute([$studentTenantId]);
             foreach ($stmt->fetchAll() as $row) {
                 $studentGroups[(int) $row['student_user_id']][] = (int) $row['group_id'];
             }
         }
 
-        // Groups do tenant (pra select do filtro)
+        // Groups do tenant do professor que olha (pra select do filtro)
         $stmt = $pdo->prepare(
             'SELECT id, name FROM `groups` WHERE tenant_id = ? ORDER BY name ASC'
         );
-        $stmt->execute([$tenantId]);
+        $stmt->execute([$studentTenantId]);
         $groups = array_map(static fn ($r) => [
             'id'   => (int) $r['id'],
             'name' => (string) $r['name'],
