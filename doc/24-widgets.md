@@ -26,7 +26,7 @@ Widgets executam **JavaScript arbitrário escrito pelo professor**, rodando no n
 - O modo `window` abre a mesma página isolada em tela cheia (também sem acesso à sessão).
 - **CSP restritiva** na resposta do widget (`default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:`) limita exfiltração/chamadas externas. (`'unsafe-inline'` é necessário porque o widget é HTML/JS solto do professor; o sandbox de origem nula é a camada principal de contenção.)
 
-> **Importante:** a requisição HTTP do `src` do iframe (mesma origem do LMS) ainda **carrega o cookie de sessão** até o servidor — então o endpoint de serving **pode autenticar** normalmente. O sandbox bloqueia apenas o *JS do widget* de ler a sessão, não a requisição de fetch do próprio iframe.
+> **Importante (corrigido no smoke do E35):** sub-recursos (imagens/CSS/JS) requisitados de **dentro** do iframe sandbox de origem nula **NÃO** enviam o cookie de sessão (origem opaca → tratada como cross-site). Por isso o serving **não** usa `require_auth` — a autorização é por **token assinado no path** (ver "Autorização do serving — token no path" abaixo).
 
 ## Armazenamento e serving
 
@@ -76,8 +76,8 @@ Em vez disso, a URL carrega um **token assinado no path**: `/widget/serve/{id}/{
 
 ## Acesso ao endpoint de serving
 
-- Requer **sessão autenticada**.
-- Valida que o usuário pode ver o conteúdo onde o widget aparece: professor com acesso ao curso, ou aluno **matriculado** num curso cujo conteúdo referencia o widget. (Mantém a regra de isolamento: aluno só carrega widget de curso em que está matriculado.)
+- **Não** usa `require_auth` (o iframe sandbox cookieless impede) — gate por **token assinado no path** (ver "Autorização do serving — token no path"). O token é emitido só nas páginas onde o usuário já estava autorizado a ver o widget.
+- A página `/widget/open/{id}` (modo window), essa sim, **continua** atrás de auth + `Widget::userCanAccess` (professor com acesso / aluno matriculado em curso que referencia o widget) — é uma página navegada normal, com cookie.
 
 ## Mobile e i18n
 
