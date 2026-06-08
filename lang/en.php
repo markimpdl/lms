@@ -1238,6 +1238,27 @@ return [
     'course_matrix.empty.students'         => 'No students enrolled in this course yet.',
     'course_matrix.empty.cus'              => 'This course has no units yet.',
 
+    // Course content audit (E33 / F24 — ADR-035)
+    'course_audit.action.link'             => 'Audit log',
+    'course_audit.page_title'              => 'Audit log — :name',
+    'course_audit.breadcrumb'              => 'Audit log',
+    'course_audit.title'                   => 'Content audit log',
+    'course_audit.empty'                   => 'No content actions recorded yet.',
+    'course_audit.pagination'              => 'Audit log pagination',
+    'course_audit.col.when'                => 'When',
+    'course_audit.col.who'                 => 'Teacher',
+    'course_audit.col.action'              => 'Action',
+    'course_audit.col.entity'              => 'Type',
+    'course_audit.col.label'               => 'Item',
+    'course_audit.action.create'           => 'Created',
+    'course_audit.action.update'           => 'Edited',
+    'course_audit.action.delete'           => 'Deleted',
+    'course_audit.entity.core_competency'  => 'Core competence',
+    'course_audit.entity.competence_unit'  => 'Competence unit',
+    'course_audit.entity.content'          => 'Content',
+    'course_audit.entity.activity'         => 'Activity',
+    'course_audit.entity.evaluation'       => 'Evaluation',
+
     // Aggregated metrics (E11-04)
     'metrics.activity.enrolled'      => 'Enrolled',
     'metrics.activity.submitted'     => 'Submissions',

@@ -126,6 +126,11 @@ return [
             'role'   => 'teacher',
             'params' => ['course_id'],
         ],
+        '#^/teacher/courses/(\d+)/audit$#' => [
+            'file'   => '/src/pages/teacher/courses/audit.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
         '#^/teacher/courses/(\d+)/enrollment/(\d+)/status$#' => [
             'file'   => '/src/pages/teacher/courses/enrollment-status.php',
             'role'   => 'teacher',
