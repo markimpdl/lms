@@ -216,6 +216,31 @@
 
 **A revisar quando:** (a) o volume exigir cron de retenção; (b) o PO pedir auditoria de matrículas/notas/ações de aluno; (c) houver demanda de auditoria global (aí reabrir a discussão do ADR-030 por inteiro).
 
+### ADR-036 — Toggle "ver todos os alunos" no curso compartilhado é só leitura agregada
+**Decisão (F25/E34, 2026-06-08):** num curso compartilhado (ADR-033), cada professor pode **opcionalmente** ver os alunos de **todos** os professores do curso (por `course_id`) nas telas de **roster, progresso, métricas e matriz**. O controle é um **toggle com preferência fixa por professor**, **default = "só meus alunos"** (comportamento atual, preserva privacidade). O acesso "ver todos" é **estritamente leitura agregada**: correção, notas e entregas **continuam restritas aos próprios alunos** (por tenant) — um professor nunca abre a entrega/nota de aluno de outro professor, nem gere aluno de outro tenant. Nas visões agregadas, alunos de outros professores aparecem na lista/matriz **sem links acionáveis** de perfil/entrega.
+
+**Por quê:** o PO quer uma visão consolidada da turma compartilhada sem abrir mão do isolamento de escrita. Separar "visibilidade de leitura agregada" de "gestão por tenant" mantém a **regra de ouro do ADR-026/ADR-001** (dado sensível de aluno e toda escrita ficam por tenant) enquanto entrega a visão pedida.
+
+**Mecânica:** preferência booleana por professor (`users.shared_course_show_all_students`, default 0). Só afeta cursos compartilhados (curso normal ignora). Os models de leitura (`CuRoster`, `Enrollment::listByCourse`, `CourseMetrics`, `CourseMatrix`) ganham modo dual: filtrar por tenant do aluno (default) **ou** por `course_id` (ver todos). Ranking de tenant inalterado; ranking do curso já agrega todos (E32-05), independente do toggle. Os caminhos de **correção/entrega permanecem inalterados** (sempre por tenant).
+
+**A revisar quando:** o PO pedir gestão (não só leitura) cross-tenant — aí reabrir a discussão do isolamento de dados de aluno.
+
+### ADR-037 — Widgets: sandbox de origem nula, biblioteca compartilhada no curso
+**Decisão (F26/E35, 2026-06-08):** professores cadastram **widgets** (mini-apps interativas num `.zip` com `index.html` na raiz) e os inserem no conteúdo das CUs. Detalhamento em `doc/24-widgets.md`. Decisões-chave:
+
+- **Isolamento:** o widget roda sempre dentro de `<iframe sandbox="allow-scripts">` **sem `allow-same-origin`** → origem opaca/nula; o JS do professor **não** acessa cookies/sessão/`localStorage`/DOM do LMS. Reforçado por **CSP restritiva** na resposta. (Subdomínio dedicado por origem real foi avaliado e adiado — exige DNS/vhost; o sandbox de origem nula basta pro MVP.) HTML sanitizado puro foi descartado: mataria o JS interativo (caso de uso central).
+- **Render configurável no cadastro:** `inline` (embutido no conteúdo) ou `window` (ícone → nova janela isolada).
+- **Storage fora do document root** (`storage/`), servido por endpoint PHP de passthrough (content-type allowlist, `nosniff`, anti path-traversal). Mantém o caminho aberto pra migração futura a GCS (não acopla a `public/uploads/`).
+- **Upload seguro:** limite de MB, `finfo` de zip, **zip-slip guard**, allowlist de extensões internas (rejeita `.php`/executáveis), exige `index.html`.
+- **Biblioteca compartilhada no curso:** o widget pertence ao tenant que o cadastrou (reutilizável nos cursos dele); num curso compartilhado o picker oferece os widgets de **todos os colaboradores** do curso. Editar/remover a definição = só o dono; inserir no conteúdo = qualquer professor com acesso ao curso.
+- **Integração:** placeholder `[[widget:ID]]` no conteúdo (sobrevive ao HTML Purifier, sem relaxar a allowlist de iframes); expandido no render pro aluno. Acesso ao serving exige sessão + acesso ao conteúdo (professor do curso ou aluno matriculado).
+
+**Por quê:** entrega interatividade rica (calculadoras, simuladores) sem abrir vetor de XSS/sequestro de sessão num SaaS multi-tenant. O sandbox de origem nula é a contenção primária; o storage fora do webroot e a allowlist de extensões fecham o vetor de execução de código no servidor.
+
+**Relação com outros ADRs:** complementa o ADR-009 (TinyMCE) e a sanitização de conteúdo (doc 05) — o widget é um canal **separado e contido** pra JS, enquanto o conteúdo HTML segue sanitizado sem `<script>`. Alinha com `project_future_gcs_storage` (storage desacoplado).
+
+**A revisar quando:** (a) volume/quotas de storage por tenant; (b) necessidade de versionamento de widget; (c) picker ruidoso em curso compartilhado → marcar disponibilidade por curso (junção explícita); (d) demanda por origem física isolada (subdomínio).
+
 ## Pendências em aberto
 
-Nenhuma no momento. (F22–F24 tiveram suas dúvidas resolvidas no story breakdown de 2026-06-05: revogação de colaborador é reversível com "desfazer"; notificação `course_shared` confirmada; cópia mantém `published` da origem; auditoria registra todo save de conteúdo.)
+Nenhuma no momento. (F22–F24 tiveram suas dúvidas resolvidas no story breakdown de 2026-06-05: revogação de colaborador é reversível com "desfazer"; notificação `course_shared` confirmada; cópia mantém `published` da origem; auditoria registra todo save de conteúdo. F25–F26 consolidadas com o PO em 2026-06-08: toggle "ver todos" é só leitura agregada — ver ADR-036; widgets em iframe sandbox de origem nula, biblioteca compartilhada no curso — ver ADR-037 e `doc/24-widgets.md`.)
