@@ -21,6 +21,8 @@ uploads/
 
 # Widgets extraídos (E35/F26) — criados em runtime, fora do document root
 storage/widgets/
+# Secret de assinatura dos tokens de widget — gerado no servidor, nunca versionar
+storage/widget_secret.key
 
 # Logs de runtime — versionar só .gitkeep e .htaccess
 storage/logs/*

@@ -41,7 +41,7 @@ header('Content-Type: text/html; charset=utf-8');
 </head>
 <body>
     <iframe sandbox="allow-scripts" title="<?= e($name) ?>"
-            src="/widget/serve/<?= $id ?>/"></iframe>
+            src="/widget/serve/<?= $id ?>/<?= e(widget_token($id)) ?>/"></iframe>
 </body>
 </html>
 <?php
