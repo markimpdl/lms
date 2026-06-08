@@ -14,6 +14,19 @@ if (isset($routes['public'][$path])) {
     return;
 }
 
+// 1.b Público com parâmetros (regex), SEM require_auth — a própria página faz a
+//     sua autorização (ex.: /widget/serve valida token assinado, porque o iframe
+//     sandbox de origem nula não envia o cookie de sessão nos sub-recursos).
+foreach ($routes['public_patterns'] ?? [] as $pattern => $meta) {
+    if (preg_match($pattern, $path, $matches) === 1) {
+        foreach (($meta['params'] ?? []) as $i => $name) {
+            $_REQUEST[$name] = $matches[$i + 1] ?? null;
+        }
+        require LMS_ROOT . $meta['file'];
+        return;
+    }
+}
+
 // 2. Autenticado — exige sessão válida (active + senha não rotacionada em outro device).
 if (isset($routes['authenticated'][$path])) {
     require_auth();

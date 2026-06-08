@@ -40,17 +40,24 @@ return [
         '/api/student/session-end'      => '/src/pages/api/student/session-end.php',
     ],
 
+    // Serving de widget (E35/F26): SEM require_auth — o iframe sandbox de origem
+    // nula não envia cookie nos sub-recursos. A autorização é por TOKEN assinado
+    // no path (widget_token), emitido só em páginas onde o usuário já podia ver
+    // o widget. O token no path faz os sub-recursos relativos herdarem o gate.
+    'public_patterns' => [
+        '#^/widget/serve/(\d+)/([a-f0-9]+)/(.+)$#' => [
+            'file'   => '/src/pages/widget/serve.php',
+            'params' => ['id', 'token', 'path'],
+        ],
+        '#^/widget/serve/(\d+)/([a-f0-9]+)/?$#' => [
+            'file'   => '/src/pages/widget/serve.php',
+            'params' => ['id', 'token'],
+        ],
+    ],
+
     // Rotas autenticadas com parâmetro, servidas a QUALQUER papel logado
-    // (professor e aluno). E35 (F26): serving/abertura de widget.
+    // (professor e aluno). E35 (F26): página "open" (wrapper full-page).
     'authenticated_patterns' => [
-        '#^/widget/serve/(\d+)/(.+)$#' => [
-            'file'   => '/src/pages/widget/serve.php',
-            'params' => ['id', 'path'],
-        ],
-        '#^/widget/serve/(\d+)/?$#' => [
-            'file'   => '/src/pages/widget/serve.php',
-            'params' => ['id'],
-        ],
         '#^/widget/open/(\d+)$#' => [
             'file'   => '/src/pages/widget/open.php',
             'params' => ['id'],

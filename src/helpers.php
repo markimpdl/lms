@@ -994,6 +994,71 @@ function teacher_shows_all_shared_students(): bool
 }
 
 /**
+ * Token de capability pra servir um widget sem depender de cookie (E35/F26).
+ *
+ * Por quê: o widget roda num <iframe sandbox> de ORIGEM NULA — requisições de
+ * sub-recursos (imagens/css/js) feitas de dentro dele NÃO levam o cookie de
+ * sessão (origem opaca é tratada como cross-site). Então o endpoint de serving
+ * não pode usar require_auth; em vez disso a URL carrega um token assinado
+ * (HMAC do id + dia), emitido só nas páginas onde o usuário já está autorizado
+ * a ver o widget (conteúdo acessível / página open). Rotaciona por dia.
+ */
+/**
+ * Secret dedicado pra assinar tokens de widget. NÃO reusa credencial (DB/SMTP)
+ * e NÃO tem fallback público: é um valor aleatório de 256 bits gerado no
+ * servidor no 1º uso e guardado em storage/widget_secret.key (0600, gitignored,
+ * fora do document root). Assim o token não é forjável por quem só tem o repo.
+ */
+function widget_secret(): string
+{
+    static $secret = null;
+    if ($secret !== null) {
+        return $secret;
+    }
+    $path = LMS_ROOT . '/storage/widget_secret.key';
+    if (is_file($path)) {
+        $val = trim((string) @file_get_contents($path));
+        if ($val !== '') {
+            return $secret = $val;
+        }
+    }
+    $val = bin2hex(random_bytes(32));
+    @file_put_contents($path, $val, LOCK_EX);
+    @chmod($path, 0600);
+    return $secret = $val;
+}
+
+/**
+ * Token de serving do widget (capability/"signed URL", estilo presigned S3). É
+ * um HMAC(widgetId|dia) com o secret dedicado — não forjável sem o secret,
+ * rotaciona por dia, escopo por widget. Emitido só onde o usuário já podia ver
+ * o widget. Trade-off conhecido (assets de widget são conteúdo de baixa
+ * sensibilidade do professor; ver doc/24-widgets.md): a URL é bearer — quem a
+ * tiver acessa aquele asset até a virada do dia.
+ */
+function widget_token(int $widgetId): string
+{
+    $day = (int) floor(time() / 86400);
+    return substr(hash_hmac('sha256', $widgetId . '|' . $day, widget_secret()), 0, 24);
+}
+
+/** Valida o token de serving (aceita hoje e ontem, p/ virada de dia). */
+function widget_token_valid(int $widgetId, string $token): bool
+{
+    if ($token === '') {
+        return false;
+    }
+    $day = (int) floor(time() / 86400);
+    foreach ([$day, $day - 1] as $d) {
+        $expected = substr(hash_hmac('sha256', $widgetId . '|' . $d, widget_secret()), 0, 24);
+        if (hash_equals($expected, $token)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * Expande os placeholders [[widget:ID]] do conteúdo da CU para o markup final
  * (E35 / F26 — ADR-037). Roda no RENDER, depois da sanitização: o conteúdo
  * salvo guarda só o token (sobrevive ao HTML Purifier), e aqui produzimos o
@@ -1024,9 +1089,11 @@ function expand_widgets(string $html, bool $static = false): string
             return '<div class="border rounded p-2 my-2 small text-muted">'
                  . e(__t('widgets.print_placeholder', ['name' => $name])) . '</div>';
         }
+        $tok = widget_token($id);
         if ((string) $w['render_mode'] === 'window') {
+            // O ícone fica dentro do widget → também vai pela URL com token.
             $icon = $w['icon'] !== null && $w['icon'] !== ''
-                ? '<img src="/widget/serve/' . $id . '/' . e((string) $w['icon']) . '" alt="" width="20" height="20" class="me-1 align-text-bottom">'
+                ? '<img src="/widget/serve/' . $id . '/' . $tok . '/' . e((string) $w['icon']) . '" alt="" width="20" height="20" class="me-1 align-text-bottom">'
                 : '';
             return '<p class="my-2"><a class="btn btn-outline-primary btn-sm" target="_blank" rel="noopener"'
                  . ' href="/widget/open/' . $id . '">' . $icon . e($name) . '</a></p>';
@@ -1034,7 +1101,7 @@ function expand_widgets(string $html, bool $static = false): string
         $h = isset($w['height_hint']) && (int) $w['height_hint'] > 0 ? (int) $w['height_hint'] : 400;
         return '<div class="lms-widget-embed my-3">'
              . '<iframe sandbox="allow-scripts" loading="lazy" title="' . e($name) . '"'
-             . ' src="/widget/serve/' . $id . '/"'
+             . ' src="/widget/serve/' . $id . '/' . $tok . '/"'
              . ' style="width:100%;height:' . $h . 'px;border:1px solid var(--bs-border-color);border-radius:.375rem"></iframe>'
              . '</div>';
     }, $html);
