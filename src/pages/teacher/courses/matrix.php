@@ -19,7 +19,18 @@ if ($tenantId === null) {
 }
 
 $courseId = (int) ($_REQUEST['id'] ?? 0);
-$matrix   = CourseMatrix::forCourse($courseId, $tenantId);
+
+// E32-05 (ADR-033): dono OU colaborador pode ver a matriz do curso. O acesso
+// e o tenant de autoria (conteúdo) vêm de effective_authoring_tenant; os
+// alunos/grupos seguem por current_tenant_id() (cada professor só os seus).
+$authoringTenantId = effective_authoring_tenant($courseId);
+if ($authoringTenantId === null) {
+    http_response_code(404);
+    require LMS_ROOT . '/src/templates/errors/404.php';
+    return;
+}
+
+$matrix = CourseMatrix::forCourse($courseId, $authoringTenantId, $tenantId);
 if ($matrix === null) {
     http_response_code(404);
     require LMS_ROOT . '/src/templates/errors/404.php';
