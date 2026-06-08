@@ -360,6 +360,32 @@ CREATE TABLE IF NOT EXISTS course_collaborators (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
+-- 13.c course_audit_log (E33 — auditoria de conteúdo por curso, F24 / ADR-035)
+--
+-- Registra SÓ ações de estrutura/conteúdo (create/update/delete de Core
+-- Competence, Competence Unit, conteúdo, atividade, avaliação) por curso. Com
+-- autoria compartilhada (F23) é o rastro de "quem mexeu no quê". Visível a
+-- qualquer professor com acesso ao curso (dono + colaboradores) — por isso é
+-- vínculo por curso, SEM tenant_id próprio (como course_collaborators). O
+-- `entity_label` é um snapshot do nome no momento da ação, pra que entidades
+-- já excluídas continuem legíveis. Sem backfill; append-only.
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS course_audit_log (
+    id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    course_id     BIGINT UNSIGNED NOT NULL,
+    actor_user_id BIGINT UNSIGNED NOT NULL,
+    action        ENUM('create','update','delete') NOT NULL,
+    entity_type   ENUM('core_competency','competence_unit','content','activity','evaluation') NOT NULL,
+    entity_id     BIGINT UNSIGNED NULL,
+    entity_label  VARCHAR(255) NOT NULL,
+    created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_cal_course_recent (course_id, created_at),
+    CONSTRAINT fk_cal_course FOREIGN KEY (course_id)     REFERENCES courses(id) ON DELETE CASCADE,
+    CONSTRAINT fk_cal_actor  FOREIGN KEY (actor_user_id) REFERENCES users(id)   ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
 -- 14. groups — agrupamentos de alunos (ex.: Skills Challenge)
 -- Backticks obrigatórios: `groups` é palavra reservada no MySQL 8.
 -- ----------------------------------------------------------------------------

@@ -45,6 +45,9 @@ if (!is_array($file)) {
 $result = AttachmentStorage::store($file, $tenantId, $cuId);
 
 if ($result['status'] === 'ok') {
+    // E33 (F24/ADR-035): anexar = alteração de conteúdo da CU.
+    $attLabel = basename((string) ($file['name'] ?? '—'));
+    course_audit((int) $__courseId, 'update', 'content', $cuId, $attLabel);
     flash('success', __t('attachments.uploaded'));
 } else {
     flash('danger', __t($result['error_key'] ?? 'attachments.err.generic'));

@@ -133,6 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // questões. Fanout new_evaluation só dispara após o quiz ser
         // configurado (avaliação sem questão é inutilizável pro aluno).
         if ($old['type'] === 'quiz') {
+            course_audit((int) $cu['course_id'], 'create', 'evaluation', $evaluationId, $old['title']);
             flash('success', __t('evaluations.quiz_created', ['name' => $old['title']]));
             header('Location: /teacher/evaluation/' . $evaluationId . '/quiz', true, 303);
             return;
@@ -150,6 +151,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ->prepare('UPDATE evaluations SET pdf_path = ? WHERE id = ?')
                 ->execute([$upload['stored_path'], $evaluationId]);
         }
+
+        // E33 (F24/ADR-035): auditoria — avaliação criada com sucesso.
+        course_audit((int) $cu['course_id'], 'create', 'evaluation', $evaluationId, $old['title']);
 
         // Fanout `new_evaluation` (E10-04) — notifica alunos matriculados
         // no curso. Idioma segue `courses.language` via courseId.

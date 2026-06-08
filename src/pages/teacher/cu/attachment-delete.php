@@ -33,9 +33,19 @@ try {
 $cuId = (int) ($_REQUEST['id'] ?? 0);
 $aid  = (int) ($_REQUEST['aid'] ?? 0);
 
+// E33 (F24/ADR-035): captura o nome do anexo ANTES do delete (snapshot).
+$attToDelete = ContentAttachment::findForTenant($aid, $tenantId);
+
 $deleted = AttachmentStorage::delete($aid, $tenantId);
 
 if ($deleted) {
+    course_audit(
+        (int) $__courseId,
+        'update',
+        'content',
+        $cuId,
+        $attToDelete !== null ? (string) $attToDelete['filename'] : ('anexo #' . $aid)
+    );
     flash('success', __t('attachments.deleted'));
 } else {
     // Anexo não pertence ao tenant ou não existe — 404 genérico pra não vazar.

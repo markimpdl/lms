@@ -73,6 +73,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $result = Content::upsertForCu($cuId, $tenantId, $clean, $published);
     if ($result === 'ok') {
+        // E33 (F24/ADR-035): auditoria do conteúdo. Upsert → create na 1ª vez,
+        // update depois. entity_id/label = a CU (o conteúdo não tem nome próprio).
+        course_audit(
+            (int) $__courseId,
+            $existing === null ? 'create' : 'update',
+            'content',
+            $cuId,
+            (string) $cu['name']
+        );
         flash('success', __t('content.saved'));
         header('Location: /teacher/cu/' . $cuId, true, 303);
         return;
