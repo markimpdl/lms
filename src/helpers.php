@@ -994,6 +994,53 @@ function teacher_shows_all_shared_students(): bool
 }
 
 /**
+ * Expande os placeholders [[widget:ID]] do conteúdo da CU para o markup final
+ * (E35 / F26 — ADR-037). Roda no RENDER, depois da sanitização: o conteúdo
+ * salvo guarda só o token (sobrevive ao HTML Purifier), e aqui produzimos o
+ * iframe sandbox (modo inline) ou o botão de abrir nova janela (modo window) —
+ * markup controlado por nós, não pelo usuário.
+ *
+ *  - inline → <iframe sandbox="allow-scripts"> de origem nula (sem
+ *    allow-same-origin): o JS do widget não acessa sessão/DOM do LMS.
+ *  - window → botão que abre /widget/open/{id} numa nova aba.
+ *  - widget inexistente/inativo → placeholder gracioso (não quebra a página).
+ *
+ * Deve ser chamado em quem renderiza HTML de conteúdo já sanitizado.
+ */
+function expand_widgets(string $html, bool $static = false): string
+{
+    if (!str_contains($html, '[[widget:')) {
+        return $html;
+    }
+    return (string) preg_replace_callback('/\[\[widget:(\d+)\]\]/', static function (array $m) use ($static): string {
+        $w = Widget::findById((int) $m[1]);
+        if ($w === null || (int) ($w['active'] ?? 0) !== 1) {
+            return '<div class="alert alert-secondary small my-2">' . e(__t('widgets.unavailable')) . '</div>';
+        }
+        $id   = (int) $w['id'];
+        $name = (string) $w['name'];
+        // Render estático (ex.: impressão/PDF): iframe não funciona — só rótulo.
+        if ($static) {
+            return '<div class="border rounded p-2 my-2 small text-muted">'
+                 . e(__t('widgets.print_placeholder', ['name' => $name])) . '</div>';
+        }
+        if ((string) $w['render_mode'] === 'window') {
+            $icon = $w['icon'] !== null && $w['icon'] !== ''
+                ? '<img src="/widget/serve/' . $id . '/' . e((string) $w['icon']) . '" alt="" width="20" height="20" class="me-1 align-text-bottom">'
+                : '';
+            return '<p class="my-2"><a class="btn btn-outline-primary btn-sm" target="_blank" rel="noopener"'
+                 . ' href="/widget/open/' . $id . '">' . $icon . e($name) . '</a></p>';
+        }
+        $h = isset($w['height_hint']) && (int) $w['height_hint'] > 0 ? (int) $w['height_hint'] : 400;
+        return '<div class="lms-widget-embed my-3">'
+             . '<iframe sandbox="allow-scripts" loading="lazy" title="' . e($name) . '"'
+             . ' src="/widget/serve/' . $id . '/"'
+             . ' style="width:100%;height:' . $h . 'px;border:1px solid var(--bs-border-color);border-radius:.375rem"></iframe>'
+             . '</div>';
+    }, $html);
+}
+
+/**
  * Acesso de AUTORIA de um professor a um curso (E32 / F23 — ADR-033).
  *
  * Verdadeiro quando o professor é o DONO (o curso pertence ao tenant que ele

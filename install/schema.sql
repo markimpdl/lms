@@ -386,6 +386,39 @@ CREATE TABLE IF NOT EXISTS course_audit_log (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
+-- 13.d widgets (E35 — widgets interativos, F26 / ADR-037)
+--
+-- Mini-app interativa (HTML+CSS+JS+imgs num zip) cadastrada pelo professor e
+-- inserida no conteúdo da CU via placeholder [[widget:ID]]. Pertence ao tenant
+-- de quem cadastrou; num curso compartilhado o picker oferece os widgets de
+-- todos os colaboradores (resolvido em app via course_collaborators). Os
+-- arquivos extraídos ficam FORA do document root (storage/widgets/...), servidos
+-- por endpoint de passthrough em <iframe sandbox> de origem nula. render_mode:
+-- 'inline' (embutido) ou 'window' (ícone abre nova janela).
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS widgets (
+    id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tenant_id    BIGINT UNSIGNED NOT NULL,
+    created_by   BIGINT UNSIGNED NOT NULL,
+    name         VARCHAR(120) NOT NULL,
+    slug         VARCHAR(140) NOT NULL,
+    render_mode  ENUM('inline','window') NOT NULL DEFAULT 'inline',
+    entry_file   VARCHAR(255) NOT NULL DEFAULT 'index.html',
+    storage_path VARCHAR(500) NOT NULL,
+    icon         VARCHAR(255) NULL,
+    width_hint   SMALLINT UNSIGNED NULL,
+    height_hint  SMALLINT UNSIGNED NULL,
+    active       TINYINT(1) NOT NULL DEFAULT 1,
+    created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_widgets_tenant_slug (tenant_id, slug),
+    KEY idx_widgets_tenant (tenant_id),
+    CONSTRAINT fk_widgets_tenant FOREIGN KEY (tenant_id)  REFERENCES tenants(id) ON DELETE CASCADE,
+    CONSTRAINT fk_widgets_user   FOREIGN KEY (created_by) REFERENCES users(id)   ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
 -- 14. groups — agrupamentos de alunos (ex.: Skills Challenge)
 -- Backticks obrigatórios: `groups` é palavra reservada no MySQL 8.
 -- ----------------------------------------------------------------------------

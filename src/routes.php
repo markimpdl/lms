@@ -40,6 +40,23 @@ return [
         '/api/student/session-end'      => '/src/pages/api/student/session-end.php',
     ],
 
+    // Rotas autenticadas com parâmetro, servidas a QUALQUER papel logado
+    // (professor e aluno). E35 (F26): serving/abertura de widget.
+    'authenticated_patterns' => [
+        '#^/widget/serve/(\d+)/(.+)$#' => [
+            'file'   => '/src/pages/widget/serve.php',
+            'params' => ['id', 'path'],
+        ],
+        '#^/widget/serve/(\d+)/?$#' => [
+            'file'   => '/src/pages/widget/serve.php',
+            'params' => ['id'],
+        ],
+        '#^/widget/open/(\d+)$#' => [
+            'file'   => '/src/pages/widget/open.php',
+            'params' => ['id'],
+        ],
+    ],
+
     'roles' => [
         '/admin'               => ['file' => '/src/pages/dashboard/admin.php',       'role' => 'super_admin'],
         '/admin/settings'      => ['file' => '/src/pages/admin/settings.php',        'role' => 'super_admin'],
@@ -61,6 +78,8 @@ return [
         '/teacher/settings'     => ['file' => '/src/pages/teacher/settings/index.php', 'role' => 'teacher'],
         '/teacher/settings/notifications' => ['file' => '/src/pages/teacher/settings/notifications.php', 'role' => 'teacher'],
         '/teacher/preferences/shared-roster' => ['file' => '/src/pages/teacher/preferences/shared-roster-toggle.php', 'role' => 'teacher'],
+        '/teacher/widgets'      => ['file' => '/src/pages/teacher/widgets/index.php', 'role' => 'teacher'],
+        '/teacher/widgets/new'  => ['file' => '/src/pages/teacher/widgets/new.php',   'role' => 'teacher'],
         '/student'             => ['file' => '/src/pages/dashboard/student.php',     'role' => 'student'],
         '/student/ranking'     => ['file' => '/src/pages/student/ranking.php',       'role' => 'student'],
         '/student/achievements'=> ['file' => '/src/pages/student/achievements.php',  'role' => 'student'],
@@ -129,6 +148,16 @@ return [
         ],
         '#^/teacher/courses/(\d+)/audit$#' => [
             'file'   => '/src/pages/teacher/courses/audit.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/widgets/(\d+)/edit$#' => [
+            'file'   => '/src/pages/teacher/widgets/edit.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/widgets/(\d+)/delete$#' => [
+            'file'   => '/src/pages/teacher/widgets/delete.php',
             'role'   => 'teacher',
             'params' => ['id'],
         ],

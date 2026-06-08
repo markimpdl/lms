@@ -21,6 +21,20 @@ if (isset($routes['authenticated'][$path])) {
     return;
 }
 
+// 2.b Autenticado com parâmetros (regex) — qualquer papel logado. Capturas
+//     nomeadas caem em $_REQUEST conforme `params`. Usado por rotas servidas a
+//     professor E aluno (ex.: /widget/serve/{id}/{path}).
+foreach ($routes['authenticated_patterns'] ?? [] as $pattern => $meta) {
+    if (preg_match($pattern, $path, $matches) === 1) {
+        foreach (($meta['params'] ?? []) as $i => $name) {
+            $_REQUEST[$name] = $matches[$i + 1] ?? null;
+        }
+        require_auth();
+        require LMS_ROOT . $meta['file'];
+        return;
+    }
+}
+
 // 3. Por papel — exact match primeiro, depois patterns, depois prefixo
 //    (/admin/** → /admin). Patterns capturam params nomeados em $_REQUEST.
 if (isset($routes['roles'][$path])) {
