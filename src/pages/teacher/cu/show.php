@@ -154,7 +154,7 @@ ob_start();
                      x-data="{ expanded: false, needsToggle: false }"
                      x-init="$nextTick(() => { needsToggle = $refs.body.scrollHeight > 700 })">
                     <div x-ref="body" class="content-render__body" :class="{ 'is-collapsed': !expanded && needsToggle }">
-                        <?= (string) $content['html'] ?>
+                        <?= expand_widgets((string) $content['html']) ?>
                     </div>
                     <div class="text-center mt-3" x-show="needsToggle" x-cloak>
                         <button type="button" class="btn btn-sm btn-outline-secondary"

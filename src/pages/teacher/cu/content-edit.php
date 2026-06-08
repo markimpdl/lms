@@ -43,6 +43,15 @@ $published = $existing !== null ? (int) $existing['published'] === 1 : false;
 
 $attachments = ContentAttachment::listByCu($cuId, $tenantId);
 
+// E35 (F26): widgets disponíveis pra inserir no conteúdo deste curso (união da
+// biblioteca dos professores com acesso ao curso — ADR-037). O picker insere o
+// placeholder [[widget:ID]], expandido no render por expand_widgets().
+$availableWidgets = array_map(static fn (array $w): array => [
+    'id'   => (int) $w['id'],
+    'name' => (string) $w['name'],
+    'mode' => (string) $w['render_mode'],
+], Widget::listAvailableForCourse((int) $cu['course_id']));
+
 // Imagens disponíveis para o picker do TinyMCE (image plugin). Só MIME de
 // imagem; URL vai pela rota autenticada que E5-04 vai implementar
 // (`/teacher/cu/{id}/attachment/{aid}/view` ainda não existe — por enquanto
@@ -258,6 +267,17 @@ function resolveVideoUrl(url) {
 // do PHP no formato {title, value}. value = URL protegida da view.
 var availableImages = <?= json_encode($imagePickerOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 
+// E35 (F26): widgets disponíveis no curso pro botão "Inserir widget".
+var availableWidgets = <?= json_encode($availableWidgets, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+var widgetInsertLabels = {
+    button:   <?= json_encode(__t('widgets.insert.button'), JSON_UNESCAPED_UNICODE) ?>,
+    title:    <?= json_encode(__t('widgets.insert.title'), JSON_UNESCAPED_UNICODE) ?>,
+    none:     <?= json_encode(__t('widgets.insert.none'), JSON_UNESCAPED_UNICODE) ?>,
+    field:    <?= json_encode(__t('widgets.insert.field'), JSON_UNESCAPED_UNICODE) ?>,
+    insert:   <?= json_encode(__t('common.insert'), JSON_UNESCAPED_UNICODE) ?>,
+    cancel:   <?= json_encode(__t('common.cancel'), JSON_UNESCAPED_UNICODE) ?>
+};
+
 tinymce.init({
     selector: '#contentHtml',
     height: 500,
@@ -265,7 +285,7 @@ tinymce.init({
     plugins: 'lists link table code codesample autolink media image',
     toolbar: 'undo redo | blocks | bold italic underline strikethrough forecolor | ' +
              'alignleft aligncenter alignright | bullist numlist | link table image media | ' +
-             'codesample code removeformat',
+             'widgetinsert | codesample code removeformat',
     block_formats: 'Parágrafo=p; Título 2=h2; Título 3=h3; Título 4=h4',
     codesample_languages: [
         { text: 'Python',     value: 'python' },
@@ -315,6 +335,40 @@ tinymce.init({
         editor.on('input keyup change', function () {
             clearTimeout(saveTimer);
             saveTimer = setTimeout(saveDraft, 3000);
+        });
+
+        // E35 (F26): botão "Inserir widget" — abre picker dos widgets do curso
+        // e insere o placeholder [[widget:ID]] (expandido no render).
+        editor.ui.registry.addButton('widgetinsert', {
+            text: widgetInsertLabels.button,
+            tooltip: widgetInsertLabels.button,
+            onAction: function () {
+                if (!availableWidgets.length) {
+                    editor.windowManager.alert(widgetInsertLabels.none);
+                    return;
+                }
+                var items = availableWidgets.map(function (w) {
+                    return { text: w.name + ' (' + w.mode + ')', value: String(w.id) };
+                });
+                editor.windowManager.open({
+                    title: widgetInsertLabels.title,
+                    body: {
+                        type: 'panel',
+                        items: [{ type: 'selectbox', name: 'wid', label: widgetInsertLabels.field, items: items }]
+                    },
+                    buttons: [
+                        { type: 'cancel', text: widgetInsertLabels.cancel },
+                        { type: 'submit', text: widgetInsertLabels.insert, primary: true }
+                    ],
+                    onSubmit: function (api) {
+                        var id = api.getData().wid;
+                        if (id) {
+                            editor.insertContent('<p>[[widget:' + id + ']]</p>');
+                        }
+                        api.close();
+                    }
+                });
+            }
         });
     }
 });

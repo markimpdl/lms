@@ -19,6 +19,9 @@ storage/uploads/
 public/uploads/
 uploads/
 
+# Widgets extraídos (E35/F26) — criados em runtime, fora do document root
+storage/widgets/
+
 # Logs de runtime — versionar só .gitkeep e .htaccess
 storage/logs/*
 !storage/logs/.gitkeep
