@@ -246,14 +246,17 @@ final class EvaluationSubmissionService
         string $feedback,
         bool $retryAllowed
     ): array {
+        // E32 (ADR-033): autoriza a correção pela posse do ALUNO (meu tenant),
+        // não pela da avaliação. Em curso compartilhado o professor só corrige
+        // os próprios alunos; o dono segue idêntico (aluno no seu tenant).
         $stmt = $pdo->prepare(
             'SELECT s.id, s.evaluation_id, s.student_user_id
                FROM evaluation_submissions s
-               JOIN evaluations e ON e.id = s.evaluation_id
-              WHERE s.id = ? AND e.tenant_id = ?
+               JOIN users u ON u.id = s.student_user_id AND u.tenant_id = ?
+              WHERE s.id = ?
               LIMIT 1'
         );
-        $stmt->execute([$submissionId, $tenantId]);
+        $stmt->execute([$tenantId, $submissionId]);
         $sub = $stmt->fetch();
         if ($sub === false) {
             return ['status' => 'not_found'];

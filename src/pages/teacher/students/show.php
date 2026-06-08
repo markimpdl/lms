@@ -80,8 +80,9 @@ $sessionsHasMore = count($sessionsRaw) > $sessionsLimit;
 $recentSessions = array_slice($sessionsRaw, 0, $sessionsLimit);
 $enrollments = Enrollment::listByStudent($studentId, $tenantId);
 $enrolledIds = array_map(static fn(array $e): int => (int) $e['course_id'], $enrollments);
+// E32-05: inclui cursos compartilhados comigo como destino de matrícula.
 $availableCourses = array_values(array_filter(
-    Course::listActiveForSelect($tenantId),
+    Course::listEnrollableForSelect($tenantId, (int) (current_user()['id'] ?? 0)),
     static fn(array $c): bool => !in_array($c['id'], $enrolledIds, true)
 ));
 
@@ -599,7 +600,7 @@ ob_start();
                 <select name="course_ids[]" id="enrollCourseIds" class="form-select" multiple size="8" required>
                     <?php foreach ($availableCourses as $c): ?>
                         <option value="<?= (int) $c['id'] ?>">
-                            <?= e($c['name']) ?> (<?= (int) $c['year'] ?>)
+                            <?= e($c['name']) ?> (<?= (int) $c['year'] ?>)<?= !empty($c['shared']) ? ' · ' . e(__t('enrollments.shared_course_tag')) : '' ?>
                         </option>
                     <?php endforeach; ?>
                 </select>

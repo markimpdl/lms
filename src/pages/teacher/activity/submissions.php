@@ -6,7 +6,7 @@ declare(strict_types=1);
  * dos alunos (E6-04). Pendentes de feedback no topo.
  */
 
-$tenantId = current_tenant_id();
+$tenantId = current_tenant_id(); // dados de aluno: SÓ os meus (inalterado)
 if ($tenantId === null) {
     http_response_code(403);
     require LMS_ROOT . '/src/templates/errors/403.php';
@@ -14,7 +14,17 @@ if ($tenantId === null) {
 }
 
 $activityId = (int) ($_REQUEST['id'] ?? 0);
-$activity   = Activity::findForTenant($activityId, $tenantId);
+
+// E32 (ADR-033): acesso (dono OU colaborador) carrega o cabeçalho com o tenant
+// do dono; entregas/métricas usam o MEU tenant (só os meus alunos).
+$__courseId   = Activity::courseIdOf($activityId);
+$accessTenant = $__courseId !== null ? effective_authoring_tenant($__courseId) : null;
+if ($accessTenant === null) {
+    http_response_code(404);
+    require LMS_ROOT . '/src/templates/errors/404.php';
+    return;
+}
+$activity   = Activity::findForTenant($activityId, $accessTenant);
 if ($activity === null) {
     http_response_code(404);
     require LMS_ROOT . '/src/templates/errors/404.php';

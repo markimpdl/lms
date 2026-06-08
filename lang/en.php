@@ -1161,6 +1161,7 @@ return [
     'enrollments.add.confirm'                => 'Enroll',
     'enrollments.form.enroll_in'             => 'Enroll in these courses (optional)',
     'enrollments.form.enroll_in_hint'        => 'Hold Ctrl (or Cmd on Mac) to pick more than one. You can also enroll later.',
+    'enrollments.shared_course_tag'          => 'shared',
     'enrollments.form.pick_courses'          => 'Pick courses',
     'enrollments.form.pick_courses_hint'     => 'Hold Ctrl (or Cmd on Mac) to select more than one course.',
     'enrollments.created_count'              => ':count enrollment(s) created.',

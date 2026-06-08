@@ -12,6 +12,12 @@ declare(strict_types=1);
  *    múltiplos saves da mesma submissão não duplicam XP.
  *
  * Avaliação final (E7) vai reusar este serviço com source_type='evaluation'.
+ *
+ * E32 (ADR-033): `xp_events.tenant_id` recebe o tenant do ALUNO (`u.tenant_id`),
+ * não o do curso. Em cursos compartilhados o aluno pode ser de tenant diferente
+ * do dono do curso — o XP/ranking tem de contar no tenant do aluno. O JOIN em
+ * users não acopla mais `u.tenant_id = c.tenant_id` (esse acoplamento zerava o
+ * XP de alunos cross-tenant). Para aluno do mesmo tenant o resultado é idêntico.
  */
 final class XpEvents
 {
@@ -30,7 +36,7 @@ final class XpEvents
                JOIN competence_units cu  ON cu.id = a.competence_unit_id
                JOIN core_competencies cc ON cc.id = cu.core_competency_id
                JOIN courses c            ON c.id  = cc.course_id
-               JOIN users u              ON u.id  = ? AND u.tenant_id = c.tenant_id
+               JOIN users u              ON u.id  = ?
               WHERE a.id = ?
               LIMIT 1'
         );
@@ -70,7 +76,7 @@ final class XpEvents
                JOIN competence_units cu  ON cu.id = e.competence_unit_id
                JOIN core_competencies cc ON cc.id = cu.core_competency_id
                JOIN courses c            ON c.id  = cc.course_id
-               JOIN users u              ON u.id  = ? AND u.tenant_id = c.tenant_id
+               JOIN users u              ON u.id  = ?
               WHERE e.id = ?
               LIMIT 1'
         );
@@ -110,7 +116,7 @@ final class XpEvents
                FROM competence_units cu
                JOIN core_competencies cc ON cc.id = cu.core_competency_id
                JOIN courses c            ON c.id  = cc.course_id
-               JOIN users u              ON u.id  = ? AND u.tenant_id = c.tenant_id
+               JOIN users u              ON u.id  = ?
               WHERE cu.id = ?
               LIMIT 1'
         );

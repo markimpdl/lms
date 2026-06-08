@@ -1375,6 +1375,17 @@ CREATE TABLE IF NOT EXISTS course_collaborators (
 5. Matrícula cross-tenant + ajuste de XP/tenant do aluno (M)
 6. Testes de isolamento (dados de aluno por tenant) + polish + i18n + mobile (M)
 
+### Status de implementação (2026-06-05)
+- **E32-01..04 ENTREGUES** em prod (PRs #477 e #478): schema, model, helpers, refactor de autoria (`effective_authoring_tenant`), UI de colaboradores + notificação `course_shared`, badges + "Compartilhados comigo". **Colaboradores já coautoram conteúdo.**
+- **E32-05 (aluno cross-tenant) PAUSADA — re-escopada (era story 5, é maior).** Fundação owner-equivalente commitada no branch `feature/471-cross-tenant-enrollment` (não mergeada): `XpEvents` (XP no tenant do aluno), `Enrollment::create` (curso acessível), `Enrollment::listByCourse` + `CuRoster` (filtro por tenant do aluno). **Cadeia tudo-ou-nada que FALTA** antes de shippar:
+  1. `CourseMetrics::forCourse` — dual-tenant (conteúdo/avaliação = tenant do dono via `cc.course_id`; aluno = tenant do colaborador). Soltar os filtros `e.tenant_id` (redundantes ao `cc.course_id`) e filtrar alunos por `u.tenant_id`.
+  2. **Fluxo de correção/entrega** (o maior): `EvaluationSubmission::{listForEvaluation,findForGrading}`, `ActivitySubmission::listForActivity`, e as páginas `teacher/{activity,evaluation}/submission*` — hoje filtram por tenant do curso; precisam mostrar/graduar só os alunos do tenant do professor agindo. Auditar `tenant_id` denormalizado em `activity_submissions`/`evaluation_submissions` no submit do aluno cross-tenant.
+  3. **Acesso do aluno** ao curso/CU/atividade/avaliação cross-tenant — verificar (provável OK, é por matrícula, não por tenant).
+  4. **UI de matrícula**: seletor de cursos passa a incluir os compartilhados (`courses_accessible_by_teacher`).
+  5. **Notificações** (`activity_new`, etc.): fanout deve alcançar alunos de ambos os tenants matriculados.
+  6. **E32-06**: testes de isolamento + smoke (idealmente com 2 tenants + colaborador real).
+- **Natureza:** tudo-ou-nada (enroll→acessar→entregar→corrigir→XP→ranking→métricas), sensível (hot path de XP/ranking/correção), e **não-testável localmente** sem DB multi-tenant. Retomar como esforço dedicado.
+
 ### Dependências
 - **Habilita F24** (auditoria) — só faz sentido depois que há 2+ autores no mesmo conteúdo.
 - **Sinergia com F22** (destino de cópia inclui cursos compartilhados).

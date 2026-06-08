@@ -22,23 +22,28 @@ $tenantId  = (int) ($user['tenant_id'] ?? 0);
 // Escopo de curso (vindo do route pattern /student/course/{id}/ranking).
 // Quando presente, valida matrícula ativa e carrega o nome do curso pra
 // exibir no header. 404 amigável se aluno não matriculado.
-$courseId   = (int) ($_REQUEST['course_id'] ?? 0);
-$courseName = null;
+$courseId     = (int) ($_REQUEST['course_id'] ?? 0);
+$courseName   = null;
+$courseShared = false;
 if ($courseId > 0) {
     if (!Enrollment::isEnrolled($studentId, $courseId)) {
         http_response_code(404);
         require LMS_ROOT . '/src/templates/errors/404.php';
         return;
     }
-    $cnStmt = Database::pdo()->prepare('SELECT name FROM courses WHERE id = ? AND tenant_id = ? LIMIT 1');
-    $cnStmt->execute([$courseId, $tenantId]);
+    // E32-05: o aluno pode estar matriculado num curso de OUTRO tenant
+    // (compartilhado). A matrícula (isEnrolled) já autoriza — carrega o nome
+    // sem gate por tenant; caso contrário o aluno cross-tenant tomaria 404.
+    $cnStmt = Database::pdo()->prepare('SELECT name FROM courses WHERE id = ? LIMIT 1');
+    $cnStmt->execute([$courseId]);
     $cn = $cnStmt->fetchColumn();
     if ($cn === false) {
         http_response_code(404);
         require LMS_ROOT . '/src/templates/errors/404.php';
         return;
     }
-    $courseName = (string) $cn;
+    $courseName   = (string) $cn;
+    $courseShared = CourseCollaborator::isShared($courseId);
 }
 
 // Janela: whitelist + fallback silencioso.
@@ -101,9 +106,15 @@ if ($groupId !== null) { $filters['group_id']  = $groupId; }
 if ($year    !== null) { $filters['year']      = $year; }
 if ($courseId > 0)     { $filters['course_id'] = $courseId; }
 
-$result = $tenantId > 0
-    ? RankingService::compute($tenantId, $window, $filters, $page, $perPage)
-    : ['rows' => [], 'total' => 0];
+if ($courseId > 0 && $courseShared) {
+    // E32-05: curso compartilhado → ranking UNIFICADO (alunos dos 2 professores
+    // juntos, por course_id). Mesmo para aluno cross-tenant.
+    $result = RankingService::computeForCourse($courseId, $window, $page, $perPage);
+} elseif ($tenantId > 0) {
+    $result = RankingService::compute($tenantId, $window, $filters, $page, $perPage);
+} else {
+    $result = ['rows' => [], 'total' => 0];
+}
 $rows     = $result['rows'];
 $total    = $result['total'];
 $lastPage = max(1, (int) ceil($total / $perPage));

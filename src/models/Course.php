@@ -191,6 +191,33 @@ final class Course
     }
 
     /**
+     * Cursos ativos onde o professor pode MATRICULAR alunos: os próprios + os
+     * compartilhados com ele (E32-05). Para o seletor de matrícula. Cada item:
+     * {id, name, year, shared} — `shared=true` nos cursos de outro tenant.
+     *
+     * @return list<array{id:int,name:string,year:int,shared:bool}>
+     */
+    public static function listEnrollableForSelect(int $tenantId, int $userId): array
+    {
+        $out = [];
+        foreach (self::listActiveForSelect($tenantId) as $c) {
+            $out[] = ['id' => $c['id'], 'name' => $c['name'], 'year' => $c['year'], 'shared' => false];
+        }
+        foreach (self::listSharedWith($userId) as $sc) {
+            if ((int) $sc['archived'] === 1) {
+                continue;
+            }
+            $out[] = [
+                'id'     => (int) $sc['id'],
+                'name'   => (string) $sc['name'],
+                'year'   => (int) $sc['year'],
+                'shared' => true,
+            ];
+        }
+        return $out;
+    }
+
+    /**
      * Cursos COMPARTILHADOS com o professor (onde ele é colaborador, E32-04),
      * com resumo (counts) + nome do dono. Para a seção "Compartilhados comigo"
      * em /teacher/courses. Ordena por ano desc + nome.

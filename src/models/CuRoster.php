@@ -35,18 +35,19 @@ final class CuRoster
     {
         $pdo = Database::pdo();
 
-        // Contexto + course_id via CU
+        // Contexto + course_id via CU. E32: sem gate por tenant do curso (o
+        // acesso já foi validado na página); a avaliação é 1:1 com a CU.
         $stmt = $pdo->prepare(
             'SELECT c.id AS course_id,
                     (SELECT id FROM evaluations
-                      WHERE competence_unit_id = ? AND tenant_id = ? LIMIT 1) AS eval_id
+                      WHERE competence_unit_id = ? LIMIT 1) AS eval_id
                FROM competence_units cu
                JOIN core_competencies cc ON cc.id = cu.core_competency_id
-               JOIN courses c            ON c.id  = cc.course_id AND c.tenant_id = ?
+               JOIN courses c            ON c.id  = cc.course_id
               WHERE cu.id = ?
               LIMIT 1'
         );
-        $stmt->execute([$cuId, $tenantId, $tenantId, $cuId]);
+        $stmt->execute([$cuId, $cuId]);
         $ctx = $stmt->fetch();
         if ($ctx === false) {
             return [];
@@ -54,15 +55,17 @@ final class CuRoster
         $courseId = (int) $ctx['course_id'];
         $evalId   = $ctx['eval_id'] !== null ? (int) $ctx['eval_id'] : null;
 
-        // 1. Alunos matriculados (ativos + inativos; cliente filtra)
+        // 1. Alunos matriculados do MEU tenant (ativos + inativos; cliente
+        // filtra). E32 (ADR-033): o filtro por u.tenant_id garante que, num
+        // curso compartilhado, cada professor veja só os seus alunos.
         $stmt = $pdo->prepare(
             'SELECT u.id, u.name, u.email, u.active
                FROM enrollments e
                JOIN users u ON u.id = e.student_user_id
-              WHERE e.course_id = ? AND u.role = \'student\'
+              WHERE e.course_id = ? AND u.tenant_id = ? AND u.role = \'student\'
               ORDER BY u.name ASC, u.id ASC'
         );
-        $stmt->execute([$courseId]);
+        $stmt->execute([$courseId, $tenantId]);
         $students = $stmt->fetchAll();
         if ($students === []) {
             return [];

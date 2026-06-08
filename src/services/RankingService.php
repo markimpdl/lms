@@ -230,6 +230,132 @@ final class RankingService
     }
 
     /**
+     * Ranking UNIFICADO de um curso (E32-05 / ADR-033): lista todos os alunos
+     * MATRICULADOS no curso, de qualquer tenant, juntos numa só classificação.
+     * Um curso compartilhado é uma turma só. XP restrito ao curso (`course_id`);
+     * patente e tempo online são do tenant do PRÓPRIO aluno (cada aluno tem a
+     * sua patente no seu tenant).
+     *
+     * Para curso NÃO compartilhado o resultado é idêntico ao `compute()` com
+     * filtro de curso (alunos enrolados = alunos do único tenant).
+     *
+     * Mesmo shape de saída do `compute()`. Placeholders nomeados distintos por
+     * ocorrência (emulação off não aceita reuso do mesmo `:nome`).
+     *
+     * @return array{rows: list<array<string,mixed>>, total:int}
+     */
+    public static function computeForCourse(
+        int $courseId,
+        string $window,
+        int $page = 1,
+        int $perPage = self::DEFAULT_PER_PAGE
+    ): array {
+        if ($courseId <= 0) {
+            throw new InvalidArgumentException('courseId must be positive');
+        }
+        if (!in_array($window, self::WINDOWS, true)) {
+            throw new InvalidArgumentException('invalid window: must be one of ' . implode(', ', self::WINDOWS));
+        }
+
+        $page    = max(1, $page);
+        $perPage = max(1, min(self::MAX_PER_PAGE, $perPage));
+        $offset  = ($page - 1) * $perPage;
+
+        $win = '';
+        if ($window === '7d') {
+            $win = 'AND x.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)';
+        } elseif ($window === '30d') {
+            $win = 'AND x.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)';
+        }
+        // "all" preserva alunos com 0 XP (LEFT JOIN sem HAVING); janelas listam
+        // só quem pontuou no curso na janela.
+        $having = $window !== 'all' ? 'HAVING COALESCE(SUM(x.value), 0) > 0' : '';
+
+        $pdo = Database::pdo();
+
+        $countSql = "SELECT COUNT(*) FROM (
+                       SELECT u.id
+                         FROM enrollments en
+                         JOIN users u ON u.id = en.student_user_id
+                                     AND u.role = 'student' AND u.active = 1
+                         LEFT JOIN xp_events x
+                                ON x.student_user_id = u.id
+                               AND x.course_id = :cid_xp {$win}
+                        WHERE en.course_id = :cid_w
+                        GROUP BY u.id
+                        {$having}
+                     ) c";
+        $stmtTotal = $pdo->prepare($countSql);
+        $stmtTotal->bindValue(':cid_xp', $courseId, PDO::PARAM_INT);
+        $stmtTotal->bindValue(':cid_w',  $courseId, PDO::PARAM_INT);
+        $stmtTotal->execute();
+        $total = (int) $stmtTotal->fetchColumn();
+
+        $rowsSql = "SELECT u.id   AS student_id,
+                           u.name AS name,
+                           COALESCE(SUM(x.value), 0) AS xp,
+                           MAX(x.created_at)         AS last_event_at,
+                           '' AS group_names,
+                           MAX(rk.id)        AS rank_id,
+                           MAX(rk.name)      AS rank_name,
+                           MAX(rk.color_hex) AS rank_color_hex,
+                           COALESCE(MAX(ss.total_seconds), 0) AS online_seconds
+                      FROM enrollments en
+                      JOIN users u ON u.id = en.student_user_id
+                                  AND u.role = 'student' AND u.active = 1
+                      LEFT JOIN xp_events x
+                             ON x.student_user_id = u.id
+                            AND x.course_id = :cid_xp {$win}
+                      LEFT JOIN (
+                          SELECT student_user_id, tenant_id, SUM(value) AS total_xp
+                            FROM xp_events
+                           GROUP BY student_user_id, tenant_id
+                      ) ta ON ta.student_user_id = u.id AND ta.tenant_id = u.tenant_id
+                      LEFT JOIN ranks rk
+                             ON rk.tenant_id = u.tenant_id
+                            AND rk.xp_min   <= COALESCE(ta.total_xp, 0)
+                            AND (rk.xp_max IS NULL OR rk.xp_max > COALESCE(ta.total_xp, 0))
+                      LEFT JOIN (
+                          SELECT user_id, tenant_id,
+                                 SUM(COALESCE(duration_seconds,
+                                              TIMESTAMPDIFF(SECOND, started_at, NOW()))) AS total_seconds
+                            FROM student_sessions
+                           GROUP BY user_id, tenant_id
+                      ) ss ON ss.user_id = u.id AND ss.tenant_id = u.tenant_id
+                     WHERE en.course_id = :cid_w
+                     GROUP BY u.id, u.name, u.tenant_id
+                     {$having}
+                     ORDER BY xp DESC, last_event_at DESC, u.name ASC
+                     LIMIT :lim OFFSET :off";
+        $stmt = $pdo->prepare($rowsSql);
+        $stmt->bindValue(':cid_xp', $courseId, PDO::PARAM_INT);
+        $stmt->bindValue(':cid_w',  $courseId, PDO::PARAM_INT);
+        $stmt->bindValue(':lim',    $perPage,  PDO::PARAM_INT);
+        $stmt->bindValue(':off',    $offset,   PDO::PARAM_INT);
+        $stmt->execute();
+
+        $rows     = [];
+        $position = $offset;
+        foreach ($stmt->fetchAll() as $r) {
+            $position++;
+            $rows[] = [
+                'position'       => $position,
+                'student_id'     => (int) $r['student_id'],
+                'name'           => (string) $r['name'],
+                'group_names'    => (string) ($r['group_names'] ?? ''),
+                'xp'             => (int) $r['xp'],
+                'last_event_at'  => $r['last_event_at'] !== null ? (string) $r['last_event_at'] : null,
+                'rank_id'        => $r['rank_id']        !== null ? (int) $r['rank_id']           : null,
+                'rank_name'      => $r['rank_name']      !== null ? (string) $r['rank_name']      : null,
+                'rank_color_hex' => $r['rank_color_hex'] !== null ? (string) $r['rank_color_hex'] : null,
+                'online_seconds' => (int) ($r['online_seconds'] ?? 0),
+            ];
+        }
+
+        return ['rows' => $rows, 'total' => $total];
+    }
+
+    /**
      * @param array<string,mixed> $filters
      * @return array{group_id:?int, year:?int, course_id:?int}
      */
