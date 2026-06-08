@@ -44,10 +44,15 @@ $courseCountsFormatted = format_delete_counts(Course::countDescendants($courseId
 // E31-03: cursos de destino para "Copiar CC para…" — meus cursos próprios.
 $copyTargetCourses = Course::listActiveForSelect($myTenantId);
 
-// Dados de aluno: estritamente o MEU tenant (colaborador só vê os seus).
+// E34 (F25/ADR-036): toggle "ver todos os alunos" só vale em curso
+// compartilhado; senão segue estritamente por tenant (colaborador só os seus).
+$isSharedCourse  = CourseCollaborator::isShared($courseId);
+$showAllStudents = $isSharedCourse && teacher_shows_all_shared_students();
+
+// Dados de aluno: por MEU tenant (default) ou todos do curso (se "ver todos").
 $enrolledPage = max(1, (int) ($_GET['students_page'] ?? 1));
-$enrolled = Enrollment::listByCourse($courseId, $myTenantId, $enrolledPage);
-$metrics  = CourseMetrics::forCourse($courseId, $myTenantId);
+$enrolled = Enrollment::listByCourse($courseId, $myTenantId, $enrolledPage, $showAllStudents);
+$metrics  = CourseMetrics::forCourse($courseId, $myTenantId, $showAllStudents);
 
 // E32-03: colaboradores — só o dono gerencia. Captura o "desfazer" one-shot.
 $collaborators = $isOwner ? CourseCollaborator::listByCourse($courseId) : [];
@@ -114,6 +119,12 @@ ob_start();
                 <a href="/teacher/courses/<?= (int) $course['id'] ?>/audit" class="btn btn-outline-secondary">
                     <?= e(__t('course_audit.action.link')) ?>
                 </a>
+                <?php if ($isSharedCourse): ?>
+                    <div class="d-flex align-items-center">
+                        <?php $__sharedToggleReturn = '/teacher/courses/' . (int) $course['id'];
+                              require LMS_ROOT . '/src/templates/partials/shared_roster_toggle.php'; ?>
+                    </div>
+                <?php endif; ?>
                 <?php if (!$isArchived): ?>
                     <a href="/teacher/courses/<?= (int) $course['id'] ?>/edit" class="btn btn-outline-primary">
                         <?= e(__t('courses.action.edit')) ?>
@@ -334,15 +345,23 @@ ob_start();
                             // datetime-local espera "YYYY-MM-DDTHH:MM"; converter do MySQL DATETIME.
                             $startsLocal  = $rowStartsAt !== null ? str_replace(' ', 'T', substr((string) $rowStartsAt, 0, 16)) : '';
                             $endsLocal    = $rowEndsAt   !== null ? str_replace(' ', 'T', substr((string) $rowEndsAt,   0, 16)) : '';
+                            // E34 (ADR-036): em "ver todos", alunos de outro professor aparecem
+                            // sem link nem ações (sem gestão cross-tenant de aluno).
+                            $rowIsOwn     = (int) ($row['is_own'] ?? 1) === 1;
                         ?>
                         <?php $rowFullName = (string) $row['name']; ?>
                         <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
                             <div class="flex-grow-1">
-                                <a href="/teacher/students/<?= (int) $row['student_id'] ?>"
-                                   class="fw-semibold text-decoration-none"
-                                   title="<?= e($rowFullName) ?>">
-                                    <?= e(format_short_name($rowFullName)) ?>
-                                </a>
+                                <?php if ($rowIsOwn): ?>
+                                    <a href="/teacher/students/<?= (int) $row['student_id'] ?>"
+                                       class="fw-semibold text-decoration-none"
+                                       title="<?= e($rowFullName) ?>">
+                                        <?= e(format_short_name($rowFullName)) ?>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="fw-semibold" title="<?= e($rowFullName) ?>"><?= e(format_short_name($rowFullName)) ?></span>
+                                    <span class="badge text-bg-light text-muted ms-1"><?= e(__t('shared_roster.other_teacher')) ?></span>
+                                <?php endif; ?>
                                 <small class="text-muted ms-2 text-break"><?= e((string) $row['email']) ?></small>
                                 <?php if ((int) $row['active'] === 0): ?>
                                     <span class="badge text-bg-secondary ms-2"><?= e(__t('students.status.inactive')) ?></span>
@@ -359,6 +378,7 @@ ob_start();
                                 </div>
                             </div>
 
+                            <?php if ($rowIsOwn): /* ações de gestão só pros meus alunos (ADR-036) */ ?>
                             <button type="button" class="btn btn-sm btn-outline-secondary"
                                     data-bs-toggle="modal" data-bs-target="#periodModal"
                                     data-student-id="<?= (int) $row['student_id'] ?>"
@@ -401,6 +421,7 @@ ob_start();
                                     <option value="completed" <?= $rowStatus === 'completed' ? 'selected' : '' ?>><?= e(__t('enrollment.status.completed')) ?></option>
                                 </select>
                             </form>
+                            <?php endif; /* $rowIsOwn */ ?>
                         </li>
                     <?php endforeach; ?>
                 </ul>

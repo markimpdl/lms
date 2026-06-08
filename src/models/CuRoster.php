@@ -22,16 +22,21 @@ declare(strict_types=1);
 final class CuRoster
 {
     /**
+     * E34 (F25/ADR-036): $showAll=true (toggle em curso compartilhado) lista
+     * TODOS os alunos do curso; `is_own` marca quem é do meu tenant. Default
+     * (false) = só os meus (E32).
+     *
      * @return list<array{
      *   id:int,
      *   name:string,
      *   email:string,
      *   active:int,
+     *   is_own:bool,
      *   activity_statuses: array<int,string>,
      *   evaluation_status: array<string,mixed>
      * }>
      */
-    public static function listForCu(int $cuId, int $tenantId): array
+    public static function listForCu(int $cuId, int $tenantId, bool $showAll = false): array
     {
         $pdo = Database::pdo();
 
@@ -55,17 +60,18 @@ final class CuRoster
         $courseId = (int) $ctx['course_id'];
         $evalId   = $ctx['eval_id'] !== null ? (int) $ctx['eval_id'] : null;
 
-        // 1. Alunos matriculados do MEU tenant (ativos + inativos; cliente
-        // filtra). E32 (ADR-033): o filtro por u.tenant_id garante que, num
-        // curso compartilhado, cada professor veja só os seus alunos.
+        // 1. Alunos matriculados (ativos + inativos; cliente filtra). E32: por
+        // padrão só os do MEU tenant. E34 (ADR-036): com $showAll, todos do
+        // curso; `is_own` marca os meus pra UI gatear o link do aluno.
+        $tf = $showAll ? '' : ' AND u.tenant_id = ?';
         $stmt = $pdo->prepare(
-            'SELECT u.id, u.name, u.email, u.active
+            'SELECT u.id, u.name, u.email, u.active, (u.tenant_id = ?) AS is_own
                FROM enrollments e
                JOIN users u ON u.id = e.student_user_id
-              WHERE e.course_id = ? AND u.tenant_id = ? AND u.role = \'student\'
+              WHERE e.course_id = ?' . $tf . ' AND u.role = \'student\'
               ORDER BY u.name ASC, u.id ASC'
         );
-        $stmt->execute([$courseId, $tenantId]);
+        $stmt->execute($showAll ? [$tenantId, $courseId] : [$tenantId, $courseId, $tenantId]);
         $students = $stmt->fetchAll();
         if ($students === []) {
             return [];
@@ -151,6 +157,7 @@ final class CuRoster
                 'name'              => (string) $s['name'],
                 'email'             => (string) $s['email'],
                 'active'            => (int) $s['active'],
+                'is_own'            => (int) ($s['is_own'] ?? 1) === 1,
                 'activity_statuses' => $activityStatuses,
                 'evaluation_status' => $evalStatus,
             ];

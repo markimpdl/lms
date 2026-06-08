@@ -45,8 +45,13 @@ final class Enrollment
     }
 
     /**
-     * Lista alunos matriculados em um curso, paginado. Só retorna quando o
-     * curso pertence ao tenant do professor.
+     * Lista alunos matriculados em um curso, paginado.
+     *
+     * E34 (F25/ADR-036): por padrão filtra pelo tenant do ALUNO (cada professor
+     * só os seus — comportamento E32). Com $showAll=true (toggle "ver todos" em
+     * curso compartilhado) lista TODOS os alunos do curso; cada linha traz
+     * `is_own` (1 = aluno do meu tenant) pra UI gatear ações — não há gestão
+     * cross-tenant de aluno (só leitura agregada).
      *
      * @return array{
      *   rows: list<array<string,mixed>>,
@@ -56,46 +61,48 @@ final class Enrollment
      *   per_page: int,
      * }
      */
-    public static function listByCourse(int $courseId, int $tenantId, int $page): array
+    public static function listByCourse(int $courseId, int $tenantId, int $page, bool $showAll = false): array
     {
         $pdo = Database::pdo();
 
-        // E32 (ADR-033): filtra pelo tenant do ALUNO, não do curso. Em cursos
-        // compartilhados cada professor vê só os seus alunos (do seu tenant).
-        // Para o dono, é idêntico (aluno e curso no mesmo tenant).
+        $tenantFilter = $showAll ? '' : ' AND u.tenant_id = ?';
+
         $stmtTotal = $pdo->prepare(
             'SELECT COUNT(*)
                FROM enrollments e
                JOIN users u ON u.id = e.student_user_id
-              WHERE e.course_id = ?
-                AND u.tenant_id = ?
+              WHERE e.course_id = ?' . $tenantFilter . '
                 AND u.role = "student"'
         );
-        $stmtTotal->execute([$courseId, $tenantId]);
+        $stmtTotal->execute($showAll ? [$courseId] : [$courseId, $tenantId]);
         $total = (int) $stmtTotal->fetchColumn();
 
         $totalPages = max(1, (int) ceil($total / self::PER_PAGE));
         $page       = max(1, min($page, $totalPages));
         $offset     = ($page - 1) * self::PER_PAGE;
 
-        $sql = <<<SQL
-            SELECT u.id AS student_id, u.name, u.email, u.language, u.active,
+        $sql = 'SELECT u.id AS student_id, u.name, u.email, u.language, u.active,
+                   (u.tenant_id = ?) AS is_own,
                    e.enrolled_at, e.status,
                    e.access_starts_at, e.access_ends_at, e.blocked_at
               FROM enrollments e
               JOIN users u ON u.id = e.student_user_id
-             WHERE e.course_id = ?
-               AND u.tenant_id = ?
+             WHERE e.course_id = ?' . $tenantFilter . '
                AND u.role = "student"
              ORDER BY u.name ASC, u.id ASC
-             LIMIT ? OFFSET ?
-            SQL;
+             LIMIT ? OFFSET ?';
 
         $stmt = $pdo->prepare($sql);
-        $stmt->bindValue(1, $courseId,      PDO::PARAM_INT);
-        $stmt->bindValue(2, $tenantId,      PDO::PARAM_INT);
-        $stmt->bindValue(3, self::PER_PAGE, PDO::PARAM_INT);
-        $stmt->bindValue(4, $offset,        PDO::PARAM_INT);
+        // Posições: 1 = tenantId (is_own); 2 = courseId; [3 = tenantId (filtro)];
+        // depois LIMIT e OFFSET. Bind explícito por causa de emulação off.
+        $pos = 1;
+        $stmt->bindValue($pos++, $tenantId, PDO::PARAM_INT);     // coluna is_own
+        $stmt->bindValue($pos++, $courseId, PDO::PARAM_INT);
+        if (!$showAll) {
+            $stmt->bindValue($pos++, $tenantId, PDO::PARAM_INT); // filtro tenant
+        }
+        $stmt->bindValue($pos++, self::PER_PAGE, PDO::PARAM_INT);
+        $stmt->bindValue($pos++, $offset,        PDO::PARAM_INT);
         $stmt->execute();
 
         return [
