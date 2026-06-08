@@ -1468,6 +1468,109 @@ CREATE TABLE IF NOT EXISTS course_audit_log (
 
 ---
 
+## F25 — Toggle "ver alunos de todos os professores" no curso compartilhado
+
+> **Adicionado em 2026-06-08.** Estende F23 (cursos compartilhados). Decisão em **ADR-036**.
+
+### Contexto
+Hoje, num curso compartilhado, cada professor vê nas telas de gestão (roster, progresso, métricas, matriz) **só os seus próprios alunos** (filtro por tenant do aluno — E32-05). O PO quer poder **opcionalmente** enxergar **todos os alunos de todos os professores** daquele curso numa visão consolidada, sem perder o padrão atual de privacidade.
+
+### Decisão consolidada (2026-06-08 com PO)
+- **Toggle por professor**, com **preferência fixa** (sticky entre sessões e telas). **Default = marcado** = "ver só meus alunos" = comportamento atual (preserva privacidade).
+- **Desmarcado = "ver todos"**: as telas de **roster / progresso / métricas / matriz** do curso compartilhado mostram os alunos de **todos** os professores do curso (por `course_id`).
+- **Acesso "ver todos" é só leitura agregada.** Correção, notas e entregas **continuam restritas aos meus alunos** — não abro a entrega nem a nota de aluno de outro professor (a regra de ouro de escrita por tenant fica intacta). Nos modos agregados, alunos de outros professores aparecem na lista/matriz mas **sem links acionáveis** de perfil/entrega (não há gestão cross-tenant de aluno).
+- **Escopo:** só afeta **cursos compartilhados**. Curso não compartilhado ignora o toggle (sem efeito). **Ranking de tenant inalterado**; **ranking do curso** já junta todos (E32-05), independente do toggle.
+
+### Schema
+Uma preferência booleana por professor. Sugerido: coluna em `users` (ou linha em settings do professor) — vai pela skill `/mysql-schema`.
+```sql
+ALTER TABLE users
+  ADD COLUMN shared_course_show_all_students TINYINT(1) NOT NULL DEFAULT 0;
+  -- 0 = só meus alunos (default) ; 1 = ver todos no curso compartilhado
+```
+
+### Critérios de aceite (top-level)
+- [ ] Preferência persistida por professor (default = só meus alunos)
+- [ ] Endpoint de toggle com CSRF + auth teacher
+- [ ] Controle (switch) visível **apenas** nas telas de curso **compartilhado**
+- [ ] Com "ver todos": roster (`CuRoster`, `Enrollment::listByCourse`), métricas (`CourseMetrics`) e matriz (`CourseMatrix`) mostram alunos de todos os tenants do curso
+- [ ] Correção/entregas/notas **permanecem por tenant** mesmo com "ver todos" (sem vazamento de escrita nem de detalhe de entrega cross-tenant)
+- [ ] Curso **não compartilhado**: toggle ausente / sem efeito; queries idênticas ao atual
+- [ ] Ranking de tenant inalterado
+- [ ] i18n PT/EN; mobile 360px
+
+### Tamanho
+**M** — épico próprio (~3 stories): preferência + toggle UI (M); aplicar "ver todos" nas leituras dual-mode (M-G); i18n + mobile + smoke de isolamento (P).
+
+### Dependências
+- **Depende de F23/E32** (cursos compartilhados, já em prod) e reusa os models tocados na E32-05.
+
+---
+
+## F26 — Widgets interativos
+
+> **Adicionado em 2026-06-08.** Decisão de arquitetura em **ADR-037**. Doc dedicado: `doc/24-widgets.md`.
+
+### Contexto
+O PO quer criar **widgets** — mini-aplicações interativas (HTML+CSS+JS+imagens num `.zip`, ex.: uma calculadora) — e **inseri-las no conteúdo de uma Competence Unit**, aparecendo para o aluno junto ao material. No cadastro, o professor escolhe se o widget **renderiza inline** no conteúdo ou aparece como **ícone que abre em nova janela**.
+
+### Decisão consolidada (2026-06-08 com PO) — ver `doc/24-widgets.md`
+- **Pacote:** zip com `index.html` na raiz como entrada.
+- **Isolamento:** `<iframe sandbox="allow-scripts">` **sem** `allow-same-origin` (origem nula) → o JS do widget não acessa sessão/cookies/DOM do LMS. **+ CSP restritiva.** (Subdomínio dedicado fica como evolução futura.)
+- **Modos:** `inline` (embutido no conteúdo) ou `window` (ícone → nova janela isolada), escolhido no cadastro.
+- **Storage:** extração **fora do document root** (`storage/`), servida por endpoint PHP de passthrough (content-type allowlist + `nosniff` + anti path-traversal). Compatível com migração futura pra GCS.
+- **Upload seguro:** limite de MB, `finfo` de zip, **zip-slip guard**, allowlist de extensões internas (rejeita `.php` etc.), exige `index.html`.
+- **Biblioteca:** widget pertence ao tenant que o cadastrou; num **curso compartilhado** o picker oferece os widgets de **todos os colaboradores** do curso (compartilhada no curso). Editar/remover a definição = só o dono; inserir = qualquer professor com acesso.
+- **Integração no editor:** botão TinyMCE → picker → insere placeholder `[[widget:ID]]` no conteúdo (sobrevive ao HTML Purifier); expandido no render pro aluno (iframe inline / ícone-launch). Widget removido em uso → placeholder gracioso.
+- **Acesso ao serving:** sessão autenticada + usuário com acesso ao conteúdo (professor do curso ou aluno matriculado).
+
+### Schema
+Tabela nova `widgets` (via `/mysql-schema`):
+```sql
+CREATE TABLE IF NOT EXISTS widgets (
+    id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tenant_id    BIGINT UNSIGNED NOT NULL,            -- tenant do professor que cadastrou (dono)
+    created_by   BIGINT UNSIGNED NOT NULL,            -- user_id do professor
+    name         VARCHAR(120)    NOT NULL,
+    slug         VARCHAR(140)    NOT NULL,             -- referência estável / pasta de storage
+    render_mode  ENUM('inline','window') NOT NULL DEFAULT 'inline',
+    entry_file   VARCHAR(255)    NOT NULL DEFAULT 'index.html',
+    storage_path VARCHAR(255)    NOT NULL,             -- pasta extraída (relativa ao storage root)
+    icon         VARCHAR(255)    NULL,                 -- ícone/thumb pro modo 'window'
+    width_hint   SMALLINT UNSIGNED NULL,
+    height_hint  SMALLINT UNSIGNED NULL,
+    active       TINYINT(1)      NOT NULL DEFAULT 1,
+    created_at   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_widgets_tenant (tenant_id),
+    CONSTRAINT fk_widgets_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+    CONSTRAINT fk_widgets_user   FOREIGN KEY (created_by) REFERENCES users(id)  ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+### Critérios de aceite (top-level)
+- [ ] Schema `widgets` migrado idempotente; model `Widget`
+- [ ] Upload + extração segura (zip-slip guard, allowlist de extensões, exige `index.html`, limite MB, finfo)
+- [ ] CRUD da biblioteca de widgets (cadastrar com modo de render + ícone, listar, editar metadados, remover) — CSRF + auth teacher
+- [ ] Endpoint de serving sandboxed (`/widget/serve/{id}/...`): stream com content-type allowlist, `nosniff`, CSP, anti path-traversal, gate de acesso (professor do curso / aluno matriculado)
+- [ ] Página full-page pro modo `window` (`/widget/open/{id}`)
+- [ ] Botão TinyMCE + picker (widgets disponíveis no curso) inserindo `[[widget:ID]]`; placeholder sobrevive ao HTML Purifier
+- [ ] Expansão no render pro aluno: inline (iframe responsivo) / window (ícone abre nova janela); widget inexistente → placeholder gracioso
+- [ ] Isolamento confirmado: JS do widget não lê sessão/cookies do LMS
+- [ ] i18n PT/EN; mobile 360px
+
+### Tamanho
+**G** — épico próprio (~6 stories): schema+model (M); upload+extração segura (M-G); CRUD da biblioteca (M); endpoint de serving sandbox + página window (M-G); integração TinyMCE + render pro aluno (M-G); i18n+mobile+smoke (M).
+
+### Dependências
+- Integra com **F23** (biblioteca compartilhada no curso) e com o **editor de conteúdo** (TinyMCE / HTML Purifier, doc 05). Independente de F24/F25.
+
+### Doc dedicado
+`doc/24-widgets.md` (criado).
+
+---
+
 # Resumo de épicos sugeridos
 
 | Épico | Features | Ordem | Tamanho |
@@ -1491,8 +1594,10 @@ CREATE TABLE IF NOT EXISTS course_audit_log (
 | **E31 — Duplicar curso e copiar CC/CU** | F22 | 17º — **adicionado 2026-06-05** | 3-4 stories M-G |
 | **E32 — Cursos compartilhados** (autoria multi-professor) | F23 | 18º — **adicionado 2026-06-05** | 5-7 stories M-G (épico G) |
 | **E33 — Auditoria de conteúdo por curso** | F24 | 19º — depende de E32 — **adicionado 2026-06-05** | 2-3 stories M-P |
+| **E34 — Toggle "ver todos os alunos"** (curso compartilhado) | F25 | 20º — depende de E32 — **adicionado 2026-06-08** | 3 stories M-P |
+| **E35 — Widgets interativos** | F26 | 21º — **adicionado 2026-06-08** | ~6 stories M-G (épico G) |
 
-**Total estimado:** ~66-83 stories distribuídas em 19 épicos. F1–F17 entregues em prod (E15–E26). E27 → E30 em sequência; E31–E33 (F22–F24) entram a seguir.
+**Total estimado:** ~75-92 stories distribuídas em 21 épicos. F1–F17 entregues em prod (E15–E26). E32 (cursos compartilhados) entregue; E33 (auditoria) em andamento; E34–E35 (F25–F26) a seguir.
 
 ---
 
