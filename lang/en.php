@@ -1259,6 +1259,11 @@ return [
     'course_audit.entity.activity'         => 'Activity',
     'course_audit.entity.evaluation'       => 'Evaluation',
 
+    // "Show all students" toggle in shared course (F25/E34 — ADR-036)
+    'shared_roster.toggle_label'           => 'Show all students',
+    'shared_roster.toggle_hint'            => 'Shared course: switch between only my students and all students in the course (read-only).',
+    'shared_roster.other_teacher'          => 'other teacher',
+
     // Aggregated metrics (E11-04)
     'metrics.activity.enrolled'      => 'Enrolled',
     'metrics.activity.submitted'     => 'Submissions',

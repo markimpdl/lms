@@ -1261,6 +1261,11 @@ return [
     'course_audit.entity.activity'         => 'Atividade',
     'course_audit.entity.evaluation'       => 'Avaliação',
 
+    // Toggle "ver todos os alunos" em curso compartilhado (F25/E34 — ADR-036)
+    'shared_roster.toggle_label'           => 'Ver todos os alunos',
+    'shared_roster.toggle_hint'            => 'Curso compartilhado: alternar entre só os meus alunos e todos os alunos do curso (apenas leitura).',
+    'shared_roster.other_teacher'          => 'outro professor',
+
     // Métricas agregadas (E11-04)
     'metrics.activity.enrolled'      => 'Matriculados',
     'metrics.activity.submitted'     => 'Entregas',

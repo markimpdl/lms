@@ -30,12 +30,12 @@ final class CourseMatrix
      * @return array{
      *   course: array<string,mixed>,
      *   ccs:    list<array{id:int, name:string, cus: list<array{id:int, name:string}>}>,
-     *   students: list<array{id:int, name:string, email:string, active:int, groups: list<int>}>,
+     *   students: list<array{id:int, name:string, email:string, active:int, is_own:bool, groups: list<int>}>,
      *   cells: array<int, array<int, array{status:string, percent:int}>>,
      *   groups: list<array{id:int, name:string}>
      * }|null
      */
-    public static function forCourse(int $courseId, int $authoringTenantId, int $studentTenantId): ?array
+    public static function forCourse(int $courseId, int $authoringTenantId, int $studentTenantId, bool $showAll = false): ?array
     {
         $pdo = Database::pdo();
 
@@ -90,17 +90,19 @@ final class CourseMatrix
             ];
         }
 
-        // 2. Students enrolled no curso. E32-05 (ADR-033): filtra por
-        // u.tenant_id do ALUNO — num curso compartilhado cada professor vê só
-        // os seus alunos (a matriz é tela de roster/progresso, não de autoria).
+        // 2. Students enrolled no curso. E32-05 (ADR-033): por padrão filtra por
+        // u.tenant_id do ALUNO — cada professor vê só os seus. E34 (ADR-036):
+        // com $showAll (toggle em curso compartilhado), traz TODOS os alunos do
+        // curso; `is_own` marca quem é do meu tenant pra UI gatear o link.
+        $tf = $showAll ? '' : ' AND u.tenant_id = ?';
         $stmt = $pdo->prepare(
-            'SELECT u.id, u.name, u.email, u.active
+            'SELECT u.id, u.name, u.email, u.active, (u.tenant_id = ?) AS is_own
                FROM enrollments e
                JOIN users u ON u.id = e.student_user_id
-              WHERE e.course_id = ? AND u.tenant_id = ? AND u.role = \'student\'
+              WHERE e.course_id = ?' . $tf . ' AND u.role = \'student\'
               ORDER BY u.name ASC, u.id ASC'
         );
-        $stmt->execute([$courseId, $studentTenantId]);
+        $stmt->execute($showAll ? [$studentTenantId, $courseId] : [$studentTenantId, $courseId, $studentTenantId]);
         $studentRows = $stmt->fetchAll();
 
         // 3. Contagem de activity_submissions por (student, cu)
@@ -178,6 +180,7 @@ final class CourseMatrix
                 'name'   => (string) $s['name'],
                 'email'  => (string) $s['email'],
                 'active' => (int) $s['active'],
+                'is_own' => (int) ($s['is_own'] ?? 1) === 1,
                 'groups' => $studentGroups[$sid] ?? [],
             ];
 

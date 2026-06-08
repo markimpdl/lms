@@ -30,7 +30,11 @@ if ($authoringTenantId === null) {
     return;
 }
 
-$matrix = CourseMatrix::forCourse($courseId, $authoringTenantId, $tenantId);
+// E34 (F25/ADR-036): toggle "ver todos os alunos" só em curso compartilhado.
+$isSharedCourse  = CourseCollaborator::isShared($courseId);
+$showAllStudents = $isSharedCourse && teacher_shows_all_shared_students();
+
+$matrix = CourseMatrix::forCourse($courseId, $authoringTenantId, $tenantId, $showAllStudents);
 if ($matrix === null) {
     http_response_code(404);
     require LMS_ROOT . '/src/templates/errors/404.php';
@@ -152,6 +156,10 @@ ob_start();
                 <input type="checkbox" class="form-check-input" role="switch" x-model="onlyActive">
                 <span class="form-check-label small"><?= e(__t('course_matrix.filter.only_active')) ?></span>
             </label>
+            <?php if ($isSharedCourse): ?>
+                <?php $__sharedToggleReturn = '/teacher/courses/' . $courseId . '/matrix';
+                      require LMS_ROOT . '/src/templates/partials/shared_roster_toggle.php'; ?>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -190,9 +198,14 @@ ob_start();
                         <?php foreach ($students as $s): $sid = (int) $s['id']; $fullName = (string) $s['name']; $shortName = format_short_name($fullName); ?>
                             <tr x-show="matches(<?= $sid ?>)" x-transition.opacity>
                                 <td>
-                                    <a href="/teacher/students/<?= $sid ?>" class="text-decoration-none" title="<?= e($fullName) ?>">
-                                        <?= e($shortName) ?>
-                                    </a>
+                                    <?php if (($s['is_own'] ?? true)): ?>
+                                        <a href="/teacher/students/<?= $sid ?>" class="text-decoration-none" title="<?= e($fullName) ?>">
+                                            <?= e($shortName) ?>
+                                        </a>
+                                    <?php else: ?>
+                                        <span title="<?= e($fullName) ?>"><?= e($shortName) ?></span>
+                                        <span class="badge text-bg-light text-muted ms-1"><?= e(__t('shared_roster.other_teacher')) ?></span>
+                                    <?php endif; ?>
                                     <?php if ((int) $s['active'] === 0): ?>
                                         <span class="badge text-bg-secondary ms-1"><?= e(__t('cu_roster.badge.inactive')) ?></span>
                                     <?php endif; ?>

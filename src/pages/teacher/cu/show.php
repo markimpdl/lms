@@ -58,8 +58,11 @@ $attachments = ContentAttachment::listByCu($cuId, $tenantId);
 $activities  = Activity::listByCu($cuId, $tenantId);
 $activityCount = count($activities);
 $evaluation    = Evaluation::findByCu($cuId, $tenantId);
-// Roster é dado de aluno — estritamente o MEU tenant (colaborador só os seus).
-$roster        = CuRoster::listForCu($cuId, $myTenantId);
+// Roster é dado de aluno — por padrão só o MEU tenant. E34 (F25/ADR-036): em
+// curso compartilhado, o toggle "ver todos" mostra os alunos dos dois (leitura).
+$isSharedCourse  = CourseCollaborator::isShared($courseId);
+$showAllStudents = $isSharedCourse && teacher_shows_all_shared_students();
+$roster        = CuRoster::listForCu($cuId, $myTenantId, $showAllStudents);
 $rosterCount   = count($roster);
 
 $tree       = curriculum_tree($courseId, $tenantId);
@@ -364,10 +367,16 @@ ob_start();
                         <?= e(__t('cu_roster.subtitle', ['count' => (string) $rosterCount])) ?>
                     </small>
                 </div>
-                <label class="form-check form-switch m-0">
-                    <input type="checkbox" class="form-check-input" role="switch" x-model="onlyActive">
-                    <span class="form-check-label small"><?= e(__t('cu_roster.only_active')) ?></span>
-                </label>
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <label class="form-check form-switch m-0">
+                        <input type="checkbox" class="form-check-input" role="switch" x-model="onlyActive">
+                        <span class="form-check-label small"><?= e(__t('cu_roster.only_active')) ?></span>
+                    </label>
+                    <?php if ($isSharedCourse): ?>
+                        <?php $__sharedToggleReturn = '/teacher/cu/' . $cuId;
+                              require LMS_ROOT . '/src/templates/partials/shared_roster_toggle.php'; ?>
+                    <?php endif; ?>
+                </div>
             </div>
 
             <!-- Tabela (≥ md) -->
@@ -390,9 +399,14 @@ ob_start();
                         <?php foreach ($roster as $r): ?>
                             <tr x-show="!onlyActive || <?= (int) $r['active'] ?> === 1" x-transition.opacity>
                                 <td>
-                                    <a href="/teacher/students/<?= (int) $r['id'] ?>" class="text-decoration-none" title="<?= e((string) $r['name']) ?>">
-                                        <?= e(format_short_name((string) $r['name'])) ?>
-                                    </a>
+                                    <?php if (($r['is_own'] ?? true)): ?>
+                                        <a href="/teacher/students/<?= (int) $r['id'] ?>" class="text-decoration-none" title="<?= e((string) $r['name']) ?>">
+                                            <?= e(format_short_name((string) $r['name'])) ?>
+                                        </a>
+                                    <?php else: ?>
+                                        <span title="<?= e((string) $r['name']) ?>"><?= e(format_short_name((string) $r['name'])) ?></span>
+                                        <span class="badge text-bg-light text-muted ms-1"><?= e(__t('shared_roster.other_teacher')) ?></span>
+                                    <?php endif; ?>
                                     <?php if ((int) $r['active'] === 0): ?>
                                         <span class="badge text-bg-secondary ms-1"><?= e(__t('cu_roster.badge.inactive')) ?></span>
                                     <?php endif; ?>
@@ -406,7 +420,8 @@ ob_start();
                                         default         => ['bg-light text-muted',                     '—', __t('cu_roster.activity.not_submitted')],
                                     };
                                     $cellContent = '<span class="d-inline-block px-2 py-1 rounded ' . $bg . '" title="' . e($label) . '">' . $icon . '</span>';
-                                    $cellHref = $status !== 'not_submitted'
+                                    // Aluno de outro professor (ADR-036): mostra status, sem link de correção.
+                                    $cellHref = ($status !== 'not_submitted' && ($r['is_own'] ?? true))
                                         ? '/teacher/activity/' . $aid . '/submission/' . (int) $r['id'] . '?from=' . urlencode('/teacher/cu/' . $cuId)
                                         : null;
                                 ?>
@@ -432,7 +447,7 @@ ob_start();
                                         default    => ['bg-light text-muted',                    __t('cu_roster.evaluation.not_submitted')],
                                     };
                                     $evCellContent = '<span class="d-inline-block px-2 py-1 rounded ' . $bg2 . '">' . e($label2) . '</span>';
-                                    $evHref = $evState !== 'not_submitted'
+                                    $evHref = ($evState !== 'not_submitted' && ($r['is_own'] ?? true))
                                         ? '/teacher/evaluation/' . (int) $evaluation['id'] . '/submission/' . (int) $r['id']
                                         : null;
                                 ?>
@@ -456,9 +471,16 @@ ob_start();
                     <?php foreach ($roster as $r): ?>
                         <li class="list-group-item" x-show="!onlyActive || <?= (int) $r['active'] ?> === 1" x-transition.opacity>
                             <div class="d-flex align-items-center gap-2 mb-2">
-                                <a href="/teacher/students/<?= (int) $r['id'] ?>" class="fw-semibold text-decoration-none flex-grow-1" title="<?= e((string) $r['name']) ?>">
-                                    <?= e(format_short_name((string) $r['name'])) ?>
-                                </a>
+                                <?php if (($r['is_own'] ?? true)): ?>
+                                    <a href="/teacher/students/<?= (int) $r['id'] ?>" class="fw-semibold text-decoration-none flex-grow-1" title="<?= e((string) $r['name']) ?>">
+                                        <?= e(format_short_name((string) $r['name'])) ?>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="fw-semibold flex-grow-1" title="<?= e((string) $r['name']) ?>">
+                                        <?= e(format_short_name((string) $r['name'])) ?>
+                                        <span class="badge text-bg-light text-muted ms-1"><?= e(__t('shared_roster.other_teacher')) ?></span>
+                                    </span>
+                                <?php endif; ?>
                                 <?php if ((int) $r['active'] === 0): ?>
                                     <span class="badge text-bg-secondary"><?= e(__t('cu_roster.badge.inactive')) ?></span>
                                 <?php endif; ?>
