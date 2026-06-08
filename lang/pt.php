@@ -1240,6 +1240,27 @@ return [
     'course_matrix.empty.students'         => 'Nenhum aluno matriculado neste curso ainda.',
     'course_matrix.empty.cus'              => 'Este curso ainda não tem unidades cadastradas.',
 
+    // Auditoria de conteúdo por curso (E33 / F24 — ADR-035)
+    'course_audit.action.link'             => 'Auditoria',
+    'course_audit.page_title'              => 'Auditoria — :name',
+    'course_audit.breadcrumb'              => 'Auditoria',
+    'course_audit.title'                   => 'Auditoria de conteúdo',
+    'course_audit.empty'                   => 'Nenhuma ação de conteúdo registrada ainda.',
+    'course_audit.pagination'              => 'Paginação da auditoria',
+    'course_audit.col.when'                => 'Quando',
+    'course_audit.col.who'                 => 'Professor',
+    'course_audit.col.action'              => 'Ação',
+    'course_audit.col.entity'              => 'Tipo',
+    'course_audit.col.label'               => 'Item',
+    'course_audit.action.create'           => 'Criou',
+    'course_audit.action.update'           => 'Editou',
+    'course_audit.action.delete'           => 'Excluiu',
+    'course_audit.entity.core_competency'  => 'Competência',
+    'course_audit.entity.competence_unit'  => 'Unidade',
+    'course_audit.entity.content'          => 'Conteúdo',
+    'course_audit.entity.activity'         => 'Atividade',
+    'course_audit.entity.evaluation'       => 'Avaliação',
+
     // Métricas agregadas (E11-04)
     'metrics.activity.enrolled'      => 'Matriculados',
     'metrics.activity.submitted'     => 'Entregas',

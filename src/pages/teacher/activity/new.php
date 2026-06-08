@@ -117,6 +117,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ->execute([$upload['stored_path'], $result]);
             }
 
+            // E33 (F24/ADR-035): auditoria — atividade criada com sucesso.
+            course_audit((int) $cu['course_id'], 'create', 'activity', $result, $old['title']);
+
             // E20-07: type=quiz redireciona pro form do quiz e NÃO dispara
             // fanout activity_new aqui — atividade-quiz sem questões é
             // inutilizável pro aluno; fanout fica diferido (não automatizado

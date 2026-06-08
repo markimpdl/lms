@@ -98,6 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
         if ($result === 'ok') {
+            course_audit((int) $__courseId, 'update', 'evaluation', $evaluationId, $old['title']);
             flash('success', __t('evaluations.updated', ['name' => $old['title']]));
             header('Location: /teacher/cu/' . $cuId, true, 303);
             return;

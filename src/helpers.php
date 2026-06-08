@@ -273,9 +273,12 @@ function student_recent_achievements(int $studentId, int $tenantId, int $limit =
                JOIN achievements a ON a.id = sa.achievement_id
               WHERE sa.student_user_id = ? AND sa.tenant_id = ?
               ORDER BY sa.unlocked_at DESC
-              LIMIT ' . $limit
+              LIMIT ?'
         );
-        $stmt->execute([$studentId, $tenantId]);
+        $stmt->bindValue(1, $studentId, PDO::PARAM_INT);
+        $stmt->bindValue(2, $tenantId,  PDO::PARAM_INT);
+        $stmt->bindValue(3, $limit,     PDO::PARAM_INT);
+        $stmt->execute();
         $rows = $stmt->fetchAll();
     } catch (\Throwable) {
         return [];
@@ -1038,6 +1041,33 @@ function effective_authoring_tenant(int $courseId): ?int
     $st->execute([$courseId]);
     $tid = $st->fetchColumn();
     return $tid === false ? null : (int) $tid;
+}
+
+/**
+ * Registra uma ação de conteúdo na auditoria do curso (E33 / F24 — ADR-035).
+ *
+ * Wrapper fino sobre `CourseAuditLog::record`: o actor é o professor logado
+ * (`current_user`). É **best-effort e append-only** — uma falha de auditoria
+ * NUNCA pode quebrar a ação principal (logamos e seguimos). Para deletes, o
+ * caller deve capturar o `entityLabel` (nome) ANTES de apagar a entidade.
+ *
+ * @param int         $courseId    curso a que a ação pertence (tenant do dono)
+ * @param string      $action      'create' | 'update' | 'delete'
+ * @param string      $entityType  'core_competency'|'competence_unit'|'content'|'activity'|'evaluation'
+ * @param int|null    $entityId    id da entidade afetada (pode já não existir após delete)
+ * @param string      $entityLabel snapshot do nome, legível mesmo após delete
+ */
+function course_audit(int $courseId, string $action, string $entityType, ?int $entityId, string $entityLabel): void
+{
+    try {
+        $actor = current_user();
+        if ($actor === null) {
+            return; // sem actor identificável (não deve ocorrer em página de professor)
+        }
+        CourseAuditLog::record($courseId, (int) $actor['id'], $action, $entityType, $entityId, $entityLabel);
+    } catch (\Throwable $e) {
+        error_log('[course_audit] falha ao registrar auditoria: ' . $e->getMessage());
+    }
 }
 
 /**

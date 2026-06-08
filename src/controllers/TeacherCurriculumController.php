@@ -48,6 +48,7 @@ final class TeacherCurriculumController
             exit;
         }
 
+        course_audit($courseId, 'create', 'core_competency', $newId, $name);
         flash('success', __t('cc.created', ['name' => $name]));
         header('Location: /teacher/courses/' . $courseId, true, 303);
         exit;
@@ -76,6 +77,7 @@ final class TeacherCurriculumController
         if (!$ok) {
             flash('danger', __t('cc.err.course_unavailable'));
         } else {
+            course_audit($courseId, 'update', 'core_competency', $ccId, $name);
             flash('success', __t('cc.renamed', ['name' => $name]));
         }
         header('Location: /teacher/courses/' . $courseId, true, 303);
@@ -112,6 +114,8 @@ final class TeacherCurriculumController
             exit;
         }
 
+        // Label capturado ANTES do delete (snapshot legível após a exclusão).
+        course_audit($courseId, 'delete', 'core_competency', $ccId, (string) $cc['name']);
         flash('success', __t('cc.deleted', ['name' => $cc['name']]));
         header('Location: /teacher/courses/' . $courseId, true, 303);
         exit;
@@ -182,6 +186,7 @@ final class TeacherCurriculumController
             exit;
         }
 
+        course_audit($courseId, 'create', 'competence_unit', $newId, $name);
         flash('success', __t('cu.created', ['name' => $name]));
         header('Location: ' . $backUrl, true, 303);
         exit;
@@ -219,6 +224,7 @@ final class TeacherCurriculumController
         if (!$ok) {
             flash('danger', __t('cu.err.cc_unavailable'));
         } else {
+            course_audit($courseId, 'update', 'competence_unit', $cuId, $name);
             flash('success', __t('cu.renamed', ['name' => $name]));
         }
         header('Location: ' . $backUrl, true, 303);
@@ -257,6 +263,8 @@ final class TeacherCurriculumController
             exit;
         }
 
+        // Label capturado ANTES do delete (snapshot legível após a exclusão).
+        course_audit($courseId, 'delete', 'competence_unit', $cuId, (string) $cu['name']);
         flash('success', __t('cu.deleted', ['name' => $cu['name']]));
         header('Location: ' . $backUrl, true, 303);
         exit;
@@ -340,6 +348,8 @@ final class TeacherCurriculumController
             exit;
         }
 
+        // Cópia cria conteúdo novo no curso de destino — registra como create.
+        course_audit($targetCourseId, 'create', 'core_competency', $newCcId, (string) $cc['name']);
         flash('success', __t('cc.copied', [
             'name'   => (string) $cc['name'],
             'course' => (string) $targetCourse['name'],
@@ -389,6 +399,8 @@ final class TeacherCurriculumController
             exit;
         }
 
+        // Cópia cria conteúdo novo na CC de destino — registra como create.
+        course_audit((int) $targetCc['course_id'], 'create', 'competence_unit', $newCuId, (string) $cu['name']);
         flash('success', __t('cu.copied', [
             'name' => (string) $cu['name'],
             'cc'   => (string) $targetCc['name'],

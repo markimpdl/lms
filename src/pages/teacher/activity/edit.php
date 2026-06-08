@@ -124,6 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($pdfPathArg === '' && $activity['pdf_path'] !== null) {
                 ActivityBriefStorage::delete($activityId, $tenantId);
             }
+            course_audit((int) $__courseId, 'update', 'activity', $activityId, $old['title']);
             flash('success', __t('activities.updated', ['name' => $old['title']]));
             header('Location: /teacher/cu/' . $cuId, true, 303);
             return;

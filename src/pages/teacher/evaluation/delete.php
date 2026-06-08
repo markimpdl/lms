@@ -73,5 +73,8 @@ foreach ($result['stored_paths'] ?? [] as $rel) {
 // PDF do enunciado + diretório da avaliação.
 EvaluationBriefStorage::delete($evaluationId, $tenantId);
 
+// E33 (F24/ADR-035): auditoria — label (título) capturado antes do delete.
+course_audit((int) $__courseId, 'delete', 'evaluation', $evaluationId, (string) $evaluation['title']);
+
 flash('success', __t('evaluations.deleted', ['name' => (string) $evaluation['title']]));
 header('Location: /teacher/cu/' . $cuId, true, 303);

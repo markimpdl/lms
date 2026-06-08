@@ -75,5 +75,8 @@ if (is_dir($briefDir)) {
     @rmdir($briefDir);
 }
 
+// E33 (F24/ADR-035): auditoria — label (título) capturado antes do delete.
+course_audit((int) $__courseId, 'delete', 'activity', $activityId, (string) $activity['title']);
+
 flash('success', __t('activities.deleted', ['name' => (string) $activity['title']]));
 header('Location: /teacher/cu/' . $cuId, true, 303);

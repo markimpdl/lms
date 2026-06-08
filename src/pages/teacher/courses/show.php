@@ -111,6 +111,9 @@ ob_start();
                 <a href="/teacher/courses/<?= (int) $course['id'] ?>/ranking" class="btn btn-outline-secondary">
                     <?= e(__t('ranking.link.course_ranking')) ?>
                 </a>
+                <a href="/teacher/courses/<?= (int) $course['id'] ?>/audit" class="btn btn-outline-secondary">
+                    <?= e(__t('course_audit.action.link')) ?>
+                </a>
                 <?php if (!$isArchived): ?>
                     <a href="/teacher/courses/<?= (int) $course['id'] ?>/edit" class="btn btn-outline-primary">
                         <?= e(__t('courses.action.edit')) ?>
