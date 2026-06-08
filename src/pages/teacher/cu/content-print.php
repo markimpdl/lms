@@ -194,7 +194,7 @@ $lang   = current_lang();
 
         <?php if ($hasContent): ?>
             <div class="content">
-                <?= (string) $content['html'] /* HTML já sanitizado em E5-01 via ContentSanitizer */ ?>
+                <?= expand_widgets((string) $content['html'], true) /* HTML sanitizado (E5-01); widgets em modo estático pra impressão */ ?>
             </div>
         <?php else: ?>
             <p class="doc-empty"><?= e(__t('content.none_yet')) ?></p>

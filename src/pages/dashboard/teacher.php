@@ -78,6 +78,12 @@ ob_start();
                 <p class="text-muted small mb-0"><?= e(__t('dashboard.teacher.ranks_hint')) ?></p>
             </a>
         </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <a href="/teacher/widgets" class="card card-body shadow-sm h-100 text-decoration-none">
+                <h3 class="h6 mb-1"><?= e(__t('widgets.title')) ?></h3>
+                <p class="text-muted small mb-0"><?= e(__t('dashboard.teacher.widgets_hint')) ?></p>
+            </a>
+        </div>
     </div>
 
     <!-- Totalizadores -->

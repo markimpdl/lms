@@ -83,7 +83,9 @@ $stmt = Database::pdo()->prepare(
 $stmt->execute([$cuId]);
 $content = $stmt->fetch();
 $hasPublishedContent = $content !== false && (int) $content['published'] === 1;
-$html = $hasPublishedContent ? (string) $content['html'] : '';
+// E35 (F26): expande [[widget:ID]] no render (pós-sanitização). Aluno só
+// carrega widget de curso em que está matriculado (gate no serving).
+$html = $hasPublishedContent ? expand_widgets((string) $content['html']) : '';
 if ($html !== '') {
     $html = str_replace('"/teacher/cu/', '"/student/cu/', $html);
 }
