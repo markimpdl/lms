@@ -1508,6 +1508,24 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
+-- [F25/E34] users.shared_course_show_all_students — preferência do professor
+-- pro toggle "ver todos os alunos" num curso compartilhado (ADR-036). 0 = só
+-- meus alunos (default, comportamento atual) ; 1 = ver todos do curso. Só
+-- afeta telas de roster/progresso/métricas/matriz de curso compartilhado;
+-- correção/notas seguem sempre por tenant.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'users'
+       AND COLUMN_NAME  = 'shared_course_show_all_students'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE users ADD COLUMN shared_course_show_all_students TINYINT(1) NOT NULL DEFAULT 0",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 -- ----------------------------------------------------------------------------
 SET FOREIGN_KEY_CHECKS = 1;
 SET SQL_MODE = @OLD_SQL_MODE;

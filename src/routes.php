@@ -60,6 +60,7 @@ return [
         '/teacher/submissions'  => ['file' => '/src/pages/teacher/submissions/index.php', 'role' => 'teacher'],
         '/teacher/settings'     => ['file' => '/src/pages/teacher/settings/index.php', 'role' => 'teacher'],
         '/teacher/settings/notifications' => ['file' => '/src/pages/teacher/settings/notifications.php', 'role' => 'teacher'],
+        '/teacher/preferences/shared-roster' => ['file' => '/src/pages/teacher/preferences/shared-roster-toggle.php', 'role' => 'teacher'],
         '/student'             => ['file' => '/src/pages/dashboard/student.php',     'role' => 'student'],
         '/student/ranking'     => ['file' => '/src/pages/student/ranking.php',       'role' => 'student'],
         '/student/achievements'=> ['file' => '/src/pages/student/achievements.php',  'role' => 'student'],

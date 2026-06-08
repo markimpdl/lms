@@ -967,6 +967,33 @@ function current_tenant_id(): ?int
 }
 
 /**
+ * Preferência do professor logado pro toggle "ver todos os alunos" em curso
+ * compartilhado (F25/E34 — ADR-036). true = ver todos do curso; false (default)
+ * = só os meus alunos. Lê do DB (a coluna não vive na sessão) com cache por
+ * request. Só faz sentido pra teacher; outros papéis retornam false.
+ *
+ * IMPORTANTE: é só de LEITURA AGREGADA (roster/progresso/métricas/matriz). NÃO
+ * relaxa correção/notas/entregas — essas seguem sempre por tenant.
+ */
+function teacher_shows_all_shared_students(): bool
+{
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    $u = current_user();
+    if ($u === null || ($u['role'] ?? null) !== 'teacher') {
+        return $cache = false;
+    }
+    $st = Database::pdo()->prepare(
+        'SELECT shared_course_show_all_students FROM users WHERE id = ? LIMIT 1'
+    );
+    $st->execute([(int) $u['id']]);
+    $v = $st->fetchColumn();
+    return $cache = ($v !== false && (int) $v === 1);
+}
+
+/**
  * Acesso de AUTORIA de um professor a um curso (E32 / F23 — ADR-033).
  *
  * Verdadeiro quando o professor é o DONO (o curso pertence ao tenant que ele
