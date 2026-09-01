@@ -65,6 +65,13 @@ $showAllStudents = $isSharedCourse && teacher_shows_all_shared_students();
 $roster        = CuRoster::listForCu($cuId, $myTenantId, $showAllStudents);
 $rosterCount   = count($roster);
 
+// E36-02: desbloqueio manual da CU por aluno. Uma query pro set inteiro —
+// sem N+1 por linha do roster. So faz sentido em curso sequencial: em
+// cc_mode='free' nao existe trava pra furar.
+$unlockedStudentIds = StudentCuUnlock::studentIdsForCu($cuId);
+$canManageUnlock    = !$isArchived
+    && (string) ($cu['course_cc_mode'] ?? 'sequential') === 'sequential';
+
 $tree       = curriculum_tree($courseId, $tenantId);
 $activeCcId = $ccId;
 $activeCuId = $cuId;
@@ -393,6 +400,10 @@ ob_start();
                             <?php if ($evaluation !== null): ?>
                                 <th class="text-center" style="min-width:80px"><?= e(__t('cu_roster.col.evaluation')) ?></th>
                             <?php endif; ?>
+                            <th class="text-center" style="min-width:70px"
+                                title="<?= e(__t('cu_unlock.col.help')) ?>">
+                                <?= e(__t('cu_unlock.col.access')) ?>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -459,6 +470,15 @@ ob_start();
                                         <?php endif; ?>
                                     </td>
                                 <?php endif; ?>
+                                <td class="text-center">
+                                    <?php
+                                    $u_studentId  = (int) $r['id'];
+                                    $u_isUnlocked = isset($unlockedStudentIds[$u_studentId]);
+                                    // ADR-036: em curso compartilhado so mexo nos MEUS alunos.
+                                    $u_canManage  = $canManageUnlock && ($r['is_own'] ?? true);
+                                    require LMS_ROOT . '/src/templates/partials/cu_unlock_toggle.php';
+                                    ?>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -517,6 +537,15 @@ ob_start();
                                         <?= e(__t('cu_roster.col.evaluation')) ?> <?= e($icon2) ?>
                                     </span>
                                 <?php endif; ?>
+                            </div>
+                            <div class="mt-2 d-flex align-items-center gap-2">
+                                <span class="small text-muted"><?= e(__t('cu_unlock.col.access')) ?>:</span>
+                                <?php
+                                $u_studentId  = (int) $r['id'];
+                                $u_isUnlocked = isset($unlockedStudentIds[$u_studentId]);
+                                $u_canManage  = $canManageUnlock && ($r['is_own'] ?? true);
+                                require LMS_ROOT . '/src/templates/partials/cu_unlock_toggle.php';
+                                ?>
                             </div>
                         </li>
                     <?php endforeach; ?>

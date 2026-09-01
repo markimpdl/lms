@@ -1220,6 +1220,20 @@ return [
 
     // CU Roster — aba Alunos da CU (E11-03)
     'cu_roster.title'                     => 'Alunos',
+
+    // Desbloqueio manual da CU por aluno (E36-02)
+    'cu_unlock.col.access'          => 'Acesso',
+    'cu_unlock.col.help'            => 'Libere esta unidade para um aluno específico, mesmo que ele ainda não tenha chegado nela.',
+    'cu_unlock.btn.unlock_title'    => 'Liberar esta unidade para o aluno',
+    'cu_unlock.btn.lock_title'      => 'Remover a liberação (a unidade volta a seguir a ordem do curso)',
+    'cu_unlock.badge.unlocked'      => 'Liberada',
+    'cu_unlock.badge.unlocked_title' => 'Esta unidade foi liberada manualmente para o aluno.',
+    'cu_unlock.flash.unlocked'      => 'Unidade liberada para o aluno.',
+    'cu_unlock.flash.locked'        => 'Liberação removida. A unidade volta a seguir a ordem do curso.',
+    'cu_unlock.err.invalid'         => 'Não foi possível alterar o acesso. Tente novamente.',
+    'cu_unlock.err.archived'        => 'Curso arquivado: o acesso não pode ser alterado.',
+    'cu_unlock.err.free_mode'       => 'Este curso está em modo livre — o aluno já acessa todas as unidades.',
+    'cu_unlock.err.not_my_student'  => 'Aluno não encontrado entre os seus matriculados neste curso.',
     'cu_roster.subtitle'                  => ':count aluno(s) matriculado(s) no curso desta CU',
     'cu_roster.only_active'               => 'Só alunos ativos',
     'cu_roster.col.student'               => 'Aluno',

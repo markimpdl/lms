@@ -233,6 +233,11 @@ return [
             'role'   => 'teacher',
             'params' => ['id'],
         ],
+        '#^/teacher/cu/(\d+)/unlock$#' => [
+            'file'   => '/src/pages/teacher/cu/unlock.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
         '#^/teacher/cu/(\d+)/attachment$#' => [
             'file'   => '/src/pages/teacher/cu/attachment-upload.php',
             'role'   => 'teacher',

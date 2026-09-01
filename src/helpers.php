@@ -124,6 +124,10 @@ function student_progression_check(int $studentId, int $tenantId, int $cuId): vo
  *  - 'completed' — concluído; renderiza nítido
  *  - 'free'      — modo livre (cc_mode='free'); renderiza nítido sem regras
  *
+ * E36-02: `student_cu_unlocks` sobrepõe o resultado — CU liberada pelo
+ * professor vira 'current' mesmo estando fora da vez, e a CC que a contém
+ * sai de 'hidden' pra que a unidade chegue a renderizar.
+ *
  * `current_cc_name` é o nome da CC atual (referenciado no overlay da
  * próxima CC: "Conclua [current_cc_name] primeiro"). Análogo para UC
  * em `current_cu_name`.
@@ -239,6 +243,42 @@ function course_progression_state(array $course, int $studentId): array
                 $currentCuName    = (string) $cu['name'];
                 $foundCurrentCu   = true;
                 $markNextCuAsNext = true;
+            }
+        }
+    }
+
+    // E36-02: desbloqueio manual. O professor pode liberar uma CU especifica
+    // pra um aluno especifico; aqui ela deixa de ser 'next'/'hidden' e passa a
+    // 'current' (nitida e navegavel). Aplicado DEPOIS das duas passadas pra
+    // sobrepor o resultado da regra sequencial sem reescreve-la.
+    //
+    // A CC que contem a CU liberada tambem precisa sair de 'next'/'hidden':
+    // a page do curso pula CC 'hidden' inteira (student/course/show.php), e a
+    // CU liberada nunca chegaria a renderizar. As OUTRAS CUs dessa CC seguem
+    // 'hidden' — libera-se a unidade, nao a competencia inteira.
+    //
+    // Nao mexe em 'completed' (ja esta acessivel) nem em current_cc_name /
+    // current_cu_name, que continuam apontando pro ponto real da trilha —
+    // sao o texto do overlay "Conclua X primeiro", nao a posicao do aluno.
+    $courseId = (int) ($course['course_id'] ?? 0);
+    $unlocked = $courseId > 0
+        ? StudentCuUnlock::cuIdsForStudentInCourse($studentId, $courseId)
+        : [];
+
+    if ($unlocked !== []) {
+        foreach ($ccs as $cc) {
+            $ccId = (int) $cc['id'];
+            foreach ($cc['cus'] ?? [] as $cu) {
+                $cuId = (int) $cu['id'];
+                if (!isset($unlocked[$cuId])) {
+                    continue;
+                }
+                if (($cuStatus[$cuId] ?? '') === 'next' || ($cuStatus[$cuId] ?? '') === 'hidden') {
+                    $cuStatus[$cuId] = 'current';
+                }
+                if (($ccStatus[$ccId] ?? '') === 'next' || ($ccStatus[$ccId] ?? '') === 'hidden') {
+                    $ccStatus[$ccId] = 'current';
+                }
             }
         }
     }
