@@ -16,6 +16,7 @@ $old = [
     'description'           => '',
     'year'                  => (int) date('Y'),
     'language'              => current_user()['language'] ?? 'pt',
+    'structure_version'     => 1,
     'cc_mode'               => 'sequential',
     'activity_mode'         => 'sequential',
     'eval_after_activities' => 1,
@@ -37,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'description'           => (string) ($_POST['description'] ?? ''),
         'year'                  => (int)    ($_POST['year']        ?? 0),
         'language'              => (string) ($_POST['language']    ?? 'pt'),
+        'structure_version'     => (int)    ($_POST['structure_version'] ?? 1),
         'cc_mode'               => (string) ($_POST['cc_mode']      ?? 'sequential'),
         'activity_mode'         => (string) ($_POST['activity_mode'] ?? 'sequential'),
         'eval_after_activities' => !empty($_POST['eval_after_activities']) ? 1 : 0,
@@ -112,7 +114,7 @@ ob_start();
                 </div>
             </div>
 
-            <?php require LMS_ROOT . '/src/templates/partials/course_progression_fields.php'; ?>
+            <?php $isCreate = true; require LMS_ROOT . '/src/templates/partials/course_progression_fields.php'; ?>
 
             <div class="d-flex flex-wrap gap-2">
                 <button type="submit" class="btn btn-primary btn-lg">

@@ -36,6 +36,15 @@ final class TeacherCoursesController
         $activityMode = (string) ($input['activity_mode'] ?? 'sequential');
         $evalAfter    = !empty($input['eval_after_activities']) ? 1 : 0;
 
+        // E36: structure_version. 1 = classico (V1), 2 = trilha de licoes (V2).
+        // Whitelist estrita no mesmo padrao dos modos de progressao: valor fora
+        // do par cai silencioso pro classico (defesa server-side). So eh lido na
+        // criacao — `update()` nao toca na coluna, o formato eh imutavel.
+        $structureVersion = (int) ($input['structure_version'] ?? 1);
+        if ($structureVersion !== 1 && $structureVersion !== 2) {
+            $structureVersion = 1;
+        }
+
         // E25-01: grading_mode (default 'grade'). LO mode só pra Actvet.
         $gradingMode = (string) ($input['grading_mode'] ?? ($isActvet ? 'learning_outcomes' : 'grade'));
         if (!in_array($gradingMode, ['grade', 'learning_outcomes'], true)) {
@@ -83,6 +92,7 @@ final class TeacherCoursesController
                 'description'           => $description,
                 'year'                  => $year,
                 'language'              => $language,
+                'structure_version'     => $structureVersion,
                 'cc_mode'               => $ccMode,
                 'activity_mode'         => $activityMode,
                 'eval_after_activities' => $evalAfter,

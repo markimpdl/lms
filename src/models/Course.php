@@ -66,6 +66,7 @@ final class Course
         $sql = <<<SQL
             SELECT
                 c.id, c.name, c.description, c.year, c.language,
+                c.structure_version,
                 c.archived, c.archived_at, c.created_at, c.updated_at,
                 COUNT(DISTINCT cc.id) AS cc_count,
                 COUNT(DISTINCT cu.id) AS cu_count
@@ -74,6 +75,7 @@ final class Course
             LEFT JOIN competence_units  cu ON cu.core_competency_id = cc.id
             WHERE {$whereSql}
             GROUP BY c.id, c.name, c.description, c.year, c.language,
+                     c.structure_version,
                      c.archived, c.archived_at, c.created_at, c.updated_at
             ORDER BY {$sortCol} {$dir}, c.id DESC
             LIMIT :limit OFFSET :offset
@@ -105,6 +107,7 @@ final class Course
         $sql = <<<SQL
             SELECT
                 c.id, c.tenant_id, c.name, c.description, c.year, c.language,
+                c.structure_version,
                 c.archived, c.archived_at, c.created_at, c.updated_at,
                 c.cc_mode, c.activity_mode, c.eval_after_activities,
                 c.grading_mode, c.report_mode,
@@ -115,6 +118,7 @@ final class Course
             LEFT JOIN competence_units  cu ON cu.core_competency_id = cc.id
             WHERE c.id = :id AND c.tenant_id = :tid
             GROUP BY c.id, c.tenant_id, c.name, c.description, c.year, c.language,
+                     c.structure_version,
                      c.archived, c.archived_at, c.created_at, c.updated_at,
                      c.cc_mode, c.activity_mode, c.eval_after_activities,
                      c.grading_mode, c.report_mode
@@ -248,14 +252,17 @@ final class Course
     }
 
     /**
-     * @param array{name:string, description:?string, year:int, language:string, cc_mode:string, activity_mode:string, eval_after_activities:int, grading_mode:string, report_mode:string} $data
+     * E36: `structure_version` (1 = classico, 2 = trilha) so entra aqui.
+     * `update()` nao mexe nele de proposito — ver nota naquele metodo.
+     *
+     * @param array{name:string, description:?string, year:int, language:string, structure_version:int, cc_mode:string, activity_mode:string, eval_after_activities:int, grading_mode:string, report_mode:string} $data
      */
     public static function create(int $tenantId, array $data): int
     {
         $stmt = Database::pdo()->prepare(
             'INSERT INTO courses
-                (tenant_id, name, description, year, language, cc_mode, activity_mode, eval_after_activities, grading_mode, report_mode)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                (tenant_id, name, description, year, language, structure_version, cc_mode, activity_mode, eval_after_activities, grading_mode, report_mode)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $tenantId,
@@ -263,6 +270,7 @@ final class Course
             $data['description'] !== '' ? $data['description'] : null,
             $data['year'],
             $data['language'],
+            $data['structure_version'],
             $data['cc_mode'],
             $data['activity_mode'],
             $data['eval_after_activities'],
@@ -273,6 +281,11 @@ final class Course
     }
 
     /**
+     * E36: `structure_version` NAO esta no SET de proposito — o formato eh
+     * escolhido na criacao e imutavel depois. Trocar V1 <-> V2 com conteudo
+     * ja criado nao tem semantica definida (uma CU V2 tem licoes que a tela
+     * V1 nao renderiza). A tela de edicao mostra badge, nao select.
+     *
      * @param array{name:string, description:?string, year:int, language:string, cc_mode:string, activity_mode:string, eval_after_activities:int, grading_mode:string, report_mode:string} $data
      */
     public static function update(int $courseId, int $tenantId, array $data): bool

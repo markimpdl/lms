@@ -328,6 +328,13 @@ return [
     // Progression modes (E19-01) — final in E19-04
     'courses.form.progression.title' => 'Progression modes',
     'courses.form.progression.help'  => 'Control the order in which students progress through the course.',
+
+    // Course format (E36) — chosen at creation, immutable afterwards
+    'courses.form.structure_version.label'           => 'Course format',
+    'courses.form.structure_version.help'            => 'Choose now: the format cannot be changed once the course is created.',
+    'courses.form.structure_version.option.classic'  => 'Classic — one content page per unit',
+    'courses.form.structure_version.option.track'    => 'Track — lessons and exercises in sequence inside the unit',
+    'courses.form.structure_version.immutable'       => 'The format is set at creation and cannot be changed.',
     'courses.form.cc_mode.label'     => 'Order of competencies and units',
     'courses.form.cc_mode.help'      => 'Sequential: student completes one to unlock the next. Free: any order.',
     'courses.form.activity_mode.label' => 'Order of activities within a unit',

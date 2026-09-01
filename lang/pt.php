@@ -328,6 +328,13 @@ return [
     // Modos de progressão (E19-01) — final em E19-04
     'courses.form.progression.title' => 'Modos de progressão',
     'courses.form.progression.help'  => 'Controle a ordem em que o aluno avança pelo curso.',
+
+    // Formato do curso (E36) — escolhido na criação, imutável depois
+    'courses.form.structure_version.label'           => 'Formato do curso',
+    'courses.form.structure_version.help'            => 'Escolha só agora: o formato não pode ser alterado depois que o curso for criado.',
+    'courses.form.structure_version.option.classic'  => 'Clássico — uma página de conteúdo por unidade',
+    'courses.form.structure_version.option.track'    => 'Trilha — lições e exercícios em sequência dentro da unidade',
+    'courses.form.structure_version.immutable'       => 'O formato é definido na criação e não pode ser alterado.',
     'courses.form.cc_mode.label'     => 'Ordem de competências e unidades',
     'courses.form.cc_mode.help'      => 'Sequencial: aluno conclui uma para liberar a próxima. Livre: pode acessar em qualquer ordem.',
     'courses.form.activity_mode.label' => 'Ordem das atividades dentro de uma unidade',
