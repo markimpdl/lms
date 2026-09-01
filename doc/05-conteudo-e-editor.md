@@ -4,6 +4,15 @@
 
 Cada **Competence Unit** tem uma página de conteúdo: um documento HTML rico, escrito pelo professor, que o aluno lê ao entrar na CU. É a principal fonte de estudo antes das atividades e da avaliação.
 
+**Em curso V2 (trilha, ADR-038)** essa mesma página vira a **capa** da unidade — a abertura, antes do primeiro item —, e o corpo do estudo se divide em **lições**: telas menores, na ordem que o professor definir, intercaladas com os exercícios.
+
+### Lições (só em curso V2)
+
+- Uma lição tem título, HTML rico, XP opcional e um estado de publicação próprio. **Rascunho não aparece pro aluno** e não entra no cálculo de progresso dele.
+- Usa o **mesmo editor e a mesma sanitização** da página de conteúdo — mesma allowlist de tags, mesma regra de iframe, mesmos anexos da CU disponíveis no picker de imagem.
+- O aluno marca a lição como **concluída** explicitamente (só abrir não conta). Isso alimenta o progresso da CU e credita o XP.
+- Apagar uma lição remove as conclusões dos alunos (cascade) **e o XP creditado por ela** — o modal de exclusão avisa quantos alunos serão afetados antes de confirmar.
+
 ## Editor WYSIWYG
 
 O professor edita o conteúdo em um editor visual tipo CMS. Requisitos mínimos do editor:

@@ -1240,6 +1240,12 @@ return [
     'track.err.stale'                => 'The track changed while you were reordering. Reload the page and redo it.',
     // Student view of the track (E36-05)
     'track.timeline.aria'            => 'Unit path',
+
+    // Keys missing since E20-03 (2026-04-26) — the quiz error paths were
+    // showing the raw key in the flash. Caught by the E36-07 audit.
+    'activities.student.err.closed'  => 'Submissions for this activity are closed.',
+    'activities.student.err.generic' => 'Could not save your answer. Please try again.',
+    'evaluations.grade.err.generic'  => 'Could not save the grade. Please try again.',
     'track.student.title'            => 'Unit path',
     'track.student.progress'         => ':done of :total completed',
     'track.student.start'            => 'Start',
