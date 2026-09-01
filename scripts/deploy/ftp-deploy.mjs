@@ -230,13 +230,26 @@ async function main() {
 
     const files = walk(REPO_ROOT);
     const toUpload = [];
+
+    // `newState` reflete o que esta CONFIRMADAMENTE no servidor. Arquivo
+    // inalterado entra aqui de cara (ja subiu numa execucao anterior);
+    // arquivo a enviar so entra DEPOIS do upload dar certo.
+    //
+    // Antes, todo arquivo entrava no state logo no inicio e o state so era
+    // gravado no fim. Isso tinha duas consequencias: (a) uma interrupcao
+    // descartava a transferencia inteira, e (b) salvar no meio do loop teria
+    // marcado como enviado o que nunca subiu, fazendo a proxima execucao
+    // pular esses arquivos pra sempre.
     const newState = {};
+    const pendingHash = new Map();
 
     for (const f of files) {
         const hash = hashFile(f.abs);
-        newState[f.rel] = hash;
         if (FORCE || state[f.rel] !== hash) {
             toUpload.push(f);
+            pendingHash.set(f.rel, hash);
+        } else {
+            newState[f.rel] = hash;
         }
     }
 
@@ -262,6 +275,10 @@ async function main() {
     //  - Reconexão reativa quando detecta erro de conexão (1 retry por arquivo)
     const THROTTLE_MS      = 80;
     const RECONNECT_EVERY  = 50;
+    // Grava o state a cada N uploads confirmados. Custo: uma escrita local
+    // de poucas centenas de KB a cada 50 arquivos — irrelevante perto do
+    // handshake TLS de cada upload.
+    const SAVE_EVERY       = 50;
     const ACCESS_OPTS = {
         host: env.FTP_HOST,
         port: Number(env.FTP_PORT || 21),
@@ -318,9 +335,15 @@ async function main() {
                 try {
                     await ensureRemoteDir(client, remote);
                     await client.uploadFrom(f.abs, remote);
+                    newState[f.rel] = pendingHash.get(f.rel);
                     console.log(`  ↑ ${f.rel.split(/\\/).join("/")}`);
                     ok++;
                     sinceReconnect++;
+
+                    // Checkpoint: uma interrupcao agora custa no maximo os
+                    // ultimos SAVE_EVERY arquivos, nao a transferencia toda.
+                    if (ok % SAVE_EVERY === 0) saveState(newState);
+
                     if (THROTTLE_MS > 0) await sleep(THROTTLE_MS);
                     break;
                 } catch (err) {
@@ -335,13 +358,13 @@ async function main() {
                         } catch (reErr) {
                             console.error(`  ✖ ${f.rel} — reconexao falhou: ${reErr.message}`);
                             fail++;
-                            delete newState[f.rel];
+                            // Sem delete: falha nunca chegou a entrar no state.
                             break;
                         }
                     }
                     console.error(`  ✖ ${f.rel} — ${err.message}`);
                     fail++;
-                    delete newState[f.rel];
+                    // Sem delete: falha nunca chegou a entrar no state.
                     break;
                 }
             }
