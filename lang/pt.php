@@ -1242,6 +1242,12 @@ return [
     'track.err.stale'                => 'A trilha mudou enquanto você reordenava. Recarregue a página e refaça.',
     // Trilha na visão do aluno (E36-05)
     'track.timeline.aria'            => 'Percurso da unidade',
+
+    // Chaves ausentes desde E20-03 (2026-04-26) — os caminhos de erro do quiz
+    // mostravam a chave crua no flash. Detectadas na auditoria do E36-07.
+    'activities.student.err.closed'  => 'As entregas desta atividade estão fechadas.',
+    'activities.student.err.generic' => 'Não foi possível salvar sua resposta. Tente novamente.',
+    'evaluations.grade.err.generic'  => 'Não foi possível salvar a correção. Tente novamente.',
     'track.student.title'            => 'Percurso da unidade',
     'track.student.progress'         => ':done de :total concluídos',
     'track.student.start'            => 'Começar',
