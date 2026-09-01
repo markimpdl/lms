@@ -249,7 +249,13 @@ ob_start();
                             // Atividade e avaliação do tipo quiz têm tela de
                             // edição própria — mandar pro /edit comum abriria o
                             // formulário errado.
-                            $itemAct  = $actById[$item['id']] ?? null;
+                            // Só atividade indexa em $actById: lesson e activity
+                            // são tabelas distintas, com ids que colidem. Sem o
+                            // guard de tipo, uma lição pegaria a linha de uma
+                            // atividade de mesmo id.
+                            $itemAct  = $item['type'] === 'activity'
+                                ? ($actById[$item['id']] ?? null)
+                                : null;
                             $itemHref = match ($item['type']) {
                                 'lesson'   => '/teacher/lesson/' . $item['id'] . '/edit',
                                 'activity' => (string) ($itemAct['type'] ?? '') === 'quiz'
