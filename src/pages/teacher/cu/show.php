@@ -73,6 +73,17 @@ $rosterCount   = count($roster);
 $isV2       = (int) ($cu['course_structure_version'] ?? 1) === 2;
 $trackItems = $isV2 ? UnitTrackService::forCu($cuId) : [];
 
+// E36-08: em V2 a trilha ABSORVE a seção de Atividades (senão o mesmo
+// exercício aparece em duas listas). Pra não perder função no caminho, as
+// linhas da trilha precisam do que só `Activity::listByCu` traz: contagem de
+// entregas, estado aberto/fechado e o tipo (que decide a URL de edição).
+$actById = [];
+if ($isV2) {
+    foreach ($activities as $__a) {
+        $actById[(int) $__a['id']] = $__a;
+    }
+}
+
 $unlockedStudentIds = StudentCuUnlock::studentIdsForCu($cuId);
 $canManageUnlock    = !$isArchived
     && (string) ($cu['course_cc_mode'] ?? 'sequential') === 'sequential';
@@ -161,6 +172,12 @@ ob_start();
         <?php endif; ?>
 
         <div class="card shadow-sm mb-3">
+            <?php if ($isV2): ?>
+                <div class="card-header">
+                    <h2 class="h6 mb-0"><?= e(__t('track.cover.title')) ?></h2>
+                    <small class="text-muted"><?= e(__t('track.cover.help')) ?></small>
+                </div>
+            <?php endif; ?>
             <?php if ($hasContent): ?>
                 <div class="card-body content-render"
                      x-data="{ expanded: false, needsToggle: false }"
@@ -193,9 +210,14 @@ ob_start();
                     <small class="text-muted"><?= e(__t('track.section.subtitle')) ?></small>
                 </div>
                 <?php if (!$isArchived): ?>
-                    <a href="/teacher/cu/<?= $cuId ?>/lesson/new" class="btn btn-sm btn-primary">
-                        <?= e(__t('lessons.new.button')) ?>
-                    </a>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="/teacher/cu/<?= $cuId ?>/lesson/new" class="btn btn-sm btn-primary">
+                            + <?= e(__t('lessons.new.button')) ?>
+                        </a>
+                        <a href="/teacher/cu/<?= $cuId ?>/activity/new" class="btn btn-sm btn-outline-primary">
+                            + <?= e(__t('activities.new_button')) ?>
+                        </a>
+                    </div>
                 <?php endif; ?>
             </div>
             <?php if ($trackItems === []): ?>
@@ -224,9 +246,15 @@ ob_start();
                                 'activity' => ['✏️', __t('track.type.activity')],
                                 default    => ['🎓', __t('track.type.evaluation')],
                             };
+                            // Atividade e avaliação do tipo quiz têm tela de
+                            // edição própria — mandar pro /edit comum abriria o
+                            // formulário errado.
+                            $itemAct  = $actById[$item['id']] ?? null;
                             $itemHref = match ($item['type']) {
                                 'lesson'   => '/teacher/lesson/' . $item['id'] . '/edit',
-                                'activity' => '/teacher/activity/' . $item['id'] . '/edit',
+                                'activity' => (string) ($itemAct['type'] ?? '') === 'quiz'
+                                    ? '/teacher/activity/' . $item['id'] . '/quiz'
+                                    : '/teacher/activity/' . $item['id'] . '/edit',
                                 default    => '/teacher/evaluation/' . $item['id'] . '/edit',
                             };
                         ?>
@@ -251,6 +279,33 @@ ob_start();
                                     <span class="badge text-bg-warning-subtle text-warning-emphasis">
                                         <?= e(__t('track.badge.draft')) ?>
                                     </span>
+                                <?php elseif ($item['type'] === 'activity' && $itemAct !== null):
+                                    $aOpen = (int) $itemAct['submission_open'] === 1;
+                                    $aSubs = (int) $itemAct['submission_count'];
+                                ?>
+                                    <?php if ($aSubs > 0): ?>
+                                        <a href="/teacher/activity/<?= (int) $item['id'] ?>/submissions"
+                                           class="small text-decoration-none">
+                                            <?= $aSubs ?> <?= e(__t('activities.submissions_label')) ?>
+                                        </a>
+                                    <?php endif; ?>
+                                    <span class="badge text-bg-<?= $aOpen ? 'success' : 'secondary' ?>">
+                                        <?= e(__t($aOpen ? 'activities.status.open' : 'activities.status.closed')) ?>
+                                    </span>
+                                    <?php if (!$isArchived): ?>
+                                        <?php
+                                        // `formaction` em vez de <form> aninhado: esta lista
+                                        // vive dentro do form de reordenação, e HTML não
+                                        // permite form dentro de form. O CSRF do form externo
+                                        // vale, e o handler de toggle ignora os campos extras.
+                                        ?>
+                                        <button type="submit" formmethod="post"
+                                                formaction="/teacher/activity/<?= (int) $item['id'] ?>/toggle"
+                                                class="btn btn-sm btn-outline-<?= $aOpen ? 'warning' : 'success' ?> py-0 px-2"
+                                                title="<?= e(__t($aOpen ? 'activities.action.close' : 'activities.action.open')) ?>">
+                                            <?= e(__t($aOpen ? 'activities.action.close' : 'activities.action.open')) ?>
+                                        </button>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                                 <?php if ((int) $item['xp_value'] > 0): ?>
                                     <span class="badge text-bg-light border">
@@ -318,6 +373,9 @@ ob_start();
                             if (ev.submitter && ev.submitter.name === 'move') {
                                 return; // fallback de seta: o servidor calcula
                             }
+                            if (ev.submitter && ev.submitter.hasAttribute('formaction')) {
+                                return; // toggle de entrega: outro endpoint
+                            }
                             form.querySelectorAll('input[name="order[]"]').forEach(function (el) {
                                 el.remove();
                             });
@@ -336,6 +394,10 @@ ob_start();
         </div>
         <?php endif; ?>
 
+        <?php /* E36-08: em V2 a trilha já lista os exercícios com entregas,
+                 status e toggle — manter esta seção mostraria o mesmo item
+                 duas vezes, em duas ordens que podem divergir. */ ?>
+        <?php if (!$isV2): ?>
         <!-- Atividades (E6-02) -->
         <div class="card shadow-sm mb-3">
             <div class="card-header d-flex align-items-center justify-content-between gap-2 flex-wrap">
@@ -416,6 +478,8 @@ ob_start();
                 </ul>
             <?php endif; ?>
         </div>
+
+        <?php endif; /* fim da seção Atividades — só em V1 */ ?>
 
         <!-- Conclusão manual (v0.31.0) — alternativa à avaliação para CUs
              content-only. Mutuamente exclusivo com evaluation: enquanto

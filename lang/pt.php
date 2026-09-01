@@ -1223,6 +1223,8 @@ return [
 
     // Trilha da unidade e lições (E36-03)
     'content.editor.block_formats'   => 'Parágrafo=p; Título 2=h2; Título 3=h3; Título 4=h4',
+    'track.cover.title'              => 'Capa da unidade',
+    'track.cover.help'               => 'O que o aluno vê ao abrir a unidade, antes do primeiro item da trilha.',
     'track.section.title'            => 'Trilha da unidade',
     'track.section.subtitle'         => 'Lições e exercícios na ordem em que o aluno percorre. A avaliação fecha o percurso.',
     'track.empty'                    => 'Nenhuma lição ou exercício ainda. Comece criando a primeira lição.',
