@@ -2,30 +2,57 @@
 declare(strict_types=1);
 
 /**
- * Lógica de autenticação: rate limit por IP, verificação de senha,
+ * Lógica de autenticação: rate limit de login, verificação de senha,
  * regeneração de sessão no login e invalidação no logout.
  */
 final class AuthController
 {
-    public const MAX_ATTEMPTS   = 5;
-    public const WINDOW_MINUTES = 15;
+    /** Falhas tolerada por CONTA (email) na janela antes de bloquear. */
+    public const MAX_ATTEMPTS = 5;
 
     /**
-     * True se o IP tem ≥ MAX_ATTEMPTS falhas nos últimos WINDOW_MINUTES minutos.
+     * Teto por IP na janela. Alto de propósito: em curso presencial a turma
+     * inteira sai pelo mesmo IP público (NAT da escola), então um teto baixo
+     * por IP bloqueia alunos que nem erraram a senha. Serve só como freio
+     * contra força bruta em volume — que faz milhares de tentativas, não 100.
      */
-    public static function isIpBlocked(string $ip): bool
+    public const MAX_ATTEMPTS_IP = 100;
+
+    public const WINDOW_MINUTES = 15;
+
+    /** Retenção de `login_attempts` (dias) — purgada pelo cron diário. */
+    public const ATTEMPTS_RETENTION_DAYS = 30;
+
+    /**
+     * True se as credenciais devem ser recusadas sem sequer consultar `users`.
+     *
+     * Bloqueia quando a CONTA acumulou MAX_ATTEMPTS falhas na janela, ou
+     * quando o IP passou de MAX_ATTEMPTS_IP falhas. O bloqueio por conta é a
+     * proteção real (isola quem errou a senha); o por IP é anti-força-bruta.
+     */
+    public static function isBlocked(string $email, string $ip): bool
     {
-        if ($ip === '') {
-            return false;
+        if ($email !== '' && self::failuresFor('email', $email) >= self::MAX_ATTEMPTS) {
+            return true;
         }
+        return $ip !== '' && self::failuresFor('ip_address', $ip) >= self::MAX_ATTEMPTS_IP;
+    }
+
+    /**
+     * Falhas na janela para uma coluna indexada de `login_attempts`.
+     *
+     * @param 'email'|'ip_address' $column Nome literal — nunca vem de input.
+     */
+    private static function failuresFor(string $column, string $value): int
+    {
         $stmt = Database::pdo()->prepare(
-            'SELECT COUNT(*) FROM login_attempts
-              WHERE ip_address = ?
+            "SELECT COUNT(*) FROM login_attempts
+              WHERE {$column} = ?
                 AND success = 0
-                AND created_at > (NOW() - INTERVAL ? MINUTE)'
+                AND created_at > (NOW() - INTERVAL ? MINUTE)"
         );
-        $stmt->execute([$ip, self::WINDOW_MINUTES]);
-        return (int) $stmt->fetchColumn() >= self::MAX_ATTEMPTS;
+        $stmt->execute([$value, self::WINDOW_MINUTES]);
+        return (int) $stmt->fetchColumn();
     }
 
     public static function recordAttempt(string $email, string $ip, bool $success): void
@@ -33,6 +60,34 @@ final class AuthController
         Database::pdo()->prepare(
             'INSERT INTO login_attempts (email, ip_address, success) VALUES (?, ?, ?)'
         )->execute([$email, $ip, $success ? 1 : 0]);
+
+        // Credencial correta zera o histórico de falhas da conta: quem acabou
+        // de provar que sabe a senha não pode entrar bloqueado no próximo
+        // typo por causa de tentativas antigas ainda dentro da janela.
+        if ($success && $email !== '') {
+            self::clearFailures($email);
+        }
+    }
+
+    /** Remove as falhas registradas para o email (chamado após login OK). */
+    public static function clearFailures(string $email): void
+    {
+        Database::pdo()
+            ->prepare('DELETE FROM login_attempts WHERE email = ? AND success = 0')
+            ->execute([$email]);
+    }
+
+    /**
+     * Apaga tentativas mais velhas que ATTEMPTS_RETENTION_DAYS.
+     * Retorna o número de rows removidas. Idempotente.
+     */
+    public static function purgeOldAttempts(): int
+    {
+        $stmt = Database::pdo()->prepare(
+            'DELETE FROM login_attempts WHERE created_at < (NOW() - INTERVAL ? DAY)'
+        );
+        $stmt->execute([self::ATTEMPTS_RETENTION_DAYS]);
+        return $stmt->rowCount();
     }
 
     /**
