@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isPickerSubmit) {
     $email    = strtolower(trim((string) ($_POST['email'] ?? '')));
     $password = (string) ($_POST['password'] ?? '');
 
-    if (AuthController::isIpBlocked($ip)) {
+    if (AuthController::isBlocked($email, $ip)) {
         $error = __t('auth.rate_limited');
     } else {
         $valid = filter_var($email, FILTER_VALIDATE_EMAIL) !== false
