@@ -52,10 +52,11 @@ final class CourseCopyService
                     $pdo,
                     'INSERT INTO courses
                        (tenant_id, name, description, year, language, archived, archived_at,
-                        cc_mode, activity_mode, eval_after_activities, grading_mode, report_mode)
+                        structure_version, cc_mode, activity_mode, eval_after_activities, grading_mode, report_mode)
                      VALUES (?, ?, ?, ?, ?, 0, NULL, ?, ?, ?, ?, ?)',
                     [
                         $tenantId, self::copyName((string) $src['name']), $src['description'], (int) $src['year'], $src['language'],
+                        (int) $src['structure_version'],
                         $src['cc_mode'], $src['activity_mode'], (int) $src['eval_after_activities'],
                         $src['grading_mode'], $src['report_mode'],
                     ]
@@ -349,7 +350,7 @@ final class CourseCopyService
     private static function fetchCourse(PDO $pdo, int $courseId, int $tenantId): ?array
     {
         $st = $pdo->prepare(
-            'SELECT id, name, description, year, language, cc_mode, activity_mode, eval_after_activities, grading_mode, report_mode
+            'SELECT id, name, description, year, language, structure_version, cc_mode, activity_mode, eval_after_activities, grading_mode, report_mode
                FROM courses WHERE id = ? AND tenant_id = ?'
         );
         $st->execute([$courseId, $tenantId]);

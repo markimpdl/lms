@@ -34,6 +34,7 @@ $old = [
     'description'           => (string) ($course['description'] ?? ''),
     'year'                  => (int)    $course['year'],
     'language'              => (string) $course['language'],
+    'structure_version'     => (int)    ($course['structure_version'] ?? 1),
     'cc_mode'               => (string) ($course['cc_mode'] ?? 'sequential'),
     'activity_mode'         => (string) ($course['activity_mode'] ?? 'sequential'),
     'eval_after_activities' => (int)    ($course['eval_after_activities'] ?? 1),

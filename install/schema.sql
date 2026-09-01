@@ -1559,6 +1559,106 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
+-- ============================================================================
+-- [E36 / Cursos V2 — trilha de licoes] ---------------------------------------
+--
+-- Segundo formato de curso. Curso V1 (estrutura classica: 1 pagina de conteudo
+-- por CU + atividades + avaliacao) continua intacto e eh o default; V2 troca a
+-- pagina unica por uma sequencia navegavel de licoes e exercicios dentro da CU,
+-- com a avaliacao sempre no fim.
+--
+-- Nenhum curso existente muda: structure_version nasce 1 em toda linha atual.
+-- ============================================================================
+
+-- [E36] courses.structure_version — 1 = classico (V1), 2 = trilha (V2).
+-- Escolhido na criacao do curso e imutavel depois (a tela de edicao mostra
+-- badge, nao select) — mudar de formato com conteudo criado nao tem semantica
+-- definida. DEFAULT 1 eh o que preserva todo curso ja existente.
+-- Sem CHECK: a whitelist vive em TeacherCoursesController::validate(), igual
+-- aos demais modos de progressao (cc_mode/activity_mode).
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'courses'
+       AND COLUMN_NAME  = 'structure_version'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE courses ADD COLUMN structure_version TINYINT UNSIGNED NOT NULL DEFAULT 1 AFTER language",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [E36] lessons — as telas da trilha de uma CU em curso V2.
+--
+-- Sem tenant_id, igual `contents` e `activities`: o tenant deriva da cadeia
+-- CU -> CC -> course.tenant_id, e replicar a coluna aqui criaria uma segunda
+-- fonte de verdade pra isolar.
+--
+-- `position` compartilha o MESMO espaco de numeracao com `activities.position`
+-- dentro da CU — eh assim que licao e exercicio se intercalam numa ordem so.
+-- Quem cria licao ou atividade em curso V2 tem de calcular o proximo position
+-- como MAX sobre as DUAS tabelas (UnitTrackService::nextPosition).
+--
+-- `html` passa por ContentSanitizer::purify() antes de salvar, mesma allowlist
+-- de iframe (YouTube/Vimeo) usada em `contents`.
+CREATE TABLE IF NOT EXISTS lessons (
+    id                  BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    competence_unit_id  BIGINT UNSIGNED NOT NULL,
+    title               VARCHAR(200) NOT NULL,
+    html                MEDIUMTEXT   NOT NULL,
+    xp_value            INT UNSIGNED NOT NULL DEFAULT 0,
+    published           TINYINT(1)   NOT NULL DEFAULT 0,
+    position            INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_lessons_cu_pos (competence_unit_id, position),
+    CONSTRAINT fk_lessons_cu FOREIGN KEY (competence_unit_id)
+        REFERENCES competence_units(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- [E36] lesson_completions — aluno marcou "concluí" na licao. Mesmo desenho de
+-- cu_manual_completions: PK composta da idempotencia (1 linha por aluno+licao),
+-- XP creditado em xp_events em paralelo (source_type='lesson'). Entra no
+-- calculo de % da CU junto com atividades e avaliacao.
+CREATE TABLE IF NOT EXISTS lesson_completions (
+    lesson_id        BIGINT UNSIGNED NOT NULL,
+    student_user_id  BIGINT UNSIGNED NOT NULL,
+    completed_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (lesson_id, student_user_id),
+    KEY idx_lc_student (student_user_id),
+    CONSTRAINT fk_lc_lesson  FOREIGN KEY (lesson_id)       REFERENCES lessons(id) ON DELETE CASCADE,
+    CONSTRAINT fk_lc_student FOREIGN KEY (student_user_id) REFERENCES users(id)   ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- [E36] student_cu_unlocks — professor liberou uma CU especifica pra um aluno
+-- especifico, furando a trava sequencial. Vale em curso V1 E V2: eh override do
+-- gate calculado em course_progression_state(), nao muda estrutura nenhuma.
+--
+-- NAO marca a CU como concluida e nao afeta o calculo de %.
+--
+-- granted_by_user_id eh NULL-able com SET NULL: se o professor for removido, o
+-- desbloqueio do aluno continua valendo — perder a autoria nao pode re-trancar
+-- a CU na cara do aluno.
+CREATE TABLE IF NOT EXISTS student_cu_unlocks (
+    cu_id              BIGINT UNSIGNED NOT NULL,
+    student_user_id    BIGINT UNSIGNED NOT NULL,
+    granted_by_user_id BIGINT UNSIGNED NULL DEFAULT NULL,
+    granted_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (cu_id, student_user_id),
+    KEY idx_scu_student (student_user_id),
+    CONSTRAINT fk_scu_cu      FOREIGN KEY (cu_id)              REFERENCES competence_units(id) ON DELETE CASCADE,
+    CONSTRAINT fk_scu_student FOREIGN KEY (student_user_id)    REFERENCES users(id)            ON DELETE CASCADE,
+    CONSTRAINT fk_scu_granter FOREIGN KEY (granted_by_user_id) REFERENCES users(id)            ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- [E36] xp_events.source_type — adiciona 'lesson' pra creditar XP quando o
+-- aluno conclui uma licao. MODIFY COLUMN com o set estendido eh idempotente;
+-- a UK (student_user_id, source_type, source_id) ja cobre o dedup.
+ALTER TABLE xp_events
+    MODIFY COLUMN source_type ENUM('activity','evaluation','cu_manual','lesson') NOT NULL;
+
 -- ----------------------------------------------------------------------------
 SET FOREIGN_KEY_CHECKS = 1;
 SET SQL_MODE = @OLD_SQL_MODE;

@@ -10,6 +10,8 @@
  *   $errors   array (pode estar vazio)
  *   $isActvet bool (opcional, default false) — controla visibilidade dos
  *             selects de grading_mode e report_mode
+ *   $isCreate bool (opcional, default false) — true no form de criação, onde
+ *             structure_version eh um select; na edição vira badge (imutável)
  *
  * Reatividade Alpine: o select de grading_mode é fonte de truth pra
  * mostrar/esconder o report_mode (que só faz sentido em LO mode).
@@ -21,6 +23,41 @@
         <?= e(__t('courses.form.progression.title')) ?>
     </legend>
     <p class="text-muted small mb-3"><?= e(__t('courses.form.progression.help')) ?></p>
+
+    <?php
+    // E36: formato do curso. Escolhido na criação e imutável depois — na
+    // edição vira badge, sem input nenhum. Nunca renderizar um select
+    // desabilitado/oculto aqui: dois inputs com o mesmo name submetem juntos.
+    $structureVersion = (int) ($old['structure_version'] ?? 1);
+    ?>
+    <?php if (!empty($isCreate)): ?>
+        <div class="mb-3">
+            <label for="f-structure-version" class="form-label">
+                <?= e(__t('courses.form.structure_version.label')) ?>
+            </label>
+            <select name="structure_version" id="f-structure-version" class="form-select">
+                <option value="1" <?= $structureVersion === 1 ? 'selected' : '' ?>>
+                    <?= e(__t('courses.form.structure_version.option.classic')) ?>
+                </option>
+                <option value="2" <?= $structureVersion === 2 ? 'selected' : '' ?>>
+                    <?= e(__t('courses.form.structure_version.option.track')) ?>
+                </option>
+            </select>
+            <div class="form-text"><?= e(__t('courses.form.structure_version.help')) ?></div>
+        </div>
+    <?php else: ?>
+        <div class="mb-3">
+            <span class="form-label d-block mb-1">
+                <?= e(__t('courses.form.structure_version.label')) ?>
+            </span>
+            <span class="badge text-bg-secondary">
+                <?= e(__t($structureVersion === 2
+                    ? 'courses.form.structure_version.option.track'
+                    : 'courses.form.structure_version.option.classic')) ?>
+            </span>
+            <div class="form-text"><?= e(__t('courses.form.structure_version.immutable')) ?></div>
+        </div>
+    <?php endif; ?>
 
     <div class="row g-3">
         <div class="col-12 col-md-6">
