@@ -51,7 +51,12 @@ final class AuthController
                 AND success = 0
                 AND created_at > (NOW() - INTERVAL ? MINUTE)"
         );
-        $stmt->execute([$value, self::WINDOW_MINUTES]);
+        // Com ATTR_EMULATE_PREPARES=false o execute(array) manda todo valor
+        // como string. O servidor aceita '15' no INTERVAL, mas depender dessa
+        // coercao e fragil — PARAM_INT explicito deixa o tipo claro.
+        $stmt->bindValue(1, $value);
+        $stmt->bindValue(2, self::WINDOW_MINUTES, PDO::PARAM_INT);
+        $stmt->execute();
         return (int) $stmt->fetchColumn();
     }
 
@@ -86,7 +91,9 @@ final class AuthController
         $stmt = Database::pdo()->prepare(
             'DELETE FROM login_attempts WHERE created_at < (NOW() - INTERVAL ? DAY)'
         );
-        $stmt->execute([self::ATTEMPTS_RETENTION_DAYS]);
+        // PARAM_INT explicito no INTERVAL (mesmo motivo de failuresFor).
+        $stmt->bindValue(1, self::ATTEMPTS_RETENTION_DAYS, PDO::PARAM_INT);
+        $stmt->execute();
         return $stmt->rowCount();
     }
 
