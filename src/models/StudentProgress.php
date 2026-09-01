@@ -8,7 +8,18 @@ declare(strict_types=1);
  * só faziam como placeholder até agora.
  *
  * Fórmula da CU (doc/10):
- *   percent = (entregues + avaliacao_aprovada) / (N_atividades + tem_avaliacao) × 100
+ *   percent = (licoes_concluidas + entregues + avaliacao_aprovada)
+ *             / (N_licoes_publicadas + N_atividades + tem_avaliacao) × 100
+ *
+ * **Esta formula tem uma copia em SQL agregado em `CourseMatrix`** (que evita
+ * N*M round-trips na matriz do professor). As duas mudam SEMPRE JUNTAS — se
+ * divergirem, o mesmo aluno mostra percentuais diferentes no dashboard e na
+ * matriz. Foi o que aconteceu entre a v0.31.0 e o E36-06.
+ *
+ * E36-06: licoes entram no calculo. **Nao precisa ramificar por formato de
+ * curso**: em V1 nao existem licoes, as duas contagens dao 0 e a formula
+ * resulta exatamente no que era antes. Licao em rascunho nao conta — o aluno
+ * nao a ve, entao ela nao pode pesar no denominador dele.
  *
  * "Avaliação aprovada" = existe submissão (única por par eval/student desde
  * v0.29.0) com `grade >= 6` (nota que aprova a CU — E7-03). `tem_avaliacao` = existe
@@ -36,6 +47,13 @@ final class StudentProgress
         // numerador quando o aluno clicou em "Mark as completed" (v0.31.0).
         $stmt = Database::pdo()->prepare(
             'SELECT
+                (SELECT COUNT(*) FROM lessons
+                  WHERE competence_unit_id = ? AND published = 1) AS lessons_total,
+                (SELECT COUNT(*) FROM lesson_completions lc
+                   JOIN lessons l ON l.id = lc.lesson_id
+                  WHERE l.competence_unit_id = ?
+                    AND l.published = 1
+                    AND lc.student_user_id = ?) AS lessons_done,
                 (SELECT COUNT(*) FROM activities WHERE competence_unit_id = ?) AS activities_total,
                 (SELECT COUNT(*) FROM activity_submissions s
                    JOIN activities a ON a.id = s.activity_id
@@ -51,7 +69,13 @@ final class StudentProgress
                 (SELECT COUNT(*) FROM cu_manual_completions
                   WHERE cu_id = ? AND student_user_id = ?) AS manual_completed'
         );
-        $stmt->execute([$cuId, $cuId, $studentId, $cuId, $cuId, $studentId, $cuId, $cuId, $studentId]);
+        // A ordem dos placeholders segue exatamente a ordem das subqueries.
+        $stmt->execute([
+            $cuId, $cuId, $studentId,   // lessons_total, lessons_done
+            $cuId, $cuId, $studentId,   // activities_total, activities_done
+            $cuId, $cuId, $studentId,   // has_evaluation, evaluation_approved
+            $cuId, $cuId, $studentId,   // has_manual_completion, manual_completed
+        ]);
         $row = $stmt->fetch();
 
         // Disable retroativo do manual_completion zera a contribuicao do
@@ -60,10 +84,12 @@ final class StudentProgress
         // gerando percent > 100.
         $hasManual    = (int) ($row['has_manual_completion'] ?? 0);
         $manualDone   = (int) ($row['manual_completed']      ?? 0) * $hasManual;
-        $total = (int) ($row['activities_total'] ?? 0)
+        $total = (int) ($row['lessons_total']    ?? 0)
+               + (int) ($row['activities_total'] ?? 0)
                + (int) ($row['has_evaluation']   ?? 0)
                + $hasManual;
-        $done  = (int) ($row['activities_done']     ?? 0)
+        $done  = (int) ($row['lessons_done']        ?? 0)
+               + (int) ($row['activities_done']     ?? 0)
                + (int) ($row['evaluation_approved'] ?? 0)
                + $manualDone;
 
