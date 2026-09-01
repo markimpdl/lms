@@ -203,44 +203,131 @@ ob_start();
                     <p class="text-muted mb-0 text-center py-3"><?= e(__t('track.empty')) ?></p>
                 </div>
             <?php else: ?>
-                <ul class="list-group list-group-flush">
-                    <?php foreach ($trackItems as $i => $item): ?>
-                        <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
-                            <span class="badge text-bg-light border"><?= (int) ($i + 1) ?></span>
-                            <?php
+                <?php
+                // A avaliacao aparece na lista mas NAO eh arrastavel e NAO entra
+                // no POST de ordem: ela nao tem position, eh sempre a ultima.
+                $reorderableCount = 0;
+                foreach ($trackItems as $__it) {
+                    if ($__it['type'] !== 'evaluation') {
+                        $reorderableCount++;
+                    }
+                }
+                $canReorder = !$isArchived && $reorderableCount > 1;
+                ?>
+                <form method="POST" action="/teacher/cu/<?= $cuId ?>/track/reorder" id="trackReorderForm">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="move_type" value="">
+                    <input type="hidden" name="move_id"   value="">
+                    <ul class="list-group list-group-flush" id="trackList">
+                        <?php foreach ($trackItems as $i => $item):
+                            $isEval = $item['type'] === 'evaluation';
                             [$itemIcon, $itemLabel] = match ($item['type']) {
-                                'lesson'     => ['📄', __t('track.type.lesson')],
-                                'activity'   => ['✏️', __t('track.type.activity')],
-                                default      => ['🎓', __t('track.type.evaluation')],
+                                'lesson'   => ['📄', __t('track.type.lesson')],
+                                'activity' => ['✏️', __t('track.type.activity')],
+                                default    => ['🎓', __t('track.type.evaluation')],
                             };
                             $itemHref = match ($item['type']) {
                                 'lesson'   => '/teacher/lesson/' . $item['id'] . '/edit',
                                 'activity' => '/teacher/activity/' . $item['id'] . '/edit',
                                 default    => '/teacher/evaluation/' . $item['id'] . '/edit',
                             };
-                            ?>
-                            <span title="<?= e($itemLabel) ?>" aria-hidden="true"><?= $itemIcon ?></span>
-                            <a href="<?= e($itemHref) ?>" class="text-decoration-none flex-grow-1">
-                                <?= e((string) $item['title']) ?>
-                            </a>
-                            <?php if ($item['type'] === 'evaluation'): ?>
-                                <span class="badge text-bg-secondary"><?= e(__t('track.badge.always_last')) ?></span>
-                            <?php elseif ($item['type'] === 'lesson' && (int) $item['published'] === 0): ?>
-                                <span class="badge text-bg-warning-subtle text-warning-emphasis">
-                                    <?= e(__t('track.badge.draft')) ?>
-                                </span>
-                            <?php endif; ?>
-                            <?php if ((int) $item['xp_value'] > 0): ?>
-                                <span class="badge text-bg-light border">
-                                    <?= e(__t('track.badge.xp', ['xp' => (string) (int) $item['xp_value']])) ?>
-                                </span>
-                            <?php endif; ?>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-                <div class="card-footer small text-muted">
-                    <?= e(__t('track.reorder_hint')) ?>
-                </div>
+                        ?>
+                            <li class="list-group-item d-flex align-items-center gap-2 flex-wrap<?= $isEval ? ' bg-body-tertiary' : '' ?>"
+                                <?php if (!$isEval): ?>data-track-item="<?= e($item['type'] . ':' . $item['id']) ?>"<?php endif; ?>>
+
+                                <?php if ($canReorder && !$isEval): ?>
+                                    <span class="track-handle text-muted" title="<?= e(__t('track.drag_title')) ?>"
+                                          aria-hidden="true" style="cursor:grab">&#9776;</span>
+                                <?php endif; ?>
+
+                                <span class="badge text-bg-light border"><?= (int) ($i + 1) ?></span>
+                                <span title="<?= e($itemLabel) ?>" aria-hidden="true"><?= $itemIcon ?></span>
+
+                                <a href="<?= e($itemHref) ?>" class="text-decoration-none flex-grow-1">
+                                    <?= e((string) $item['title']) ?>
+                                </a>
+
+                                <?php if ($isEval): ?>
+                                    <span class="badge text-bg-secondary"><?= e(__t('track.badge.always_last')) ?></span>
+                                <?php elseif ($item['type'] === 'lesson' && (int) $item['published'] === 0): ?>
+                                    <span class="badge text-bg-warning-subtle text-warning-emphasis">
+                                        <?= e(__t('track.badge.draft')) ?>
+                                    </span>
+                                <?php endif; ?>
+                                <?php if ((int) $item['xp_value'] > 0): ?>
+                                    <span class="badge text-bg-light border">
+                                        <?= e(__t('track.badge.xp', ['xp' => (string) (int) $item['xp_value']])) ?>
+                                    </span>
+                                <?php endif; ?>
+
+                                <?php if ($canReorder && !$isEval): ?>
+                                    <span class="btn-group btn-group-sm" role="group">
+                                        <button type="submit" name="move_dir" value="up" formnovalidate
+                                                class="btn btn-outline-secondary py-0 px-2"
+                                                title="<?= e(__t('track.move_up')) ?>"
+                                                onclick="this.form.move_type.value='<?= e($item['type']) ?>';this.form.move_id.value='<?= (int) $item['id'] ?>';">&uarr;</button>
+                                        <button type="submit" name="move_dir" value="down" formnovalidate
+                                                class="btn btn-outline-secondary py-0 px-2"
+                                                title="<?= e(__t('track.move_down')) ?>"
+                                                onclick="this.form.move_type.value='<?= e($item['type']) ?>';this.form.move_id.value='<?= (int) $item['id'] ?>';">&darr;</button>
+                                    </span>
+                                <?php endif; ?>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+
+                    <div class="card-footer d-flex align-items-center gap-2 flex-wrap">
+                        <span class="small text-muted flex-grow-1"><?= e(__t('track.reorder_hint')) ?></span>
+                        <?php if ($canReorder): ?>
+                            <button type="submit" class="btn btn-sm btn-primary d-none" id="trackSaveOrder">
+                                <?= e(__t('track.save_order')) ?>
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                </form>
+
+                <?php if ($canReorder): ?>
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+                    <script>
+                    (function () {
+                        var list = document.getElementById('trackList');
+                        var form = document.getElementById('trackReorderForm');
+                        var save = document.getElementById('trackSaveOrder');
+                        if (!list || !form || !save || typeof Sortable === 'undefined') {
+                            // Sem o CDN, os botoes de seta continuam funcionando
+                            // (POST puro, sem JS). Nada a fazer aqui.
+                            return;
+                        }
+
+                        Sortable.create(list, {
+                            handle: '.track-handle',
+                            animation: 150,
+                            // A avaliacao nao tem data-track-item: fica fora do
+                            // arrasto e sempre no fim.
+                            draggable: '[data-track-item]',
+                            onEnd: function () { save.classList.remove('d-none'); }
+                        });
+
+                        // A ordem so eh serializada no submit — assim o POST
+                        // reflete exatamente o que esta na tela naquele momento.
+                        form.addEventListener('submit', function (ev) {
+                            if (ev.submitter && ev.submitter.name === 'move_dir') {
+                                return; // fallback de seta: o servidor calcula
+                            }
+                            form.querySelectorAll('input[name="order[]"]').forEach(function (el) {
+                                el.remove();
+                            });
+                            list.querySelectorAll('[data-track-item]').forEach(function (li) {
+                                var input = document.createElement('input');
+                                input.type  = 'hidden';
+                                input.name  = 'order[]';
+                                input.value = li.getAttribute('data-track-item');
+                                form.appendChild(input);
+                            });
+                        });
+                    })();
+                    </script>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
         <?php endif; ?>
