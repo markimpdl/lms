@@ -11,10 +11,19 @@ declare(strict_types=1);
  *  4. Avaliação aprovada (grade ≥ 6) por (student_id, cu_id)
  *  5. Grupos de cada aluno (pro filtro client-side)
  *
- * A fórmula de cu_status é a mesma do StudentProgress::cuStatus
- * (doc/10): percent = (entregues + aprovada_na_avaliacao) / (total_ativ
- * + tem_avaliacao) × 100. Replicada aqui pra evitar N*M chamadas a
+ * A fórmula de cu_status é a mesma do StudentProgress::cuStatus (doc/10),
+ * replicada aqui em SQL agregado pra evitar N*M chamadas a
  * `student_cu_status` (1-30 alunos × 5-20 CUs = até 600 round-trips).
+ *
+ * **As duas cópias mudam SEMPRE JUNTAS.** Se divergirem, o mesmo aluno mostra
+ * percentuais diferentes no dashboard e nesta matriz — foi o que aconteceu
+ * entre a v0.31.0 (que só somou manual_completion no StudentProgress) e o
+ * E36-06, que realinhou as duas e acrescentou lições a ambas.
+ *
+ *   percent = (licoes_concluidas + entregues + aprovada_na_avaliacao
+ *              + concluida_manualmente)
+ *             / (N_licoes_publicadas + total_ativ + tem_avaliacao
+ *                + tem_conclusao_manual) × 100
  *
  * Retorna estrutura pronta pro template renderizar tabela/cards.
  */
@@ -55,6 +64,9 @@ final class CourseMatrix
                     cc.id AS cc_id, cc.name AS cc_name, cc.position AS cc_pos,
                     (SELECT COUNT(*) FROM activities a
                       WHERE a.competence_unit_id = cu.id) AS activity_total,
+                    (SELECT COUNT(*) FROM lessons l
+                      WHERE l.competence_unit_id = cu.id AND l.published = 1) AS lesson_total,
+                    cu.manual_completion_enabled AS has_manual,
                     (SELECT COUNT(*) FROM evaluations e
                       WHERE e.competence_unit_id = cu.id AND e.tenant_id = ?) AS has_eval
                FROM competence_units cu
@@ -86,6 +98,8 @@ final class CourseMatrix
             ];
             $cuTotals[$cuId] = [
                 'activity_total' => (int) $row['activity_total'],
+                'lesson_total'   => (int) $row['lesson_total'],
+                'has_manual'     => (int) $row['has_manual'] > 0 ? 1 : 0,
                 'has_eval'       => (int) $row['has_eval'] > 0 ? 1 : 0,
             ];
         }
@@ -122,6 +136,42 @@ final class CourseMatrix
                 $sid = (int) $row['student_user_id'];
                 $cid = (int) $row['cu_id'];
                 $submittedBy[$sid][$cid] = (int) $row['cnt'];
+            }
+        }
+
+        // 3.b Lições concluídas por (student, cu) — E36-06. Só publicadas: o
+        // aluno não vê rascunho, então rascunho não pode pesar no cálculo dele.
+        $lessonsDoneBy = [];  // [student_id][cu_id] = count
+        if ($studentRows !== [] && $cuTotals !== []) {
+            $stmt = $pdo->prepare(
+                'SELECT lc.student_user_id, l.competence_unit_id AS cu_id, COUNT(*) AS cnt
+                   FROM lesson_completions lc
+                   JOIN lessons l ON l.id = lc.lesson_id AND l.published = 1
+                   JOIN competence_units cu ON cu.id = l.competence_unit_id
+                   JOIN core_competencies cc ON cc.id = cu.core_competency_id
+                  WHERE cc.course_id = ?
+                  GROUP BY lc.student_user_id, l.competence_unit_id'
+            );
+            $stmt->execute([$courseId]);
+            foreach ($stmt->fetchAll() as $row) {
+                $lessonsDoneBy[(int) $row['student_user_id']][(int) $row['cu_id']] = (int) $row['cnt'];
+            }
+        }
+
+        // 3.c Conclusão manual por (student, cu) — realinha esta matriz ao
+        // StudentProgress, que já somava esse slot desde a v0.31.0.
+        $manualDoneBy = [];  // [student_id][cu_id] = 1
+        if ($studentRows !== [] && $cuTotals !== []) {
+            $stmt = $pdo->prepare(
+                'SELECT mc.student_user_id, mc.cu_id
+                   FROM cu_manual_completions mc
+                   JOIN competence_units cu ON cu.id = mc.cu_id
+                   JOIN core_competencies cc ON cc.id = cu.core_competency_id
+                  WHERE cc.course_id = ?'
+            );
+            $stmt->execute([$courseId]);
+            foreach ($stmt->fetchAll() as $row) {
+                $manualDoneBy[(int) $row['student_user_id']][(int) $row['cu_id']] = 1;
             }
         }
 
@@ -185,7 +235,10 @@ final class CourseMatrix
             ];
 
             foreach ($cuTotals as $cuId => $totals) {
-                $total = (int) $totals['activity_total'] + (int) $totals['has_eval'];
+                $total = (int) $totals['lesson_total']
+                       + (int) $totals['activity_total']
+                       + (int) $totals['has_eval']
+                       + (int) $totals['has_manual'];
                 if ($total === 0) {
                     // CU não-avaliável — considerada 100% "neutra"; no
                     // handoff mostra cinza. Aqui retorna not_started/0.
@@ -194,7 +247,12 @@ final class CourseMatrix
                 }
                 $submitted = (int) ($submittedBy[$sid][$cuId] ?? 0);
                 $approved  = isset($evalApprovedBy[$sid][$cuId]) ? 1 : 0;
-                $done      = $submitted + $approved;
+                $lessons   = (int) ($lessonsDoneBy[$sid][$cuId] ?? 0);
+                // Disable retroativo do manual_completion zera a contribuição
+                // do slot inteiro, igual StudentProgress faz — senão o
+                // denominador cai mas a linha antiga sobra no numerador.
+                $manual    = isset($manualDoneBy[$sid][$cuId]) ? (int) $totals['has_manual'] : 0;
+                $done      = $lessons + $submitted + $approved + $manual;
                 $percent   = (int) min(100, round(($done / $total) * 100));
                 $status    = $percent >= 100
                     ? 'completed'
