@@ -8,9 +8,10 @@ declare(strict_types=1);
  *
  *  1. `order[]` — a trilha inteira na ordem nova, cada item no formato
  *     "tipo:id" (ex.: "lesson:12"). Eh o que o arrastar envia.
- *  2. `move_type` + `move_id` + `move_dir` — sobe ou desce UM item. Eh o
- *     fallback dos botoes, que funciona sem JavaScript. O servidor calcula a
- *     ordem resultante e cai no mesmo caminho do item 1.
+ *  2. `move` no formato "tipo:id:direcao" — sobe ou desce UM item. Vem no
+ *     `value` do proprio <button type=submit>, que o navegador envia sozinho:
+ *     nao depende de JavaScript nenhum. O servidor calcula a ordem resultante
+ *     e cai no mesmo caminho do item 1.
  *
  * As duas terminam em `UnitTrackService::reorder`, que valida pertencimento a
  * CU e cobertura total da trilha antes de gravar qualquer coisa.
@@ -78,9 +79,23 @@ $parseToken = static function (string $token): ?array {
 
 $ordered = [];
 
-$moveType = (string) ($_POST['move_type'] ?? '');
-$moveId   = (int)    ($_POST['move_id']   ?? 0);
-$moveDir  = (string) ($_POST['move_dir']  ?? '');
+// "tipo:id:direcao" — o value do botao de seta.
+$moveType = '';
+$moveId   = 0;
+$moveDir  = '';
+$moveRaw  = (string) ($_POST['move'] ?? '');
+if ($moveRaw !== '') {
+    $parts = explode(':', $moveRaw, 3);
+    if (count($parts) === 3 && ctype_digit($parts[1])) {
+        [$moveType, $rawMoveId, $moveDir] = $parts;
+        $moveId = (int) $rawMoveId;
+    }
+    if ($moveType !== 'lesson' && $moveType !== 'activity') {
+        flash('danger', __t('track.err.invalid'));
+        header('Location: ' . $backUrl, true, 303);
+        exit;
+    }
+}
 
 if ($moveType !== '' && $moveId > 0) {
     // ---- Fallback sem JS: sobe/desce um item ----------------------------
