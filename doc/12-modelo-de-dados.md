@@ -35,6 +35,7 @@ Usuários de qualquer papel.
 | description | TEXT | |
 | year | SMALLINT | ano civil (2025, 2026…) |
 | language | ENUM('pt','en') | idioma do conteúdo |
+| structure_version | TINYINT UNSIGNED | 1 = clássico, 2 = trilha (ADR-038). Default 1; escolhido na criação e **imutável** |
 | archived | BOOLEAN | |
 
 ### `core_competencies`
@@ -54,13 +55,47 @@ Usuários de qualquer papel.
 | position | INT | |
 
 ### `contents`
-Página HTML da CU (uma por CU).
+Página HTML da CU (uma por CU). Em curso V2 (ADR-038) esta mesma linha é a **capa** da trilha — nenhum dado migrou entre os formatos.
 | coluna | tipo | notas |
 |--------|------|-------|
 | id | BIGINT PK | |
 | competence_unit_id | FK UNIQUE | |
 | html | MEDIUMTEXT | sanitizado antes de salvar |
 | updated_at | TIMESTAMP | |
+
+### `lessons`
+As telas da trilha de uma CU. **Só existem em curso V2** (ADR-038). Sem `tenant_id`: o tenant deriva de CU → CC → `courses.tenant_id`, igual `contents` e `activities`.
+| coluna | tipo | notas |
+|--------|------|-------|
+| id | BIGINT PK | |
+| competence_unit_id | FK | CASCADE |
+| title | VARCHAR(200) | |
+| html | MEDIUMTEXT | sanitizado antes de salvar |
+| xp_value | INT UNSIGNED | 0 = sem XP |
+| published | TINYINT(1) | rascunho não aparece pro aluno nem conta no progresso |
+| position | INT UNSIGNED | **mesmo espaço de numeração de `activities.position`** dentro da CU |
+| created_at / updated_at | DATETIME | |
+
+Índice `(competence_unit_id, position)`. Item novo em V2 pega a posição por `MAX` sobre `lessons` **e** `activities` — usar só o `MAX` da própria tabela gera empate e ordem indefinida.
+
+### `lesson_completions`
+Aluno marcou a lição como concluída. PK composta dá idempotência.
+| coluna | tipo | notas |
+|--------|------|-------|
+| lesson_id | FK | PK composta, CASCADE |
+| student_user_id | FK | PK composta, CASCADE |
+| completed_at | DATETIME | |
+
+### `student_cu_unlocks`
+Professor liberou uma CU específica para um aluno específico, furando a trava sequencial (ADR-039). Vale nos **dois** formatos de curso.
+| coluna | tipo | notas |
+|--------|------|-------|
+| cu_id | FK | PK composta, CASCADE |
+| student_user_id | FK | PK composta, CASCADE |
+| granted_by_user_id | FK NULL | **SET NULL** — remover o professor não re-tranca a CU |
+| granted_at | DATETIME | |
+
+Não marca a CU como concluída e não afeta o cálculo de `%` — é override de visibilidade, lido dentro de `course_progression_state()`.
 
 ### `content_attachments`
 | coluna | tipo | notas |
@@ -163,12 +198,16 @@ UNIQUE(student_user_id, course_id).
 | student_user_id | FK | |
 | tenant_id | FK | |
 | course_id | FK NULL | |
-| source_type | ENUM('activity','evaluation') | |
+| source_type | ENUM('activity','evaluation','cu_manual','lesson') | |
 | source_id | BIGINT | |
 | value | INT | |
 | created_at | TIMESTAMP | |
 
 Índice composto em `(student_user_id, created_at)` para rankings por janela rolante.
+
+UK em `(student_user_id, source_type, source_id)` torna todo crédito idempotente. `tenant_id` é o do **aluno**, não o do dono do curso (ADR-033).
+
+`source_type`/`source_id` são polimórficos e **não têm FK** (ADR-020): quem apaga a origem é responsável por apagar o `xp_event` — ver `Lesson::delete`.
 
 ### `notifications`
 | coluna | tipo | notas |

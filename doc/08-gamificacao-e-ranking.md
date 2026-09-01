@@ -17,8 +17,20 @@ Nota acadêmica e XP são conceitos **separados**. A nota mede aprovação; o XP
 - Se o aluno reenvia e melhora a nota de 7 para 9, o XP é concedido na correção da nova tentativa.
 - Se a tentativa atual depois for substituída por uma nota < 8, o XP **não é retirado** (o mérito já foi registrado).
 
+### Lições (só em curso V2)
+- O professor configura um valor de XP para cada lição (0 = sem XP).
+- O aluno recebe o XP **ao marcar a lição como concluída** — só abrir não conta.
+- Desfazer a conclusão **revoga** o XP; apagar a lição também.
+
+### Conclusão manual de CU
+- Quando o professor habilita "Mark as completed" numa CU, o clique do aluno credita `competence_units.manual_completion_xp`.
+
 ### Registro
-Cada crédito de XP gera um `xp_event` com: aluno, tenant, curso, origem (activity/evaluation), id da origem, valor, timestamp.
+Cada crédito de XP gera um `xp_event` com: aluno, tenant, curso, origem (`activity` / `evaluation` / `cu_manual` / `lesson`), id da origem, valor, timestamp.
+
+O `tenant_id` gravado é o do **aluno**, não o do dono do curso: em curso compartilhado (ADR-033) o XP tem de contar no tenant de quem estudou.
+
+A unicidade por `(aluno, origem, id_da_origem)` torna todo crédito idempotente — clicar duas vezes, recarregar o POST ou reprocessar não duplica XP.
 
 ## Rankings
 

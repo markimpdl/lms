@@ -241,6 +241,34 @@
 
 **A revisar quando:** (a) volume/quotas de storage por tenant; (b) necessidade de versionamento de widget; (c) picker ruidoso em curso compartilhado → marcar disponibilidade por curso (junção explícita); (d) demanda por origem física isolada (subdomínio).
 
+### ADR-038 — Formato de curso versionado: V1 clássico e V2 trilha, escolhido na criação e imutável
+**Decisão (F27/E36, 2026-09-01):** `courses.structure_version` (`1` = clássico, `2` = trilha) define como o conteúdo da Unidade é organizado. **Todo curso existente é V1** (`DEFAULT 1`) e continua rodando pelo código atual, sem uma linha alterada. O formato é escolhido **na criação** e é **imutável** depois — a tela de edição mostra badge, e `Course::update()` não inclui a coluna no `SET`.
+
+- **V1 (clássico):** a CU tem **uma** página de conteúdo (`contents`, `UNIQUE` por CU) + N atividades + até 1 avaliação, tudo empilhado numa tela.
+- **V2 (trilha):** a CU vira uma sequência navegável — capa → lição → exercício → lição → … → avaliação no fim. A capa **reaproveita o registro de `contents`** que já existia: zero migração de dado, e o mesmo editor/sanitizador/anexos.
+- **Ordem única sem tabela polimórfica:** `lessons.position` e `activities.position` compartilham o **mesmo espaço de numeração** dentro da CU; a trilha é um `UNION ALL` ordenado por `position`, e o reorder reescreve `1..N` das duas tabelas numa transação. A **avaliação não entra na numeração** — é 1 por CU (ADR-007) e sempre última, então a posição dela é implícita.
+- **Navegação do aluno é livre dentro da CU:** uma vez que a unidade está desbloqueada, ele pula por qualquer item pela timeline. A trava sequencial continua **só entre CCs/CUs**.
+- **Conclusão de lição é explícita:** o aluno marca "concluí" (só abrir não conta), o que alimenta o % da CU e credita XP (`lessons.xp_value`, `xp_events.source_type='lesson'`).
+
+**Por quê:** conteúdo longo numa página só vira parede de scroll, e não havia como intercalar exercício no meio da explicação. Versionar em vez de migrar foi a exigência do PO — cursos em andamento não podem mudar de comportamento no meio do semestre. A imutabilidade evita o estado sem semântica definida: uma CU V2 tem lições que a tela V1 não sabe renderizar.
+
+**Alternativa descartada:** tabela `cu_items` polimórfica para a ordem. Resolveria o mesmo problema com um join a mais em toda leitura da trilha; o espaço de numeração compartilhado entrega a mesma garantia porque o reorder já reescreve tudo de uma vez. **Custo aceito:** criar lição ou atividade em V2 exige calcular a próxima posição como `MAX` sobre as **duas** tabelas (`UnitTrackService::nextPosition`) — esquecer isso gera empate de `position` e ordem indefinida.
+
+**A revisar quando:** (a) o PO pedir conversão de V1 para V2 num curso com conteúdo; (b) surgir um terceiro formato (aí `structure_version` já é `TINYINT`, não ENUM, de propósito); (c) a trilha precisar de itens além de lição/exercício/avaliação.
+
+### ADR-039 — Desbloqueio manual de CU é override do gate, não mudança de estrutura
+**Decisão (F27/E36, 2026-09-01):** o professor pode liberar uma **CU específica** para um **aluno específico**, furando a trava sequencial. Vale nos **dois formatos** de curso (V1 e V2) — é uma tabela (`student_cu_unlocks`) consultada dentro de `course_progression_state()`, o único ponto onde a visibilidade de CC/CU é calculada.
+
+- O que o desbloqueio **não** faz: não marca a CU como concluída, não afeta o cálculo de `%`, e não libera as CUs seguintes.
+- **A CC que contém a CU liberada também sai de `hidden`** — a página do curso pula CC `hidden` inteira antes de olhar as CUs, então sem isso a unidade liberada nunca renderizaria. As **outras** CUs dessa CC seguem `hidden`: libera-se a unidade, não a competência.
+- **Isolamento em duas pernas** no endpoint: autoria da CU via `effective_authoring_tenant` (ADR-033) **e** posse do aluno via `current_tenant_id()` + matrícula no curso (ADR-036). Em curso compartilhado o professor só libera os **próprios** alunos.
+- Recusado explicitamente em curso arquivado e em `cc_mode='free'`, onde não há trava para furar.
+- `granted_by_user_id` é `SET NULL`: remover o professor não pode re-trancar a CU na cara do aluno.
+
+**Por quê:** em curso presencial o professor precisa acomodar o aluno adiantado, o que repete conteúdo, o que voltou de licença — sem afrouxar a regra para a turma toda. Concentrar no helper faz as três páginas que barram URL direta (`student/cu`, `student/activity`, `student/evaluation`) herdarem o comportamento sem alteração nenhuma nelas.
+
+**A revisar quando:** (a) o PO pedir granularidade por lição/exercício em vez de CU inteira; (b) surgir demanda de liberar por grupo em vez de por aluno; (c) o número de desbloqueios exigir uma tela própria de gestão (hoje vive na grade de `/teacher/cu/{id}`).
+
 ## Pendências em aberto
 
 Nenhuma no momento. (F22–F24 tiveram suas dúvidas resolvidas no story breakdown de 2026-06-05: revogação de colaborador é reversível com "desfazer"; notificação `course_shared` confirmada; cópia mantém `published` da origem; auditoria registra todo save de conteúdo. F25–F26 consolidadas com o PO em 2026-06-08: toggle "ver todos" é só leitura agregada — ver ADR-036; widgets em iframe sandbox de origem nula, biblioteca compartilhada no curso — ver ADR-037 e `doc/24-widgets.md`.)

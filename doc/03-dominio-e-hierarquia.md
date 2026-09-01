@@ -2,20 +2,47 @@
 
 ## Hierarquia de conteúdo
 
+Existem **dois formatos de curso** (ADR-038). O formato é escolhido na criação e é imutável depois; todo curso criado antes do E36 é V1.
+
+### V1 — clássico (`structure_version = 1`)
+
 ```
 Tenant (Professor)
 └── Curso
     └── Core Competence
         └── Competence Unit (matéria)
-            ├── Conteúdo (página HTML)
+            ├── Conteúdo (uma página HTML)
             ├── Atividade(s)
             └── Avaliação (uma por CU)
 ```
 
+- Uma **competence unit** tem 1 página de conteúdo, 0..N atividades e 0 ou 1 avaliação.
+
+### V2 — trilha (`structure_version = 2`)
+
+```
+Tenant (Professor)
+└── Curso
+    └── Core Competence
+        └── Competence Unit (matéria)
+            ├── Capa (a mesma página HTML do V1, agora como abertura)
+            ├── Lição 1        ─┐
+            ├── Exercício 1     │ ordem única, definida arrastando
+            ├── Lição 2        ─┘
+            └── Avaliação (sempre no fim)
+```
+
+- A CU vira uma **sequência navegável**: lições e exercícios intercalados numa ordem única, com a avaliação fechando o percurso.
+- A **capa reaproveita o registro de `contents`** que já existia — nenhum dado migrou entre os formatos.
+- Lições e atividades **compartilham o mesmo espaço de numeração** (`position`) dentro da CU. A avaliação não entra na numeração: é sempre a última.
+- O aluno navega **livremente dentro** de uma CU desbloqueada; a trava sequencial continua valendo só entre CCs e CUs.
+
+### Comum aos dois
+
 - Um **curso** tem 1..N core competences.
 - Uma **core competence** tem 1..N competence units.
-- Uma **competence unit** tem 1 página de conteúdo, 0..N atividades e 0 ou 1 avaliação.
 - A ordem das CCs dentro de um curso e das CUs dentro de uma CC é definida pelo professor.
+- O professor pode **liberar uma CU específica para um aluno específico**, furando a trava sequencial, nos dois formatos (ADR-039).
 
 ## Pessoas
 
