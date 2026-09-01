@@ -311,6 +311,24 @@ $attachmentsCount = count($attachments);
 $cuStatus = student_cu_status($cuId, $studentId);
 $cuPercent = (int) $cuStatus['percent'];
 
+// E36-05: em curso V2 esta tela eh a CAPA da unidade — conteudo de abertura,
+// timeline da trilha e o botao de comecar/continuar. As 4 secoes classicas
+// (conteudo + atividades + avaliacao + anexos) sao a tela do V1 e continuam
+// exatamente como estavam. $isV2 eh o unico interruptor.
+$isV2 = (int) ($cu['course_structure_version'] ?? 1) === 2;
+$timelineItems = [];
+$resumeItem    = null;
+$trackDone     = 0;
+if ($isV2) {
+    $timelineItems = UnitTrackService::forStudentCu($cuId, $studentId);
+    $resumeItem    = UnitTrackService::resumePoint($timelineItems);
+    foreach ($timelineItems as $__it) {
+        if ($__it['done']) {
+            $trackDone++;
+        }
+    }
+}
+
 // Section tabs.
 $tabs = [
     ['anchor' => '#content',     'label' => __t('student.unit.tab.content')],
@@ -340,6 +358,43 @@ ob_start();
     require LMS_ROOT . '/src/templates/partials/unit_header.php';
 ?>
 
+<?php if ($isV2): ?>
+    <?php /* ---------- CAPA DA UNIDADE (curso V2) ---------- */ ?>
+    <?php if ($hasPublishedContent && $html !== ''): ?>
+        <div class="lms-content-card mb-3">
+            <div class="unit-prose content-render">
+                <?= $html /* sanitizado por ContentSanitizer na gravacao */ ?>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-header d-flex align-items-center justify-content-between gap-2 flex-wrap">
+            <div>
+                <h2 class="h6 mb-0"><?= e(__t('track.student.title')) ?></h2>
+                <small class="text-muted">
+                    <?= e(__t('track.student.progress', [
+                        'done'  => (string) $trackDone,
+                        'total' => (string) count($timelineItems),
+                    ])) ?>
+                </small>
+            </div>
+            <?php if ($resumeItem !== null): ?>
+                <a href="<?= e((string) $resumeItem['href']) ?>" class="btn btn-primary">
+                    <?= e(__t($trackDone === 0 ? 'track.student.start' : 'track.student.continue')) ?> &rarr;
+                </a>
+            <?php endif; ?>
+        </div>
+        <div class="card-body p-2">
+            <?php if ($timelineItems === []): ?>
+                <p class="text-muted text-center mb-0 py-3"><?= e(__t('track.student.empty')) ?></p>
+            <?php else: ?>
+                <?php $timelineCurrent = null;
+                      require LMS_ROOT . '/src/templates/partials/track_timeline.php'; ?>
+            <?php endif; ?>
+        </div>
+    </div>
+<?php else: ?>
 <?php require LMS_ROOT . '/src/templates/partials/section_tabs.php'; ?>
 
 <!-- Section: Content -->
@@ -485,6 +540,7 @@ ob_start();
     </div>
 </section>
 <?php endif; ?>
+<?php endif; /* fim do bloco V1 */ ?>
 <?php
 $page_content = ob_get_clean();
 require LMS_ROOT . '/src/templates/layout.php';

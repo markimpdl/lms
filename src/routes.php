@@ -358,6 +358,16 @@ return [
             'role'   => 'teacher',
             'params' => ['id', 'student_id'],
         ],
+        '#^/student/lesson/(\d+)$#' => [
+            'file'   => '/src/pages/student/lesson/show.php',
+            'role'   => 'student',
+            'params' => ['id'],
+        ],
+        '#^/student/lesson/(\d+)/complete$#' => [
+            'file'   => '/src/pages/student/lesson/complete.php',
+            'role'   => 'student',
+            'params' => ['id'],
+        ],
         '#^/student/evaluation/(\d+)$#' => [
             'file'   => '/src/pages/student/evaluation/show.php',
             'role'   => 'student',
