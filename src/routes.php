@@ -233,6 +233,21 @@ return [
             'role'   => 'teacher',
             'params' => ['id'],
         ],
+        '#^/teacher/cu/(\d+)/lesson/new$#' => [
+            'file'   => '/src/pages/teacher/lesson/new.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/lesson/(\d+)/edit$#' => [
+            'file'   => '/src/pages/teacher/lesson/edit.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
+        '#^/teacher/lesson/(\d+)/delete$#' => [
+            'file'   => '/src/pages/teacher/lesson/delete.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
         '#^/teacher/cu/(\d+)/unlock$#' => [
             'file'   => '/src/pages/teacher/cu/unlock.php',
             'role'   => 'teacher',

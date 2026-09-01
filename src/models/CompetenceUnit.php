@@ -95,7 +95,8 @@ final class CompetenceUnit
                     cu.manual_completion_enabled, cu.manual_completion_xp,
                     cc.course_id, c.archived AS course_archived,
                     c.grading_mode AS course_grading_mode,
-                    c.cc_mode AS course_cc_mode
+                    c.cc_mode AS course_cc_mode,
+                    c.structure_version AS course_structure_version
                FROM competence_units cu
                JOIN core_competencies cc ON cc.id = cu.core_competency_id
                JOIN courses c ON c.id = cc.course_id AND c.tenant_id = ?

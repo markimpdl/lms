@@ -1653,6 +1653,13 @@ CREATE TABLE IF NOT EXISTS student_cu_unlocks (
     CONSTRAINT fk_scu_granter FOREIGN KEY (granted_by_user_id) REFERENCES users(id)            ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- [E36] course_audit_log.entity_type — adiciona 'lesson'. Sem isso o
+-- course_audit() de licao falha no STRICT mode (valor fora do ENUM).
+-- MODIFY COLUMN com o set estendido eh idempotente.
+ALTER TABLE course_audit_log
+    MODIFY COLUMN entity_type
+        ENUM('core_competency','competence_unit','content','activity','evaluation','lesson') NOT NULL;
+
 -- [E36] xp_events.source_type — adiciona 'lesson' pra creditar XP quando o
 -- aluno conclui uma licao. MODIFY COLUMN com o set estendido eh idempotente;
 -- a UK (student_user_id, source_type, source_id) ja cobre o dedup.

@@ -136,4 +136,44 @@ final class XpEvents
             )
             ->execute([$studentId, $cuId]);
     }
+
+    /**
+     * Credita XP por licao concluida (E36-03). XP definido em
+     * `lessons.xp_value`. Idempotente via UK composite — reabrir a licao e
+     * clicar de novo nao duplica.
+     *
+     * Como no resto do arquivo, `tenant_id` vem de `u.tenant_id` (tenant do
+     * ALUNO, ADR-033): em curso compartilhado o XP conta no tenant dele, nao
+     * no do dono do curso.
+     */
+    public static function awardLesson(int $studentId, int $lessonId): bool
+    {
+        $stmt = Database::pdo()->prepare(
+            'INSERT IGNORE INTO xp_events
+                (student_user_id, tenant_id, course_id, source_type, source_id, value)
+             SELECT ?, u.tenant_id, c.id, ?, ?, l.xp_value
+               FROM lessons l
+               JOIN competence_units  cu ON cu.id = l.competence_unit_id
+               JOIN core_competencies cc ON cc.id = cu.core_competency_id
+               JOIN courses c            ON c.id  = cc.course_id
+               JOIN users u              ON u.id  = ?
+              WHERE l.id = ?
+              LIMIT 1'
+        );
+        $stmt->execute([$studentId, 'lesson', $lessonId, $studentId, $lessonId]);
+        return $stmt->rowCount() > 0;
+    }
+
+    /** Revoga o XP da licao — usado quando o aluno desmarca a conclusao. */
+    public static function revokeLesson(int $studentId, int $lessonId): void
+    {
+        Database::pdo()
+            ->prepare(
+                'DELETE FROM xp_events
+                  WHERE student_user_id = ?
+                    AND source_type     = \'lesson\'
+                    AND source_id       = ?'
+            )
+            ->execute([$studentId, $lessonId]);
+    }
 }
