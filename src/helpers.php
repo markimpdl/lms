@@ -1252,6 +1252,59 @@ function course_audit(int $courseId, string $action, string $entityType, ?int $e
 }
 
 /**
+ * Valida os campos do formulario de licao (E36-03). Retorna mapa
+ * field => chave i18n; vazio significa valido.
+ *
+ * O `html` NAO eh validado aqui — quem cuida dele eh o ContentSanitizer, que
+ * pode legitimamente esvaziar o conteudo ao remover tudo que nao esta na
+ * allowlist. Licao com corpo vazio eh permitida (o professor pode salvar o
+ * rascunho so com o titulo e escrever depois).
+ *
+ * @param array{title:string, xp_value:int} $input
+ * @return array<string,string>
+ */
+function lesson_validate(array $input): array
+{
+    $errors = [];
+
+    $title = trim((string) ($input['title'] ?? ''));
+    if (mb_strlen($title) < 3 || mb_strlen($title) > 200) {
+        $errors['title'] = 'lessons.form.err.title';
+    }
+
+    $xp = (int) ($input['xp_value'] ?? 0);
+    if ($xp < 0) {
+        $errors['xp_value'] = 'lessons.form.err.xp_value';
+    }
+
+    return $errors;
+}
+
+/**
+ * Opcoes do picker de imagem do TinyMCE pra uma CU: os anexos da CU que sao
+ * imagem, no formato {title, value} que o plugin `image` espera.
+ *
+ * Mesmo acervo que o editor de conteudo da CU usa — a licao vive na mesma
+ * unidade, entao reaproveita os anexos ja subidos. A URL vai pela rota
+ * autenticada de view, nunca pelo path do storage.
+ *
+ * @return list<array{title:string, value:string}>
+ */
+function lesson_image_picker_options(int $cuId, int $tenantId): array
+{
+    $out = [];
+    foreach (ContentAttachment::listByCu($cuId, $tenantId) as $att) {
+        if (str_starts_with((string) $att['mime'], 'image/')) {
+            $out[] = [
+                'title' => (string) $att['filename'],
+                'value' => '/teacher/cu/' . $cuId . '/attachment/' . (int) $att['id'] . '/view',
+            ];
+        }
+    }
+    return $out;
+}
+
+/**
  * Tema visual do usuário atual (E27 — F18). Apenas aluno tem preferência;
  * teacher/super-admin/deslogado retornam 'light'. Decisão simplificadora
  * do MVP — dark mode pra teacher/admin entra em E29 (visual unificado).

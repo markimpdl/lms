@@ -68,6 +68,11 @@ $rosterCount   = count($roster);
 // E36-02: desbloqueio manual da CU por aluno. Uma query pro set inteiro —
 // sem N+1 por linha do roster. So faz sentido em curso sequencial: em
 // cc_mode='free' nao existe trava pra furar.
+// E36-03: em curso V2 a CU tem trilha (licoes + exercicios em ordem unica).
+// Em V1 $isV2 eh false e nada disso renderiza — a tela fica identica.
+$isV2       = (int) ($cu['course_structure_version'] ?? 1) === 2;
+$trackItems = $isV2 ? UnitTrackService::forCu($cuId) : [];
+
 $unlockedStudentIds = StudentCuUnlock::studentIdsForCu($cuId);
 $canManageUnlock    = !$isArchived
     && (string) ($cu['course_cc_mode'] ?? 'sequential') === 'sequential';
@@ -178,6 +183,67 @@ ob_start();
                 </div>
             <?php endif; ?>
         </div>
+
+        <?php if ($isV2): ?>
+        <!-- Trilha da unidade (E36-03) — curso V2 -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                <div>
+                    <h2 class="h6 mb-0"><?= e(__t('track.section.title')) ?></h2>
+                    <small class="text-muted"><?= e(__t('track.section.subtitle')) ?></small>
+                </div>
+                <?php if (!$isArchived): ?>
+                    <a href="/teacher/cu/<?= $cuId ?>/lesson/new" class="btn btn-sm btn-primary">
+                        <?= e(__t('lessons.new.button')) ?>
+                    </a>
+                <?php endif; ?>
+            </div>
+            <?php if ($trackItems === []): ?>
+                <div class="card-body">
+                    <p class="text-muted mb-0 text-center py-3"><?= e(__t('track.empty')) ?></p>
+                </div>
+            <?php else: ?>
+                <ul class="list-group list-group-flush">
+                    <?php foreach ($trackItems as $i => $item): ?>
+                        <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
+                            <span class="badge text-bg-light border"><?= (int) ($i + 1) ?></span>
+                            <?php
+                            [$itemIcon, $itemLabel] = match ($item['type']) {
+                                'lesson'     => ['📄', __t('track.type.lesson')],
+                                'activity'   => ['✏️', __t('track.type.activity')],
+                                default      => ['🎓', __t('track.type.evaluation')],
+                            };
+                            $itemHref = match ($item['type']) {
+                                'lesson'   => '/teacher/lesson/' . $item['id'] . '/edit',
+                                'activity' => '/teacher/activity/' . $item['id'] . '/edit',
+                                default    => '/teacher/evaluation/' . $item['id'] . '/edit',
+                            };
+                            ?>
+                            <span title="<?= e($itemLabel) ?>" aria-hidden="true"><?= $itemIcon ?></span>
+                            <a href="<?= e($itemHref) ?>" class="text-decoration-none flex-grow-1">
+                                <?= e((string) $item['title']) ?>
+                            </a>
+                            <?php if ($item['type'] === 'evaluation'): ?>
+                                <span class="badge text-bg-secondary"><?= e(__t('track.badge.always_last')) ?></span>
+                            <?php elseif ($item['type'] === 'lesson' && (int) $item['published'] === 0): ?>
+                                <span class="badge text-bg-warning-subtle text-warning-emphasis">
+                                    <?= e(__t('track.badge.draft')) ?>
+                                </span>
+                            <?php endif; ?>
+                            <?php if ((int) $item['xp_value'] > 0): ?>
+                                <span class="badge text-bg-light border">
+                                    <?= e(__t('track.badge.xp', ['xp' => (string) (int) $item['xp_value']])) ?>
+                                </span>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+                <div class="card-footer small text-muted">
+                    <?= e(__t('track.reorder_hint')) ?>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
 
         <!-- Atividades (E6-02) -->
         <div class="card shadow-sm mb-3">
