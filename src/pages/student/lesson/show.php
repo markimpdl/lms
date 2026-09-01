@@ -84,6 +84,18 @@ $xp     = (int) $lesson['xp_value'];
 // E35 (F26): expande [[widget:ID]] no render, igual ao conteudo da CU.
 $html = expand_widgets((string) $lesson['html']);
 
+// O picker de imagem do TinyMCE grava a URL do PROFESSOR
+// (/teacher/cu/{id}/attachment/{aid}/view), que exige papel de professor —
+// pro aluno isso e 403 e a imagem quebra. A pagina da CU ja fazia essa
+// reescrita; a da licao nao fazia, e toda imagem em licao quebrava.
+//
+// Seguro mesmo quando o HTML foi colado de outra CU: a rota do aluno valida
+// por ContentAttachment::findForStudent, que confere matricula, nao o id da
+// CU que aparece na URL.
+if ($html !== '') {
+    $html = str_replace('"/teacher/cu/', '"/student/cu/', $html);
+}
+
 $page_title = (string) $lesson['title'];
 
 ob_start();
