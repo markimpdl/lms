@@ -53,7 +53,7 @@ final class CourseCopyService
                     'INSERT INTO courses
                        (tenant_id, name, description, year, language, archived, archived_at,
                         structure_version, cc_mode, activity_mode, eval_after_activities, grading_mode, report_mode)
-                     VALUES (?, ?, ?, ?, ?, 0, NULL, ?, ?, ?, ?, ?)',
+                     VALUES (?, ?, ?, ?, ?, 0, NULL, ?, ?, ?, ?, ?, ?)',
                     [
                         $tenantId, self::copyName((string) $src['name']), $src['description'], (int) $src['year'], $src['language'],
                         (int) $src['structure_version'],

@@ -1218,6 +1218,20 @@ return [
 
     // CU Roster — students tab on CU page (E11-03)
     'cu_roster.title'                     => 'Students',
+
+    // Manual unit unlock per student (E36-02)
+    'cu_unlock.col.access'          => 'Access',
+    'cu_unlock.col.help'            => 'Unlock this unit for a specific student, even if they have not reached it yet.',
+    'cu_unlock.btn.unlock_title'    => 'Unlock this unit for the student',
+    'cu_unlock.btn.lock_title'      => 'Remove the unlock (the unit follows the course order again)',
+    'cu_unlock.badge.unlocked'      => 'Unlocked',
+    'cu_unlock.badge.unlocked_title' => 'This unit was manually unlocked for the student.',
+    'cu_unlock.flash.unlocked'      => 'Unit unlocked for the student.',
+    'cu_unlock.flash.locked'        => 'Unlock removed. The unit follows the course order again.',
+    'cu_unlock.err.invalid'         => 'Could not change access. Please try again.',
+    'cu_unlock.err.archived'        => 'Archived course: access cannot be changed.',
+    'cu_unlock.err.free_mode'       => 'This course is in free mode — the student already accesses every unit.',
+    'cu_unlock.err.not_my_student'  => 'Student not found among your enrolled students in this course.',
     'cu_roster.subtitle'                  => ':count student(s) enrolled in this CU\'s course',
     'cu_roster.only_active'               => 'Active students only',
     'cu_roster.col.student'               => 'Student',
