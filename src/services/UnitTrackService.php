@@ -105,6 +105,96 @@ final class UnitTrackService
     }
 
     /**
+     * Trilha da CU na visao do ALUNO: so itens publicados, cada um ja com o
+     * estado de conclusao dele e o link pra abrir.
+     *
+     * Duas queries no total (licoes concluidas + entregas de atividade), nao
+     * uma por item — a timeline renderiza N itens sem N+1.
+     *
+     * `done` por tipo:
+     *  - licao      -> existe linha em lesson_completions
+     *  - exercicio  -> existe entrega em activity_submissions
+     *  - avaliacao  -> existe submissao com nota >= 6 (mesmo criterio de
+     *                  aprovacao que StudentProgress usa)
+     *
+     * @return list<array{type:string,id:int,title:string,done:bool,href:string,xp_value:int}>
+     */
+    public static function forStudentCu(int $cuId, int $studentId): array
+    {
+        $items = self::forCu($cuId, true);
+        if ($items === []) {
+            return [];
+        }
+
+        $lessonsDone = LessonCompletion::lessonIdsForStudentInCu($cuId, $studentId);
+
+        // Entregas de atividade + aprovacao da avaliacao, numa query so.
+        $stmt = Database::pdo()->prepare(
+            "SELECT 'activity' AS type, a.id
+               FROM activities a
+               JOIN activity_submissions s
+                 ON s.activity_id = a.id AND s.student_user_id = :sid1
+              WHERE a.competence_unit_id = :cu1
+              UNION ALL
+             SELECT 'evaluation' AS type, e.id
+               FROM evaluations e
+               JOIN evaluation_submissions es
+                 ON es.evaluation_id = e.id AND es.student_user_id = :sid2
+              WHERE e.competence_unit_id = :cu2
+                AND es.grade IS NOT NULL
+                AND es.grade >= 6.0"
+        );
+        $stmt->execute([':sid1' => $studentId, ':cu1' => $cuId, ':sid2' => $studentId, ':cu2' => $cuId]);
+
+        $othersDone = [];
+        foreach ($stmt->fetchAll() as $r) {
+            $othersDone[$r['type'] . ':' . (int) $r['id']] = true;
+        }
+
+        $out = [];
+        foreach ($items as $item) {
+            $key  = $item['type'] . ':' . $item['id'];
+            $done = $item['type'] === 'lesson'
+                ? isset($lessonsDone[$item['id']])
+                : isset($othersDone[$key]);
+
+            $href = match ($item['type']) {
+                'lesson'   => '/student/lesson/' . $item['id'],
+                'activity' => '/student/activity/' . $item['id'],
+                default    => '/student/evaluation/' . $item['id'],
+            };
+
+            $out[] = [
+                'type'     => $item['type'],
+                'id'       => $item['id'],
+                'title'    => $item['title'],
+                'done'     => $done,
+                'href'     => $href,
+                'xp_value' => $item['xp_value'],
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * Primeiro item ainda nao concluido da trilha — o destino do botao
+     * "Comecar"/"Continuar" na capa da CU. Se o aluno concluiu tudo, devolve o
+     * ultimo item (reabrir o fim eh mais util que nao ter para onde ir).
+     *
+     * @param list<array<string,mixed>> $studentTrack retorno de forStudentCu
+     * @return array<string,mixed>|null
+     */
+    public static function resumePoint(array $studentTrack): ?array
+    {
+        foreach ($studentTrack as $item) {
+            if (!$item['done']) {
+                return $item;
+            }
+        }
+        return $studentTrack === [] ? null : $studentTrack[count($studentTrack) - 1];
+    }
+
+    /**
      * Item anterior e proximo de um item da trilha — alimenta os botoes
      * "Anterior"/"Proximo" do aluno.
      *

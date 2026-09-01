@@ -2626,3 +2626,131 @@ body.lms-student-area.lms-theme-dark .lms-notif-row__time {
 body.lms-student-area.lms-theme-dark .lms-notif-row__btn:hover {
     background: rgba(99, 102, 241, 0.18);
 }
+
+/* ============================================================
+   Trilha da unidade — timeline do aluno (E36-05)
+   Usada na capa da CU e na lateral da pagina da licao.
+   ============================================================ */
+
+.lms-track__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.lms-track__item {
+    position: relative;
+}
+
+/* Fio que liga um marcador ao proximo. Nao desenha depois do ultimo item. */
+.lms-track__item:not(:last-child)::before {
+    content: "";
+    position: absolute;
+    left: 1.05rem;
+    top: 2.1rem;
+    bottom: -0.35rem;
+    width: 2px;
+    background: var(--lms-neutral-200);
+}
+
+.lms-track__link {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem 0.6rem;
+    border-radius: var(--lms-radius-chip, 0.5rem);
+    color: inherit;
+    text-decoration: none;
+    transition: background-color 0.15s ease;
+}
+
+.lms-track__link:hover,
+.lms-track__link:focus-visible {
+    background: rgba(99, 102, 241, 0.08);
+    color: inherit;
+}
+
+.lms-track__marker {
+    flex: 0 0 auto;
+    width: 1.75rem;
+    height: 1.75rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--lms-card-bg);
+    border: 2px solid var(--lms-neutral-200);
+    color: var(--lms-neutral-700);
+    font-size: 0.8rem;
+    font-weight: 600;
+    /* Fica acima do fio que passa por tras */
+    position: relative;
+    z-index: 1;
+}
+
+.lms-track__body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.lms-track__type {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--lms-neutral-500, var(--lms-muted));
+}
+
+.lms-track__title {
+    font-size: 0.9rem;
+    /* Titulo longo trunca em vez de quebrar a coluna */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lms-track__xp {
+    flex: 0 0 auto;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--lms-neutral-500, var(--lms-muted));
+}
+
+/* Concluido */
+.lms-track__item.is-done .lms-track__marker {
+    background: var(--lms-success, #198754);
+    border-color: var(--lms-success, #198754);
+    color: #fff;
+}
+
+/* Item aberto agora */
+.lms-track__item.is-current .lms-track__link {
+    background: rgba(99, 102, 241, 0.12);
+}
+.lms-track__item.is-current .lms-track__marker {
+    border-color: var(--lms-primary, #6366f1);
+    color: var(--lms-primary, #6366f1);
+}
+.lms-track__item.is-current .lms-track__title {
+    font-weight: 600;
+}
+
+/* Dark mode — mesma convencao do resto do arquivo */
+body.lms-student-area.lms-theme-dark .lms-track__item:not(:last-child)::before {
+    background: var(--lms-neutral-700);
+}
+body.lms-student-area.lms-theme-dark .lms-track__marker {
+    background: var(--lms-card-bg);
+    border-color: var(--lms-neutral-700);
+    color: var(--lms-neutral-300);
+}
+body.lms-student-area.lms-theme-dark .lms-track__link:hover,
+body.lms-student-area.lms-theme-dark .lms-track__link:focus-visible {
+    background: rgba(99, 102, 241, 0.18);
+}
+body.lms-student-area.lms-theme-dark .lms-track__item.is-current .lms-track__link {
+    background: rgba(99, 102, 241, 0.22);
+}
+body.lms-student-area.lms-theme-dark .lms-track__item.is-done .lms-track__marker {
+    color: #fff;
+}

@@ -144,6 +144,7 @@ final class CompetenceUnit
                     cu.manual_completion_enabled, cu.manual_completion_xp,
                     cc.id AS cc_id, cc.name AS cc_name,
                     c.id AS course_id, c.name AS course_name, c.language AS course_language,
+                    c.structure_version AS course_structure_version,
                     (SELECT COUNT(*) + 1
                        FROM competence_units cu2
                       WHERE cu2.core_competency_id = cc.id
