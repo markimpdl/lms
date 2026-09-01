@@ -216,8 +216,6 @@ ob_start();
                 ?>
                 <form method="POST" action="/teacher/cu/<?= $cuId ?>/track/reorder" id="trackReorderForm">
                     <?= csrf_field() ?>
-                    <input type="hidden" name="move_type" value="">
-                    <input type="hidden" name="move_id"   value="">
                     <ul class="list-group list-group-flush" id="trackList">
                         <?php foreach ($trackItems as $i => $item):
                             $isEval = $item['type'] === 'evaluation';
@@ -261,15 +259,21 @@ ob_start();
                                 <?php endif; ?>
 
                                 <?php if ($canReorder && !$isEval): ?>
+                                    <?php
+                                    // O botao carrega tipo, id e direcao no
+                                    // proprio value. Sem onclick e sem hidden:
+                                    // o navegador envia name/value apenas do
+                                    // submit clicado, entao isto funciona com
+                                    // JavaScript desligado.
+                                    $mv = $item['type'] . ':' . (int) $item['id'];
+                                    ?>
                                     <span class="btn-group btn-group-sm" role="group">
-                                        <button type="submit" name="move_dir" value="up" formnovalidate
-                                                class="btn btn-outline-secondary py-0 px-2"
-                                                title="<?= e(__t('track.move_up')) ?>"
-                                                onclick="this.form.move_type.value='<?= e($item['type']) ?>';this.form.move_id.value='<?= (int) $item['id'] ?>';">&uarr;</button>
-                                        <button type="submit" name="move_dir" value="down" formnovalidate
-                                                class="btn btn-outline-secondary py-0 px-2"
-                                                title="<?= e(__t('track.move_down')) ?>"
-                                                onclick="this.form.move_type.value='<?= e($item['type']) ?>';this.form.move_id.value='<?= (int) $item['id'] ?>';">&darr;</button>
+                                        <button type="submit" name="move" value="<?= e($mv . ':up') ?>"
+                                                formnovalidate class="btn btn-outline-secondary py-0 px-2"
+                                                title="<?= e(__t('track.move_up')) ?>">&uarr;</button>
+                                        <button type="submit" name="move" value="<?= e($mv . ':down') ?>"
+                                                formnovalidate class="btn btn-outline-secondary py-0 px-2"
+                                                title="<?= e(__t('track.move_down')) ?>">&darr;</button>
                                     </span>
                                 <?php endif; ?>
                             </li>
@@ -311,7 +315,7 @@ ob_start();
                         // A ordem so eh serializada no submit — assim o POST
                         // reflete exatamente o que esta na tela naquele momento.
                         form.addEventListener('submit', function (ev) {
-                            if (ev.submitter && ev.submitter.name === 'move_dir') {
+                            if (ev.submitter && ev.submitter.name === 'move') {
                                 return; // fallback de seta: o servidor calcula
                             }
                             form.querySelectorAll('input[name="order[]"]').forEach(function (el) {
