@@ -1221,6 +1221,8 @@ return [
 
     // Unit track and lessons (E36-03)
     'content.editor.block_formats'   => 'Paragraph=p; Heading 2=h2; Heading 3=h3; Heading 4=h4',
+    'track.cover.title'              => 'Unit cover',
+    'track.cover.help'               => 'What the student sees when opening the unit, before the first item of the track.',
     'track.section.title'            => 'Unit track',
     'track.section.subtitle'         => 'Lessons and exercises in the order the student goes through. The assessment closes the track.',
     'track.empty'                    => 'No lessons or exercises yet. Start by creating the first lesson.',
