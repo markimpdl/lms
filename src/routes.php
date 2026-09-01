@@ -233,6 +233,11 @@ return [
             'role'   => 'teacher',
             'params' => ['id'],
         ],
+        '#^/teacher/cu/(\d+)/track/reorder$#' => [
+            'file'   => '/src/pages/teacher/cu/track-reorder.php',
+            'role'   => 'teacher',
+            'params' => ['id'],
+        ],
         '#^/teacher/cu/(\d+)/lesson/new$#' => [
             'file'   => '/src/pages/teacher/lesson/new.php',
             'role'   => 'teacher',
