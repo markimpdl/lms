@@ -364,7 +364,10 @@ final class Enrollment
                 AND c.tenant_id = ?
                 AND u.role = "student"'
         );
-        $stmt->execute([$studentId, $courseId, $tenantId]);
+        // Quatro placeholders, quatro valores: o tenant entra duas vezes (o do
+        // aluno e o do curso). O param que faltava aqui derrubava a remocao de
+        // matricula com "Invalid parameter number" desde E32-05.
+        $stmt->execute([$studentId, $courseId, $tenantId, $tenantId]);
         return $stmt->rowCount() > 0;
     }
 
