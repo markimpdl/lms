@@ -45,7 +45,22 @@ Sessão **ativa** = `ended_at IS NULL`.
 
 - JS em `public/assets/js/student-heartbeat.js`, carregado pelo
   `src/templates/layout.php` quando `$isStudentArea` é true.
-- `POST /api/student/heartbeat` a cada **60s** se `document.visibilityState === 'visible'`.
+- `POST /api/student/heartbeat` a cada **60s** se `document.visibilityState === 'visible'`
+  **e** houve interação nos últimos **30 min**.
+- **Por que as duas condições (TIME-05):** `visibilityState === 'visible'` quer dizer
+  "aba em primeiro plano", não "aluno usando". PC de laboratório deixado ligado e
+  logado, com a aba aberta, pingava a noite inteira — uma aluna acumulou 143 h.
+  A detecção de inatividade escuta `mousemove`, `mousedown`, `keydown`, `wheel`,
+  `touchstart`, `scroll` e `click`, e compartilha o último instante de atividade
+  entre abas via `localStorage[lms_last_activity_at]` — assim atividade em
+  qualquer aba do LMS mantém a sessão viva, mesmo que a líder seja outra.
+- Ao ficar ausente, a aba líder cede a liderança: ninguém pinga, e o cron fecha a
+  sessão em `last_ping_at`, que é o último momento de uso **real**.
+- Ao voltar, o primeiro ping é rejeitado (`rejected_stale`/`rejected_closed`), o
+  cliente regenera o UUID e abre sessão nova em até 60s.
+- **Os 30 min são um teto deliberado**, não um valor técnico: aluno lendo uma lição
+  longa sem tocar em nada é atividade legítima, e um limite curto subcontaria quem
+  estuda lendo. Decidido com o PO em 2026-09-02.
 - 1º ping com UUID novo → backend cria sessão (status `created`).
 - Ping subsequente → `last_ping_at = NOW()` (status `updated`).
 - Gap > **30 min** → backend rejeita (`rejected_stale`); cliente regenera UUID e
@@ -98,7 +113,8 @@ Janela opcional via `WHERE started_at > NOW() - INTERVAL ? DAY`.
 
 | Caso                                | Tratamento                                                                  |
 | ----------------------------------- | --------------------------------------------------------------------------- |
-| Aluno deixa aba aberta sem usar     | `visibilityState !== 'visible'` pausa pings; cron fecha em 3 min            |
+| Aluno deixa aba aberta sem usar     | **30 min sem interação** (mouse/teclado/scroll/toque) pausa os pings; cron fecha em `last_ping_at` |
+| Aba escondida / minimizada          | `visibilityState !== 'visible'` pausa pings; cron fecha em 3 min            |
 | Mobile vai pra background           | Igual acima — `visibilitychange → hidden` é disparado                       |
 | Crash do browser                    | Sem `beforeunload`; cron fecha em 3 min usando `last_ping_at`               |
 | Rede lenta / heartbeat falha        | Catch silencioso; próximo tick (60s) tenta de novo                          |
