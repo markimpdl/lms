@@ -51,8 +51,12 @@ final class TeacherAdmin
         $params = [':role' => 'teacher'];
 
         if ($q !== '') {
-            $where[] = '(u.name LIKE :q OR u.email LIKE :q)';
-            $params[':q'] = '%' . $q . '%';
+            // Nomes distintos: com ATTR_EMULATE_PREPARES=false o PDO exige
+            // um valor por ocorrencia, e reusar `:q` derruba a busca.
+            $where[] = '(u.name LIKE :q_name OR u.email LIKE :q_email)';
+            $like = '%' . $q . '%';
+            $params[':q_name']  = $like;
+            $params[':q_email'] = $like;
         }
         if ($status === 'active') {
             $where[] = 'u.active = 1';

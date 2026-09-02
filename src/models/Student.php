@@ -76,8 +76,15 @@ final class Student
         // 'all' não filtra por active.
 
         if ($q !== '') {
-            $where[] = '(u.name LIKE :q OR u.email LIKE :q OR u.id_document LIKE :q)';
-            $params[':q'] = '%' . $q . '%';
+            // Tres placeholders DISTINTOS de proposito. Com
+            // ATTR_EMULATE_PREPARES=false o PDO exige um valor por ocorrencia:
+            // reusar `:q` nas tres colunas lanca "Invalid parameter number" e
+            // derruba a busca inteira.
+            $where[] = '(u.name LIKE :q_name OR u.email LIKE :q_email OR u.id_document LIKE :q_doc)';
+            $like = '%' . $q . '%';
+            $params[':q_name']  = $like;
+            $params[':q_email'] = $like;
+            $params[':q_doc']   = $like;
         }
         $whereSql = implode(' AND ', $where);
 
