@@ -48,8 +48,12 @@ final class Course
         // 'all' não adiciona filtro.
 
         if ($q !== '') {
-            $where[] = '(c.name LIKE :q OR c.description LIKE :q)';
-            $params[':q'] = '%' . $q . '%';
+            // Nomes distintos: com ATTR_EMULATE_PREPARES=false o PDO exige
+            // um valor por ocorrencia, e reusar `:q` derruba a busca.
+            $where[] = '(c.name LIKE :q_name OR c.description LIKE :q_desc)';
+            $like = '%' . $q . '%';
+            $params[':q_name'] = $like;
+            $params[':q_desc'] = $like;
         }
         $whereSql = implode(' AND ', $where);
 
