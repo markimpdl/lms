@@ -6,6 +6,8 @@ declare(strict_types=1);
  *   $page_title   string (opcional)  — vai no <title>
  *   $page_content string            — HTML já montado, inserido no <main>
  *   $body_class   string (opcional) — classes extras no <body>
+ *   $student_focus bool (opcional)  — habilita o modo foco (maximizar/
+ *                 restaurar) nesta página; ver /assets/js/student-focus.js
  *
  * Uso recomendado:
  *   $page_title = 'Login';
@@ -24,6 +26,9 @@ declare(strict_types=1);
 $title     = $page_title   ?? __t('app.title');
 $content   = $page_content ?? '';
 $extraBody = $body_class   ?? '';
+// Modo foco: só as telas de conteúdo do curso V2 pedem. Fora delas o botão
+// não existe e o script nem é carregado.
+$focusMode = ($student_focus ?? false) === true;
 $lang      = current_lang();
 
 $user             = current_user();
@@ -85,6 +90,10 @@ if ($isStudentArea) {
     <?php endif; ?>
 </head>
 <body<?= $bodyClass !== '' ? ' class="' . e($bodyClass) . '"' : '' ?> data-submitting-label="<?= e(__t('common.submitting')) ?>">
+    <?php if ($isStudentArea && $focusMode): ?>
+        <?php /* Antes de qualquer render: evita o flash da grid larga → estreita. */ ?>
+        <script>try{if(localStorage.getItem('lms-focus')==='1'){document.body.classList.add('lms-focus');}}catch(e){}</script>
+    <?php endif; ?>
     <?php require __DIR__ . '/header.php'; ?>
     <?php if ($isStudentArea): ?>
         <main class="lms-student-grid">
@@ -111,6 +120,9 @@ if ($isStudentArea) {
     <?php if ($isStudentArea): ?>
         <script>window.LMS_HEARTBEAT = { csrf: <?= json_encode(csrf_token(), JSON_UNESCAPED_SLASHES) ?> };</script>
         <script defer src="/assets/js/student-heartbeat.js"></script>
+        <?php if ($focusMode): ?>
+            <script defer src="/assets/js/student-focus.js"></script>
+        <?php endif; ?>
     <?php endif; ?>
     <?php if ($isThemedArea): ?>
         <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" data-manual></script>

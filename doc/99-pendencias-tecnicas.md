@@ -262,6 +262,18 @@ A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** du
 ### cPanel — document root
 - **Ação na primeira configuração:** apontar o document root do domínio para `/public_html/public/` (e não `/public_html/`). O front controller e o `.htaccess` estão em `public/`.
 
+### [E36-08] Nav Voltar/Avançar da atividade + modo foco — sem execução
+
+- **Status (2026-09-07):** validado só por `php -l`, `node --check`, auditoria de chaves i18n (PT×EN sem divergência) e render isolado do partial `activity_nav.php` com stubs. **Nada foi executado contra banco nem renderizado em navegador** — não há MySQL local (`config/env.php` aponta pra `rumo_lms@localhost`, acesso negado) e a extensão do Chrome não estava conectada.
+- **A conferir no smoke em lote:**
+  1. `/student/activity/{id}` em curso **V1**: Voltar → `/student/cu/{id}`; Avançar aparece só depois de entregue e vai pro mesmo lugar. Vale pros 3 fluxos: projeto/código, quiz e submissão já com feedback (read-only).
+  2. `/student/activity/{id}` em curso **V2**: Voltar → item anterior da trilha (capa da CU quando a atividade abre o percurso); Avançar → próximo item, incluindo a avaliação que fecha a trilha; volta pra capa quando é o último.
+  3. Botão maximizar/restaurar em `/student/lesson/{id}`: sidebar vira o rail de ícones, grid solta o `max-width`, trilha continua à direita. Conferir que **não pisca** no load (script inline no topo do `<body>`) e que o estado sobrevive à navegação lição → exercício → lição via `localStorage`.
+  4. Modo foco em **dark mode** (rail e botão herdam os tokens; sem override próprio) e em **mobile < 768px** (media query devolve a grid de 1 coluna e esconde o botão).
+- **Bug pré-existente NÃO corrigido (fora do escopo):** o "Próximo →" de `/student/lesson/{id}` e os links da timeline (`track_timeline.php`) apontam pra avaliação **sem checar `eval_after_activities`**. Com `activity_mode = 'free'` o aluno pode chegar ao fim da trilha com exercícios pendentes, clicar e ser devolvido pra capa da CU com o flash `progression.eval_locked`. O Avançar novo da atividade já se protege via `UnitTrackService::evaluationUnlocked()` — aplicar o mesmo guard nesses dois lugares numa história futura.
+
+- **Removido nessa mudança:** os dois CTAs `submissions.form.continue` ("Continuar para a unidade") de `student/activity/show.php` — o Avançar da nova barra cobre os dois casos. A chave saiu de `lang/pt.php` e `lang/en.php`.
+
 ---
 
 ## Inconsistências menores de documentação para alinhar

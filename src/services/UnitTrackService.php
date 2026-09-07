@@ -215,6 +215,43 @@ final class UnitTrackService
     }
 
     /**
+     * A avaliacao que fecha a trilha esta liberada pro aluno?
+     *
+     * Existe pra o botao "Avancar" nao virar beco sem saida. A navegacao
+     * dentro da CU eh livre, entao com `activity_mode = 'free'` o aluno pode
+     * entregar o ULTIMO exercicio da trilha com outros ainda pendentes — e a
+     * avaliacao, que vem logo depois, barra na entrada quando o curso tem
+     * `eval_after_activities = 1`.
+     *
+     * Mesmo criterio de /student/evaluation/{id}: CU sem atividade nenhuma
+     * passa; com atividades, exige TODAS entregues. `COUNT(DISTINCT ...)` nos
+     * dois lados pra uma atividade com mais de uma linha de entrega nao
+     * inflar a contagem.
+     */
+    public static function evaluationUnlocked(int $cuId, int $studentId, bool $evalAfterActivities): bool
+    {
+        if (!$evalAfterActivities) {
+            return true;
+        }
+
+        $stmt = Database::pdo()->prepare(
+            'SELECT COUNT(DISTINCT a.id)         AS total,
+                    COUNT(DISTINCT s.activity_id) AS submitted
+               FROM activities a
+               LEFT JOIN activity_submissions s
+                      ON s.activity_id = a.id AND s.student_user_id = ?
+              WHERE a.competence_unit_id = ?'
+        );
+        $stmt->execute([$studentId, $cuId]);
+        $row = $stmt->fetch();
+
+        $total     = (int) ($row['total']     ?? 0);
+        $submitted = (int) ($row['submitted'] ?? 0);
+
+        return $total === 0 || $submitted >= $total;
+    }
+
+    /**
      * Reescreve a ordem da trilha. `$ordered` eh a lista na ordem desejada,
      * cada item `['type' => 'lesson'|'activity', 'id' => int]`.
      *

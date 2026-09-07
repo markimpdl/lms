@@ -9,6 +9,12 @@ declare(strict_types=1);
  * peça (sem patente, sem XP, sem curso recente), o partial degrada
  * graciosamente — não quebra nem mostra placeholder feio.
  *
+ * Modo foco (`body.lms-focus`): o card de 300px dá lugar ao rail de ícones
+ * `.lms-sidebar-rail` — mesma sidebar, versão fina. Nas páginas que habilitam
+ * o modo (`$focusMode`, vindo do layout) os dois blocos saem no HTML e quem
+ * alterna é o CSS, pra o toggle não precisar de round-trip. Nas demais o rail
+ * nem é renderizado — seria markup morto em toda tela do aluno.
+ *
  * Fontes de dados:
  *  - `student_total_xp`            — soma de xp_events.value
  *  - `student_current_rank`        — Rank::findCurrentByXp
@@ -191,4 +197,45 @@ if ($branding !== null && $branding['whatsapp_number'] !== null) {
             </a>
         <?php endif; ?>
     </div>
+
+    <?php /* Versão fina — visível só com body.lms-focus (ver student-area.css). */ ?>
+    <?php if (($focusMode ?? false) === true): ?>
+    <nav class="lms-sidebar-rail" aria-label="<?= e(__t('sidebar.rail.aria')) ?>">
+        <a class="lms-sidebar-rail__item" href="/profile"
+           title="<?= e($name) ?>" aria-label="<?= e($name) ?>">
+            <img class="lms-sidebar-rail__avatar" src="<?= e(student_avatar_url($studentId)) ?>"
+                 alt="" loading="lazy" width="40" height="40"
+                 style="border-color: <?= e($rankColor) ?>;">
+        </a>
+
+        <span class="lms-sidebar-rail__item lms-sidebar-rail__xp"
+              title="<?= e(__t('sidebar.total_xp')) ?>: <?= e(number_format($totalXp, 0, ',', '.')) ?>">
+            <i class="bi bi-star-fill" aria-hidden="true"></i>
+            <span class="lms-sidebar-rail__xp-value"><?= e(number_format($totalXp, 0, ',', '.')) ?></span>
+        </span>
+
+        <a class="lms-sidebar-rail__item" href="/student/achievements"
+           title="<?= e(__t('sidebar.achievements')) ?>" aria-label="<?= e(__t('sidebar.achievements')) ?>">
+            <i class="bi bi-award" aria-hidden="true"></i>
+        </a>
+
+        <a class="lms-sidebar-rail__item" href="/student/ranking"
+           title="<?= e(__t('sidebar.position')) ?><?= $position !== null ? ': #' . (int) $position : '' ?>"
+           aria-label="<?= e(__t('sidebar.see_ranking')) ?>">
+            <i class="bi bi-trophy" aria-hidden="true"></i>
+            <?php if ($position !== null): ?>
+                <span class="lms-sidebar-rail__xp-value">#<?= (int) $position ?></span>
+            <?php endif; ?>
+        </a>
+
+        <?php if ($whatsappHref !== null): ?>
+            <a class="lms-sidebar-rail__item lms-sidebar-rail__item--whatsapp"
+               href="<?= e($whatsappHref) ?>" target="_blank" rel="noopener noreferrer"
+               title="<?= e(__t('sidebar.talk_to_teacher')) ?>"
+               aria-label="<?= e(__t('sidebar.talk_to_teacher')) ?>">
+                <i class="bi bi-whatsapp" aria-hidden="true"></i>
+            </a>
+        <?php endif; ?>
+    </nav>
+    <?php endif; ?>
 </aside>

@@ -14,6 +14,8 @@ declare(strict_types=1);
  *   $courseId   int
  *   $cuId       int
  *   $ctx        array com 'submission' (já carregada)
+ *   $navBackHref     string  URL do Voltar (barra activity_nav)
+ *   $navNextHrefDone string  URL do Avançar quando já respondido
  *
  * Comportamento:
  *  - Atividade-quiz: entregar = ganha XP (sem retry; nota é informativa).
@@ -155,6 +157,13 @@ ob_start();
             $titleText  = (string) $activity['title'];
             $formAction = '/student/activity/' . $activityId;
             require LMS_ROOT . '/src/templates/partials/student_quiz_form.php';
+        ?>
+
+        <?php
+            // Voltar sempre; Avancar so depois de respondido. Hrefs vem de show.php.
+            $activityNavBack = $navBackHref;
+            $activityNavNext = $existingSub !== null ? $navNextHrefDone : null;
+            require LMS_ROOT . '/src/templates/partials/activity_nav.php';
         ?>
     </div>
 </div>

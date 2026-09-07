@@ -2754,3 +2754,151 @@ body.lms-student-area.lms-theme-dark .lms-track__item.is-current .lms-track__lin
 body.lms-student-area.lms-theme-dark .lms-track__item.is-done .lms-track__marker {
     color: #fff;
 }
+
+/* ============================================================
+   Modo foco (E36) — maximizar/restaurar o conteudo do curso V2
+   ------------------------------------------------------------
+   `body.lms-focus` encolhe a sidebar do aluno pro rail de icones
+   e solta o max-width da grid, de modo que a coluna de conteudo
+   ganha a largura horizontal e a trilha continua a direita.
+
+   O estado vive em localStorage e eh aplicado por
+   /assets/js/student-focus.js — inclusive num script inline no topo
+   do <body>, pra nao haver flash de layout largo antes do JS.
+
+   So vale >= 768px: no mobile a grid ja eh de uma coluna, entao o
+   modo foco nao teria o que maximizar (media query no fim do bloco).
+   ============================================================ */
+
+.lms-sidebar-rail {
+    display: none;
+}
+
+body.lms-student-area.lms-focus main.lms-student-grid {
+    max-width: none;
+    grid-template-columns: 76px 1fr;
+    gap: 16px;
+}
+
+body.lms-student-area.lms-focus .lms-sidebar-card {
+    display: none;
+}
+
+body.lms-student-area.lms-focus .lms-sidebar-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 6px;
+    background: var(--lms-card-bg);
+    border: 1px solid var(--lms-neutral-200);
+    border-radius: var(--lms-radius-card);
+    box-shadow: var(--lms-shadow-card);
+}
+
+.lms-sidebar-rail__item {
+    width: 56px;
+    min-height: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 2px;
+    border-radius: 12px;
+    color: var(--lms-neutral-500);
+    text-decoration: none;
+    font-size: 18px;
+    line-height: 1;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+a.lms-sidebar-rail__item:hover,
+a.lms-sidebar-rail__item:focus-visible {
+    background: rgba(99, 102, 241, 0.12);
+    color: var(--lms-primary, #6366f1);
+}
+
+.lms-sidebar-rail__item--whatsapp {
+    color: #25D366;
+}
+a.lms-sidebar-rail__item--whatsapp:hover,
+a.lms-sidebar-rail__item--whatsapp:focus-visible {
+    background: rgba(37, 211, 102, 0.14);
+    color: #1DA851;
+}
+
+.lms-sidebar-rail__avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid var(--lms-muted);
+    object-fit: cover;
+    display: block;
+}
+
+.lms-sidebar-rail__xp {
+    color: #F59E0B;
+}
+
+.lms-sidebar-rail__xp-value {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--lms-neutral-500);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Botao maximizar/restaurar — ghost, encostado no canto do card */
+.lms-focus-toggle {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 17px;
+    line-height: 1;
+    background: transparent;
+    border: 1px solid var(--lms-neutral-200);
+    border-radius: 10px;
+    color: var(--lms-neutral-500);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.lms-focus-toggle:hover,
+.lms-focus-toggle:focus-visible {
+    background: rgba(99, 102, 241, 0.12);
+    border-color: var(--lms-primary, #6366f1);
+    color: var(--lms-primary, #6366f1);
+}
+
+.lms-focus-toggle[aria-pressed="true"] {
+    background: rgba(99, 102, 241, 0.14);
+    border-color: var(--lms-primary, #6366f1);
+    color: var(--lms-primary, #6366f1);
+}
+
+/* Mobile: grid ja empilha, entao o modo foco nao se aplica. */
+@media (max-width: 767.98px) {
+    body.lms-student-area.lms-focus main.lms-student-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    body.lms-student-area.lms-focus .lms-sidebar-card {
+        display: flex;
+    }
+    body.lms-student-area.lms-focus .lms-sidebar-rail {
+        display: none;
+    }
+    .lms-focus-toggle {
+        display: none;
+    }
+}
+
+/* Dark mode nao precisa de override aqui: rail e toggle so usam tokens
+   (--lms-card-bg, --lms-neutral-*), que `body.lms-theme-dark` ja troca. */
