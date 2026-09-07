@@ -37,10 +37,19 @@
     var TICK_MS          = 1000;
     var LEADER_TTL_MS    = 3000;
 
+    // Inatividade (TIME-05): `visibilityState === 'visible'` significa "aba em
+    // primeiro plano", NAO "aluno usando". PC de laboratorio deixado ligado com
+    // a aba aberta pingava a noite inteira e inflava o tempo online.
+    var IDLE_MS          = 30 * 60 * 1000;  // 30 min sem interacao = ausente
+    var ACTIVITY_WRITE_MS = 5000;           // throttle de escrita no storage
+
     var KEY_SESSION   = 'lms_session_uuid';
     var KEY_LEADER    = 'lms_leader';
     var KEY_LAST_HB   = 'lms_last_heartbeat_at';
     var KEY_TAB       = 'lms_tab_id';
+    // Compartilhada entre abas: atividade em QUALQUER aba do LMS mantem a
+    // sessao viva, mesmo que a aba lider seja outra.
+    var KEY_ACTIVITY  = 'lms_last_activity_at';
 
     function readJSON(storage, key) {
         try { return JSON.parse(storage.getItem(key) || 'null'); }
@@ -170,8 +179,48 @@
         } catch (e) { /* swallow */ }
     }
 
+    // --- Atividade do usuario ------------------------------------------
+    // Guarda em memoria E em localStorage (throttled). A memoria cobre o caso
+    // de storage indisponivel; o storage cobre a coordenacao entre abas.
+    var lastActivityAt = Date.now();
+    var lastActivityWrittenAt = 0;
+
+    function markActivity() {
+        var now = Date.now();
+        lastActivityAt = now;
+        if (now - lastActivityWrittenAt >= ACTIVITY_WRITE_MS) {
+            lastActivityWrittenAt = now;
+            writeStr(localStorage, KEY_ACTIVITY, String(now));
+        }
+    }
+
+    function isIdle() {
+        var stored = parseInt(readStr(localStorage, KEY_ACTIVITY) || '0', 10);
+        // O maior entre a atividade desta aba e a de qualquer outra.
+        var last = Math.max(lastActivityAt, isNaN(stored) ? 0 : stored);
+        return (Date.now() - last) > IDLE_MS;
+    }
+
+    [
+        'mousemove', 'mousedown', 'keydown', 'wheel',
+        'touchstart', 'scroll', 'click'
+    ].forEach(function (evt) {
+        window.addEventListener(evt, markActivity, { passive: true, capture: true });
+    });
+
     function tick() {
         var visible = document.visibilityState === 'visible';
+
+        // Ausente conta como aba escondida: o lider cede e ninguem pinga. O
+        // cron fecha a sessao em `last_ping_at`, que passa a ser o ultimo
+        // momento de uso real — nao o instante em que a aba foi fechada.
+        if (isIdle()) {
+            if (isLeader()) {
+                clearLeader();
+                broadcast('leader-down');
+            }
+            return;
+        }
 
         if (isLeader()) {
             if (!visible) {
