@@ -262,16 +262,15 @@ A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** du
 ### cPanel — document root
 - **Ação na primeira configuração:** apontar o document root do domínio para `/public_html/public/` (e não `/public_html/`). O front controller e o `.htaccess` estão em `public/`.
 
-### [E36-08] Nav Voltar/Avançar da atividade + modo foco — sem execução
+### [E36-08] Nav Voltar/Avançar da atividade + modo foco
 
-- **Status (2026-09-07):** validado só por `php -l`, `node --check`, auditoria de chaves i18n (PT×EN sem divergência) e render isolado do partial `activity_nav.php` com stubs. **Nada foi executado contra banco nem renderizado em navegador** — não há MySQL local (`config/env.php` aponta pra `rumo_lms@localhost`, acesso negado) e a extensão do Chrome não estava conectada.
+- **Status (2026-09-07):** o **modo foco foi verificado em navegador** num harness estático com o CSS/JS reais (Chrome, 1728px e 386px, claro e escuro). Confirmado: sidebar → rail de ícones, conteúdo de 490px → 1019px, trilha permanece à direita (x=1194), estado sobrevive ao reload sem flash e sem `defer`, os dois toggles (conteúdo e rail) sincronizam ícone/`aria-pressed`/label, mobile 386px devolve a grid de 1 coluna e esconde rail + botão sem scroll horizontal, dark mode herda os tokens corretamente.
+- **O que continua SEM execução:** todo o caminho que depende de banco — não há MySQL local (`config/env.php` aponta pra `rumo_lms@localhost`, acesso negado). O harness renderiza markup equivalente, não as páginas PHP reais.
 - **A conferir no smoke em lote:**
   1. `/student/activity/{id}` em curso **V1**: Voltar → `/student/cu/{id}`; Avançar aparece só depois de entregue e vai pro mesmo lugar. Vale pros 3 fluxos: projeto/código, quiz e submissão já com feedback (read-only).
-  2. `/student/activity/{id}` em curso **V2**: Voltar → item anterior da trilha (capa da CU quando a atividade abre o percurso); Avançar → próximo item, incluindo a avaliação que fecha a trilha; volta pra capa quando é o último.
-  3. Botão maximizar/restaurar em `/student/lesson/{id}`: sidebar vira o rail de ícones, grid solta o `max-width`, trilha continua à direita. Conferir que **não pisca** no load (script inline no topo do `<body>`) e que o estado sobrevive à navegação lição → exercício → lição via `localStorage`.
-  4. Modo foco em **dark mode** (rail e botão herdam os tokens; sem override próprio) e em **mobile < 768px** (media query devolve a grid de 1 coluna e esconde o botão).
-- **Bug pré-existente NÃO corrigido (fora do escopo):** o "Próximo →" de `/student/lesson/{id}` e os links da timeline (`track_timeline.php`) apontam pra avaliação **sem checar `eval_after_activities`**. Com `activity_mode = 'free'` o aluno pode chegar ao fim da trilha com exercícios pendentes, clicar e ser devolvido pra capa da CU com o flash `progression.eval_locked`. O Avançar novo da atividade já se protege via `UnitTrackService::evaluationUnlocked()` — aplicar o mesmo guard nesses dois lugares numa história futura.
-
+  2. `/student/activity/{id}` em curso **V2**: Voltar → item anterior da trilha (capa da CU quando a atividade abre o percurso); Avançar → próximo item, incluindo a avaliação que fecha a trilha; volta pra capa quando é o último ou quando a avaliação está travada (`UnitTrackService::evaluationUnlocked`).
+  3. Botão maximizar aparece só em curso **V2** (lição sempre; atividade e quiz quando `structure_version = 2`); o restaurar, no rail, aparece em qualquer tela do aluno.
+- **Beco sem saída da avaliação — CORRIGIDO (2026-09-07).** O "Próximo →" da lição, o redirect do "Concluir e continuar" (`lesson/complete.php`) e os links da timeline apontavam pra avaliação sem checar `eval_after_activities`; com `activity_mode = 'free'` o aluno chegava ao fim da trilha com exercícios pendentes e era devolvido pra capa com flash `progression.eval_locked` — no `complete.php`, logo depois de ganhar o XP da lição. Agora há **um único ponto de decisão**, `UnitTrackService::nextHrefForStudent()`, usado pelos 3 CTAs de avanço; na timeline a avaliação travada vira `<span>` (não `<a>`) com cadeado e a dica do motivo. A checagem visual do item travado está feita (claro e escuro, coluna de 274px e maximizada, dica quebra em 2 linhas sem vazar); o que falta é o caminho com banco.
 - **Removido nessa mudança:** os dois CTAs `submissions.form.continue` ("Continuar para a unidade") de `student/activity/show.php` — o Avançar da nova barra cobre os dois casos. A chave saiu de `lang/pt.php` e `lang/en.php`.
 
 ---

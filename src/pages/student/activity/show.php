@@ -133,30 +133,22 @@ if ($activityMode === 'sequential') {
 $cuHref          = '/student/cu/' . $cuId;
 $navBackHref     = $cuHref;
 $navNextHrefDone = $cuHref;
+// Curso V2 é quem ganha o botão maximizar/restaurar — a trilha é a "tela de
+// conteúdo" que o PO pediu pra poder alargar. Vale pro fluxo de quiz também.
+$isV2Course      = (int) ($progConf['structure_version'] ?? 1) === 2;
 
-if ((int) ($progConf['structure_version'] ?? 1) === 2) {
-    $trackHref = static fn (array $it): string => match ($it['type']) {
-        'lesson'   => '/student/lesson/' . $it['id'],
-        'activity' => '/student/activity/' . $it['id'],
-        default    => '/student/evaluation/' . $it['id'],
-    };
+if ($isV2Course) {
     $trackNeighbors = UnitTrackService::neighbors($cuId, 'activity', $activityId, true);
     if ($trackNeighbors['prev'] !== null) {
-        $navBackHref = $trackHref($trackNeighbors['prev']);
+        $navBackHref = UnitTrackService::hrefFor($trackNeighbors['prev']);
     }
 
-    $nextItem = $trackNeighbors['next'];
-    if ($nextItem !== null) {
-        $nextReachable = $nextItem['type'] !== 'evaluation'
-            || UnitTrackService::evaluationUnlocked(
-                $cuId,
-                $studentId,
-                (int) ($progConf['eval_after_activities'] ?? 1) === 1
-            );
-        if ($nextReachable) {
-            $navNextHrefDone = $trackHref($nextItem);
-        }
-    }
+    $navNextHrefDone = UnitTrackService::nextHrefForStudent(
+        $trackNeighbors['next'],
+        $cuId,
+        $studentId,
+        (int) ($progConf['eval_after_activities'] ?? 1) === 1
+    );
 }
 
 // E20-03: atividade tipo Quiz tem fluxo próprio (sem upload + grade
@@ -300,6 +292,9 @@ ob_start();
                 <?php endif; ?>
             <?php else: ?>
                 <span class="badge text-bg-secondary"><?= e(__t('submissions.status.not_submitted')) ?></span>
+            <?php endif; ?>
+            <?php if ($isV2Course): ?>
+                <?php require LMS_ROOT . '/src/templates/partials/focus_toggle.php'; ?>
             <?php endif; ?>
         </div>
 

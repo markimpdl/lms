@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * Partial: barra Voltar/Avancar da tela de atividade do aluno.
  *
