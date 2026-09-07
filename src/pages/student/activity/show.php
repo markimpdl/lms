@@ -47,7 +47,8 @@ if (!$availability['available']) {
 $courseId = (int) $activity['course_id'];
 $cuId     = (int) $activity['cu_id'];
 $progGateStmt = Database::pdo()->prepare(
-    'SELECT cc_mode, activity_mode FROM courses WHERE id = ? LIMIT 1'
+    'SELECT cc_mode, activity_mode, structure_version, eval_after_activities
+       FROM courses WHERE id = ? LIMIT 1'
 );
 $progGateStmt->execute([$courseId]);
 $progConf = $progGateStmt->fetch();
@@ -110,6 +111,51 @@ if ($activityMode === 'sequential') {
         flash('warning', __t('progression.activity_locked'));
         header('Location: /student/cu/' . $cuId, true, 303);
         exit;
+    }
+}
+
+// Navegação Voltar/Avançar da tela de atividade. Calculada antes do delegate
+// pro quiz porque os dois fluxos renderizam a mesma barra.
+//
+//  - Voltar (sempre visível): em curso V1 volta pra unidade, que é onde mora o
+//    conteúdo. Em V2 volta pro item ANTERIOR da trilha — a capa da CU quando a
+//    atividade abre o percurso e não há anterior.
+//  - Avançar (só quando já entregue): em V1 leva pra unidade. Em V2 leva pro
+//    próximo item da trilha (lição, exercício ou a avaliação que fecha o
+//    percurso); no fim da trilha, volta pra capa da CU.
+//
+// Navegação dentro da CU é livre (decisão do PO em E36), então lição e
+// exercício não precisam de gate aqui. A avaliação precisa: com
+// `eval_after_activities = 1` ela exige TODA atividade da CU entregue, e com
+// `activity_mode = 'free'` o aluno pode chegar ao fim da trilha com exercícios
+// pendentes. Mandar o Avançar pra lá seria um beco sem saída (redirect + flash
+// `progression.eval_locked`), então nesse caso ele cai na capa da CU.
+$cuHref          = '/student/cu/' . $cuId;
+$navBackHref     = $cuHref;
+$navNextHrefDone = $cuHref;
+
+if ((int) ($progConf['structure_version'] ?? 1) === 2) {
+    $trackHref = static fn (array $it): string => match ($it['type']) {
+        'lesson'   => '/student/lesson/' . $it['id'],
+        'activity' => '/student/activity/' . $it['id'],
+        default    => '/student/evaluation/' . $it['id'],
+    };
+    $trackNeighbors = UnitTrackService::neighbors($cuId, 'activity', $activityId, true);
+    if ($trackNeighbors['prev'] !== null) {
+        $navBackHref = $trackHref($trackNeighbors['prev']);
+    }
+
+    $nextItem = $trackNeighbors['next'];
+    if ($nextItem !== null) {
+        $nextReachable = $nextItem['type'] !== 'evaluation'
+            || UnitTrackService::evaluationUnlocked(
+                $cuId,
+                $studentId,
+                (int) ($progConf['eval_after_activities'] ?? 1) === 1
+            );
+        if ($nextReachable) {
+            $navNextHrefDone = $trackHref($nextItem);
+        }
     }
 }
 
@@ -435,9 +481,6 @@ ob_start();
                                 <?= e(__t($submission === null ? 'submissions.form.submit' : 'submissions.form.update')) ?>
                             </button>
                             <?php if ($submission !== null): ?>
-                                <a href="/student/cu/<?= (int) $activity['cu_id'] ?>" class="btn btn-success btn-lg">
-                                    <?= e(__t('submissions.form.continue')) ?>
-                                </a>
                                 <form method="POST" action="/student/activity/<?= $activityId ?>/delete"
                                       class="d-inline m-0"
                                       onsubmit="return confirm(<?= e(json_encode(__t('submissions.delete_confirm'), JSON_UNESCAPED_UNICODE)) ?>);">
@@ -453,13 +496,12 @@ ob_start();
             </div>
         </div>
 
-        <?php if ($submission !== null && !$mutable): ?>
-            <div class="d-flex justify-content-end mt-3">
-                <a href="/student/cu/<?= (int) $activity['cu_id'] ?>" class="btn btn-success btn-lg">
-                    <?= e(__t('submissions.form.continue')) ?>
-                </a>
-            </div>
-        <?php endif; ?>
+        <?php
+            // Voltar sempre; Avancar so depois de entregue.
+            $activityNavBack = $navBackHref;
+            $activityNavNext = $submission !== null ? $navNextHrefDone : null;
+            require LMS_ROOT . '/src/templates/partials/activity_nav.php';
+        ?>
     </div>
 </div>
 <?php if ($useEditor): ?>
