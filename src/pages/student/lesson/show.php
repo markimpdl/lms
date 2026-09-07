@@ -125,17 +125,8 @@ ob_start();
             <div class="card-body">
                 <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
                     <h1 class="h4 mb-0"><?= e((string) $lesson['title']) ?></h1>
-                    <?php /* Maximizar/restaurar: encolhe a sidebar do aluno pro rail
-                             de icones e alarga o conteudo, mantendo a trilha a direita.
-                             Estado persiste em localStorage (student-focus.js). */ ?>
-                    <button type="button" class="lms-focus-toggle" data-lms-focus-toggle
-                            aria-pressed="false"
-                            data-label-off="<?= e(__t('student.focus.maximize')) ?>"
-                            data-label-on="<?= e(__t('student.focus.restore')) ?>"
-                            title="<?= e(__t('student.focus.maximize')) ?>"
-                            aria-label="<?= e(__t('student.focus.maximize')) ?>">
-                        <i class="bi bi-arrows-angle-expand" aria-hidden="true"></i>
-                    </button>
+                    <?php /* A licao so existe em curso V2, entao o botao entra sempre. */ ?>
+                    <?php require LMS_ROOT . '/src/templates/partials/focus_toggle.php'; ?>
                 </div>
                 <div class="unit-prose content-render">
                     <?= $html /* sanitizado por ContentSanitizer na gravacao */ ?>
@@ -191,5 +182,4 @@ ob_start();
 </div>
 <?php
 $page_content = ob_get_clean();
-$student_focus = true; // habilita o botao maximizar/restaurar (layout.php)
 require LMS_ROOT . '/src/templates/layout.php';

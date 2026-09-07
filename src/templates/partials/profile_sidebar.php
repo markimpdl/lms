@@ -10,10 +10,12 @@ declare(strict_types=1);
  * graciosamente — não quebra nem mostra placeholder feio.
  *
  * Modo foco (`body.lms-focus`): o card de 300px dá lugar ao rail de ícones
- * `.lms-sidebar-rail` — mesma sidebar, versão fina. Nas páginas que habilitam
- * o modo (`$focusMode`, vindo do layout) os dois blocos saem no HTML e quem
- * alterna é o CSS, pra o toggle não precisar de round-trip. Nas demais o rail
- * nem é renderizado — seria markup morto em toda tela do aluno.
+ * `.lms-sidebar-rail` — mesma sidebar, versão fina. Os dois saem sempre no
+ * HTML e quem alterna é o CSS, pra o toggle não precisar de round-trip.
+ *
+ * O rail fecha com o botão de restaurar. É o que garante que o aluno nunca
+ * fique preso no modo compacto: o "maximizar" só existe nas telas de conteúdo
+ * do curso V2, mas o "restaurar" acompanha a sidebar em toda tela do aluno.
  *
  * Fontes de dados:
  *  - `student_total_xp`            — soma de xp_events.value
@@ -199,7 +201,6 @@ if ($branding !== null && $branding['whatsapp_number'] !== null) {
     </div>
 
     <?php /* Versão fina — visível só com body.lms-focus (ver student-area.css). */ ?>
-    <?php if (($focusMode ?? false) === true): ?>
     <nav class="lms-sidebar-rail" aria-label="<?= e(__t('sidebar.rail.aria')) ?>">
         <a class="lms-sidebar-rail__item" href="/profile"
            title="<?= e($name) ?>" aria-label="<?= e($name) ?>">
@@ -236,6 +237,14 @@ if ($branding !== null && $branding['whatsapp_number'] !== null) {
                 <i class="bi bi-whatsapp" aria-hidden="true"></i>
             </a>
         <?php endif; ?>
+
+        <button type="button" class="lms-sidebar-rail__item lms-focus-toggle lms-focus-toggle--rail"
+                data-lms-focus-toggle aria-pressed="true"
+                data-label-off="<?= e(__t('student.focus.maximize')) ?>"
+                data-label-on="<?= e(__t('student.focus.restore')) ?>"
+                title="<?= e(__t('student.focus.restore')) ?>"
+                aria-label="<?= e(__t('student.focus.restore')) ?>">
+            <i class="bi bi-arrows-angle-contract" aria-hidden="true"></i>
+        </button>
     </nav>
-    <?php endif; ?>
 </aside>

@@ -215,6 +215,25 @@ final class UnitTrackService
     }
 
     /**
+     * URL da tela do aluno pra um item da trilha.
+     *
+     * O mesmo `match` estava copiado em cada caller (capa da CU, licao,
+     * conclusao de licao, atividade). `forStudentCu()` ja devolve `href`
+     * pronto — este helper serve os callers que trabalham com item cru,
+     * vindo de `forCu()` ou `neighbors()`.
+     *
+     * @param array{type:string, id:int} $item
+     */
+    public static function hrefFor(array $item): string
+    {
+        return match ($item['type']) {
+            'lesson'   => '/student/lesson/' . (int) $item['id'],
+            'activity' => '/student/activity/' . (int) $item['id'],
+            default    => '/student/evaluation/' . (int) $item['id'],
+        };
+    }
+
+    /**
      * A avaliacao que fecha a trilha esta liberada pro aluno?
      *
      * Existe pra o botao "Avancar" nao virar beco sem saida. A navegacao

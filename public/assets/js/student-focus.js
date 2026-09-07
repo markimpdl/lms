@@ -7,8 +7,14 @@
  *
  * O estado persiste em localStorage pra acompanhar o aluno enquanto ele
  * anda pela trilha (licao -> exercicio -> licao) sem ter de reapertar o
- * botao em cada tela. O layout tambem aplica a classe num script inline no
- * topo do <body>, entao aqui so tratamos o clique e a sincronia do botao.
+ * botao em cada tela. O layout aplica a classe num script inline no topo do
+ * <body> em TODA tela do aluno, entao aqui so tratamos o clique e a sincronia
+ * dos botoes.
+ *
+ * Ha dois toggles e o script trata os dois igual: o "maximizar" no conteudo
+ * (so nas telas de curso V2) e o "restaurar" no fim do rail, que existe em
+ * qualquer tela do aluno — sem ele o aluno ficaria preso no modo compacto ao
+ * sair da trilha.
  *
  * localStorage pode lancar (modo privativo, cookies bloqueados) — por isso
  * todo acesso vai em try/catch e o modo foco degrada pra "so nesta pagina".
@@ -50,10 +56,11 @@
         }
     }
 
+    /** @return {boolean} true se achou botao e ligou os handlers. */
     function init() {
         var buttons = document.querySelectorAll('[data-lms-focus-toggle]');
         if (buttons.length === 0) {
-            return;
+            return false;
         }
 
         var on = document.body.classList.contains('lms-focus') || readStored();
@@ -68,11 +75,14 @@
                 buttons.forEach(function (b) { syncButton(b, on); });
             });
         });
+
+        return true;
     }
 
-    if (document.readyState === 'loading') {
+    // A tag roda no fim do <body> e SEM defer, entao os botoes ja estao no DOM
+    // e a sincronia acontece antes do primeiro paint. O fallback so existe pro
+    // caso de alguem mover a tag pra cima.
+    if (!init() && document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
     }
 })();

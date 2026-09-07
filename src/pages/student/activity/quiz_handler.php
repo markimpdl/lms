@@ -16,6 +16,7 @@ declare(strict_types=1);
  *   $ctx        array com 'submission' (já carregada)
  *   $navBackHref     string  URL do Voltar (barra activity_nav)
  *   $navNextHrefDone string  URL do Avançar quando já respondido
+ *   $isV2Course      bool    curso em trilha — ganha o botão maximizar
  *
  * Comportamento:
  *  - Atividade-quiz: entregar = ganha XP (sem retry; nota é informativa).
@@ -150,6 +151,9 @@ ob_start();
                     </div>
                     <div class="text-muted small"><?= e(__t('quiz.student.activity_grade_note')) ?></div>
                 </div>
+            <?php endif; ?>
+            <?php if ($isV2Course): ?>
+                <?php require LMS_ROOT . '/src/templates/partials/focus_toggle.php'; ?>
             <?php endif; ?>
         </div>
 

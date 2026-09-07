@@ -2883,6 +2883,27 @@ a.lms-sidebar-rail__item--whatsapp:focus-visible {
     color: var(--lms-primary, #6366f1);
 }
 
+/* O "restaurar" dentro do rail: veste-se de item do rail, nao de botao
+   solto — a borda e a caixa de 36px do toggle padrao brigariam com a
+   coluna de 56px dos vizinhos. */
+.lms-focus-toggle--rail {
+    width: 56px;
+    height: auto;
+    min-height: 40px;
+    margin-top: 2px;
+    border: 0;
+    border-top: 1px solid var(--lms-neutral-200);
+    border-radius: 0 0 10px 10px;
+    font-size: 16px;
+}
+
+.lms-focus-toggle--rail:hover,
+.lms-focus-toggle--rail:focus-visible,
+.lms-focus-toggle--rail[aria-pressed="true"] {
+    border-color: var(--lms-neutral-200);
+    border-radius: 0 0 10px 10px;
+}
+
 /* Mobile: grid ja empilha, entao o modo foco nao se aplica. */
 @media (max-width: 767.98px) {
     body.lms-student-area.lms-focus main.lms-student-grid {
