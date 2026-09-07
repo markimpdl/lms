@@ -48,9 +48,13 @@ if (!$availability['available']) {
 
 // Gate de progressao entre CCs/CUs — mesmo teste de /student/cu/{id}. Sem
 // isso, colar a URL de uma licao daria acesso a uma unidade ainda travada.
-$courseConfStmt = Database::pdo()->prepare('SELECT cc_mode FROM courses WHERE id = ? LIMIT 1');
+$courseConfStmt = Database::pdo()->prepare(
+    'SELECT cc_mode, eval_after_activities FROM courses WHERE id = ? LIMIT 1'
+);
 $courseConfStmt->execute([$courseId]);
-$ccMode = (string) ($courseConfStmt->fetchColumn() ?: 'sequential');
+$courseConf = $courseConfStmt->fetch();
+$ccMode     = (string) ($courseConf['cc_mode'] ?? 'sequential');
+$evalAfter  = (int) ($courseConf['eval_after_activities'] ?? 1) === 1;
 
 if ($ccMode === 'sequential') {
     $courseFull = StudentCurriculum::forStudentCourse($studentId, $courseId);
@@ -72,11 +76,9 @@ $neighbors = UnitTrackService::neighbors($cuId, 'lesson', $lessonId, true);
 $prev      = $neighbors['prev'];
 $next      = $neighbors['next'];
 
-$hrefFor = static fn (array $it): string => match ($it['type']) {
-    'lesson'   => '/student/lesson/' . $it['id'],
-    'activity' => '/student/activity/' . $it['id'],
-    default    => '/student/evaluation/' . $it['id'],
-};
+// O "Proximo" nao aponta pra avaliacao ainda travada por
+// eval_after_activities — cairia num 303 de volta. UnitTrackService decide.
+$nextHref = UnitTrackService::nextHrefForStudent($next, $cuId, $studentId, $evalAfter);
 
 $isDone = LessonCompletion::isComplete($lessonId, $studentId);
 $xp     = (int) $lesson['xp_value'];
@@ -137,7 +139,7 @@ ob_start();
         <div class="card shadow-sm">
             <div class="card-body d-flex align-items-center gap-2 flex-wrap">
                 <?php if ($prev !== null): ?>
-                    <a href="<?= e($hrefFor($prev)) ?>" class="btn btn-outline-secondary">
+                    <a href="<?= e(UnitTrackService::hrefFor($prev)) ?>" class="btn btn-outline-secondary">
                         &larr; <?= e(__t('track.nav.previous')) ?>
                     </a>
                 <?php endif; ?>
@@ -155,7 +157,7 @@ ob_start();
                             </button>
                         </form>
                         <?php if ($next !== null): ?>
-                            <a href="<?= e($hrefFor($next)) ?>" class="btn btn-primary">
+                            <a href="<?= e($nextHref) ?>" class="btn btn-primary">
                                 <?= e(__t('track.nav.next')) ?> &rarr;
                             </a>
                         <?php endif; ?>

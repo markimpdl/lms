@@ -87,17 +87,13 @@ flash(
         : __t('track.flash.completed')
 );
 
-// Segue pro proximo item da trilha. Sem proximo, volta pra capa da unidade —
-// eh o fim do percurso, e a capa mostra o progresso fechado.
+// Segue pro proximo item da trilha. Cai na capa da unidade quando eh o fim do
+// percurso (a capa mostra o progresso fechado) ou quando o proximo eh a
+// avaliacao ainda travada por eval_after_activities — sem esse desvio o aluno
+// levaria um 303 de volta com flash de bloqueio logo depois de ganhar o XP.
 $next = UnitTrackService::neighbors($cuId, 'lesson', $lessonId, true)['next'];
-if ($next === null) {
-    header('Location: /student/cu/' . $cuId, true, 303);
-    exit;
-}
-
-$target = match ($next['type']) {
-    'lesson'   => '/student/lesson/' . $next['id'],
-    'activity' => '/student/activity/' . $next['id'],
-    default    => '/student/evaluation/' . $next['id'],
-};
-header('Location: ' . $target, true, 303);
+header(
+    'Location: ' . UnitTrackService::nextHrefForStudent($next, $cuId, $studentId),
+    true,
+    303
+);

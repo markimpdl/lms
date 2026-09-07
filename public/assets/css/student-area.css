@@ -2723,6 +2723,28 @@ body.lms-student-area.lms-theme-dark .lms-notif-row__btn:hover {
     color: #fff;
 }
 
+/* Travado — so a avaliacao, quando eval_after_activities ainda barra.
+   Sai como <span>, entao nao ha :hover pra neutralizar; o que resta eh
+   deixar claro na cor que nao ha para onde clicar. */
+.lms-track__item.is-locked .lms-track__link {
+    cursor: default;
+    opacity: 0.65;
+}
+.lms-track__item.is-locked .lms-track__marker {
+    background: var(--lms-neutral-100);
+    border-color: var(--lms-neutral-300);
+    color: var(--lms-neutral-500, var(--lms-muted));
+    font-size: 0.7rem;
+}
+.lms-track__hint {
+    font-size: 0.7rem;
+    line-height: 1.3;
+    margin-top: 0.15rem;
+    color: var(--lms-neutral-500, var(--lms-muted));
+    /* A dica pode ter duas linhas — ao contrario do titulo, nao trunca */
+    white-space: normal;
+}
+
 /* Item aberto agora */
 .lms-track__item.is-current .lms-track__link {
     background: rgba(99, 102, 241, 0.12);

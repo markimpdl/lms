@@ -143,18 +143,12 @@ if ($isV2Course) {
         $navBackHref = UnitTrackService::hrefFor($trackNeighbors['prev']);
     }
 
-    $nextItem = $trackNeighbors['next'];
-    if ($nextItem !== null) {
-        $nextReachable = $nextItem['type'] !== 'evaluation'
-            || UnitTrackService::evaluationUnlocked(
-                $cuId,
-                $studentId,
-                (int) ($progConf['eval_after_activities'] ?? 1) === 1
-            );
-        if ($nextReachable) {
-            $navNextHrefDone = UnitTrackService::hrefFor($nextItem);
-        }
-    }
+    $navNextHrefDone = UnitTrackService::nextHrefForStudent(
+        $trackNeighbors['next'],
+        $cuId,
+        $studentId,
+        (int) ($progConf['eval_after_activities'] ?? 1) === 1
+    );
 }
 
 // E20-03: atividade tipo Quiz tem fluxo próprio (sem upload + grade

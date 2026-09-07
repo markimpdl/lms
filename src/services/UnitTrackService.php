@@ -117,7 +117,12 @@ final class UnitTrackService
      *  - avaliacao  -> existe submissao com nota >= 6 (mesmo criterio de
      *                  aprovacao que StudentProgress usa)
      *
-     * @return list<array{type:string,id:int,title:string,done:bool,href:string,xp_value:int}>
+     * `locked` so pode ser true na avaliacao, quando `eval_after_activities`
+     * ainda barra a entrada. A timeline usa isso pra nao oferecer um link que
+     * devolveria o aluno com flash — licao e exercicio nunca travam, porque a
+     * navegacao dentro da CU eh livre.
+     *
+     * @return list<array{type:string,id:int,title:string,done:bool,locked:bool,href:string,xp_value:int}>
      */
     public static function forStudentCu(int $cuId, int $studentId): array
     {
@@ -169,10 +174,22 @@ final class UnitTrackService
                 'id'       => $item['id'],
                 'title'    => $item['title'],
                 'done'     => $done,
+                'locked'   => false,
                 'href'     => $href,
                 'xp_value' => $item['xp_value'],
             ];
         }
+
+        // A avaliacao fecha a trilha e pode estar travada. Resolvido depois do
+        // loop pra a checagem rodar no maximo uma vez — e nenhuma vez em CU
+        // sem avaliacao, que eh o caso comum.
+        $lastIdx = count($out) - 1;
+        if ($lastIdx >= 0 && $out[$lastIdx]['type'] === 'evaluation'
+            && !self::evaluationUnlocked($cuId, $studentId)
+        ) {
+            $out[$lastIdx]['locked'] = true;
+        }
+
         return $out;
     }
 
@@ -246,9 +263,14 @@ final class UnitTrackService
      * passa; com atividades, exige TODAS entregues. `COUNT(DISTINCT ...)` nos
      * dois lados pra uma atividade com mais de uma linha de entrega nao
      * inflar a contagem.
+     *
+     * `$evalAfterActivities` eh opcional: quem ja tem a flag em maos (a tela
+     * da atividade a traz no SELECT do gate) passa e economiza uma query;
+     * quem nao tem passa null e deixa o service resolver.
      */
-    public static function evaluationUnlocked(int $cuId, int $studentId, bool $evalAfterActivities): bool
+    public static function evaluationUnlocked(int $cuId, int $studentId, ?bool $evalAfterActivities = null): bool
     {
+        $evalAfterActivities ??= self::evalAfterActivitiesForCu($cuId);
         if (!$evalAfterActivities) {
             return true;
         }
@@ -268,6 +290,79 @@ final class UnitTrackService
         $submitted = (int) ($row['submitted'] ?? 0);
 
         return $total === 0 || $submitted >= $total;
+    }
+
+    /**
+     * `courses.eval_after_activities` do curso a que esta CU pertence.
+     *
+     * Sem linha (CU removida entre requests) assume que a exigencia existe —
+     * eh o default da coluna, e mandar o aluno pra capa eh melhor que mandar
+     * pra um 303 de volta.
+     */
+    /** @var array<int, bool> cache por request — ver nota no docblock */
+    private static array $evalAfterCache = [];
+
+    private static function evalAfterActivitiesForCu(int $cuId): bool
+    {
+        // A tela da licao resolve isso duas vezes no mesmo request (uma pela
+        // timeline, outra pelo "Proximo"). Config de curso nao muda no meio de
+        // um request, entao memoizar eh seguro — ao contrario da contagem de
+        // entregas em evaluationUnlocked(), que fica sem cache de proposito
+        // pra nao envelhecer depois de uma escrita.
+        if (isset(self::$evalAfterCache[$cuId])) {
+            return self::$evalAfterCache[$cuId];
+        }
+
+        $stmt = Database::pdo()->prepare(
+            'SELECT c.eval_after_activities
+               FROM competence_units cu
+               JOIN core_competencies cc ON cc.id = cu.core_competency_id
+               JOIN courses c ON c.id = cc.course_id
+              WHERE cu.id = ?
+              LIMIT 1'
+        );
+        $stmt->execute([$cuId]);
+        $raw = $stmt->fetchColumn();
+
+        return self::$evalAfterCache[$cuId] = ($raw === false || (int) $raw === 1);
+    }
+
+    /**
+     * Destino do "proximo" na trilha, do ponto de vista do aluno.
+     *
+     * Ponto unico de decisao pros tres CTAs que avancam o percurso: o
+     * "Proximo" da licao, o redirect do "Concluir e continuar" e o "Avancar"
+     * da atividade. Sem isso cada um repetia o `match` de URL e nenhum
+     * checava a avaliacao.
+     *
+     * Duas quedas pra capa da unidade:
+     *  - fim da trilha (`$next === null`) — a capa mostra o progresso fechado;
+     *  - avaliacao ainda travada por `eval_after_activities`. Como a navegacao
+     *    dentro da CU eh livre, o aluno chega ao fim da trilha com exercicio
+     *    pendente de verdade; apontar pra avaliacao renderia um 303 de volta
+     *    com flash `progression.eval_locked` — no caso do "Concluir e
+     *    continuar", logo depois de ele ganhar o XP da licao.
+     *
+     * @param array<string,mixed>|null $next item vindo de `neighbors()['next']`
+     */
+    public static function nextHrefForStudent(
+        ?array $next,
+        int $cuId,
+        int $studentId,
+        ?bool $evalAfterActivities = null
+    ): string {
+        $cuHref = '/student/cu/' . $cuId;
+
+        if ($next === null) {
+            return $cuHref;
+        }
+        if ($next['type'] === 'evaluation'
+            && !self::evaluationUnlocked($cuId, $studentId, $evalAfterActivities)
+        ) {
+            return $cuHref;
+        }
+
+        return self::hrefFor($next);
     }
 
     /**
