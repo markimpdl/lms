@@ -101,23 +101,23 @@ final class Student
         // Subquery agregando metricas de tempo online por aluno (TIME-04).
         // Em derived table — sem isso, o JOIN com enrollments/group_members
         // multiplicaria os SUM/AVG/COUNT por (cursos x grupos).
-        // COALESCE traz a sessao ativa: usa duration_seconds quando ja
-        // fechada, senao TIMESTAMPDIFF(NOW() - started_at). Index alvo:
-        // idx_ss_tenant_user (tenant_id, user_id, started_at).
+        // A duracao por sessao vem de StudentSession::sqlEffectiveSeconds().
+        // Index alvo: idx_ss_tenant_user (tenant_id, user_id, started_at).
         $sessFilter = 'tenant_id = :sess_tid';
         if ($periodDays !== null) {
             // $periodDays vem de PERIOD_DAYS (whitelist 7/30/90); cast int
             // antes de inlinar evita qualquer surpresa.
             $sessFilter .= ' AND started_at > NOW() - INTERVAL ' . (int) $periodDays . ' DAY';
         }
+        // Duracao vem de StudentSession pra sessao orfa nao contar tempo ate
+        // agora — ver o docblock de sqlEffectiveSeconds().
+        $secs = StudentSession::sqlEffectiveSeconds();
         $sessSubquery = <<<SQL
             (SELECT user_id,
                     MAX(last_ping_at) AS last_ping_at,
                     COUNT(*) AS access_count,
-                    SUM(COALESCE(duration_seconds,
-                                 TIMESTAMPDIFF(SECOND, started_at, NOW()))) AS time_total,
-                    AVG(COALESCE(duration_seconds,
-                                 TIMESTAMPDIFF(SECOND, started_at, NOW()))) AS time_avg
+                    SUM({$secs}) AS time_total,
+                    AVG({$secs}) AS time_avg
                FROM student_sessions
               WHERE {$sessFilter}
               GROUP BY user_id)
