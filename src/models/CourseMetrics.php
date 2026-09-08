@@ -267,7 +267,13 @@ final class CourseMetrics
             $stmt->execute($showAll ? [$courseId] : [$courseId, $tenantId]);
             $studentIds = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
             foreach ($studentIds as $sid) {
-                $s = StudentProgress::courseStatus($courseId, $sid);
+                // Denominador COM rascunho (`true`): esta metrica eh o que o
+                // professor le como "quantos terminaram meu curso". Com o
+                // rascunho fora da conta, despublicar uma CU pendente pra
+                // editar inflaria o numero na hora — alunos que nao terminaram
+                // apareceriam como concluintes. Mesma escolha de
+                // AchievementsService::countCompletedCourses().
+                $s = StudentProgress::courseStatus($courseId, $sid, true);
                 if (($s['status'] ?? '') === 'completed') {
                     $completed++;
                 }

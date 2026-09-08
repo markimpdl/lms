@@ -17,19 +17,11 @@ if ($tenantId === null) {
 $activityId = (int) ($_REQUEST['id'] ?? 0);
 $studentId  = (int) ($_REQUEST['student_id'] ?? 0);
 
-// `from` opcional: URL pra onde voltar (Back / Cancel / pós-save).
-// Allowlist estrito: caminho relativo começando com `/teacher` (sem
-// `//` que viraria protocol-relative), sem CR/LF que poderiam injetar
-// header, e tamanho razoável. Default: lista de submissões da atividade.
-$rawFrom  = (string) ($_REQUEST['from'] ?? '');
-$fromSafe = '';
-if ($rawFrom !== ''
-    && strlen($rawFrom) <= 200
-    && (str_starts_with($rawFrom, '/teacher/') || str_starts_with($rawFrom, '/teacher?') || $rawFrom === '/teacher')
-    && strpbrk($rawFrom, "\r\n") === false) {
-    $fromSafe = $rawFrom;
-}
-$backUrl = $fromSafe !== '' ? $fromSafe : ('/teacher/activity/' . $activityId . '/submissions');
+// `from` opcional: URL pra onde voltar (Back / Cancel / pós-save). A
+// allowlist mora em `teacher_safe_from()` — mesma validacao que o modal de
+// exclusao usa. Default: lista de submissões da atividade.
+$fromSafe = teacher_safe_from((string) ($_REQUEST['from'] ?? ''), '');
+$backUrl  = $fromSafe !== '' ? $fromSafe : ('/teacher/activity/' . $activityId . '/submissions');
 
 $ctx = ActivitySubmission::findForTeacher($activityId, $studentId, $tenantId);
 if ($ctx === null) {

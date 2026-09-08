@@ -303,6 +303,21 @@ final class AchievementsService
 
         $count = 0;
         foreach ($ccIds as $ccId) {
+            // Aqui a CU em rascunho CONTA — ao contrario da progressao e da
+            // barra de %, que a pulam. Conquista eh permanente (so
+            // `INSERT IGNORE`, sem revogacao): se o rascunho saisse do
+            // denominador, o professor despublicando uma CU pendente fecharia
+            // a CC e gravaria a medalha pra sempre. Rascunho segura a
+            // conquista ate o professor publicar — atraso reversivel, em vez
+            // de concessao irreversivel. Mesma logica do denominador estrito
+            // em countCompletedCourses().
+            //
+            // Quem destrava depois eh `evaluateAll()`, chamado no load de
+            // /student/achievements: publicada a CU que faltava, a proxima
+            // visita do aluno concede a medalha. Sem essa rede o atraso seria
+            // permanente, porque `evaluateForEvent` so dispara em entrega de
+            // atividade e correcao de avaliacao — e o aluno que ja terminou
+            // tudo nao tem mais evento pra disparar.
             $cuStmt = Database::pdo()->prepare(
                 'SELECT id FROM competence_units WHERE core_competency_id = ?'
             );
@@ -343,7 +358,12 @@ final class AchievementsService
 
         $count = 0;
         foreach ($courseIds as $courseId) {
-            $status = StudentProgress::courseStatus($courseId, $studentId);
+            // Denominador COM rascunho: conquista nao se revoga, entao nao pode
+            // disparar porque o professor tirou uma CU pendente do ar. Contar
+            // tudo eh melhor que pular o curso inteiro — assim um curso que o
+            // aluno realmente terminou continua contando mesmo se depois uma
+            // das CUs concluidas for despublicada.
+            $status = StudentProgress::courseStatus($courseId, $studentId, true);
             if (($status['status'] ?? '') === 'completed') {
                 $count++;
             }
@@ -685,6 +705,8 @@ final class AchievementsService
 
     private static function isCCMaxGrade(int $ccId, int $studentId): bool
     {
+        // Rascunho conta, mesma razao de countCompletedCCs: conquista nao se
+        // revoga, entao nao pode disparar por encolhimento de denominador.
         $stmt = Database::pdo()->prepare(
             'SELECT id FROM competence_units WHERE core_competency_id = ?'
         );

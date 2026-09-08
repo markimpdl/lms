@@ -375,6 +375,7 @@ return [
     'progression.eval_locked'                  => 'Complete all activities before taking the evaluation',
     'progression.cu_locked'                    => 'This unit is not available yet.',
     'progression.activity_locked'              => 'This activity is not available yet.',
+    'progression.cu_draft'                     => 'This unit is still a draft. It shows up once your teacher publishes the content.',
     'courses.created'              => 'Course ":name" created.',
     'courses.updated'              => 'Course ":name" updated.',
     'courses.archived'             => 'Course ":name" archived.',
@@ -644,6 +645,7 @@ return [
     // Quiz form (E20-02)
     'quiz.form.title'                   => 'Quiz: :name',
     'quiz.form.subtitle'                => 'Add questions with at least 2 options each. The weight sum must be exactly 10.00.',
+    'quiz.form.settings_link'           => 'Edit general details',
     'quiz.form.has_errors'              => 'Please fix the highlighted fields to continue.',
     'quiz.form.weight_sum_label'        => 'Weight sum',
     'quiz.form.weight_sum_warning'      => 'Adjust the weights so the sum is exactly 10.00.',
@@ -1254,6 +1256,7 @@ return [
     'track.student.start'            => 'Start',
     'track.student.continue'         => 'Continue',
     'track.student.empty'            => 'Your teacher has not published anything in this unit yet.',
+    'track.student.back_to_course'   => 'Back to course',
     'track.nav.previous'             => 'Previous',
     'student.focus.maximize'         => 'Maximise content',
     'student.focus.restore'          => 'Restore layout',

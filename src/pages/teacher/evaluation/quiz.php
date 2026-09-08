@@ -91,11 +91,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$formAction = '/teacher/evaluation/' . $evaluationId . '/quiz';
-$cancelUrl  = '/teacher/cu/' . (int) $evaluation['competence_unit_id'];
+$formAction  = '/teacher/evaluation/' . $evaluationId . '/quiz';
+$cancelUrl   = '/teacher/cu/' . (int) $evaluation['competence_unit_id'];
+$settingsUrl = '/teacher/evaluation/' . $evaluationId . '/edit';
+
+// A lista da CU manda avaliacao do tipo quiz direto pra esta tela — era o
+// unico link, e ela so editava as questoes: nao havia caminho de UI nenhum ate
+// a exclusao (o bug que o PO reportou). O link "Editar dados gerais" acima
+// resolve o acesso; a zona aqui existe porque quem esta trabalhando no quiz
+// nao deveria ter de navegar pra outra tela pra apagar. Sao duas portas pro
+// mesmo /delete, como em qualquer tela de edicao do objeto — deliberado.
+$isArchived            = (int) ($evaluation['course_archived'] ?? 0) === 1;
+$evaluationName        = (string) $evaluation['title'];
+$deleteCounts          = Evaluation::countForDelete($evaluationId);
+$deleteCountsFormatted = format_delete_counts([
+    'submissions' => $deleteCounts['submissions'],
+    'xp_events'   => $deleteCounts['xp_events'],
+]);
 
 $page_title = __t('quiz.form.title', ['name' => $ownerName]);
 ob_start();
 require LMS_ROOT . '/src/templates/partials/teacher_quiz_form.php';
+?>
+
+<?php if (!$isArchived): ?>
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+        <div class="card card-body shadow-sm mt-3 border-danger-subtle">
+            <h2 class="h6 mb-2 text-danger"><?= e(__t('evaluations.delete.zone')) ?></h2>
+            <p class="small text-muted mb-3">
+                <?= e(__t('evaluations.delete.warning')) ?>
+            </p>
+            <div>
+                <button type="button" class="btn btn-outline-danger"
+                        data-bs-toggle="modal" data-bs-target="#deleteConfirmModal"
+                        data-item-name="<?= e($evaluationName) ?>"
+                        data-action-url="/teacher/evaluation/<?= $evaluationId ?>/delete"
+                        data-counts="<?= e(json_encode($deleteCountsFormatted, JSON_UNESCAPED_UNICODE)) ?>"
+                        data-return-url="/teacher/evaluation/<?= $evaluationId ?>/quiz">
+                    <?= e(__t('delete.action')) ?>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php require LMS_ROOT . '/src/templates/partials/delete_confirm_modal.php'; ?>
+<?php endif; ?>
+
+<?php
 $page_content = ob_get_clean();
 require LMS_ROOT . '/src/templates/layout.php';

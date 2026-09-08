@@ -28,6 +28,17 @@ if ($ctx === null || ($ctx['activity']['pdf_path'] ?? null) === null) {
     return;
 }
 
+// Unidade em rascunho: o enunciado eh material do professor e a atividade ja
+// nao aparece na capa da CU. Fecha o link salvo — inclusive pra quem entregou,
+// diferente de `/student/activity/{id}`: o enunciado eh do professor, a
+// entrega eh do aluno. `/file` e `/delete` seguem abertos pelo mesmo motivo, e
+// a tela que os oferece continua acessivel a quem tem entrega.
+if (cu_is_draft_for_student((int) $ctx['activity']['cu_id'])) {
+    http_response_code(404);
+    require LMS_ROOT . '/src/templates/errors/404.php';
+    return;
+}
+
 $storedPath = (string) $ctx['activity']['pdf_path'];
 $mime       = ActivityBriefStorage::mimeFromStoredPath($storedPath);
 $ext        = $mime === 'application/zip' ? 'zip' : 'pdf';

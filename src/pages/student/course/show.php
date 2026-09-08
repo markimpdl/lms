@@ -62,12 +62,22 @@ $unitsDone  = 0;
 $overallSum = 0;
 $overallCount = 0;
 
+// CU em rascunho nao entra em nenhuma contagem desta tela: o card dela nao
+// renderiza (filtrado por cu_status='hidden'), entao conta-la no "x de y
+// unidades" e na media da CC mostraria um denominador que o aluno nao ve.
+// Mesma exclusao que StudentProgress::coursePercent faz no % do curso.
+$draftCus = UnitDraftGate::draftCuIdsInCourse($courseId);
+
 foreach ($course['ccs'] as $cc) {
-    $ccUnitsTot  = count($cc['cus']);
+    $ccUnitsTot  = 0;
     $ccUnitsDone = 0;
     $ccPctSum    = 0;
 
     foreach ($cc['cus'] as $cu) {
+        if (isset($draftCus[(int) $cu['id']])) {
+            continue;
+        }
+        $ccUnitsTot++;
         $status = student_cu_status((int) $cu['id'], $studentId);
         if ($status['status'] === 'completed') {
             $ccUnitsDone++;
@@ -86,15 +96,44 @@ foreach ($course['ccs'] as $cc) {
         'percent'    => $ccPercent,
         'units_done' => $ccUnitsDone,
         'units_tot'  => $ccUnitsTot,
+        // CC que TINHA unidades e sobrou sem nenhuma fora do rascunho. Nao eh
+        // o mesmo que CC vazia: aquela mostra "o professor ainda nao adicionou
+        // unidades"; esta seria desenhada como completa (a progressao a trata
+        // como pulada) e vazia ao mesmo tempo — contraditoria. Sai da tela.
+        'all_draft'  => $cc['cus'] !== [] && $ccUnitsTot === 0,
     ];
 }
 
+// Numeracao "CORE COMPETENCE N" pula a CC que sobrou so com rascunho, pelo
+// mesmo motivo da numeracao das unidades: ela nao existe pro aluno, entao nao
+// pode ocupar um numero e deixar buraco na sequencia.
+$ccLabelNum   = 0;
+$renderableCc = [];
+foreach ($ccPayload as $entry) {
+    if ($entry['all_draft']) {
+        continue;
+    }
+    $ccLabelNum++;
+    $entry['index'] = $ccLabelNum;
+    $renderableCc[] = $entry;
+}
+
 $overallPct = $overallCount > 0 ? (int) round($overallSum / $overallCount) : 0;
-$ccCount    = count($course['ccs']);
+$ccCount    = $ccLabelNum;
 
 // E19-02: estado de progressão (visibilidade) de cada CC e UC.
 // Em cc_mode='free' tudo vem como 'free' (sem mudança de UI).
 $progression = course_progression_state($course, $studentId);
+
+// Estado vazio precisa considerar o que SOBRA depois dos filtros, nao so
+// `ccs === []`: um curso V1 com todo o conteudo escrito e nada publicado tem
+// CCs, mas nenhuma renderizavel — sem isto o aluno recebia o hero com 0
+// unidades seguido de uma `<div class="lms-cc-list">` vazia.
+$renderableCc = array_values(array_filter(
+    $renderableCc,
+    static fn (array $entry): bool =>
+        ($progression['cc_status'][(int) $entry['cc']['id']] ?? 'free') !== 'hidden'
+));
 
 $page_title = $courseName;
 
@@ -119,28 +158,30 @@ ob_start();
     </a>
 </div>
 
-<?php if ($course['ccs'] === []): ?>
+<?php if ($renderableCc === []): ?>
     <div class="lms-dashboard-empty mt-4">
         <p class="lms-dashboard-empty__title"><?= e(__t('dashboard.student.course_empty')) ?></p>
     </div>
 <?php else: ?>
     <div class="lms-cc-list">
-        <?php foreach ($ccPayload as $ccIdx => $entry): ?>
+        <?php foreach ($renderableCc as $entry): ?>
             <?php
+                // CC oculta e CC toda em rascunho ja sairam da lista acima.
                 $cc          = $entry['cc'];
-                $ccIndex     = $ccIdx + 1;
+                $ccIndex     = (int) $entry['index'];
                 $ccPercent   = (int) $entry['percent'];
                 $ccUnitsDone = (int) $entry['units_done'];
                 $ccUnitsTot  = (int) $entry['units_tot'];
 
-                // E19-02: filtra CC oculta + injeta status no escopo do partial.
-                $ccStatus = $progression['cc_status'][(int) $cc['id']] ?? 'free';
-                if ($ccStatus === 'hidden') {
-                    continue;
-                }
+                $ccStatus       = $progression['cc_status'][(int) $cc['id']] ?? 'free';
                 $ccLockedByName = $progression['current_cc_name']; // p/ overlay quando 'next'
                 $cuStatusMap    = $progression['cu_status'];
                 $cuLockedByName = $progression['current_cu_name'];
+                // Explicito aqui, junto das outras entradas do partial: ele
+                // filtra rascunho por este mapa, e um `isset()` sobre variavel
+                // ausente falharia ABERTO (sem aviso), voltando a renderizar
+                // card de unidade que a tela da CU rejeita.
+                $draftCusForCc  = $draftCus;
 
                 require LMS_ROOT . '/src/templates/partials/student_cc_section.php';
             ?>

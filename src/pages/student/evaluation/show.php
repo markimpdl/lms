@@ -62,12 +62,29 @@ $progConf  = $progGateStmt->fetch();
 $ccMode    = (string) ($progConf['cc_mode']                ?? 'sequential');
 $evalAfter = (int)    ($progConf['eval_after_activities']  ?? 1);
 
+// Unidade em rascunho: conteudo escrito e nao publicado fecha a unidade
+// inteira. Paridade com activity/show.php, inclusive na excecao: quem ja tem
+// tentativa passa, pra nao perder o acesso ao proprio arquivo entregue.
+$isDraftUnit = cu_is_draft_for_student($cuId);
+$draftExempt = $isDraftUnit && ($ctx['current'] ?? null) !== null;
+
+if ($isDraftUnit && !$draftExempt) {
+    flash('warning', __t('progression.cu_draft'));
+    header('Location: /student/course/' . $courseId, true, 303);
+    exit;
+}
+
+// Mesma cessao do gate sequencial de activity/show.php: CU em rascunho vem
+// como 'hidden', e sem a isencao o aluno com tentativa era barrado logo
+// abaixo. Vale so pro 'hidden'; 'next' continua bloqueando.
 if ($ccMode === 'sequential') {
     $courseFull = StudentCurriculum::forStudentCourse($studentId, $courseId);
     if ($courseFull !== null) {
         $progGate = course_progression_state($courseFull, $studentId);
         $cuStatus = $progGate['cu_status'][$cuId] ?? 'free';
-        if ($cuStatus === 'hidden' || $cuStatus === 'next') {
+        // 'hidden' cede pro isento (a CU so esta escondida porque virou
+        // rascunho); 'next' nunca cede — essa eh progressao de verdade.
+        if (($cuStatus === 'hidden' && !$draftExempt) || $cuStatus === 'next') {
             flash('warning', __t('progression.cu_locked'));
             header('Location: /student/course/' . $courseId, true, 303);
             exit;
@@ -254,8 +271,10 @@ ob_start();
             </div>
         <?php endif; ?>
 
-        <!-- PDF do enunciado -->
-        <?php if ($evaluation['pdf_path'] !== null): ?>
+        <!-- PDF do enunciado. Escondido em unidade em rascunho pelo mesmo
+             motivo de activity/show.php: /brief barra o enunciado mesmo pro
+             aluno isento, entao o botao seria um 404. -->
+        <?php if ($evaluation['pdf_path'] !== null && !$isDraftUnit): ?>
             <div class="card shadow-sm mb-3">
                 <div class="card-body d-flex align-items-center gap-3 flex-wrap">
                     <div class="flex-grow-1">

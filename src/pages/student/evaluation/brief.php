@@ -27,6 +27,14 @@ if ($ctx === null || $ctx['evaluation']['pdf_path'] === null) {
     return;
 }
 
+// Unidade em rascunho: mesmo gate de activity/brief.php — enunciado eh
+// material do professor. A entrega do aluno (`/file`) segue acessivel.
+if (cu_is_draft_for_student((int) $ctx['evaluation']['cu_id'])) {
+    http_response_code(404);
+    require LMS_ROOT . '/src/templates/errors/404.php';
+    return;
+}
+
 $storedPath = (string) $ctx['evaluation']['pdf_path'];
 $mime       = EvaluationBriefStorage::mimeFromStoredPath($storedPath);
 $ext        = $mime === 'application/zip' ? 'zip' : 'pdf';

@@ -49,6 +49,14 @@ if (!$availability['available']) {
     exit;
 }
 
+// Unidade em rascunho (V1): a capa nao mostra o botao, e aqui fecha o POST
+// forjado — nao ha por que creditar XP de conclusao de unidade nao publicada.
+if (cu_is_draft_for_student($cuId)) {
+    flash('warning', __t('progression.cu_draft'));
+    header('Location: /student/course/' . $courseId, true, 303);
+    exit;
+}
+
 $enabled = (int) ($cu['manual_completion_enabled'] ?? 0) === 1;
 $hasEval = $tenantId > 0 && Evaluation::findByCu($cuId, $tenantId) !== null;
 if (!$enabled || $hasEval) {

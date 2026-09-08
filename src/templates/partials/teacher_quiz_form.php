@@ -13,6 +13,9 @@ declare(strict_types=1);
  *   $ownerName    string — nome da activity/evaluation pai
  *   $showAnswers  bool   — flag atual do quiz
  *   $questions    list<array> — payload pra inicializar Alpine.js (formato detalhado abaixo)
+ *   $settingsUrl  ?string — opcional; tela de dados gerais (titulo/XP/prazo) do
+ *                           dono. A lista da CU manda quiz direto pra ca, entao
+ *                           sem este link o /edit fica inalcancavel.
  *
  * `$questions` é uma lista de objetos PHP convertidos pra JSON e
  * injetados como state inicial do Alpine. Cada questão tem:
@@ -25,9 +28,16 @@ $initialQuestionsJson = json_encode($questions, JSON_UNESCAPED_UNICODE | JSON_UN
     <div class="col-12 col-lg-10">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
             <h1 class="h4 mb-0"><?= e(__t('quiz.form.title', ['name' => $ownerName])) ?></h1>
-            <a href="<?= e($cancelUrl) ?>" class="btn btn-sm btn-outline-secondary">
-                ← <?= e(__t('common.back')) ?>
-            </a>
+            <div class="d-flex gap-2 flex-wrap">
+                <?php if (($settingsUrl ?? null) !== null): ?>
+                    <a href="<?= e((string) $settingsUrl) ?>" class="btn btn-sm btn-outline-primary">
+                        <?= e(__t('quiz.form.settings_link')) ?>
+                    </a>
+                <?php endif; ?>
+                <a href="<?= e($cancelUrl) ?>" class="btn btn-sm btn-outline-secondary">
+                    ← <?= e(__t('common.back')) ?>
+                </a>
+            </div>
         </div>
         <p class="text-muted small mb-3"><?= e(__t('quiz.form.subtitle')) ?></p>
 

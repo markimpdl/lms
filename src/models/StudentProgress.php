@@ -118,14 +118,33 @@ final class StudentProgress
      * com o PO em 2026-04-26 alinhando o dashboard ao banner do curso —
      * ver comentário do header da classe.
      */
-    public static function coursePercent(int $courseId, int $studentId): int
-    {
-        $stmt = Database::pdo()->prepare(
-            'SELECT cu.id AS cu_id
-               FROM competence_units cu
-               JOIN core_competencies cc ON cc.id = cu.core_competency_id
-              WHERE cc.course_id = ?'
-        );
+    public static function coursePercent(
+        int $courseId,
+        int $studentId,
+        bool $includeDraftUnits = false
+    ): int {
+        // CU em rascunho fica fora da media por padrao. Ela eh pulada na
+        // progressao — se continuasse contando, entraria com 0% e o curso nunca
+        // chegaria a 100% por causa de uma unidade que o aluno nem enxerga.
+        //
+        // `$includeDraftUnits = true` eh pra quem toma decisao IRREVERSIVEL a
+        // partir de "curso concluido" (conquista, que so tem INSERT IGNORE e
+        // nenhuma revogacao). Com o rascunho fora do denominador, o professor
+        // despublicando a ultima CU pendente levaria o curso a 100% e gravaria
+        // a medalha pra sempre. Contando tudo, o curso so fecha quando fecha de
+        // verdade — e continua fechado se o professor despublicar uma CU que o
+        // aluno JA concluiu, que eh o caso legitimo.
+        $sql = 'SELECT cu.id AS cu_id
+                  FROM competence_units cu
+                  JOIN core_competencies cc ON cc.id = cu.core_competency_id
+                  JOIN courses c            ON c.id  = cc.course_id
+                  LEFT JOIN contents ct     ON ct.competence_unit_id = cu.id
+                 WHERE cc.course_id = ?';
+        if (!$includeDraftUnits) {
+            $sql .= ' AND NOT ' . UnitDraftGate::sqlIsDraft();
+        }
+
+        $stmt = Database::pdo()->prepare($sql);
         $stmt->execute([$courseId]);
 
         $sum   = 0;
@@ -143,9 +162,12 @@ final class StudentProgress
     /**
      * @return array{status:string, percent:int}
      */
-    public static function courseStatus(int $courseId, int $studentId): array
-    {
-        $p = self::coursePercent($courseId, $studentId);
+    public static function courseStatus(
+        int $courseId,
+        int $studentId,
+        bool $includeDraftUnits = false
+    ): array {
+        $p = self::coursePercent($courseId, $studentId, $includeDraftUnits);
         return ['status' => self::statusFromPercent($p), 'percent' => $p];
     }
 

@@ -483,6 +483,10 @@ final class Course
      */
     public static function listForStudentWithProgress(int $studentId): array
     {
+        // Predicado de "unidade em rascunho" interpolado a partir da fonte
+        // unica (`UnitDraftGate`) — nao reescrever a mao aqui.
+        $draftSql = UnitDraftGate::sqlIsDraft();
+
         $sql = <<<SQL
             SELECT
                 c.id                AS course_id,
@@ -495,14 +499,22 @@ final class Course
                 e.access_ends_at    AS access_ends_at,
                 e.blocked_at        AS blocked_at,
                 u.name              AS instructor_name,
+                -- CU em rascunho fica de fora das duas contagens: ela nao
+                -- aparece na pagina do curso e ja saiu da media de
+                -- StudentProgress::coursePercent. Contada aqui, o card do
+                -- dashboard diria "5 de 6 unidades" com 100% ao lado.
                 (SELECT COUNT(*)
                    FROM competence_units cu
                    JOIN core_competencies cc ON cc.id = cu.core_competency_id
-                  WHERE cc.course_id = c.id)                    AS units_total,
+                   LEFT JOIN contents ct     ON ct.competence_unit_id = cu.id
+                  WHERE cc.course_id = c.id
+                    AND NOT {$draftSql})                        AS units_total,
                 (SELECT COALESCE(SUM(cu.workload_hours), 0)
                    FROM competence_units cu
                    JOIN core_competencies cc ON cc.id = cu.core_competency_id
-                  WHERE cc.course_id = c.id)                    AS total_hours
+                   LEFT JOIN contents ct     ON ct.competence_unit_id = cu.id
+                  WHERE cc.course_id = c.id
+                    AND NOT {$draftSql})                        AS total_hours
               FROM enrollments e
               JOIN courses c       ON c.id        = e.course_id
               JOIN tenants t       ON t.id        = c.tenant_id

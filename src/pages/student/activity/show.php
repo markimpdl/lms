@@ -55,12 +55,38 @@ $progConf = $progGateStmt->fetch();
 $ccMode       = (string) ($progConf['cc_mode'] ?? 'sequential');
 $activityMode = (string) ($progConf['activity_mode'] ?? 'sequential');
 
+// Unidade em rascunho: conteudo escrito e nao publicado fecha a unidade
+// inteira. A capa da CU ja nao lista a atividade; aqui barra a URL direta —
+// e o link que o aluno tenha guardado de antes da despublicacao.
+//
+// Quem JA ENTREGOU passa. Despublicar pra corrigir um typo eh rotina, e o
+// arquivo entregue eh dado do aluno: o download e a remocao da entrega so
+// existem nesta tela, entao barrar aqui o prenderia numa entrega que ele nao
+// consegue nem baixar nem desfazer. Nao vaza material novo — ele ja viu esta
+// atividade quando entregou.
+$isDraftUnit = cu_is_draft_for_student($cuId);
+$draftExempt = $isDraftUnit && $ctx['submission'] !== null;
+
+if ($isDraftUnit && !$draftExempt) {
+    flash('warning', __t('progression.cu_draft'));
+    header('Location: /student/course/' . $courseId, true, 303);
+    exit;
+}
+
+// O gate sequencial precisa conhecer a isencao: `course_progression_state()`
+// marca CU em rascunho como 'hidden' (eh assim que ela some do curso), e este
+// bloco redireciona em 'hidden'. Sem isso a isencao acima nao valia nada em
+// `cc_mode = 'sequential'`, que eh o default do schema — o aluno era barrado
+// cinco linhas depois, e ainda com a mensagem errada. A cessao eh so no
+// 'hidden' (ver dentro do if): 'next' continua bloqueando sempre.
 if ($ccMode === 'sequential') {
     $courseFull = StudentCurriculum::forStudentCourse($studentId, $courseId);
     if ($courseFull !== null) {
         $progGate   = course_progression_state($courseFull, $studentId);
         $cuStatus   = $progGate['cu_status'][$cuId] ?? 'free';
-        if ($cuStatus === 'hidden' || $cuStatus === 'next') {
+        // 'hidden' cede pro isento (a CU so esta escondida porque virou
+        // rascunho); 'next' nunca cede — essa eh progressao de verdade.
+        if (($cuStatus === 'hidden' && !$draftExempt) || $cuStatus === 'next') {
             flash('warning', __t('progression.cu_locked'));
             header('Location: /student/course/' . $courseId, true, 303);
             exit;
@@ -305,8 +331,12 @@ ob_start();
             </div>
         </div>
 
-        <!-- Brief PDF/ZIP do professor (v0.30.0) — só pra atividade tipo projeto. -->
-        <?php if (($activity['pdf_path'] ?? null) !== null): ?>
+        <!-- Brief PDF/ZIP do professor (v0.30.0) — só pra atividade tipo projeto.
+             Escondido em unidade em rascunho: quem chega aqui nesse estado eh o
+             aluno isento por ja ter entregue, e o handler /brief barra o
+             enunciado (material do professor) pra todo mundo — o botao ficaria
+             morto, levando a um 404. -->
+        <?php if (($activity['pdf_path'] ?? null) !== null && !$isDraftUnit): ?>
             <div class="card shadow-sm mb-3">
                 <div class="card-body d-flex align-items-center gap-3 flex-wrap">
                     <div class="flex-grow-1">

@@ -89,11 +89,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$formAction = '/teacher/activity/' . $activityId . '/quiz';
-$cancelUrl  = '/teacher/cu/' . (int) $activity['competence_unit_id'];
+$formAction  = '/teacher/activity/' . $activityId . '/quiz';
+$cancelUrl   = '/teacher/cu/' . (int) $activity['competence_unit_id'];
+$settingsUrl = '/teacher/activity/' . $activityId . '/edit';
+
+// Mesma lacuna de evaluation/quiz.php: a lista da CU manda atividade quiz
+// direto pra ca, e ate o link "Editar dados gerais" desta mesma mudanca nao
+// havia caminho de UI ate a exclusao. A zona fica aqui de proposito, pra quem
+// edita o quiz nao ter de sair da tela pra apagar.
+$isArchived            = (int) ($activity['course_archived'] ?? 0) === 1;
+$activityName          = (string) $activity['title'];
+$deleteCounts          = Activity::countForDelete($activityId);
+$deleteCountsFormatted = format_delete_counts([
+    'submissions' => $deleteCounts['submissions'],
+    'xp_events'   => $deleteCounts['xp_events'],
+]);
 
 $page_title = __t('quiz.form.title', ['name' => $ownerName]);
 ob_start();
 require LMS_ROOT . '/src/templates/partials/teacher_quiz_form.php';
+?>
+
+<?php if (!$isArchived): ?>
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+        <div class="card card-body shadow-sm mt-3 border-danger-subtle">
+            <h2 class="h6 mb-2 text-danger"><?= e(__t('activities.delete.zone')) ?></h2>
+            <p class="small text-muted mb-3">
+                <?= e(__t('activities.delete.warning')) ?>
+            </p>
+            <div>
+                <button type="button" class="btn btn-outline-danger"
+                        data-bs-toggle="modal" data-bs-target="#deleteConfirmModal"
+                        data-item-name="<?= e($activityName) ?>"
+                        data-action-url="/teacher/activity/<?= $activityId ?>/delete"
+                        data-counts="<?= e(json_encode($deleteCountsFormatted, JSON_UNESCAPED_UNICODE)) ?>"
+                        data-return-url="/teacher/activity/<?= $activityId ?>/quiz">
+                    <?= e(__t('delete.action')) ?>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php require LMS_ROOT . '/src/templates/partials/delete_confirm_modal.php'; ?>
+<?php endif; ?>
+
+<?php
 $page_content = ob_get_clean();
 require LMS_ROOT . '/src/templates/layout.php';

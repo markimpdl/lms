@@ -22,6 +22,7 @@ declare(strict_types=1);
  *   $ccLockedByName  ?string (E19-02) — nome da CC atual; usado no overlay quando $ccStatus='next'
  *   $cuStatusMap     array<int,string> (E19-02) — mapa cu_id => status
  *   $cuLockedByName  ?string (E19-02) — nome da CU atual; passado pro unit_card
+ *   $draftCusForCc   array<int,true> — cu_ids em rascunho (ver UnitDraftGate)
  */
 
 $gradient = sprintf('linear-gradient(135deg, %s, %s)', $gradStart, $gradEnd);
@@ -66,22 +67,49 @@ if ($ccStatus === 'next') {
         </div>
     </header>
 
+    <?php
+        // Monta a lista renderizavel ANTES do loop, porque "some da tela" e
+        // "some da numeracao" nao sao a mesma coisa:
+        //
+        //  - RASCUNHO nao existe pro aluno (a progressao o pula, o % o ignora),
+        //    entao tambem nao ocupa numero — com o indice cru, um rascunho no
+        //    meio produzia "Unidade 1, Unidade 3".
+        //  - 'hidden' por progressao eh unidade que existe e ainda vai chegar:
+        //    ela MANTEM o numero real. Renumerar sobre a lista visivel quebrava
+        //    o unlock manual (E36-02), onde a CU 5 liberada sozinha numa CC
+        //    travada aparecia rotulada "Unidade 1" — e mudava de rotulo a cada
+        //    nova unidade liberada.
+        //
+        // O filtro tambem responde se a CC ficou sem nada pra mostrar, caso em
+        // que o caller nem chega aqui (ver student/course/show.php).
+        $visibleUnits = [];
+        $unitLabelNum = 0;
+        foreach ($cc['cus'] as $unit) {
+            $unitId = (int) $unit['id'];
+            if (isset($draftCusForCc[$unitId])) {
+                continue;
+            }
+            $unitLabelNum++;
+            $st = $cuStatusMap[$unitId] ?? 'free';
+            if ($st === 'hidden') {
+                continue;
+            }
+            $visibleUnits[] = ['unit' => $unit, 'status' => $st, 'index' => $unitLabelNum];
+        }
+    ?>
     <?php if ($ccStatus === 'next'): ?>
         <div class="lms-cc-section__lock-overlay">
             <?= e(__t('progression.next_locked', ['name' => (string) ($ccLockedByName ?? '')])) ?>
         </div>
-    <?php elseif ($cc['cus'] === []): ?>
+    <?php elseif ($visibleUnits === []): ?>
         <p class="lms-cc-section__empty"><?= e(__t('dashboard.student.cc_empty')) ?></p>
     <?php else: ?>
         <div class="lms-unit-grid">
-            <?php foreach ($cc['cus'] as $cuIdx => $unit): ?>
+            <?php foreach ($visibleUnits as $visible): ?>
                 <?php
-                    $unitIndex = $cuIdx + 1;
-                    // E19-02: status da UC + filtra hidden + injeta locked-by name.
-                    $cuStatus  = $cuStatusMap[(int) $unit['id']] ?? 'free';
-                    if ($cuStatus === 'hidden') {
-                        continue;
-                    }
+                    $unit      = $visible['unit'];
+                    $cuStatus  = $visible['status'];
+                    $unitIndex = $visible['index'];
                     require LMS_ROOT . '/src/templates/partials/unit_card.php';
                 ?>
             <?php endforeach; ?>
