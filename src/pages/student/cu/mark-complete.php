@@ -65,17 +65,34 @@ if (!$enabled || $hasEval) {
     return;
 }
 
-// Gate: todas as atividades da CU precisam ter submissao do aluno.
-$pendingStmt = Database::pdo()->prepare(
-    'SELECT COUNT(*)
-       FROM activities a
-       LEFT JOIN activity_submissions s
-              ON s.activity_id = a.id AND s.student_user_id = ?
-      WHERE a.competence_unit_id = ?
-        AND s.id IS NULL'
-);
-$pendingStmt->execute([$studentId, $cuId]);
-if ((int) $pendingStmt->fetchColumn() > 0) {
+// Gate: o percurso da unidade precisa estar fechado.
+//
+// Em V2 o criterio eh a TRILHA inteira concluida, nao so as atividades: a
+// trilha inclui licao, e "todas as atividades entregues" deixaria o aluno
+// fechar a unidade com licoes por ler. Alem de errado, divergiria do botao,
+// que ja usa a trilha como pre-requisito.
+$isV2 = (int) ($cu['course_structure_version'] ?? 1) === 2;
+
+if ($isV2) {
+    // Trilha vazia nao pendura ninguem: `isComplete([])` eh false de proposito
+    // (nao ha o que concluir), e usar isso como pendencia travaria pra sempre a
+    // unidade que so tem capa + conclusao manual. Espelha o botao.
+    $track   = UnitTrackService::forStudentCu($cuId, $studentId);
+    $pending = $track !== [] && !UnitTrackService::isComplete($track);
+} else {
+    $pendingStmt = Database::pdo()->prepare(
+        'SELECT COUNT(*)
+           FROM activities a
+           LEFT JOIN activity_submissions s
+                  ON s.activity_id = a.id AND s.student_user_id = ?
+          WHERE a.competence_unit_id = ?
+            AND s.id IS NULL'
+    );
+    $pendingStmt->execute([$studentId, $cuId]);
+    $pending = (int) $pendingStmt->fetchColumn() > 0;
+}
+
+if ($pending) {
     flash('warning', __t('manual_completion.err.activities_pending'));
     header('Location: /student/cu/' . $cuId, true, 303);
     exit;

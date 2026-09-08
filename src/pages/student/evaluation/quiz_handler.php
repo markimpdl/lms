@@ -110,9 +110,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$readOnly) {
         }
 
         // XP quando grade ≥ 8.0 (ADR-002, mesma regra de avaliação-projeto).
-        if ($grade >= 8.0) {
+        if ($grade >= XpEvents::EVALUATION_MIN_GRADE) {
             try {
-                XpEvents::awardEvaluation($studentId, $evaluationId, $tenantId, $courseId);
+                XpEvents::awardEvaluation($studentId, $evaluationId);
             } catch (\Throwable) {
                 // best-effort
             }

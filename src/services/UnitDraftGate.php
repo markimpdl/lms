@@ -14,18 +14,26 @@ declare(strict_types=1);
  * `!== 2` no outro, abrindo bypass. `sqlIsDraft()` eh a fonte unica: as duas
  * consultas daqui a usam, e ninguem mais monta o predicado a mao.
  *
- * As tres condicoes, TODAS necessarias:
+ * As duas condicoes, AMBAS necessarias:
  *
- *  1. `structure_version <> 2` — so curso V1. Em V2 a capa da unidade eh
- *     opcional por desenho e cada item da trilha tem a propria flag de
- *     publicacao, entao "capa nao publicada" nao diz nada sobre a unidade.
- *  2. Existe linha em `contents` com `published = 0`.
- *  3. **`html` nao vazio.** Sem esta terceira condicao o gate fecharia unidade
+ *  1. Existe linha em `contents` com `published = 0`.
+ *  2. **`html` nao vazio.** Sem esta segunda condicao o gate fecharia unidade
  *     viva: `Content::ensureForCu()` cria linha com `html = ''` e
  *     `published = 0` sempre que o professor sobe um ANEXO. Uma CU de
  *     atividades + PDF, sem texto nenhum, ganharia a linha e sumiria pro aluno
  *     junto com os proprios anexos que a criaram. Rascunho eh conteudo escrito
  *     e retido, nao linha-fantasma de upload.
+ *
+ * **Vale pros dois formatos de curso.** A primeira versao disto exigia
+ * `structure_version <> 2`, com o argumento de que em V2 a capa eh opcional e
+ * cada licao tem a propria flag. O PO corrigiu a premissa: conteudo em
+ * rascunho significa unidade que ele ainda nao quer no ar, e o formato do
+ * curso nao muda isso. A CU sem capa nenhuma continua livre — quem nao tem
+ * linha em `contents` nao satisfaz a condicao 1.
+ *
+ * Consequencia assumida: em V2, licao JA PUBLICADA de uma unidade cuja capa
+ * esteja em rascunho fica inacessivel enquanto a capa nao for publicada. Eh o
+ * comportamento pedido — a unidade inteira sai do ar.
  */
 final class UnitDraftGate
 {
@@ -34,8 +42,7 @@ final class UnitDraftGate
      * Use `sqlIsDraft()`, nunca isto direto.
      */
     private const string SQL_TEMPLATE =
-        "(c.structure_version <> 2"
-        . " AND COALESCE(%1\$s.published, 1) = 0"
+        "(COALESCE(%1\$s.published, 1) = 0"
         . " AND %2\$s <> '')";
 
     /**
@@ -65,9 +72,11 @@ final class UnitDraftGate
     /**
      * Expressao booleana SQL — 1 quando a CU esta em rascunho.
      *
-     * Espera no escopo da query o alias `c` (courses) e um LEFT JOIN em
-     * `contents` com o alias passado em `$contentsAlias` — subquery aninhada
-     * precisa de alias proprio pra nao colidir com o de fora.
+     * Espera no escopo da query um LEFT JOIN em `contents` com o alias passado
+     * em `$contentsAlias` — subquery aninhada precisa de alias proprio pra nao
+     * colidir com o de fora. Nao depende mais de `courses`: o predicado valia
+     * so pra V1 e passou a valer pros dois formatos, entao `structure_version`
+     * saiu da conta.
      *
      * Os COALESCE existem por causa do LEFT JOIN: sem eles, CU sem linha em
      * `contents` produz NULL, e `NOT NULL` eh NULL — o WHERE descartaria

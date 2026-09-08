@@ -56,7 +56,22 @@ final class StudentCurriculum
                      WHERE a.competence_unit_id = cu.id)         AS cu_xp_activities,
                    (SELECT COALESCE(ev.xp_value, 0)
                       FROM evaluations ev
-                     WHERE ev.competence_unit_id = cu.id)        AS cu_xp_evaluation
+                     WHERE ev.competence_unit_id = cu.id)        AS cu_xp_evaluation,
+                   -- Licao PUBLICADA tambem vale XP em curso V2. Faltava aqui,
+                   -- entao a mesma unidade anunciava um XP no card do curso e
+                   -- outro no cabecalho dela, a um clique de distancia.
+                   -- Rascunho fora: o aluno nao ve a licao, nao pode contar.
+                   (SELECT COALESCE(SUM(l.xp_value), 0)
+                      FROM lessons l
+                     WHERE l.competence_unit_id = cu.id
+                       AND l.published = 1)                      AS cu_xp_lessons,
+                   -- Conclusao manual eh o slot que substitui a avaliacao
+                   -- quando ela nao existe; o cabecalho da unidade ja a soma.
+                   CASE WHEN cu.manual_completion_enabled = 1
+                         AND NOT EXISTS (SELECT 1 FROM evaluations ev2
+                                          WHERE ev2.competence_unit_id = cu.id)
+                        THEN cu.manual_completion_xp ELSE 0
+                   END                                           AS cu_xp_manual
               FROM enrollments e
               JOIN courses c            ON c.id  = e.course_id
               LEFT JOIN core_competencies cc ON cc.course_id = c.id
@@ -112,7 +127,10 @@ final class StudentCurriculum
                     'id'             => (int)    $row['cu_id'],
                     'name'           => (string) $row['cu_name'],
                     'workload_hours' => (int)    ($row['cu_workload_hours'] ?? 0),
-                    'xp_total'       => (int) (($row['cu_xp_activities'] ?? 0) + ($row['cu_xp_evaluation'] ?? 0)),
+                    'xp_total'       => (int) (($row['cu_xp_activities'] ?? 0)
+                                             + ($row['cu_xp_evaluation'] ?? 0)
+                                             + ($row['cu_xp_lessons']    ?? 0)
+                                             + ($row['cu_xp_manual']     ?? 0)),
                 ];
             }
         }

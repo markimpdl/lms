@@ -140,7 +140,10 @@ foreach ($activitiesRaw as $a) {
 
     $xpVal = (int) $a['xp_value'];
     $xpTotal += $xpVal;
-    if ($hasFb) {
+    // Creditado na PRIMEIRA entrega (ADR-002), nao no feedback: contar por
+    // `$hasFb` fazia o cabecalho reportar menos XP do que o aluno ja tem no
+    // perfil e no ranking, enquanto o professor nao corrigia.
+    if ($hasSub) {
         $xpEarned += $xpVal;
     }
 
@@ -255,7 +258,12 @@ if ($evaluation !== null) {
 
     $evXp = (int) $evaluation['xp_value'];
     $xpTotal += $evXp;
-    if ($state === 'approved') {
+    // `approved` eh nota >= 6 (aprova a unidade); o XP so eh creditado a
+    // partir de 8. Contar por `approved` anunciava o XP como ganho com nota
+    // 7, enquanto `xp_events` nunca recebeu nada — o cabecalho da unidade
+    // divergia do perfil e do ranking.
+    $evalXpCredited = $grade !== null && $grade >= XpEvents::EVALUATION_MIN_GRADE;
+    if ($evalXpCredited) {
         $xpEarned += $evXp;
     }
 
@@ -340,6 +348,38 @@ if ($isV2) {
             $trackDone++;
         }
     }
+
+    // XP da unidade em V2 vem da TRILHA, nao do loop de atividades acima.
+    //
+    // Aquele loop nasceu no V1, onde a unidade so tinha atividade + avaliacao,
+    // e nunca aprendeu a enxergar licao. Em V2 a licao carrega `xp_value` e eh
+    // item de primeira classe do percurso, entao uma unidade com uma licao de
+    // 10 XP e um exercicio de 10 XP anunciava "0/10 XP" — metade do que a
+    // propria trilha lista logo abaixo.
+    //
+    // `forStudentCu()` devolve `xp_credited` por item, que NAO eh o mesmo que
+    // `done`: na avaliacao, nota 6 aprova a unidade mas o XP so entra a partir
+    // de 8. O flag vem do service, e nao daqui, porque `$evaluation` acima eh
+    // buscado com filtro de tenant — em curso compartilhado (E32/E34) a
+    // avaliacao pertence ao tenant do DONO, entao pro aluno colaborador ela
+    // vinha null e o XP dela some do numerador sem sumir do denominador.
+    $xpTotal  = 0;
+    $xpEarned = 0;
+    foreach ($timelineItems as $__it) {
+        $xpTotal += (int) $__it['xp_value'];
+        if ($__it['xp_credited']) {
+            $xpEarned += (int) $__it['xp_value'];
+        }
+    }
+    // Conclusao manual nao entra na trilha (eh alternativa a avaliacao), mas
+    // conta no XP da unidade e no percentual — reposta aqui porque o reset
+    // acima descartou o que o bloco do V1 ja havia somado.
+    if ($showManualCard) {
+        $xpTotal += $manualXpValue;
+        if ($manualCompleted) {
+            $xpEarned += $manualXpValue;
+        }
+    }
 }
 
 // Section tabs. Unidade em rascunho nao chega aqui — o gate no topo ja
@@ -414,6 +454,21 @@ ob_start();
             <?php endif; ?>
         </div>
     </div>
+
+    <?php /* Conclusao manual — fecha a unidade quando nao ha avaliacao. O card
+             vivia so no bloco V1, entao em curso V2 o professor habilitava a
+             opcao e o aluno nunca via o botao; como o slot conta no denominador
+             de cuPercent, a unidade travava abaixo de 100%. Aqui o pre-requisito
+             eh a TRILHA fechada, nao "atividades entregues": a trilha inclui
+             licao, que o criterio de atividades nao enxerga. */ ?>
+    <?php if ($showManualCard): ?>
+        <?php /* Trilha VAZIA nao pendura ninguem: `isComplete([])` eh false de
+                 proposito (nao ha o que concluir), mas usar isso como pendencia
+                 travaria pra sempre a unidade que so tem capa + conclusao
+                 manual — exatamente o sintoma que este card existe pra evitar. */ ?>
+        <?php $manualPending = $timelineItems !== [] && !$trackComplete;
+              require LMS_ROOT . '/src/templates/partials/manual_completion_card.php'; ?>
+    <?php endif; ?>
 <?php else: ?>
 <?php require LMS_ROOT . '/src/templates/partials/section_tabs.php'; ?>
 
@@ -496,51 +551,8 @@ ob_start();
         $accent = 'linear-gradient(135deg, #10B981, #059669)';
         require LMS_ROOT . '/src/templates/partials/section_header.php';
     ?>
-    <div class="lms-manual-completion-card<?= $manualCompleted ? ' is-completed' : '' ?>">
-        <?php if ($manualCompleted): ?>
-            <div class="lms-manual-completion-card__icon" aria-hidden="true">
-                <i class="bi bi-check-circle-fill"></i>
-            </div>
-            <div class="lms-manual-completion-card__body">
-                <h3 class="lms-manual-completion-card__title">
-                    <?= e(__t('manual_completion.student.completed_title')) ?>
-                </h3>
-                <p class="lms-manual-completion-card__hint">
-                    <?= e(__t('manual_completion.student.completed_at', [
-                        'when' => format_short_datetime((string) $manualCompletedAt),
-                    ])) ?>
-                    <?php if ($manualXpValue > 0): ?>
-                        · <?= (int) $manualXpValue ?> XP
-                    <?php endif; ?>
-                </p>
-            </div>
-        <?php else: ?>
-            <div class="lms-manual-completion-card__body">
-                <h3 class="lms-manual-completion-card__title">
-                    <?= e(__t('manual_completion.student.title')) ?>
-                </h3>
-                <p class="lms-manual-completion-card__hint">
-                    <?php if ($activitiesPending): ?>
-                        <?= e(__t('manual_completion.student.activities_pending')) ?>
-                    <?php else: ?>
-                        <?= e(__t('manual_completion.student.ready')) ?>
-                        <?php if ($manualXpValue > 0): ?>
-                            · <?= (int) $manualXpValue ?> XP
-                        <?php endif; ?>
-                    <?php endif; ?>
-                </p>
-            </div>
-            <form method="POST" action="/student/cu/<?= $cuId ?>/mark-complete" class="lms-manual-completion-card__form">
-                <?= csrf_field() ?>
-                <button type="submit"
-                        class="btn btn-success btn-lg lms-manual-completion-card__btn"
-                        <?= $activitiesPending ? 'disabled' : '' ?>>
-                    <i class="bi bi-check-circle me-1" aria-hidden="true"></i>
-                    <?= e(__t('manual_completion.student.cta')) ?>
-                </button>
-            </form>
-        <?php endif; ?>
-    </div>
+    <?php $manualPending = $activitiesPending;
+          require LMS_ROOT . '/src/templates/partials/manual_completion_card.php'; ?>
 </section>
 <?php endif; ?>
 

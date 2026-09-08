@@ -59,6 +59,16 @@ if (!$availability['available']) {
     exit;
 }
 
+// Unidade em rascunho: nao ha por que registrar conclusao e creditar XP de
+// unidade que o professor tirou do ar. Paridade com o gate de
+// /student/cu/{id}/mark-complete, que ja fazia isso — sem este, um POST com a
+// URL da licao continuava valendo XP.
+if (cu_is_draft_for_student($cuId)) {
+    flash('warning', __t('progression.cu_draft'));
+    header('Location: /student/course/' . $courseId, true, 303);
+    exit;
+}
+
 $action = (string) ($_POST['action'] ?? 'complete');
 
 if ($action === 'uncomplete') {
