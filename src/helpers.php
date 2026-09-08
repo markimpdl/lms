@@ -41,6 +41,42 @@ function student_cu_status(int $cuId, int $studentId): array
 }
 
 /**
+ * CU em rascunho — o aluno nao deve ve-la. Delega pra `UnitDraftGate`, onde
+ * moram a definicao e o porque de cada condicao.
+ *
+ * Existe como helper porque os gates sao chamados de dentro de paginas, que no
+ * projeto falam com helpers globais (mesmo padrao de `student_cu_status`).
+ */
+function cu_is_draft_for_student(int $cuId): bool
+{
+    return UnitDraftGate::isDraft($cuId);
+}
+
+/**
+ * Valida uma URL de retorno vinda do request (`from`) pra usar em `Location:`.
+ *
+ * Allowlist estrito: caminho relativo dentro de `/teacher`, sem `//` inicial
+ * (viraria protocol-relative e mandaria o professor pra outro host), sem CR/LF
+ * (injecao de header) e com tamanho limitado. Qualquer coisa fora disso cai no
+ * `$fallback` — nunca no valor cru.
+ *
+ * Devolve o fallback tambem quando `from` vem vazio, entao o caller pode usar
+ * o retorno direto, sem checar.
+ */
+function teacher_safe_from(string $raw, string $fallback): string
+{
+    if ($raw !== ''
+        && strlen($raw) <= 200
+        && (str_starts_with($raw, '/teacher/') || str_starts_with($raw, '/teacher?') || $raw === '/teacher')
+        && !str_starts_with($raw, '/teacher//')
+        && strpbrk($raw, "\r\n") === false
+    ) {
+        return $raw;
+    }
+    return $fallback;
+}
+
+/**
  * Status agregado de um curso pro aluno: percent = média das CUs avaliáveis
  * (ver doc/10).
  *
@@ -144,11 +180,18 @@ function course_progression_state(array $course, int $studentId): array
     $currentCcName = null;
     $currentCuName = null;
 
+    // Unidade em rascunho eh PULADA na progressao: nao vira 'current' (o que
+    // travaria as seguintes, ja que o aluno nao consegue entregar nada nela) e
+    // nao conta pra fechar a CC. Sai da lista como 'hidden' — o mesmo status
+    // que o card do curso ja filtra. Uma query pro curso todo, nao uma por CU.
+    $draftCus = UnitDraftGate::draftCuIdsInCourse((int) ($course['course_id'] ?? 0));
+
     if ($ccMode === 'free') {
         foreach ($ccs as $cc) {
             $ccStatus[(int) $cc['id']] = 'free';
             foreach ($cc['cus'] ?? [] as $cu) {
-                $cuStatus[(int) $cu['id']] = 'free';
+                $cuId = (int) $cu['id'];
+                $cuStatus[$cuId] = isset($draftCus[$cuId]) ? 'hidden' : 'free';
             }
         }
         return [
@@ -160,14 +203,44 @@ function course_progression_state(array $course, int $studentId): array
     }
 
     // CC sem CUs nunca é "completa" — vira current se vier antes.
-    $isCcComplete = static function (array $cc, int $sid): bool {
+    //
+    // CU em rascunho nao entra na conta, e CC que sobrou SO com rascunho conta
+    // como completa: "pular" tem de valer nos dois niveis. Tratada como
+    // nao-completa ela virava 'current' e prendia todas as CCs seguintes num
+    // ponto que o aluno nem consegue abrir — pior que o problema original.
+    //
+    // A CC genuinamente VAZIA continua nao-completa, comportamento antigo: la
+    // o professor nem comecou, aqui ele comecou e reteve.
+    $isCcComplete = static function (array $cc, int $sid) use ($draftCus): bool {
         $cus = $cc['cus'] ?? [];
         if ($cus === []) {
             return false;
         }
         foreach ($cus as $cu) {
-            $st = student_cu_status((int) $cu['id'], $sid);
+            $cuId = (int) $cu['id'];
+            if (isset($draftCus[$cuId])) {
+                continue;
+            }
+            $st = student_cu_status($cuId, $sid);
             if (($st['status'] ?? '') !== 'completed') {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    // CC que TINHA unidades e sobrou sem nenhuma fora do rascunho sai do
+    // percurso sem consumir o turno, exatamente como a CU em rascunho um nivel
+    // abaixo. Testado antes do 'next' porque, deixada no lugar, ela engolia o
+    // teaser da proxima CC de verdade: o aluno via a CC atual e nada depois,
+    // ja que a pagina do curso descarta a CC toda em rascunho.
+    $ccIsAllDraft = static function (array $cc) use ($draftCus): bool {
+        $cus = $cc['cus'] ?? [];
+        if ($cus === []) {
+            return false;
+        }
+        foreach ($cus as $cu) {
+            if (!isset($draftCus[(int) $cu['id']])) {
                 return false;
             }
         }
@@ -178,6 +251,13 @@ function course_progression_state(array $course, int $studentId): array
     $markNextAsNext = false;
     foreach ($ccs as $cc) {
         $ccId = (int) $cc['id'];
+
+        if ($ccIsAllDraft($cc)) {
+            // 'completed' eh o que $isCcComplete ja devolveria pra ela; o que
+            // muda aqui eh nao mexer em $markNextAsNext/$foundCurrent.
+            $ccStatus[$ccId] = 'completed';
+            continue;
+        }
 
         if ($markNextAsNext) {
             $ccStatus[$ccId] = 'next';
@@ -209,7 +289,8 @@ function course_progression_state(array $course, int $studentId): array
 
         if ($st === 'completed') {
             foreach ($cus as $cu) {
-                $cuStatus[(int) $cu['id']] = 'completed';
+                $cuId = (int) $cu['id'];
+                $cuStatus[$cuId] = isset($draftCus[$cuId]) ? 'hidden' : 'completed';
             }
             continue;
         }
@@ -225,6 +306,14 @@ function course_progression_state(array $course, int $studentId): array
         $markNextCuAsNext = false;
         foreach ($cus as $cu) {
             $cuId = (int) $cu['id'];
+
+            // Rascunho sai do percurso sem consumir o turno: nao vira
+            // 'current' nem gasta o 'next', entao a CU seguinte assume o lugar
+            // que ela ocuparia.
+            if (isset($draftCus[$cuId])) {
+                $cuStatus[$cuId] = 'hidden';
+                continue;
+            }
 
             if ($markNextCuAsNext) {
                 $cuStatus[$cuId]  = 'next';
@@ -271,6 +360,14 @@ function course_progression_state(array $course, int $studentId): array
             foreach ($cc['cus'] ?? [] as $cu) {
                 $cuId = (int) $cu['id'];
                 if (!isset($unlocked[$cuId])) {
+                    continue;
+                }
+                // Rascunho ganha do unlock manual: liberar a CU aqui renderia
+                // um card clicavel que o gate de /student/cu/{id} devolve na
+                // hora, e o contador da CC (que ja exclui rascunho) passaria a
+                // divergir dos cards. O unlock volta a valer quando o
+                // professor publicar.
+                if (isset($draftCus[$cuId])) {
                     continue;
                 }
                 if (($cuStatus[$cuId] ?? '') === 'next' || ($cuStatus[$cuId] ?? '') === 'hidden') {

@@ -33,4 +33,13 @@ if ($att === null) {
     return;
 }
 
+// Unidade em rascunho: o anexo eh material do professor, e a aba de anexos
+// ja sumiu da capa da CU. Aqui fecha o link que o aluno tenha salvo antes
+// de o conteudo ser despublicado.
+if (cu_is_draft_for_student((int) $att['competence_unit_id'])) {
+    http_response_code(404);
+    require LMS_ROOT . '/src/templates/errors/404.php';
+    return;
+}
+
 AttachmentStorage::stream($att, 'inline');

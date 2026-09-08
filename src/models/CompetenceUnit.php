@@ -145,11 +145,18 @@ final class CompetenceUnit
                     cc.id AS cc_id, cc.name AS cc_name,
                     c.id AS course_id, c.name AS course_name, c.language AS course_language,
                     c.structure_version AS course_structure_version,
+                    -- Posicao da CU dentro da CC, do ponto de vista do ALUNO:
+                    -- unidade em rascunho nao conta, porque ela nao existe pra
+                    -- ele. Sem esta exclusao o card da pagina do curso (que ja
+                    -- numera pulando rascunho) diria "Unidade 1" e a tela da
+                    -- unidade abriria como "Unidade 2".
                     (SELECT COUNT(*) + 1
                        FROM competence_units cu2
+                       LEFT JOIN contents ct2 ON ct2.competence_unit_id = cu2.id
                       WHERE cu2.core_competency_id = cc.id
                         AND (cu2.position < cu.position
                              OR (cu2.position = cu.position AND cu2.id < cu.id))
+                        AND NOT ' . UnitDraftGate::sqlIsDraft('ct2') . '
                     ) AS cu_index_in_cc
                FROM competence_units cu
                JOIN core_competencies cc ON cc.id = cu.core_competency_id

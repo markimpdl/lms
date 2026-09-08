@@ -375,6 +375,7 @@ return [
     'progression.eval_locked'                  => 'Termine todas as atividades antes de fazer a avaliação',
     'progression.cu_locked'                    => 'Esta unidade ainda não está disponível.',
     'progression.activity_locked'              => 'Esta atividade ainda não está disponível.',
+    'progression.cu_draft'                     => 'Esta unidade ainda está em rascunho. Ela aparece quando o professor publicar o conteúdo.',
     'courses.created'              => 'Curso ":name" criado.',
     'courses.updated'              => 'Curso ":name" atualizado.',
     'courses.archived'             => 'Curso ":name" arquivado.',
@@ -644,6 +645,7 @@ return [
     // Quiz form (E20-02)
     'quiz.form.title'                   => 'Quiz: :name',
     'quiz.form.subtitle'                => 'Adicione questões com pelo menos 2 opções cada. A soma dos pesos deve ser exatamente 10.00.',
+    'quiz.form.settings_link'           => 'Editar dados gerais',
     'quiz.form.has_errors'              => 'Corrija os campos destacados para continuar.',
     'quiz.form.weight_sum_label'        => 'Soma dos pesos',
     'quiz.form.weight_sum_warning'      => 'Ajuste os pesos pra que a soma seja exatamente 10.00.',
@@ -1256,6 +1258,7 @@ return [
     'track.student.start'            => 'Começar',
     'track.student.continue'         => 'Continuar',
     'track.student.empty'            => 'O professor ainda não publicou nada nesta unidade.',
+    'track.student.back_to_course'   => 'Voltar ao curso',
     'track.nav.previous'             => 'Anterior',
     'student.focus.maximize'         => 'Maximizar o conteúdo',
     'student.focus.restore'          => 'Restaurar o layout',

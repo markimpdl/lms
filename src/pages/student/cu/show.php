@@ -53,6 +53,17 @@ if (!$availability['available']) {
     exit;
 }
 
+// Unidade em rascunho: o professor escreveu o conteudo e nao publicou. A
+// unidade some do curso (a progressao a pula, o card nao renderiza), entao a
+// tela dela tambem nao abre — bookmark antigo cai aqui. Vem antes do gate de
+// progressao porque nao depende de cc_mode: rascunho fecha em sequential e em
+// free igual.
+if (cu_is_draft_for_student($cuId)) {
+    flash('warning', __t('progression.cu_draft'));
+    header('Location: /student/course/' . $courseId, true, 303);
+    exit;
+}
+
 // E19-04: gate server-side anti-bypass via URL direta. Aluno digitando
 // /student/cu/{id} de uma CU oculta/próxima é redirecionado pra page do
 // curso com mensagem. Defesa em profundidade — UI já oculta/blureia, mas
@@ -319,9 +330,11 @@ $isV2 = (int) ($cu['course_structure_version'] ?? 1) === 2;
 $timelineItems = [];
 $resumeItem    = null;
 $trackDone     = 0;
+$trackComplete = false;
 if ($isV2) {
     $timelineItems = UnitTrackService::forStudentCu($cuId, $studentId);
     $resumeItem    = UnitTrackService::resumePoint($timelineItems);
+    $trackComplete = UnitTrackService::isComplete($timelineItems);
     foreach ($timelineItems as $__it) {
         if ($__it['done']) {
             $trackDone++;
@@ -329,7 +342,8 @@ if ($isV2) {
     }
 }
 
-// Section tabs.
+// Section tabs. Unidade em rascunho nao chega aqui — o gate no topo ja
+// redirecionou.
 $tabs = [
     ['anchor' => '#content',     'label' => __t('student.unit.tab.content')],
     ['anchor' => '#activities',  'label' => __t('student.unit.tab.activities'),  'count' => $activitiesCount],
@@ -379,7 +393,13 @@ ob_start();
                     ])) ?>
                 </small>
             </div>
-            <?php if ($resumeItem !== null): ?>
+            <?php if ($trackComplete): ?>
+                <?php /* Trilha fechada: o CTA sai da unidade em vez de reabrir
+                        o ultimo item ja concluido. */ ?>
+                <a href="/student/course/<?= $courseId ?>" class="btn btn-success">
+                    <?= e(__t('track.student.back_to_course')) ?> &rarr;
+                </a>
+            <?php elseif ($resumeItem !== null): ?>
                 <a href="<?= e((string) $resumeItem['href']) ?>" class="btn btn-primary">
                     <?= e(__t($trackDone === 0 ? 'track.student.start' : 'track.student.continue')) ?> &rarr;
                 </a>

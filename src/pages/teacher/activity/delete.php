@@ -50,7 +50,9 @@ $result = Activity::delete($activityId, $tenantId, $expectedName);
 
 if ($result['status'] === 'name_mismatch') {
     flash('danger', __t('delete.err.name_mismatch'));
-    header('Location: /teacher/activity/' . $activityId . '/edit', true, 303);
+    // Volta pra tela de onde o modal foi aberto (a de quiz, por exemplo),
+    // nao pra `/edit` fixo — o professor perdia a tela em que estava.
+    header('Location: ' . teacher_safe_from((string) ($_POST['from'] ?? ''), '/teacher/activity/' . $activityId . '/edit'), true, 303);
     return;
 }
 if ($result['status'] === 'not_found') {

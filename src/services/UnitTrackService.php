@@ -195,8 +195,13 @@ final class UnitTrackService
 
     /**
      * Primeiro item ainda nao concluido da trilha — o destino do botao
-     * "Comecar"/"Continuar" na capa da CU. Se o aluno concluiu tudo, devolve o
-     * ultimo item (reabrir o fim eh mais util que nao ter para onde ir).
+     * "Comecar"/"Continuar" na capa da CU.
+     *
+     * Devolve null quando nao ha para onde continuar: trilha vazia, ou trilha
+     * inteira concluida. Antes o all-done devolvia o ultimo item, e o botao
+     * "Continuar" reabria a avaliacao ja aprovada — quem terminou a unidade
+     * quer sair dela, nao voltar ao fim. Quem chama distingue os dois casos
+     * por `isComplete()` e manda o aluno de volta pro curso.
      *
      * @param list<array<string,mixed>> $studentTrack retorno de forStudentCu
      * @return array<string,mixed>|null
@@ -208,7 +213,28 @@ final class UnitTrackService
                 return $item;
             }
         }
-        return $studentTrack === [] ? null : $studentTrack[count($studentTrack) - 1];
+        return null;
+    }
+
+    /**
+     * Trilha com pelo menos um item e TODOS concluidos.
+     *
+     * Trilha vazia nao conta como concluida — nao ha o que concluir, e a capa
+     * mostra o estado "professor ainda nao publicou nada".
+     *
+     * @param list<array<string,mixed>> $studentTrack retorno de forStudentCu
+     */
+    public static function isComplete(array $studentTrack): bool
+    {
+        if ($studentTrack === []) {
+            return false;
+        }
+        foreach ($studentTrack as $item) {
+            if (!$item['done']) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

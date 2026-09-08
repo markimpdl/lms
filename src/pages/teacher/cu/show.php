@@ -51,7 +51,13 @@ $showLoLink = $isActvet && $isLoMode;
 $loCount    = $showLoLink ? LearningOutcome::countByCu($cuId) : 0;
 
 $content = Content::findForCu($cuId, $tenantId);
-$hasContent   = $content !== null;
+// `Content::ensureForCu()` cria linha com html='' so pra pendurar anexo, entao
+// "tem linha" nao eh "tem conteudo": sem esta checagem a CU de anexo nascia com
+// badge "Rascunho" e botao "Editar" sem nada escrito. Alinha o badge do
+// professor com o gate do aluno (`UnitDraftGate`), que replica este `trim()`
+// em SQL — badge "Rascunho" passa a significar, exatamente, "unidade escondida
+// do aluno".
+$hasContent   = $content !== null && trim((string) $content['html']) !== '';
 $isPublished  = $hasContent && (int) $content['published'] === 1;
 
 $attachments = ContentAttachment::listByCu($cuId, $tenantId);

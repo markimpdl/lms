@@ -9,6 +9,13 @@ declare(strict_types=1);
  *   data-item-name="Curso X"
  *   data-action-url="/teacher/courses/10/delete"
  *   data-counts="<json com lista de strings já formatadas>"
+ *   data-return-url="/teacher/evaluation/7/quiz"  (opcional)
+ *
+ * `data-return-url` viaja como campo `from` e diz ao handler pra onde voltar
+ * se o nome digitado nao bater — sem ele o handler cai no default dele, que
+ * eh a tela `/edit`. Quem abre o modal de uma tela que NAO eh a `/edit`
+ * (a de quiz, por exemplo) passa a propria URL pra o professor nao ser jogado
+ * numa tela diferente da que estava. Servidor revalida com allowlist.
  *
  * O botão "Excluir" do modal fica disabled até que o texto digitado case
  * exato (case-sensitive) com o nome esperado. Servidor revalida.
@@ -19,6 +26,7 @@ declare(strict_types=1);
         <form method="POST" action="" id="deleteConfirmForm" class="modal-content" novalidate>
             <?= csrf_field() ?>
             <input type="hidden" name="expected_name" id="deleteExpectedName" value="">
+            <input type="hidden" name="from" id="deleteReturnUrl" value="">
 
             <div class="modal-header">
                 <h5 class="modal-title" id="deleteConfirmModalLabel"><?= e(__t('delete.modal.title')) ?></h5>
@@ -71,6 +79,7 @@ declare(strict_types=1);
     var submitBtn   = document.getElementById('deleteSubmitBtn');
     var countsWrap  = document.getElementById('deleteCountsWrap');
     var countsList  = document.getElementById('deleteCountsList');
+    var returnEl    = document.getElementById('deleteReturnUrl');
 
     modal.addEventListener('show.bs.modal', function (event) {
         var btn = event.relatedTarget;
@@ -80,6 +89,7 @@ declare(strict_types=1);
         var url  = btn.getAttribute('data-action-url') || '';
 
         form.action           = url;
+        returnEl.value        = btn.getAttribute('data-return-url') || '';
         nameEl.textContent    = name;
         expectedEl.value      = name;
         input.value           = '';
