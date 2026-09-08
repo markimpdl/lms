@@ -22,6 +22,20 @@ declare(strict_types=1);
 final class XpEvents
 {
     /**
+     * Nota minima que credita o XP da avaliacao (ADR-002).
+     *
+     * **Nao confundir com a nota que APROVA a unidade, que eh 6.0**
+     * (`StudentProgress`, `UnitTrackService::forStudentCu`). Sao dois limiares
+     * distintos de proposito: entre 6 e 8 o aluno passa mas nao leva o XP.
+     *
+     * O 8.0 estava escrito a mao em cada ponto que decide creditar, e a tela
+     * da unidade tinha copiado o 6.0 por engano — anunciava o XP da avaliacao
+     * como ganho com nota 7, enquanto `xp_events` nunca recebeu nada. Constante
+     * pra os dois limiares pararem de se confundir.
+     */
+    public const float EVALUATION_MIN_GRADE = 8.0;
+
+    /**
      * Credita XP por entrega de atividade. Idempotente — se já existe evento
      * pra esse (aluno, atividade), não cria outro. Retorna true se uma linha
      * nova foi criada.

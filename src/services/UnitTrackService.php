@@ -122,7 +122,7 @@ final class UnitTrackService
      * devolveria o aluno com flash — licao e exercicio nunca travam, porque a
      * navegacao dentro da CU eh livre.
      *
-     * @return list<array{type:string,id:int,title:string,done:bool,locked:bool,href:string,xp_value:int}>
+     * @return list<array{type:string,id:int,title:string,done:bool,xp_credited:bool,locked:bool,href:string,xp_value:int}>
      */
     public static function forStudentCu(int $cuId, int $studentId): array
     {
@@ -135,13 +135,14 @@ final class UnitTrackService
 
         // Entregas de atividade + aprovacao da avaliacao, numa query so.
         $stmt = Database::pdo()->prepare(
-            "SELECT 'activity' AS type, a.id
+            "SELECT 'activity' AS type, a.id, 1 AS xp_credited
                FROM activities a
                JOIN activity_submissions s
                  ON s.activity_id = a.id AND s.student_user_id = :sid1
               WHERE a.competence_unit_id = :cu1
               UNION ALL
-             SELECT 'evaluation' AS type, e.id
+             SELECT 'evaluation' AS type, e.id,
+                    (es.grade >= " . XpEvents::EVALUATION_MIN_GRADE . ") AS xp_credited
                FROM evaluations e
                JOIN evaluation_submissions es
                  ON es.evaluation_id = e.id AND es.student_user_id = :sid2
@@ -151,9 +152,14 @@ final class UnitTrackService
         );
         $stmt->execute([':sid1' => $studentId, ':cu1' => $cuId, ':sid2' => $studentId, ':cu2' => $cuId]);
 
-        $othersDone = [];
+        $othersDone     = [];
+        $othersCredited = [];
         foreach ($stmt->fetchAll() as $r) {
-            $othersDone[$r['type'] . ':' . (int) $r['id']] = true;
+            $key = $r['type'] . ':' . (int) $r['id'];
+            $othersDone[$key] = true;
+            if ((int) $r['xp_credited'] === 1) {
+                $othersCredited[$key] = true;
+            }
         }
 
         $out = [];
@@ -162,6 +168,13 @@ final class UnitTrackService
             $done = $item['type'] === 'lesson'
                 ? isset($lessonsDone[$item['id']])
                 : isset($othersDone[$key]);
+            // XP creditado NAO eh o mesmo que concluido. Na avaliacao, nota 6
+            // aprova a unidade mas o XP so entra a partir de 8
+            // (XpEvents::EVALUATION_MIN_GRADE). Licao e exercicio creditam no
+            // mesmo instante em que ficam `done`.
+            $xpCredited = $item['type'] === 'lesson'
+                ? $done
+                : isset($othersCredited[$key]);
 
             $href = match ($item['type']) {
                 'lesson'   => '/student/lesson/' . $item['id'],
@@ -170,13 +183,14 @@ final class UnitTrackService
             };
 
             $out[] = [
-                'type'     => $item['type'],
-                'id'       => $item['id'],
-                'title'    => $item['title'],
-                'done'     => $done,
-                'locked'   => false,
-                'href'     => $href,
-                'xp_value' => $item['xp_value'],
+                'type'        => $item['type'],
+                'id'          => $item['id'],
+                'title'       => $item['title'],
+                'done'        => $done,
+                'xp_credited' => $xpCredited,
+                'locked'      => false,
+                'href'        => $href,
+                'xp_value'    => $item['xp_value'],
             ];
         }
 

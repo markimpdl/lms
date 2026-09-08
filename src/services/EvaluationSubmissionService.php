@@ -273,7 +273,7 @@ final class EvaluationSubmissionService
         )->execute([$grade, $feedback, $retryEffective, $submissionId]);
 
         $xpAwarded = false;
-        if ($grade >= 8.0) {
+        if ($grade >= XpEvents::EVALUATION_MIN_GRADE) {
             $xpAwarded = XpEvents::awardEvaluation(
                 (int) $sub['student_user_id'],
                 (int) $sub['evaluation_id']

@@ -46,6 +46,16 @@ if (!$availability['available']) {
     exit;
 }
 
+// Unidade em rascunho: o professor escreveu a capa e nao publicou, entao a
+// unidade inteira esta fora do ar. Vem ANTES do gate de progressao porque nao
+// depende de cc_mode — em `free` aquele bloco nem roda, e a licao continuaria
+// abrindo por bookmark.
+if (cu_is_draft_for_student($cuId)) {
+    flash('warning', __t('progression.cu_draft'));
+    header('Location: /student/course/' . $courseId, true, 303);
+    exit;
+}
+
 // Gate de progressao entre CCs/CUs — mesmo teste de /student/cu/{id}. Sem
 // isso, colar a URL de uma licao daria acesso a uma unidade ainda travada.
 $courseConfStmt = Database::pdo()->prepare(
