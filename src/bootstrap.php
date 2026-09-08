@@ -11,6 +11,16 @@ define('LMS_ROOT', dirname(__DIR__));
 // 1. Env -----------------------------------------------------------------
 $envFile = LMS_ROOT . '/config/env.php';
 if (!is_file($envFile)) {
+    // CLI antes do HTML: `exit;` sem codigo eh exit 0, ou seja, SUCESSO. Um
+    // cron rodando com env ausente ou em caminho errado reportaria sucesso pra
+    // sempre e cuspiria HTML no log — foi essa classe de morte silenciosa que
+    // deixou o cron de sessoes parado por semanas sem ninguem perceber.
+    // `Database::abortWithGenericError()` ja faz esse desvio; aqui faltava.
+    if (PHP_SAPI === 'cli') {
+        fwrite(STDERR, "config/env.php ausente em " . LMS_ROOT . "/config/. Copie de config/env.example.php.\n");
+        exit(1);
+    }
+
     http_response_code(500);
     header('Content-Type: text/html; charset=utf-8');
     echo '<!doctype html><html lang="pt"><head><meta charset="utf-8">'
