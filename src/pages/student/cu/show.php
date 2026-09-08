@@ -213,6 +213,9 @@ $manualDoneStmt->execute([$cuId, $studentId]);
 $manualCompletedAt = $manualDoneStmt->fetchColumn();
 $manualCompleted   = $manualCompletedAt !== false;
 $showManualCard    = $evaluation === null && ($manualEnabled || $manualCompleted);
+// Renderizar o card e CONTAR o XP dele sao coisas diferentes — ver o bloco de
+// XP abaixo.
+$manualSlotCountsXp = $evaluation === null && $manualEnabled;
 
 // Activities pending para gate visual + server-side.
 $activitiesPending = false;
@@ -223,7 +226,13 @@ foreach ($activitiesCards as $card) {
     }
 }
 
-if ($showManualCard) {
+// XP do slot manual segue `$manualEnabled`, NAO `$showManualCard`. O card
+// ainda aparece pra quem ja concluiu depois de o professor desligar a opcao
+// (pra nao apagar a conclusao da tela), mas ai o slot nao vale mais XP:
+// `StudentProgress::cuPercent` ja zera denominador E numerador nesse caso, e
+// `StudentCurriculum` idem. Contar aqui deixava o cabecalho sozinho contra as
+// outras tres telas.
+if ($manualSlotCountsXp) {
     $xpTotal += $manualXpValue;
     if ($manualCompleted) {
         $xpEarned += $manualXpValue;
@@ -374,7 +383,7 @@ if ($isV2) {
     // Conclusao manual nao entra na trilha (eh alternativa a avaliacao), mas
     // conta no XP da unidade e no percentual — reposta aqui porque o reset
     // acima descartou o que o bloco do V1 ja havia somado.
-    if ($showManualCard) {
+    if ($manualSlotCountsXp) {
         $xpTotal += $manualXpValue;
         if ($manualCompleted) {
             $xpEarned += $manualXpValue;

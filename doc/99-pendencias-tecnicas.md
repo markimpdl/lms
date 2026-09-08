@@ -224,6 +224,14 @@ A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** du
 
 ## Limpezas de produção (não-bloqueantes)
 
+### XP da avaliação não é revogado quando o professor rebaixa a nota
+- `XpEvents::awardEvaluation` credita a partir de `XpEvents::EVALUATION_MIN_GRADE` (8.0) e grava um **snapshot** em `xp_events`. Não existe caminho de revogação: `revokeEvaluation()` nunca é chamado.
+- **Sintoma:** professor corrige com 9 (XP creditado) e depois rebaixa para 7. O cabeçalho da unidade passa a NÃO contar aquele XP (ele deriva da nota atual), enquanto o perfil e o ranking continuam com o evento gravado. As duas telas divergem. Mesmo efeito ao editar `evaluations.xp_value` depois do crédito.
+- **Impacto:** baixo — rebaixar nota já corrigida é raro, e o desvio é a favor do aluno no total global.
+- **Contexto:** decisão do PO de que XP é congelado no evento (ver `project_xp_snapshot_decision`) é o que torna isso "esperado" e não bug; o que falta é a UI da unidade concordar com o snapshot, ou um revoke-on-regrade explícito.
+- **Ação:** decidir com o PO entre (a) revogar XP no rebaixamento, ou (b) o cabeçalho ler `xp_events` em vez de derivar da nota.
+
+
 ### [E26 v1] Template Skills Hub renderiza diferente do Word original
 - A v1 do `public/assets/report-templates/skill_hub/template.html` foi gerada via Word "Save as Web Page Filtered" e usa marcação MSO-específica (`<!--[if gte mso 9]>`, VML, fontes Calibri/Arial sem fallback no dompdf, tabelas sem larguras explícitas).
 - **Sintoma**: layout do PDF gerado fica visualmente diferente do PDF que o Word exporta diretamente. Esperado dada a estratégia de migração — `Save as HTML Filtered` é o caminho de menor esforço pra sair do Word, não o de melhor render no dompdf.

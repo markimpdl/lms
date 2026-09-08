@@ -89,8 +89,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$readOnly) {
         }
 
         // XP por entregar (ADR-002, igual atividade tipo projeto/codigo).
+        //
+        // `awardActivity` recebe DOIS argumentos — tenant e curso ele resolve
+        // sozinho, pelo JOIN interno. A chamada passava quatro, o que lancava
+        // ArgumentCountError, e o catch abaixo engolia: atividade do tipo quiz
+        // nunca creditou XP, sem erro em lugar nenhum. Ficou invisivel porque
+        // a tela da unidade tambem nao contava esse XP; agora que ela conta, a
+        // divergencia apareceria como "10/10 XP" no cabecalho e 0 no perfil.
         try {
-            XpEvents::awardActivity($studentId, $activityId, $tenantId, $courseId);
+            XpEvents::awardActivity($studentId, $activityId);
         } catch (\Throwable) {
             // best-effort
         }
