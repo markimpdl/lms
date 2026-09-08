@@ -29,6 +29,36 @@ final class StudentSession
     public const CRON_CLOSE_AFTER_MINUTES = 3;
 
     /**
+     * Expressao SQL com a duracao REAL de uma sessao, em segundos.
+     *
+     * Le `student_sessions` no escopo da query (sem alias de tabela).
+     *
+     * Tres casos, nesta ordem:
+     *  1. Sessao fechada  -> `duration_seconds`, gravado no fechamento.
+     *  2. Sessao VIVA     -> conta ate agora. "Viva" = ultimo ping dentro da
+     *     janela do cron, mesma definicao de `onlineUserIds()`. O heartbeat
+     *     bate a cada 60s, entao contar ate NOW() aqui so antecipa o proximo
+     *     ping — eh o "tempo da sessao em andamento" que a tela deve mostrar.
+     *  3. Sessao ORFA     -> conta ate `last_ping_at`, NAO ate agora.
+     *
+     * O caso 3 eh o que faltava, e era a fonte da inflacao: `COALESCE(
+     * duration_seconds, TIMESTAMPDIFF(..., NOW()))` fazia uma sessao aberta
+     * de tres dias atras somar tres dias de tempo online. Enquanto o cron
+     * rodava a cada minuto o estrago era pequeno; com o cron parado, o total
+     * de cada aluno crescia sozinho, 24h por dia, pra sempre.
+     *
+     * Agora o resultado eh o MESMO com ou sem cron: orfa conta ate o ultimo
+     * ping, que eh exatamente o `ended_at` que o cron escreveria. O cron passa
+     * a ser normalizacao (materializa o valor), nao correcao.
+     */
+    public static function sqlEffectiveSeconds(): string
+    {
+        return 'COALESCE(duration_seconds, TIMESTAMPDIFF(SECOND, started_at, '
+             . 'IF(last_ping_at >= NOW() - INTERVAL ' . self::CRON_CLOSE_AFTER_MINUTES . ' MINUTE,'
+             . ' NOW(), last_ping_at)))';
+    }
+
+    /**
      * Registra um ping. Se UUID e novo, cria a sessao; se ja existe e esta
      * dentro da janela de 30 min, atualiza last_ping_at. Retorna o status
      * da operacao (acoes posteriores do cliente dependem disso).
@@ -124,8 +154,9 @@ final class StudentSession
 
     /**
      * Resumo agregado das sessoes de UM aluno (TIME-05). Mesma formula da
-     * lista (TIME-04) — COALESCE inclui sessao ativa no SUM/AVG. Sem filtro
-     * de janela: sempre o historico completo.
+     * lista (TIME-04): a sessao ainda aberta entra no SUM/AVG por
+     * `sqlEffectiveSeconds()`, que conta ate agora se ela esta viva e ate o
+     * ultimo ping se ficou orfa. Sem filtro de janela: historico completo.
      *
      * @return array{last_ping_at:?string, access_count:int, time_total:int, time_avg:int}
      */
@@ -135,10 +166,8 @@ final class StudentSession
             'SELECT
                 MAX(last_ping_at) AS last_ping_at,
                 COUNT(*)          AS access_count,
-                SUM(COALESCE(duration_seconds,
-                             TIMESTAMPDIFF(SECOND, started_at, NOW()))) AS time_total,
-                AVG(COALESCE(duration_seconds,
-                             TIMESTAMPDIFF(SECOND, started_at, NOW()))) AS time_avg
+                SUM(' . self::sqlEffectiveSeconds() . ') AS time_total,
+                AVG(' . self::sqlEffectiveSeconds() . ') AS time_avg
                FROM student_sessions
               WHERE tenant_id = ? AND user_id = ?'
         );

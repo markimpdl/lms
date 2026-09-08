@@ -13,31 +13,31 @@ declare(strict_types=1);
  * escrita, nunca limpa, e crescia indefinidamente.
  *
  * **Setup no cPanel da Hostinger** (instrução manual):
- *   - Cron daily 03:00 UTC: `php /home/USER/.../scripts/cron/purge-old-logins.php`
- *   - Stdout/Stderr direcionado pra log via redirect ou null se não for útil.
+ *
+ *     0 3 * * * /usr/local/bin/php /home/USER/.../scripts/cron/purge-old-logins.php >/dev/null
+ *
+ * Sem redirect pra arquivo — ver a nota em `close-stale-sessions.php`: um
+ * diretorio de log inexistente faz o shell abortar o comando antes do PHP
+ * rodar, e o job morre em silencio. O log sai em `storage/logs/`.
  *
  * Saída: número de rows apagadas + status. Exit 0 em sucesso.
  */
 
 require dirname(__DIR__, 2) . '/src/bootstrap.php';
+require __DIR__ . '/_cron_log.php';
 
-$start   = microtime(true);
-try {
+exit(cron_run('purge', static function (): array {
     $deleted  = UserLogin::purgeOlderThan();
     $attempts = AuthController::purgeOldAttempts();
-} catch (\Throwable $e) {
-    fwrite(STDERR, "purge-old-logins: " . $e->getMessage() . "\n");
-    exit(1);
-}
-$elapsed = (int) round((microtime(true) - $start) * 1000);
-
-echo sprintf(
-    "purge-old-logins: %d login(s) + %d attempt(s) removed in %dms "
-    . "(retention=%d/%d days)\n",
-    $deleted,
-    $attempts,
-    $elapsed,
-    UserLogin::RETENTION_DAYS,
-    AuthController::ATTEMPTS_RETENTION_DAYS
-);
-exit(0);
+    return [
+        sprintf(
+            'purge-old-logins: %d login(s) + %d attempt(s) removed (retention=%d/%d days)',
+            $deleted,
+            $attempts,
+            UserLogin::RETENTION_DAYS,
+            AuthController::ATTEMPTS_RETENTION_DAYS
+        ),
+        // Diario: uma linha por dia eh barata e serve de prova de vida.
+        true,
+    ];
+}));

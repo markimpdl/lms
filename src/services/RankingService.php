@@ -95,8 +95,11 @@ final class RankingService
         $stmtTotal->execute();
         $total = (int) $stmtTotal->fetchColumn();
 
-        // online_seconds: total acumulado historico (sem janela). Sessao
-        // ativa entra via TIMESTAMPDIFF (mesmo padrao de StudentSession::statsForStudent).
+        // online_seconds: total acumulado historico (sem janela). Duracao vem
+        // de StudentSession pra sessao orfa parar no ultimo ping em vez de
+        // contar ate agora — ver sqlEffectiveSeconds(). Interpolado com
+        // {$secs}: concatenacao com aspas NAO funciona dentro desta string.
+        $secs = StudentSession::sqlEffectiveSeconds();
         $rowsSql = "SELECT u.id   AS student_id,
                            u.name AS name,
                            COALESCE(SUM(x.value), 0) AS xp,
@@ -126,8 +129,7 @@ final class RankingService
                             AND (rk.xp_max IS NULL OR rk.xp_max > COALESCE(ta.total_xp, 0))
                       LEFT JOIN (
                           SELECT user_id,
-                                 SUM(COALESCE(duration_seconds,
-                                              TIMESTAMPDIFF(SECOND, started_at, NOW()))) AS total_seconds
+                                 SUM({$secs}) AS total_seconds
                             FROM student_sessions
                            WHERE tenant_id = :tenant_id_sessions
                            GROUP BY user_id
@@ -280,17 +282,18 @@ final class RankingService
                                      AND u.role = 'student' AND u.active = 1
                          LEFT JOIN xp_events x
                                 ON x.student_user_id = u.id
-                               AND x.course_id = :cid_xp {$win}
-                        WHERE en.course_id = :cid_w
+                               AND x.course_id = :cid {$win}
+                        WHERE en.course_id = :cid
                         GROUP BY u.id
                         {$having}
                      ) c";
         $stmtTotal = $pdo->prepare($countSql);
-        $stmtTotal->bindValue(':cid_xp', $courseId, PDO::PARAM_INT);
-        $stmtTotal->bindValue(':cid_w',  $courseId, PDO::PARAM_INT);
+        $stmtTotal->bindValue(':cid', $courseId, PDO::PARAM_INT);
         $stmtTotal->execute();
         $total = (int) $stmtTotal->fetchColumn();
 
+        // Ver nota em rankingForTenant(): {$secs}, nunca concatenacao.
+        $secs = StudentSession::sqlEffectiveSeconds();
         $rowsSql = "SELECT u.id   AS student_id,
                            u.name AS name,
                            COALESCE(SUM(x.value), 0) AS xp,
@@ -305,7 +308,7 @@ final class RankingService
                                   AND u.role = 'student' AND u.active = 1
                       LEFT JOIN xp_events x
                              ON x.student_user_id = u.id
-                            AND x.course_id = :cid_xp {$win}
+                            AND x.course_id = :cid {$win}
                       LEFT JOIN (
                           SELECT student_user_id, tenant_id, SUM(value) AS total_xp
                             FROM xp_events
@@ -317,19 +320,17 @@ final class RankingService
                             AND (rk.xp_max IS NULL OR rk.xp_max > COALESCE(ta.total_xp, 0))
                       LEFT JOIN (
                           SELECT user_id, tenant_id,
-                                 SUM(COALESCE(duration_seconds,
-                                              TIMESTAMPDIFF(SECOND, started_at, NOW()))) AS total_seconds
+                                 SUM({$secs}) AS total_seconds
                             FROM student_sessions
                            GROUP BY user_id, tenant_id
                       ) ss ON ss.user_id = u.id AND ss.tenant_id = u.tenant_id
-                     WHERE en.course_id = :cid_w
+                     WHERE en.course_id = :cid
                      GROUP BY u.id, u.name, u.tenant_id
                      {$having}
                      ORDER BY xp DESC, last_event_at DESC, u.name ASC
                      LIMIT :lim OFFSET :off";
         $stmt = $pdo->prepare($rowsSql);
-        $stmt->bindValue(':cid_xp', $courseId, PDO::PARAM_INT);
-        $stmt->bindValue(':cid_w',  $courseId, PDO::PARAM_INT);
+        $stmt->bindValue(':cid', $courseId, PDO::PARAM_INT);
         $stmt->bindValue(':lim',    $perPage,  PDO::PARAM_INT);
         $stmt->bindValue(':off',    $offset,   PDO::PARAM_INT);
         $stmt->execute();
