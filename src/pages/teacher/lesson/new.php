@@ -70,10 +70,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $data = $old;
         $data['html'] = ContentSanitizer::purify($old['html']);
 
+        // Ver comentario em lesson/edit.php: imagem de outra CU precisa ser
+        // re-hospedada aqui, senao quebra pro aluno.
+        $rehost       = ContentImageRehost::apply($data['html'], $cuId, $tenantId);
+        $data['html'] = $rehost['html'];
+
         $result = Lesson::create($cuId, $tenantId, $data);
         if (is_int($result)) {
             course_audit((int) $__courseId, 'create', 'lesson', $result, $old['title']);
             flash('success', __t('lessons.flash.created'));
+            ContentImageRehost::flashResult($rehost);
             header('Location: /teacher/cu/' . $cuId, true, 303);
             return;
         }

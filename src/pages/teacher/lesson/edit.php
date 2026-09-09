@@ -68,10 +68,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $data = $old;
         $data['html'] = ContentSanitizer::purify($old['html']);
 
+        // Imagem colada de outra unidade vira anexo desta CU antes de gravar
+        // — sem isso o aluno nao matriculado no curso de origem ve a imagem
+        // quebrada (a rota de view autoriza pelo curso DONO do anexo).
+        $rehost       = ContentImageRehost::apply($data['html'], $cuId, $tenantId);
+        $data['html'] = $rehost['html'];
+
         $result = Lesson::update($lessonId, $tenantId, $data);
         if ($result === 'ok') {
             course_audit((int) $__courseId, 'update', 'lesson', $lessonId, $old['title']);
             flash('success', __t('lessons.flash.saved'));
+            ContentImageRehost::flashResult($rehost);
             header('Location: /teacher/cu/' . $cuId, true, 303);
             return;
         }
