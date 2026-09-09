@@ -80,6 +80,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $clean = ContentSanitizer::purify($dirtyHtml);
 
+    // Mesma re-hospedagem da licao: imagem colada de outra unidade viraria
+    // 404 pro aluno de fora do curso de origem.
+    $rehost = ContentImageRehost::apply($clean, $cuId, $tenantId);
+    $clean  = $rehost['html'];
+
     $result = Content::upsertForCu($cuId, $tenantId, $clean, $published);
     if ($result === 'ok') {
         // E33 (F24/ADR-035): auditoria do conteúdo. Upsert → create na 1ª vez,
@@ -92,6 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             (string) $cu['name']
         );
         flash('success', __t('content.saved'));
+        ContentImageRehost::flashResult($rehost);
         header('Location: /teacher/cu/' . $cuId, true, 303);
         return;
     }

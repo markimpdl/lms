@@ -485,6 +485,8 @@ return [
     'content.form.publish'       => 'Publicar para os alunos',
     'content.form.publish_hint'  => 'Quando marcado, os alunos matriculados neste curso verão o conteúdo na CU. Desmarque para continuar rascunhando sem expor.',
     'content.saved'              => 'Conteúdo salvo.',
+    'content.images.rehosted'      => ':count imagem(ns) vinha(m) de outra unidade e foi(ram) copiada(s) para esta — agora todos os alunos conseguem vê-la(s).',
+    'content.images.rehost_failed' => ':count imagem(ns) aponta(m) para um anexo que não é desta unidade e não pôde ser copiada — os alunos podem não vê-la(s). Reenvie a imagem pelo editor.',
     'content.show_more'          => 'Ver mais',
     'content.show_less'          => 'Ver menos',
     'content.draft.title'        => 'Rascunho local encontrado',

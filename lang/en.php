@@ -485,6 +485,8 @@ return [
     'content.form.publish'       => 'Publish to students',
     'content.form.publish_hint'  => 'When checked, enrolled students of this course will see the content in the CU. Uncheck to keep drafting without exposing.',
     'content.saved'              => 'Content saved.',
+    'content.images.rehosted'      => ':count image(s) came from another unit and were copied into this one — every student can see them now.',
+    'content.images.rehost_failed' => ':count image(s) point to an attachment that does not belong to this unit and could not be copied — students may not see them. Upload the image again in the editor.',
     'content.show_more'          => 'Show more',
     'content.show_less'          => 'Show less',
     'content.draft.title'        => 'Local draft found',

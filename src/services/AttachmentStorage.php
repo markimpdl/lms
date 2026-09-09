@@ -59,14 +59,7 @@ final class AttachmentStorage
         }
 
         // Validação: previne DDoS via criação em massa
-        $countStmt = Database::pdo()->prepare(
-            'SELECT COUNT(*) as cnt FROM content_attachments a
-             JOIN contents c ON c.id = a.content_id
-             WHERE c.competence_unit_id = ?'
-        );
-        $countStmt->execute([$cuId]);
-        $count = (int) $countStmt->fetchColumn();
-        if ($count >= self::MAX_ATTACHMENTS_PER_CU) {
+        if (self::countForCu($cuId) >= self::MAX_ATTACHMENTS_PER_CU) {
             return ['status' => 'error', 'error_key' => 'attachments.err.limit'];
         }
 
@@ -169,6 +162,84 @@ final class AttachmentStorage
             @unlink($realFile);
         }
         return true;
+    }
+
+    /**
+     * Quantos anexos a CU já tem. Usado pelo teto de `MAX_ATTACHMENTS_PER_CU`
+     * no upload e na cópia — as duas contam a mesma coisa e precisam contar
+     * igual.
+     */
+    public static function countForCu(int $cuId): int
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT COUNT(*) FROM content_attachments a
+               JOIN contents c ON c.id = a.content_id
+              WHERE c.competence_unit_id = ?'
+        );
+        $stmt->execute([$cuId]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Duplica um anexo já existente para dentro de OUTRA CU: copia o arquivo
+     * físico com UUID novo e cria a linha em `content_attachments` apontando
+     * pro conteúdo da CU destino. Devolve o id novo, ou null se não deu.
+     *
+     * Existe pro `ContentImageRehost`: imagem colada de outra unidade precisa
+     * virar anexo da unidade que a exibe, senão o aluno não matriculado no
+     * curso de origem recebe 404 na rota de view.
+     *
+     * Caller garante que `$source` veio de `ContentAttachment::findForTenant`
+     * com o MESMO `$tenantId` — nunca copiamos anexo de outro tenant.
+     *
+     * @param array<string,mixed> $source registro de content_attachments
+     */
+    public static function copyInto(array $source, int $cuId, int $tenantId): ?int
+    {
+        $realBase = realpath(LMS_ROOT . '/storage/uploads');
+        $realSrc  = @realpath(LMS_ROOT . '/' . ltrim((string) $source['stored_path'], '/'));
+
+        // Arquivo de origem ausente ou fora da árvore de uploads: não cria
+        // registro órfão apontando pra nada.
+        if ($realBase === false || $realSrc === false
+            || !str_starts_with($realSrc, $realBase) || !is_file($realSrc)
+        ) {
+            return null;
+        }
+
+        if (self::countForCu($cuId) >= self::MAX_ATTACHMENTS_PER_CU) {
+            return null;
+        }
+
+        // Anexo pende de `contents`, então CU sem capa (comum em curso V2)
+        // ganha a linha vazia aqui. Não fecha a unidade pro aluno: o
+        // `UnitDraftGate` exige `html` não vazio pra considerar rascunho —
+        // linha-fantasma de upload não conta.
+        $contentId = Content::ensureForCu($cuId, $tenantId);
+        if ($contentId === 'not_found') {
+            return null;
+        }
+
+        $ext        = pathinfo((string) $source['stored_path'], PATHINFO_EXTENSION);
+        $storedName = self::uuid4() . ($ext !== '' ? '.' . $ext : '');
+        $baseDir    = LMS_ROOT . '/storage/uploads/tenant_' . $tenantId . '/content/' . $cuId;
+        if (!is_dir($baseDir) && !@mkdir($baseDir, 0755, true)) {
+            return null;
+        }
+        if (!@copy($realSrc, $baseDir . '/' . $storedName)) {
+            return null;
+        }
+
+        $relative = 'storage/uploads/tenant_' . $tenantId . '/content/' . $cuId . '/' . $storedName;
+        $size     = @filesize($baseDir . '/' . $storedName);
+
+        return ContentAttachment::create(
+            (int) $contentId,
+            (string) $source['filename'],
+            $relative,
+            (string) $source['mime'],
+            $size === false ? (int) $source['size_bytes'] : $size
+        );
     }
 
     /**
