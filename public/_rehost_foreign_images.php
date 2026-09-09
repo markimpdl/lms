@@ -263,8 +263,8 @@ code{background:#f4f4f4;padding:0 .2rem}
     <p>
         <strong><?= $countRows ?></strong> linha(s) afetada(s),
         <strong><?= $countImgs ?></strong> imagem(ns) a re-hospedar<?php if ($countBroken > 0): ?>,
-        <strong><?= $countBroken ?></strong> URL(s) sem conserto (anexo apagado ou de outro tenant — precisam
-        ser reenviadas à mão no editor)<?php endif; ?>.
+        <strong><?= $countBroken ?></strong> URL(s) sem conserto (anexo apagado, ou de outro professor —
+        precisam ser reenviadas à mão no editor)<?php endif; ?>.
     </p>
     <table>
         <thead><tr><th>Onde</th><th>Curso / CU</th><th>Imagens de outra unidade</th><th>Sem conserto</th></tr></thead>
