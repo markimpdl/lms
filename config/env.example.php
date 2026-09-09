@@ -45,4 +45,10 @@ return [
     // demais uploads em src/services/*Storage.php (todos hardcoded em
     // bytes — entrega aluno 10MB, anexo TinyMCE 12MB).
     'UPLOAD_MAX_MB_PDF_BRIEF' => 12,
+
+    // --- Ferramentas de reparo (one-shot) ------------------------------
+    // public/_rehost_foreign_images.php responde 404 enquanto isto for
+    // false. Ligar só na hora de rodar o reparo e desligar depois — o
+    // arquivo fica no document root entre deploys.
+    'ENABLE_REHOST_TOOL' => false,
 ];

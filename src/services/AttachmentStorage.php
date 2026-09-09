@@ -192,9 +192,16 @@ final class AttachmentStorage
      * Caller garante que `$source` veio de `ContentAttachment::findForTenant`
      * com o MESMO `$tenantId` — nunca copiamos anexo de outro tenant.
      *
+     * Se a CU destino já tem esse mesmo arquivo (mesmo nome, tamanho, mime e
+     * conteúdo), devolve o id existente sem duplicar nada — a mesma imagem
+     * colada em várias lições da unidade ocupa um slot, não um por lição.
+     *
      * @param array<string,mixed> $source registro de content_attachments
+     * @return int|string id do anexo na CU destino, ou 'limit' (a CU está no
+     *         teto de anexos) ou 'error' (arquivo de origem sumiu, disco
+     *         recusou a cópia, CU indisponível)
      */
-    public static function copyInto(array $source, int $cuId, int $tenantId): ?int
+    public static function copyInto(array $source, int $cuId, int $tenantId): int|string
     {
         $realBase = realpath(LMS_ROOT . '/storage/uploads');
         $realSrc  = @realpath(LMS_ROOT . '/' . ltrim((string) $source['stored_path'], '/'));
@@ -204,11 +211,16 @@ final class AttachmentStorage
         if ($realBase === false || $realSrc === false
             || !str_starts_with($realSrc, $realBase) || !is_file($realSrc)
         ) {
-            return null;
+            return 'error';
+        }
+
+        $twin = self::findTwinInCu($source, $cuId, $realSrc);
+        if ($twin !== null) {
+            return $twin;
         }
 
         if (self::countForCu($cuId) >= self::MAX_ATTACHMENTS_PER_CU) {
-            return null;
+            return 'limit';
         }
 
         // Anexo pende de `contents`, então CU sem capa (comum em curso V2)
@@ -217,17 +229,17 @@ final class AttachmentStorage
         // linha-fantasma de upload não conta.
         $contentId = Content::ensureForCu($cuId, $tenantId);
         if ($contentId === 'not_found') {
-            return null;
+            return 'error';
         }
 
         $ext        = pathinfo((string) $source['stored_path'], PATHINFO_EXTENSION);
         $storedName = self::uuid4() . ($ext !== '' ? '.' . $ext : '');
         $baseDir    = LMS_ROOT . '/storage/uploads/tenant_' . $tenantId . '/content/' . $cuId;
         if (!is_dir($baseDir) && !@mkdir($baseDir, 0755, true)) {
-            return null;
+            return 'error';
         }
         if (!@copy($realSrc, $baseDir . '/' . $storedName)) {
-            return null;
+            return 'error';
         }
 
         $relative = 'storage/uploads/tenant_' . $tenantId . '/content/' . $cuId . '/' . $storedName;
@@ -240,6 +252,44 @@ final class AttachmentStorage
             (string) $source['mime'],
             $size === false ? (int) $source['size_bytes'] : $size
         );
+    }
+
+    /**
+     * O mesmo arquivo já existe como anexo da CU destino? Devolve o id, ou
+     * null. Nome/tamanho/mime só selecionam candidatos; a igualdade é
+     * decidida pelo hash do conteúdo, senão dois arquivos homônimos do mesmo
+     * tamanho seriam confundidos.
+     *
+     * @param array<string,mixed> $source
+     */
+    private static function findTwinInCu(array $source, int $cuId, string $realSrc): ?int
+    {
+        $candidates = ContentAttachment::twinCandidatesInCu(
+            $cuId,
+            (string) $source['filename'],
+            (int) $source['size_bytes'],
+            (string) $source['mime']
+        );
+        if ($candidates === []) {
+            return null;
+        }
+
+        $srcHash = @hash_file('sha256', $realSrc);
+        if ($srcHash === false) {
+            return null;
+        }
+
+        foreach ($candidates as $cand) {
+            $path = @realpath(LMS_ROOT . '/' . ltrim((string) $cand['stored_path'], '/'));
+            if ($path === false) {
+                continue;
+            }
+            $hash = @hash_file('sha256', $path);
+            if ($hash !== false && hash_equals($srcHash, $hash)) {
+                return (int) $cand['id'];
+            }
+        }
+        return null;
     }
 
     /**

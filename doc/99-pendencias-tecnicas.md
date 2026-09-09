@@ -224,6 +224,17 @@ A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** du
 
 ## Limpezas de produção (não-bloqueantes)
 
+### Re-hospedagem de imagem grava anexo antes do save que pode falhar
+- `ContentImageRehost::apply` copia arquivo + cria linha em `content_attachments` e só **depois** o caller chama `Lesson::create` / `Lesson::update` / `Content::upsertForCu` (`src/pages/teacher/lesson/new.php`, `lesson/edit.php`, `cu/content-edit.php`).
+- **Sintoma:** se o save devolver `course_archived` (curso arquivado entre o GET e o POST) ou `not_found` (CU apagada), o HTML reescrito é descartado mas o anexo copiado fica na CU, sem ninguém apontando pra ele, contando contra o teto de 50. O `flashResult` também não é alcançado, então o professor não fica sabendo.
+- **Impacto:** baixo — a janela é entre o carregamento do form e o submit, e o arquivo repetido é reusado pelo dedup (hash) na próxima vez que a mesma imagem for colada, em vez de multiplicar.
+- **Ação (se virar problema):** rodar o rehost só depois de o save confirmar, com um segundo UPDATE só do `html`; ou registrar os anexos criados e apagá-los no caminho de erro.
+
+### Reparo retroativo de imagens carrega todo o HTML do tenant na memória
+- `public/_rehost_foreign_images.php` faz `fetchAll()` de `contents.html` + `lessons.html` (ambos `MEDIUMTEXT`) e uma query por id de anexo por linha, mais `hash_file` por candidato a gêmeo.
+- **Mitigado:** escopo é um tenant só (super-admin não roda), `@set_time_limit(0)` no POST, e a operação é idempotente — se estourar no meio, rodar de novo continua de onde deu.
+- **Ação:** se algum tenant crescer o bastante pra estourar memória, paginar por curso.
+
 ### XP da avaliação não é revogado quando o professor rebaixa a nota
 - `XpEvents::awardEvaluation` credita a partir de `XpEvents::EVALUATION_MIN_GRADE` (8.0) e grava um **snapshot** em `xp_events`. Não existe caminho de revogação: `revokeEvaluation()` nunca é chamado.
 - **Sintoma:** professor corrige com 9 (XP creditado) e depois rebaixa para 7. O cabeçalho da unidade passa a NÃO contar aquele XP (ele deriva da nota atual), enquanto o perfil e o ranking continuam com o evento gravado. As duas telas divergem. Mesmo efeito ao editar `evaluations.xp_value` depois do crédito.
