@@ -19,11 +19,15 @@ declare(strict_types=1);
  * unidade de origem.
  *
  * **USO (1 vez em prod):**
- *   1. Subir este arquivo pra `public/` via FileZilla
+ *   1. O deploy já sobe este arquivo (`public/` não é filtrado)
  *   2. Abrir https://lms.rumo.info/_rehost_foreign_images.php logado como
  *      professor (conserta só o seu tenant) ou super-admin (conserta todos)
  *   3. Conferir o relatório do GET e confirmar no botão
- *   4. **APAGAR o arquivo do servidor depois de rodar**
+ *   4. Depois de rodar, apagar este arquivo do REPO e redeployar — apagar só
+ *      no servidor não resolve, o deploy seguinte o traria de volta.
+ *
+ * Rodar duas vezes é inofensivo: na segunda passada toda imagem já é anexo da
+ * própria CU e o relatório vem vazio.
  */
 
 require dirname(__DIR__) . '/src/bootstrap.php';
