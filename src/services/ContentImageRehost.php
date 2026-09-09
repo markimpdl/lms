@@ -159,7 +159,7 @@ final class ContentImageRehost
         if ($result['rehosted'] > 0) {
             flash('info', __t('content.images.rehosted', ['count' => (string) $result['rehosted']]));
         }
-        if (($result['blocked'] ?? 0) > 0) {
+        if ($result['blocked'] > 0) {
             flash('warning', __t('content.images.rehost_limit', [
                 'count' => (string) $result['blocked'],
                 'max'   => (string) AttachmentStorage::MAX_ATTACHMENTS_PER_CU,
