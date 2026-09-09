@@ -20,17 +20,13 @@ $__cuId     = (int) ($_REQUEST['id'] ?? 0);
 $__courseId = CompetenceUnit::courseIdOf($__cuId);
 $tenantId   = $__courseId !== null ? effective_authoring_tenant($__courseId) : null;
 if ($tenantId === null) {
-    http_response_code(404);
-    require LMS_ROOT . '/src/templates/errors/404.php';
-    return;
+    abort_subresource(404);
 }
 
 $aid = (int) ($_REQUEST['aid'] ?? 0);
 $att = ContentAttachment::findForTenant($aid, $tenantId);
 if ($att === null) {
-    http_response_code(404);
-    require LMS_ROOT . '/src/templates/errors/404.php';
-    return;
+    abort_subresource(404);
 }
 
 AttachmentStorage::stream($att, 'inline');

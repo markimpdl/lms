@@ -23,30 +23,22 @@ $path  = (string) ($_REQUEST['path'] ?? '');
 
 $widget = Widget::findById($id);
 if ($widget === null || (int) ($widget['active'] ?? 0) !== 1) {
-    http_response_code(404);
-    require LMS_ROOT . '/src/templates/errors/404.php';
-    return;
+    abort_subresource(404);
 }
 
 if (!widget_token_valid($id, $token)) {
-    http_response_code(403);
-    require LMS_ROOT . '/src/templates/errors/403.php';
-    return;
+    abort_subresource(403);
 }
 
 $requested = $path !== '' ? $path : (string) $widget['entry_file'];
 $file = WidgetStorage::resolveAsset((string) $widget['storage_path'], $requested);
 if ($file === null) {
-    http_response_code(404);
-    require LMS_ROOT . '/src/templates/errors/404.php';
-    return;
+    abort_subresource(404);
 }
 
 $type = WidgetStorage::contentTypeFor($file);
 if ($type === null) {
-    http_response_code(404);
-    require LMS_ROOT . '/src/templates/errors/404.php';
-    return;
+    abort_subresource(404);
 }
 
 header('Content-Type: ' . $type);

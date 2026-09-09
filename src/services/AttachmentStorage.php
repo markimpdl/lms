@@ -121,10 +121,10 @@ final class AttachmentStorage
 
         // Defesa contra path traversal: stored_path vem do DB (nosso controle),
         // mas validamos contra diretório esperado antes de servir.
+        // 404 seco: quem chamou queria um arquivo, e a página de erro emitiria
+        // token CSRF pelo header (ver `abort_subresource`).
         if ($realBase === false || $realFile === false || !str_starts_with($realFile, $realBase)) {
-            http_response_code(404);
-            require LMS_ROOT . '/src/templates/errors/404.php';
-            exit;
+            abort_subresource(404);
         }
 
         // Sanitização do filename pro header: remove quebras de linha e aspas

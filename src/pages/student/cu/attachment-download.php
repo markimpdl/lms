@@ -15,26 +15,20 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 
 $user = current_user();
 if ($user === null || ($user['role'] ?? '') !== 'student') {
-    http_response_code(403);
-    require LMS_ROOT . '/src/templates/errors/403.php';
-    return;
+    abort_subresource(403);
 }
 
 $aid = (int) ($_REQUEST['aid'] ?? 0);
 $att = ContentAttachment::findForStudent($aid, (int) $user['id']);
 if ($att === null) {
-    http_response_code(404);
-    require LMS_ROOT . '/src/templates/errors/404.php';
-    return;
+    abort_subresource(404);
 }
 
 // Unidade em rascunho: o anexo eh material do professor, e a aba de anexos
 // ja sumiu da capa da CU. Aqui fecha o link que o aluno tenha salvo antes
 // de o conteudo ser despublicado.
 if (cu_is_draft_for_student((int) $att['competence_unit_id'])) {
-    http_response_code(404);
-    require LMS_ROOT . '/src/templates/errors/404.php';
-    return;
+    abort_subresource(404);
 }
 
 AttachmentStorage::stream($att, 'attachment');

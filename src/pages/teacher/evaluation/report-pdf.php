@@ -15,9 +15,7 @@ declare(strict_types=1);
 
 $tenantId = current_tenant_id();
 if ($tenantId === null) {
-    http_response_code(403);
-    require LMS_ROOT . '/src/templates/errors/403.php';
-    return;
+    abort_subresource(403);
 }
 
 $evaluationId = (int) ($_REQUEST['id']         ?? 0);
@@ -25,17 +23,13 @@ $studentId    = (int) ($_REQUEST['student_id'] ?? 0);
 
 $ctx = EvaluationSubmission::findForGrading($evaluationId, $studentId, $tenantId);
 if ($ctx === null) {
-    http_response_code(404);
-    require LMS_ROOT . '/src/templates/errors/404.php';
-    return;
+    abort_subresource(404);
 }
 
 $current = $ctx['current'] ?? null;
 $relPath = $current !== null ? (string) ($current['report_pdf_path'] ?? '') : '';
 if ($relPath === '') {
-    http_response_code(404);
-    require LMS_ROOT . '/src/templates/errors/404.php';
-    return;
+    abort_subresource(404);
 }
 
 // Defesa path traversal: confirma que o realpath cai dentro de
@@ -45,9 +39,7 @@ $absPath  = LMS_ROOT . '/' . $relPath;
 $realPath = @realpath($absPath);
 $realBase = @realpath(LMS_ROOT . '/storage/reports');
 if ($realBase === false || $realPath === false || !str_starts_with($realPath, $realBase)) {
-    http_response_code(404);
-    require LMS_ROOT . '/src/templates/errors/404.php';
-    return;
+    abort_subresource(404);
 }
 
 $filename = 'report-eval' . $evaluationId . '-student' . $studentId . '.pdf';

@@ -15,17 +15,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 
 $user = current_user();
 if ($user === null || ($user['role'] ?? '') !== 'student') {
-    http_response_code(403);
-    require LMS_ROOT . '/src/templates/errors/403.php';
-    return;
+    abort_subresource(403);
 }
 
 $activityId = (int) ($_REQUEST['id'] ?? 0);
 $ctx = ActivitySubmission::findForStudentActivity($activityId, (int) $user['id']);
 if ($ctx === null || ($ctx['activity']['pdf_path'] ?? null) === null) {
-    http_response_code(404);
-    require LMS_ROOT . '/src/templates/errors/404.php';
-    return;
+    abort_subresource(404);
 }
 
 // Unidade em rascunho: o enunciado eh material do professor e a atividade ja
@@ -34,9 +30,7 @@ if ($ctx === null || ($ctx['activity']['pdf_path'] ?? null) === null) {
 // entrega eh do aluno. `/file` e `/delete` seguem abertos pelo mesmo motivo, e
 // a tela que os oferece continua acessivel a quem tem entrega.
 if (cu_is_draft_for_student((int) $ctx['activity']['cu_id'])) {
-    http_response_code(404);
-    require LMS_ROOT . '/src/templates/errors/404.php';
-    return;
+    abort_subresource(404);
 }
 
 $storedPath = (string) $ctx['activity']['pdf_path'];

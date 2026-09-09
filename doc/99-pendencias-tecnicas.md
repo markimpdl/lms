@@ -224,6 +224,12 @@ A Hostinger subiu automaticamente o domínio `lms.rumo.info` para **PHP 8.3** du
 
 ## Limpezas de produção (não-bloqueantes)
 
+### 404 do front controller ainda emite token CSRF
+- `abort_subresource()` cobre as 13 rotas que servem arquivo (anexo, brief, PDF de relatório, widget) — lá o erro virou texto seco, sem `layout.php`, e por isso sem `csrf_field()` do `header.php`.
+- **Sobra um caminho:** URL que não casa com rota nenhuma cai no 404 do `public/index.php`, que renderiza a página de erro completa e portanto emite um token. Um `<img>` apontando pra URL fora do padrão de rota (formato antigo, por exemplo) gasta um slot do pool por imagem.
+- **Impacto:** baixo — `CSRF_POOL_MAX` é 128, então é preciso muita imagem quebrada e fora de rota pra despejar o token de uma aba com formulário aberto. As URLs de anexo do conteúdo casam com rota e já estão cobertas.
+- **Ação (se virar problema):** no fallthrough do front controller, responder seco quando o `Accept` da request não incluir `text/html` — é o sinal que separa `<img>`/download de navegação de gente.
+
 ### Re-hospedagem de imagem grava anexo antes do save que pode falhar
 - `ContentImageRehost::apply` copia arquivo + cria linha em `content_attachments` e só **depois** o caller chama `Lesson::create` / `Lesson::update` / `Content::upsertForCu` (`src/pages/teacher/lesson/new.php`, `lesson/edit.php`, `cu/content-edit.php`).
 - **Sintoma:** se o save devolver `course_archived` (curso arquivado entre o GET e o POST) ou `not_found` (CU apagada), o HTML reescrito é descartado mas o anexo copiado fica na CU, sem ninguém apontando pra ele, contando contra o teto de 50. O `flashResult` também não é alcançado, então o professor não fica sabendo.

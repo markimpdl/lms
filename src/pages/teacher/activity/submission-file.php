@@ -15,9 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 
 $tenantId = current_tenant_id();
 if ($tenantId === null) {
-    http_response_code(403);
-    require LMS_ROOT . '/src/templates/errors/403.php';
-    return;
+    abort_subresource(403);
 }
 
 $activityId = (int) ($_REQUEST['id'] ?? 0);
@@ -25,9 +23,7 @@ $studentId  = (int) ($_REQUEST['student_id'] ?? 0);
 
 $ctx = ActivitySubmission::findForTeacher($activityId, $studentId, $tenantId);
 if ($ctx === null || $ctx['submission']['filename'] === null) {
-    http_response_code(404);
-    require LMS_ROOT . '/src/templates/errors/404.php';
-    return;
+    abort_subresource(404);
 }
 
 $storedPath = (string) $ctx['submission']['stored_path'];

@@ -48,7 +48,8 @@ if ($user === null || ($user['role'] ?? '') !== 'student') {
 }
 
 // CSRF — usa verify-no-rotate porque o aluno pode executar várias vezes
-// na mesma página sem reload. Token vale até expirar (TTL 30 min).
+// na mesma página sem reload. Cada uso renova o token no pool da sessão, de
+// modo que aba aberta rodando código não é despejada por navegação em outra.
 try {
     csrf_verify_no_rotate();
 } catch (RuntimeException) {
