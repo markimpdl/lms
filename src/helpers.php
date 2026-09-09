@@ -1042,12 +1042,18 @@ function __t(string $key, array $params = [], ?string $lang = null): string
 const CSRF_TTL_SECONDS = 14400; // 4h
 
 /**
- * Quantos tokens a sessão mantém válidos ao mesmo tempo — na prática, quantas
- * abas/páginas o usuário pode ter abertas antes que a mais velha perca a
- * validade. 24 cobre folgado o uso real (corrigir atividades em duas ou três
- * abas) e custa ~2 KB na sessão.
+ * Quantos tokens a sessão retém.
+ *
+ * **Não é "quantas abas".** Todo render de página autenticada emite um token
+ * (o `header.php` tem formulário), então o pool é consumido por NAVEGAÇÃO em
+ * qualquer aba, não pelas abas abertas. O cenário que dimensiona isto: o
+ * professor deixa o editor de conteúdo aberto numa aba escrevendo por 40 min
+ * enquanto navega na outra — se as navegações passarem do teto, o token do
+ * editor é despejado e o save dele dá 403, que é justamente o bug que este
+ * pool existe pra matar. 128 cobre uma sessão de trabalho inteira e custa
+ * ~11 KB na sessão.
  */
-const CSRF_POOL_MAX = 24;
+const CSRF_POOL_MAX = 128;
 
 /**
  * Token do request atual.
@@ -1094,17 +1100,27 @@ function csrf_verify(): void
 /**
  * Versão sem consumo — pra endpoints AJAX/JSON que o mesmo usuário chama
  * várias vezes na mesma página sem reload (`/api/code/run`, heartbeat do
- * aluno). Além de não consumir, RENOVA o token: ele volta pro fim da fila do
- * pool e ganha TTL novo. Sem isso, uma aba de aluno parada com heartbeat
- * ativo seria despejada do pool por navegação em outra aba, e o tracking de
- * tempo morreria em silêncio.
+ * aluno).
+ *
+ * Reposiciona o token no fim da fila do pool, pra que despejo seja por USO e
+ * não por idade: sem isso, uma aba de aluno parada com heartbeat ativo seria
+ * despejada por navegação em outra aba e o tracking de tempo morreria em
+ * silêncio.
+ *
+ * **Reposiciona sem estender a validade.** A expiração original é preservada:
+ * o token morre 4h depois de emitido, o mesmo horizonte da sessão que o
+ * guarda. Renovar o prazo a cada chamada tornaria um token vazado eternamente
+ * válido — o heartbeat é POST autenticado, então quem tiver o token o
+ * manteria vivo indefinidamente batendo nele, e como o consumo agora é por
+ * token, a atividade normal da vítima não o invalida mais.
  */
 function csrf_verify_no_rotate(): void
 {
-    $match = csrf_pool_match();
-    $pool  = csrf_pool_read();
-    unset($pool[$match]);            // reinsere no fim: despejo é por uso, não por idade
-    $pool[$match] = time() + CSRF_TTL_SECONDS;
+    $match   = csrf_pool_match();
+    $pool    = csrf_pool_read();
+    $expires = $pool[$match];        // preserva o prazo original
+    unset($pool[$match]);
+    $pool[$match] = $expires;        // reinsere no fim: despejo por uso, não por idade
     csrf_pool_write($pool);
 }
 
@@ -1187,6 +1203,38 @@ function csrf_pool_write(array $pool): void
 
     // Formato antigo sai de cena depois da primeira gravação.
     unset($_SESSION['_csrf'], $_SESSION['_csrf_expires']);
+}
+
+// ---------------------------------------------------------------------
+// Erro em sub-recurso (arquivo servido, não página)
+// ---------------------------------------------------------------------
+
+/**
+ * Encerra a request com status de erro SEM renderizar página — pra rota que
+ * serve arquivo (anexo, PDF, widget), não HTML.
+ *
+ * Existem duas razões, e a segunda é a que morde:
+ *
+ * 1. Quem pediu era um `<img>` ou um download. Devolver o shell autenticado
+ *    inteiro pra ele é resposta que ninguém lê e custa layout, nav e queries.
+ * 2. `templates/errors/404.php` renderiza o `layout.php`, que passa pelo
+ *    `header.php`, que tem `csrf_field()` — ou seja, **cada erro de
+ *    sub-recurso emitia um token CSRF**. Uma lição com 8 imagens quebradas
+ *    (justo o caso que o reparo de re-hospedagem existe pra consertar)
+ *    gastava 8 slots do pool numa única visualização, despejando o token da
+ *    aba onde o professor tinha um rascunho aberto — e o save dela dava
+ *    "acesso negado", exatamente o bug que o pool veio matar.
+ *
+ * Página de verdade continua usando os templates: o usuário precisa de tela
+ * de erro navegável, e um render por navegação é o custo normal do pool.
+ */
+function abort_subresource(int $status): never
+{
+    http_response_code($status);
+    header('Content-Type: text/plain; charset=utf-8');
+    header('X-Content-Type-Options: nosniff');
+    echo $status === 403 ? "403 Forbidden\n" : "404 Not Found\n";
+    exit;
 }
 
 // ---------------------------------------------------------------------

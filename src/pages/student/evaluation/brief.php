@@ -14,25 +14,19 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 
 $user = current_user();
 if ($user === null || ($user['role'] ?? '') !== 'student') {
-    http_response_code(403);
-    require LMS_ROOT . '/src/templates/errors/403.php';
-    return;
+    abort_subresource(403);
 }
 
 $evaluationId = (int) ($_REQUEST['id'] ?? 0);
 $ctx = EvaluationSubmission::findForStudentEvaluation($evaluationId, (int) $user['id']);
 if ($ctx === null || $ctx['evaluation']['pdf_path'] === null) {
-    http_response_code(404);
-    require LMS_ROOT . '/src/templates/errors/404.php';
-    return;
+    abort_subresource(404);
 }
 
 // Unidade em rascunho: mesmo gate de activity/brief.php — enunciado eh
 // material do professor. A entrega do aluno (`/file`) segue acessivel.
 if (cu_is_draft_for_student((int) $ctx['evaluation']['cu_id'])) {
-    http_response_code(404);
-    require LMS_ROOT . '/src/templates/errors/404.php';
-    return;
+    abort_subresource(404);
 }
 
 $storedPath = (string) $ctx['evaluation']['pdf_path'];

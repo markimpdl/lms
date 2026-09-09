@@ -19,18 +19,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 
 $user = current_user();
 if ($user === null || ($user['role'] ?? '') !== 'student') {
-    http_response_code(403);
-    require LMS_ROOT . '/src/templates/errors/403.php';
-    return;
+    abort_subresource(403);
 }
 
 $activityId = (int) ($_REQUEST['id'] ?? 0);
 $ctx = ActivitySubmission::findForStudentActivity($activityId, (int) $user['id']);
 if ($ctx === null || $ctx['submission'] === null
     || $ctx['submission']['filename'] === null) {
-    http_response_code(404);
-    require LMS_ROOT . '/src/templates/errors/404.php';
-    return;
+    abort_subresource(404);
 }
 
 $storedPath = (string) $ctx['submission']['stored_path'];
