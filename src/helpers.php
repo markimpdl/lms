@@ -1032,16 +1032,45 @@ function __t(string $key, array $params = [], ?string $lang = null): string
 // CSRF
 // ---------------------------------------------------------------------
 
-const CSRF_TTL_SECONDS = 1800; // 30 min
+/**
+ * Horizonte de vida do token, alinhado ao `session.gc_maxlifetime` de 4h
+ * definido em `bootstrap.php`. Eram 30 min, e a diferença aparecia como
+ * "acesso negado" ao salvar: professor escrevendo conteúdo longo no TinyMCE
+ * passava dos 30 min sem navegar, exatamente o cenário que motivou o bump da
+ * sessão pra 4h. Token não tem por que morrer antes da sessão que o guarda.
+ */
+const CSRF_TTL_SECONDS = 14400; // 4h
 
+/**
+ * Quantos tokens a sessão mantém válidos ao mesmo tempo — na prática, quantas
+ * abas/páginas o usuário pode ter abertas antes que a mais velha perca a
+ * validade. 24 cobre folgado o uso real (corrigir atividades em duas ou três
+ * abas) e custa ~2 KB na sessão.
+ */
+const CSRF_POOL_MAX = 24;
+
+/**
+ * Token do request atual.
+ *
+ * **Um por request**, memoizado: uma página com dez formulários gasta um slot
+ * do pool, não dez. Cada render de página emite um token novo, e é isso que
+ * conserta o bug de múltiplas abas — antes `csrf_token()` devolvia o token
+ * guardado enquanto ele fosse válido, então duas abas nasciam com o MESMO
+ * token, a primeira submissão o consumia e a segunda aba tomava 403.
+ */
 function csrf_token(): string
 {
-    $expires = $_SESSION['_csrf_expires'] ?? 0;
-    if (empty($_SESSION['_csrf']) || $expires < time()) {
-        $_SESSION['_csrf'] = bin2hex(random_bytes(32));
-        $_SESSION['_csrf_expires'] = time() + CSRF_TTL_SECONDS;
+    static $issued = null;
+    if ($issued !== null) {
+        return $issued;
     }
-    return $_SESSION['_csrf'];
+
+    $issued        = bin2hex(random_bytes(32));
+    $pool          = csrf_pool_read();
+    $pool[$issued] = time() + CSRF_TTL_SECONDS;
+    csrf_pool_write($pool);
+
+    return $issued;
 }
 
 function csrf_field(): string
@@ -1050,37 +1079,114 @@ function csrf_field(): string
 }
 
 /**
- * Valida o token do POST atual. Token é one-time use: após validar, é rotacionado.
+ * Valida o token do POST atual e o CONSOME — one-time use preservado, agora
+ * por token e não por sessão: consumir o desta aba não invalida o das outras.
  * Lança RuntimeException com status 403 se inválido.
  */
 function csrf_verify(): void
 {
-    csrf_assert_valid();
-    // Rotaciona: próxima request recebe token novo.
-    unset($_SESSION['_csrf'], $_SESSION['_csrf_expires']);
+    $match = csrf_pool_match();
+    $pool  = csrf_pool_read();
+    unset($pool[$match]);
+    csrf_pool_write($pool);
 }
 
 /**
- * Versão sem rotação — pra endpoints AJAX/JSON que o mesmo usuário pode
- * chamar múltiplas vezes na mesma página sem reload (ex.: /api/code/run
- * em E8-02). O token vale até expirar (TTL de 30 min) ou até o usuário
- * abrir outra página, que força novo token.
+ * Versão sem consumo — pra endpoints AJAX/JSON que o mesmo usuário chama
+ * várias vezes na mesma página sem reload (`/api/code/run`, heartbeat do
+ * aluno). Além de não consumir, RENOVA o token: ele volta pro fim da fila do
+ * pool e ganha TTL novo. Sem isso, uma aba de aluno parada com heartbeat
+ * ativo seria despejada do pool por navegação em outra aba, e o tracking de
+ * tempo morreria em silêncio.
  */
 function csrf_verify_no_rotate(): void
 {
-    csrf_assert_valid();
+    $match = csrf_pool_match();
+    $pool  = csrf_pool_read();
+    unset($pool[$match]);            // reinsere no fim: despejo é por uso, não por idade
+    $pool[$match] = time() + CSRF_TTL_SECONDS;
+    csrf_pool_write($pool);
 }
 
+/** Valida sem consumir nem renovar. Lança RuntimeException 403 se inválido. */
 function csrf_assert_valid(): void
 {
-    $posted  = (string) ($_POST['_csrf'] ?? '');
-    $stored  = (string) ($_SESSION['_csrf'] ?? '');
-    $expires = (int)    ($_SESSION['_csrf_expires'] ?? 0);
+    csrf_pool_match();
+}
 
-    if ($stored === '' || $posted === '' || $expires < time() || !hash_equals($stored, $posted)) {
-        http_response_code(403);
-        throw new RuntimeException('CSRF token inválido ou expirado');
+/**
+ * Qual token do pool o POST apresentou? Devolve o token; lança
+ * RuntimeException com status 403 se nenhum bate.
+ *
+ * `hash_equals` por candidato (o pool tem no máximo `CSRF_POOL_MAX`
+ * entradas): comparação em tempo constante, sem vazar por timing qual
+ * prefixo acertou.
+ */
+function csrf_pool_match(): string
+{
+    $posted = (string) ($_POST['_csrf'] ?? '');
+    if ($posted !== '') {
+        foreach (csrf_pool_read() as $token => $_expires) {
+            if (hash_equals((string) $token, $posted)) {
+                return (string) $token;
+            }
+        }
     }
+
+    http_response_code(403);
+    throw new RuntimeException('CSRF token inválido ou expirado');
+}
+
+/**
+ * Pool da sessão, já sem os expirados.
+ *
+ * Aceita o formato antigo (`_csrf` + `_csrf_expires`, um token só) e o
+ * converte: sem isso, todo usuário logado no momento do deploy tomaria 403 no
+ * primeiro POST, e ninguém liga o 403 a um deploy.
+ *
+ * @return array<string,int> token => timestamp de expiração
+ */
+function csrf_pool_read(): array
+{
+    $pool = $_SESSION['_csrf_pool'] ?? null;
+
+    if (!is_array($pool)) {
+        $pool   = [];
+        $legacy = $_SESSION['_csrf'] ?? null;
+        if (is_string($legacy) && $legacy !== '') {
+            $pool[$legacy] = (int) ($_SESSION['_csrf_expires'] ?? 0);
+        }
+    }
+
+    $now   = time();
+    $clean = [];
+    foreach ($pool as $token => $expires) {
+        // Sessão corrompida ou mexida à mão não deve virar erro fatal: o que
+        // não for (string => int) simplesmente não entra.
+        if (is_int($expires) && $expires >= $now) {
+            $clean[(string) $token] = $expires;
+        }
+    }
+    return $clean;
+}
+
+/**
+ * Grava o pool, mantendo só os `CSRF_POOL_MAX` mais recentes — a ordem do
+ * array é a fila, e `csrf_verify_no_rotate()` reinsere no fim pra que token
+ * em uso não seja despejado.
+ *
+ * @param array<string,int> $pool
+ */
+function csrf_pool_write(array $pool): void
+{
+    if (count($pool) > CSRF_POOL_MAX) {
+        $pool = array_slice($pool, -CSRF_POOL_MAX, null, true);
+    }
+
+    $_SESSION['_csrf_pool'] = $pool;
+
+    // Formato antigo sai de cena depois da primeira gravação.
+    unset($_SESSION['_csrf'], $_SESSION['_csrf_expires']);
 }
 
 // ---------------------------------------------------------------------
