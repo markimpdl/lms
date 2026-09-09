@@ -95,6 +95,33 @@ final class ContentAttachment
     }
 
     /**
+     * Anexos da CU que PODEM ser o mesmo arquivo de `$filename`/`$size`/`$mime`
+     * — candidatos, não certeza: quem confirma é o hash do conteúdo em
+     * `AttachmentStorage`.
+     *
+     * Serve ao reuso do `ContentImageRehost`: a mesma imagem colada em dez
+     * lições da unidade tem que virar um anexo, não dez cópias no disco
+     * queimando o teto de `MAX_ATTACHMENTS_PER_CU`.
+     *
+     * @return list<array{id:int, stored_path:string}>
+     */
+    public static function twinCandidatesInCu(int $cuId, string $filename, int $sizeBytes, string $mime): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT a.id, a.stored_path
+               FROM content_attachments a
+               JOIN contents co ON co.id = a.content_id
+              WHERE co.competence_unit_id = ?
+                AND a.filename   = ?
+                AND a.size_bytes = ?
+                AND a.mime       = ?
+              ORDER BY a.id'
+        );
+        $stmt->execute([$cuId, $filename, $sizeBytes, $mime]);
+        return $stmt->fetchAll();
+    }
+
+    /**
      * Retorna o anexo (mesmas colunas de findForTenant) se o aluno tiver
      * matrícula ativa no curso que contém a CU do anexo. Valida tudo numa
      * query composta: enrollments → course → cc → cu → content → attachment.

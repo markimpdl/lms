@@ -28,12 +28,22 @@ declare(strict_types=1);
 final class ContentImageRehost
 {
     /**
-     * URL de anexo servida por rota autenticada, nas duas formas que aparecem
-     * no HTML salvo (`/teacher/...` do editor; `/student/...` se o professor
-     * colou de uma tela de aluno). Captura o id do anexo — o `cu` da URL é
-     * ignorado de propósito, ele não é fonte de verdade.
+     * URL de anexo servida por rota autenticada, nas quatro formas que
+     * aparecem no HTML salvo: `/teacher/...` do editor ou `/student/...`
+     * (colado de uma tela de aluno), com `/view` (o `<img>`, inline) ou sem
+     * (o `<a>` de download de PDF/zip). Os dois sofrem do mesmo problema, e o
+     * grupo 2 preserva qual era — reescrever download como `/view` trocaria
+     * baixar por abrir no navegador.
+     *
+     * Captura o id do anexo; o `cu` da URL é ignorado de propósito, ele não é
+     * fonte de verdade.
+     *
+     * O lookahead exige que a URL termine ali (aspas, espaço, fim). Sem ele,
+     * `/attachment/10/delete` casaria como `/attachment/10` e a reescrita
+     * comeria o `/delete`.
      */
-    private const string URL_RE = '#/(?:teacher|student)/cu/\d+/attachment/(\d+)/view#';
+    private const string URL_RE =
+        '#/(?:teacher|student)/cu/\d+/attachment/(\d+)(/view)?(?=["\'\s?\#&<>]|$)#';
 
     /**
      * Classifica as URLs de anexo que aparecem no HTML, SEM tocar em nada.
@@ -71,38 +81,48 @@ final class ContentImageRehost
      * Reescreve `$html` pra que toda imagem aponte pra anexo da própria
      * `$cuId`, copiando o que vier de fora.
      *
-     * @return array{html:string, rehosted:int, skipped:int}
-     *         rehosted: anexos copiados pra esta CU (URLs reescritas)
-     *         skipped:  URLs deixadas como estavam (outro tenant, id morto,
-     *                   arquivo ausente ou teto de anexos da CU atingido)
+     * @return array{html:string, rehosted:int, skipped:int, blocked:int}
+     *         rehosted: anexos trazidos pra esta CU (URLs reescritas)
+     *         blocked:  não couberam — a CU está no teto de anexos
+     *         skipped:  URLs deixadas como estavam (anexo apagado, de outro
+     *                   tenant, ou arquivo físico ausente)
      */
     public static function apply(string $html, int $cuId, int $tenantId): array
     {
         $scan    = self::scan($html, $cuId, $tenantId);
         $skipped = count($scan['unknown']);
+        $blocked = 0;
 
-        /** @var array<int,string> $map aid antigo => URL nova */
+        /** @var array<int,int> $map aid antigo => aid que a URL passa a citar */
         $map = [];
 
         // Anexo que já é desta CU só tem o segmento `cu` da URL normalizado
         // (pode ter vindo errado da colagem) — nada é copiado.
         foreach ($scan['own'] as $aid) {
-            $map[$aid] = self::url($cuId, $aid);
+            $map[$aid] = $aid;
         }
 
         $rehosted = 0;
         foreach ($scan['foreign'] as $aid => $att) {
             $newAid = AttachmentStorage::copyInto($att, $cuId, $tenantId);
-            if ($newAid === null) {
+
+            // Teto de anexos da CU tem aviso próprio: mandar o professor
+            // "reenviar pelo editor" seria mandá-lo bater na mesma trave, que
+            // o upload manual também checa.
+            if ($newAid === 'limit') {
+                $blocked++;
+                continue;
+            }
+            if (!is_int($newAid)) {
                 $skipped++;
                 continue;
             }
-            $map[$aid] = self::url($cuId, $newAid);
+            $map[$aid] = $newAid;
             $rehosted++;
         }
 
         if ($map === []) {
-            return ['html' => $html, 'rehosted' => 0, 'skipped' => $skipped];
+            return ['html' => $html, 'rehosted' => 0, 'skipped' => $skipped, 'blocked' => $blocked];
         }
 
         // Uma passada só, com o mapa fechado: substituição sequencial poderia
@@ -110,7 +130,13 @@ final class ContentImageRehost
         // antigo ainda na fila.
         $out = preg_replace_callback(
             self::URL_RE,
-            static fn (array $hit): string => $map[(int) $hit[1]] ?? $hit[0],
+            static function (array $hit) use ($map, $cuId): string {
+                $aid = (int) $hit[1];
+                if (!isset($map[$aid])) {
+                    return $hit[0];
+                }
+                return self::url($cuId, $map[$aid], $hit[2] ?? '');
+            },
             $html
         );
 
@@ -118,6 +144,7 @@ final class ContentImageRehost
             'html'     => $out ?? $html,
             'rehosted' => $rehosted,
             'skipped'  => $skipped,
+            'blocked'  => $blocked,
         ];
     }
 
@@ -125,20 +152,27 @@ final class ContentImageRehost
      * Feedback do resultado pro professor. Mora aqui pra que os tres saves
      * (licao nova, licao editada, conteudo da CU) digam a mesma coisa.
      *
-     * @param array{html:string, rehosted:int, skipped:int} $result
+     * @param array{html:string, rehosted:int, skipped:int, blocked:int} $result
      */
     public static function flashResult(array $result): void
     {
         if ($result['rehosted'] > 0) {
             flash('info', __t('content.images.rehosted', ['count' => (string) $result['rehosted']]));
         }
+        if (($result['blocked'] ?? 0) > 0) {
+            flash('warning', __t('content.images.rehost_limit', [
+                'count' => (string) $result['blocked'],
+                'max'   => (string) AttachmentStorage::MAX_ATTACHMENTS_PER_CU,
+            ]));
+        }
         if ($result['skipped'] > 0) {
             flash('warning', __t('content.images.rehost_failed', ['count' => (string) $result['skipped']]));
         }
     }
 
-    private static function url(int $cuId, int $aid): string
+    /** `$suffix` é `/view` (inline) ou vazio (download) — o que a URL já era. */
+    private static function url(int $cuId, int $aid, string $suffix = '/view'): string
     {
-        return '/teacher/cu/' . $cuId . '/attachment/' . $aid . '/view';
+        return '/teacher/cu/' . $cuId . '/attachment/' . $aid . $suffix;
     }
 }

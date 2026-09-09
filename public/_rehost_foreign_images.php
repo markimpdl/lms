@@ -18,38 +18,54 @@ declare(strict_types=1);
  * `src` no HTML. Nada é apagado — o anexo original continua servindo a
  * unidade de origem.
  *
+ * **Escopo: o próprio tenant do professor logado, e nada além.** Super-admin
+ * não roda — CLAUDE.md é explícito que ele "NÃO edita conteúdo dos
+ * professores", e uma varredura cross-tenant num POST só seria isso. Quem
+ * conserta o curso é quem o escreve.
+ *
+ * **Fica inerte por padrão.** `public/` é servido direto pelo .htaccess
+ * (`RewriteCond %{REQUEST_FILENAME} -f`), então sem trava a URL ficaria de pé
+ * pra qualquer professor autenticado enquanto o arquivo existisse. Só
+ * responde com `ENABLE_REHOST_TOOL => true` em `config/env.php`.
+ *
  * **USO (1 vez em prod):**
  *   1. O deploy já sobe este arquivo (`public/` não é filtrado)
- *   2. Abrir https://lms.rumo.info/_rehost_foreign_images.php logado como
- *      professor (conserta só o seu tenant) ou super-admin (conserta todos)
- *   3. Conferir o relatório do GET e confirmar no botão
- *   4. Depois de rodar, apagar este arquivo do REPO e redeployar — apagar só
- *      no servidor não resolve, o deploy seguinte o traria de volta.
+ *   2. Ligar `ENABLE_REHOST_TOOL => true` em `config/env.php` (npm run upload-env)
+ *   3. Abrir https://lms.rumo.info/_rehost_foreign_images.php logado como professor
+ *   4. Conferir o relatório do GET e confirmar no botão
+ *   5. **Desligar a flag** — e, quando não precisar mais, apagar este arquivo
+ *      do REPO e redeployar (apagar só no servidor não resolve: o deploy
+ *      seguinte o traria de volta)
  *
  * Rodar duas vezes é inofensivo: na segunda passada toda imagem já é anexo da
- * própria CU e o relatório vem vazio.
+ * própria CU e o relatório vem vazio. Cada linha reescrita entra na auditoria
+ * do curso (E33), igual ao save do editor.
  */
 
 require dirname(__DIR__) . '/src/bootstrap.php';
+
+// Trava de existência: o arquivo pode ficar no servidor entre deploys, mas
+// não responde sem a flag ligada de propósito. 404 seco, sem o template de
+// erro — esse puxa o layout, que monta nav e emite token; o caminho
+// desligado não deve depender de nada.
+if (empty($GLOBALS['__ENV']['ENABLE_REHOST_TOOL'])) {
+    http_response_code(404);
+    header('Content-Type: text/plain; charset=utf-8');
+    echo "404\n";
+    exit;
+}
 
 require_auth();
 $user = current_user();
 $role = (string) ($user['role'] ?? '?');
 
-// Aluno nunca — a operação escreve no acervo do professor.
-if ($role !== 'teacher' && $role !== 'super_admin') {
-    http_response_code(403);
-    header('Content-Type: text/plain; charset=utf-8');
-    echo "403 — só professor ou super-admin.\n";
-    exit;
-}
-
-// Professor conserta apenas o próprio tenant; super-admin varre tudo.
+// Só professor, e só no próprio tenant: aluno não escreve no acervo, e
+// super-admin não edita conteúdo de professor (CLAUDE.md).
 $onlyTenant = $role === 'teacher' ? current_tenant_id() : null;
-if ($role === 'teacher' && $onlyTenant === null) {
+if ($onlyTenant === null) {
     http_response_code(403);
     header('Content-Type: text/plain; charset=utf-8');
-    echo "403 — sessão sem tenant.\n";
+    echo "403 — este reparo roda como professor, no próprio tenant.\n";
     exit;
 }
 
@@ -57,47 +73,47 @@ $pdo = Database::pdo();
 
 /**
  * As duas telas com picker de imagem, cada uma com SQL própria e estática —
- * nada de nome de tabela interpolado. O filtro de tenant vive dentro da
- * query como `(? IS NULL OR c.tenant_id = ?)`: com emulação de prepared
- * desligada o mesmo placeholder não pode ser reusado, então o valor entra
- * duas vezes.
+ * nada de nome de tabela interpolado, e o tenant sempre ligado como
+ * parâmetro obrigatório.
  *
  * `kind` acompanha a linha porque o UPDATE do POST é um por tabela.
  *
  * @return list<array<string,mixed>>
  */
-function rfi_fetch_contents(PDO $pdo, ?int $onlyTenant): array
+function rfi_fetch_contents(PDO $pdo, int $onlyTenant): array
 {
     $stmt = $pdo->prepare(
         "SELECT 'content' AS kind, t.id, t.html, t.competence_unit_id AS cu_id,
-                cu.name AS label, c.tenant_id, c.name AS course_name, cu.name AS cu_name
+                cu.name AS label, c.tenant_id, c.id AS course_id,
+                c.name AS course_name, cu.name AS cu_name
            FROM contents t
            JOIN competence_units cu  ON cu.id = t.competence_unit_id
            JOIN core_competencies cc ON cc.id = cu.core_competency_id
            JOIN courses c            ON c.id  = cc.course_id
           WHERE t.html LIKE '%/attachment/%'
-            AND (? IS NULL OR c.tenant_id = ?)
+            AND c.tenant_id = ?
           ORDER BY c.id, cu.id, t.id"
     );
-    $stmt->execute([$onlyTenant, $onlyTenant]);
+    $stmt->execute([$onlyTenant]);
     return $stmt->fetchAll();
 }
 
 /** @return list<array<string,mixed>> */
-function rfi_fetch_lessons(PDO $pdo, ?int $onlyTenant): array
+function rfi_fetch_lessons(PDO $pdo, int $onlyTenant): array
 {
     $stmt = $pdo->prepare(
         "SELECT 'lesson' AS kind, t.id, t.html, t.competence_unit_id AS cu_id,
-                t.title AS label, c.tenant_id, c.name AS course_name, cu.name AS cu_name
+                t.title AS label, c.tenant_id, c.id AS course_id,
+                c.name AS course_name, cu.name AS cu_name
            FROM lessons t
            JOIN competence_units cu  ON cu.id = t.competence_unit_id
            JOIN core_competencies cc ON cc.id = cu.core_competency_id
            JOIN courses c            ON c.id  = cc.course_id
           WHERE t.html LIKE '%/attachment/%'
-            AND (? IS NULL OR c.tenant_id = ?)
+            AND c.tenant_id = ?
           ORDER BY c.id, cu.id, t.position, t.id"
     );
-    $stmt->execute([$onlyTenant, $onlyTenant]);
+    $stmt->execute([$onlyTenant]);
     return $stmt->fetchAll();
 }
 
@@ -107,17 +123,30 @@ $rows = array_merge(
 );
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    csrf_verify();
-
     header('Content-Type: text/plain; charset=utf-8');
+
+    // Sem try/catch isto sai como 500 em branco (display_errors off em prod):
+    // o fluxo pede pra conferir o relatório antes de confirmar, então estourar
+    // o TTL do token é o caminho provável, não o exótico.
+    try {
+        csrf_verify();
+    } catch (RuntimeException) {
+        echo "Token expirado. Recarregue a página e confirme de novo.\n";
+        exit;
+    }
+
+    // Uma passada varre todo o conteúdo do tenant e faz hash de arquivo por
+    // anexo candidato — pode passar do limite default de execução.
+    @set_time_limit(0);
 
     // `html` é a única coluna tocada: publicação, XP e posição ficam como estão.
     $updContent = $pdo->prepare('UPDATE contents SET html = ? WHERE id = ?');
     $updLesson  = $pdo->prepare('UPDATE lessons  SET html = ? WHERE id = ?');
 
-    $totalRows = 0;
-    $totalImgs = 0;
-    $totalSkip = 0;
+    $totalRows  = 0;
+    $totalImgs  = 0;
+    $totalSkip  = 0;
+    $totalBlock = 0;
 
     foreach ($rows as $row) {
         $cuId   = (int) $row['cu_id'];
@@ -127,13 +156,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             (int) $row['tenant_id']
         );
 
-        $totalSkip += $result['skipped'];
+        $totalSkip  += $result['skipped'];
+        $totalBlock += $result['blocked'];
         if ($result['rehosted'] === 0) {
             continue;
         }
 
         $upd = $row['kind'] === 'lesson' ? $updLesson : $updContent;
         $upd->execute([$result['html'], (int) $row['id']]);
+
+        // Mesma trilha dos saves do editor (E33): reescrita em massa não pode
+        // ser invisível pro professor dono do curso.
+        course_audit(
+            (int) $row['course_id'],
+            'update',
+            $row['kind'] === 'lesson' ? 'lesson' : 'content',
+            (int) $row['id'],
+            (string) ($row['label'] ?? '')
+        );
 
         $totalRows++;
         $totalImgs += $result['rehosted'];
@@ -148,9 +188,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
     }
 
-    echo "\nOK: {$totalRows} linha(s) atualizada(s), {$totalImgs} imagem(ns) re-hospedada(s)"
-        . ", {$totalSkip} URL(s) sem conserto possível (anexo apagado ou de outro tenant).\n";
-    echo "\nLEMBRE-SE: apague esse arquivo do servidor agora.\n";
+    echo "\nOK: {$totalRows} linha(s) atualizada(s), {$totalImgs} imagem(ns) re-hospedada(s).\n";
+    if ($totalSkip > 0) {
+        echo "{$totalSkip} URL(s) sem conserto possível — anexo apagado ou de outro professor;"
+            . " reenvie a imagem pelo editor.\n";
+    }
+    if ($totalBlock > 0) {
+        echo "{$totalBlock} imagem(ns) não couberam: a CU chegou ao teto de "
+            . AttachmentStorage::MAX_ATTACHMENTS_PER_CU . " anexos. Apague anexo sem uso e rode de novo.\n";
+    }
+    echo "\nLEMBRE-SE: desligue ENABLE_REHOST_TOOL agora.\n";
     exit;
 }
 
@@ -207,9 +254,7 @@ code{background:#f4f4f4;padding:0 .2rem}
 <h1>Reparo retroativo — imagens apontando pra outra unidade</h1>
 <p style="color:#666;font-size:.85rem">
     Logado como <strong><?= e((string) ($user['name'] ?? '?')) ?></strong>
-    (role: <code><?= e($role) ?></code>)<?= $onlyTenant !== null
-        ? ' — escopo: tenant ' . (int) $onlyTenant
-        : ' — escopo: todos os tenants' ?>
+    (role: <code><?= e($role) ?></code>) — escopo: tenant <?= (int) $onlyTenant ?>
 </p>
 
 <?php if ($report === []): ?>
