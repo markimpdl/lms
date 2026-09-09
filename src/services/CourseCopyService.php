@@ -14,12 +14,18 @@ declare(strict_types=1);
  * origem. Copia só estrutura + conteúdo:
  *   curso → CC → CU (posição, workload, manual_completion_*)
  *      → contents (html, `published` mantido da origem) + content_attachments
+ *      → lessons (html, XP, posição; `published` mantido — exceto em destino
+ *        V1, ver `copyLessons`)
  *      → activities (+ brief PDF/ZIP) + quiz (questões/opções)
  *      → evaluations (+ brief) + quiz
  *      → learning_outcomes
  *
+ * As URLs de anexo dentro do `html` (de conteúdo e de lição) são reapontadas
+ * pro acervo novo ao fim da operação — ver `applyRemaps`.
+ *
  * NÃO copia dados de aluno (matrículas, entregas, notas, feedback, XP,
- * conquistas, cu_manual_completions, evaluation_submission_lo_grades).
+ * conquistas, cu_manual_completions, lesson_completions,
+ * evaluation_submission_lo_grades).
  *
  * Tudo roda numa transação (`Database::tx`): erro em qualquer passo faz
  * rollback do banco e remove os arquivos já copiados. Retorna o id da nova
@@ -46,8 +52,12 @@ final class CourseCopyService
         }
 
         $files = [];
+        // Mapa de anexos e alvos de reaponte vivem no escopo da operacao
+        // INTEIRA, nao por CU: html cita imagem de outra unidade a vontade.
+        $map     = [];
+        $targets = [];
         try {
-            return Database::tx(function (PDO $pdo) use ($src, $courseId, $tenantId, &$files): int {
+            return Database::tx(function (PDO $pdo) use ($src, $courseId, $tenantId, &$files, &$map, &$targets): int {
                 $newCourseId = self::insertId(
                     $pdo,
                     'INSERT INTO courses
@@ -67,8 +77,10 @@ final class CourseCopyService
                 );
                 $st->execute([$courseId]);
                 foreach ($st->fetchAll() as $cc) {
-                    self::copyCcInto($pdo, (int) $cc['id'], (string) $cc['name'], (int) $cc['position'], $newCourseId, $tenantId, $files);
+                    self::copyCcInto($pdo, (int) $cc['id'], (string) $cc['name'], (int) $cc['position'], $newCourseId, $tenantId, $files, $map, $targets);
                 }
+
+                self::applyRemaps($pdo, $targets, $map);
 
                 return $newCourseId;
             });
@@ -96,11 +108,15 @@ final class CourseCopyService
             return null;
         }
 
-        $files = [];
+        $files   = [];
+        $map     = [];
+        $targets = [];
         try {
-            return Database::tx(function (PDO $pdo) use ($ccId, $cc, $targetCourseId, $destTenantId, &$files): int {
+            return Database::tx(function (PDO $pdo) use ($ccId, $cc, $targetCourseId, $destTenantId, &$files, &$map, &$targets): int {
                 $position = self::nextPosition($pdo, 'core_competencies', 'course_id', $targetCourseId);
-                return self::copyCcInto($pdo, $ccId, (string) $cc['name'], $position, $targetCourseId, $destTenantId, $files);
+                $newCcId  = self::copyCcInto($pdo, $ccId, (string) $cc['name'], $position, $targetCourseId, $destTenantId, $files, $map, $targets);
+                self::applyRemaps($pdo, $targets, $map);
+                return $newCcId;
             });
         } catch (\Throwable $e) {
             self::cleanupFiles($files);
@@ -126,11 +142,18 @@ final class CourseCopyService
             return null;
         }
 
-        $files = [];
+        $files   = [];
+        $map     = [];
+        $targets = [];
         try {
-            return Database::tx(function (PDO $pdo) use ($cuId, $cu, $targetCcId, $destTenantId, &$files): int {
+            return Database::tx(function (PDO $pdo) use ($cuId, $cu, $targetCcId, $destTenantId, &$files, &$map, &$targets): int {
                 $position = self::nextPosition($pdo, 'competence_units', 'core_competency_id', $targetCcId);
-                return self::copyCuInto($pdo, $cuId, $cu, $position, $targetCcId, $destTenantId, $files);
+                $newCuId  = self::copyCuInto($pdo, $cuId, $cu, $position, $targetCcId, $destTenantId, $files, $map, $targets);
+                // CU sozinha: o mapa tem so os anexos dela. Referencia a
+                // outra unidade fica apontando pra origem — a unidade citada
+                // nao veio nesta copia, nao ha id novo pra oferecer.
+                self::applyRemaps($pdo, $targets, $map);
+                return $newCuId;
             });
         } catch (\Throwable $e) {
             self::cleanupFiles($files);
@@ -142,8 +165,17 @@ final class CourseCopyService
     // -- Cópia de subárvore --------------------------------------------------
 
     /** Insere uma nova CC sob $destCourseId e copia suas CUs. Retorna novo id. */
-    private static function copyCcInto(PDO $pdo, int $srcCcId, string $name, int $position, int $destCourseId, int $destTenantId, array &$files): int
-    {
+    private static function copyCcInto(
+        PDO $pdo,
+        int $srcCcId,
+        string $name,
+        int $position,
+        int $destCourseId,
+        int $destTenantId,
+        array &$files,
+        array &$map,
+        array &$targets
+    ): int {
         $newCcId = self::insertId(
             $pdo,
             'INSERT INTO core_competencies (course_id, name, position) VALUES (?, ?, ?)',
@@ -156,7 +188,7 @@ final class CourseCopyService
         );
         $st->execute([$srcCcId]);
         foreach ($st->fetchAll() as $cu) {
-            self::copyCuInto($pdo, (int) $cu['id'], $cu, (int) $cu['position'], $newCcId, $destTenantId, $files);
+            self::copyCuInto($pdo, (int) $cu['id'], $cu, (int) $cu['position'], $newCcId, $destTenantId, $files, $map, $targets);
         }
 
         return $newCcId;
@@ -168,8 +200,17 @@ final class CourseCopyService
      *
      * @param array<string,mixed> $cu linha de competence_units (origem)
      */
-    private static function copyCuInto(PDO $pdo, int $srcCuId, array $cu, int $position, int $destCcId, int $destTenantId, array &$files): int
-    {
+    private static function copyCuInto(
+        PDO $pdo,
+        int $srcCuId,
+        array $cu,
+        int $position,
+        int $destCcId,
+        int $destTenantId,
+        array &$files,
+        array &$map,
+        array &$targets
+    ): int {
         $newCuId = self::insertId(
             $pdo,
             'INSERT INTO competence_units
@@ -181,7 +222,8 @@ final class CourseCopyService
             ]
         );
 
-        self::copyContent($pdo, $srcCuId, $newCuId, $destTenantId, $files);
+        self::copyContent($pdo, $srcCuId, $newCuId, $destTenantId, $files, $map, $targets);
+        self::copyLessons($pdo, $srcCuId, $newCuId, $destCcId, $targets);
         self::copyActivities($pdo, $srcCuId, $newCuId, $destTenantId, $files);
         self::copyEvaluation($pdo, $srcCuId, $newCuId, $destTenantId, $files);
         self::copyLearningOutcomes($pdo, $srcCuId, $newCuId);
@@ -189,9 +231,74 @@ final class CourseCopyService
         return $newCuId;
     }
 
-    /** Copia a página de conteúdo (1:1) + anexos físicos da CU. */
-    private static function copyContent(PDO $pdo, int $srcCuId, int $destCuId, int $destTenantId, array &$files): void
+    /**
+     * Reaponta, no fim da operação, todo `html` copiado pro acervo novo.
+     *
+     * **Por que no fim, e não durante.** O mapa de anexos é acumulado no
+     * escopo INTEIRO da cópia, não por CU: conteúdo e lição citam à vontade
+     * imagem de outra unidade (é o que o `ContentImageRehost` e o script de
+     * reparo existem pra consertar, então produção tem esses dados). Se cada
+     * CU reescrevesse com o próprio mapinha, a referência cruzada sobreviveria
+     * apontando pro curso de ORIGEM — e o aluno do curso novo, que não está
+     * matriculado no original, tomaria 404. Era o bug desta correção
+     * sobrevivendo num subconjunto dos casos. Esperar o fim também resolve a
+     * referência pra frente (CU-B citando anexo da CU-C, copiada depois).
+     *
+     * **Por que sobre o html ORIGINAL, numa passada só.** Reaplicar o mapa
+     * sobre html já reescrito é inseguro: um id recém-inserido pode coincidir
+     * com um id de origem que é chave do mapa de outra CU, e a segunda passada
+     * o reescreveria de novo. Cada alvo guarda o html como veio da origem e é
+     * remapeado exatamente uma vez, com o mapa fechado.
+     *
+     * Anexo fora do mapa (arquivo físico ausente na origem, ou de CU que não
+     * entrou nesta cópia — caso do `copyCompetenceUnit`, que leva uma CU só)
+     * fica intocado: aponta pro original, que é o melhor disponível.
+     *
+     * @param list<array{table:string,id:int,cu:int,html:string}> $targets
+     * @param array<int,int>                                     $map
+     */
+    private static function applyRemaps(PDO $pdo, array $targets, array $map): void
     {
+        if ($targets === [] || $map === []) {
+            return;
+        }
+
+        $upd = [
+            'contents' => $pdo->prepare('UPDATE contents SET html = ? WHERE id = ?'),
+            'lessons'  => $pdo->prepare('UPDATE lessons  SET html = ? WHERE id = ?'),
+        ];
+
+        foreach ($targets as $t) {
+            $novo = ContentImageRehost::remap($t['html'], $t['cu'], $map);
+            if ($novo !== $t['html']) {
+                $upd[$t['table']]->execute([$novo, $t['id']]);
+            }
+        }
+    }
+
+    /**
+     * Copia a página de conteúdo (1:1) + anexos físicos da CU.
+     *
+     * Alimenta `$map` com `aid de origem => aid novo` e registra o conteúdo em
+     * `$targets` pra que o `applyRemaps` reaponte o html no fim. Sem isso,
+     * curso duplicado nascia com as imagens apontando pro ORIGINAL: o
+     * professor via tudo (a rota dele autoriza por tenant) e o aluno do curso
+     * novo tomava 404, porque a rota do aluno autoriza pela matrícula no curso
+     * DONO do anexo. Mesmo bug que o `ContentImageRehost` conserta no save, e
+     * aqui na raiz.
+     *
+     * @param array<int,int>                                     $map
+     * @param list<array{table:string,id:int,cu:int,html:string}> $targets
+     */
+    private static function copyContent(
+        PDO $pdo,
+        int $srcCuId,
+        int $destCuId,
+        int $destTenantId,
+        array &$files,
+        array &$map,
+        array &$targets
+    ): void {
         $st = $pdo->prepare('SELECT id, html, published FROM contents WHERE competence_unit_id = ?');
         $st->execute([$srcCuId]);
         $content = $st->fetch();
@@ -199,31 +306,115 @@ final class CourseCopyService
             return;
         }
 
+        // Insere com o html da origem: os anexos precisam do content_id pra
+        // existir, e o reaponte espera o mapa completo (ver `applyRemaps`).
         $newContentId = self::insertId(
             $pdo,
             'INSERT INTO contents (competence_unit_id, html, published) VALUES (?, ?, ?)',
             [$destCuId, $content['html'], (int) $content['published']]
         );
 
+        $targets[] = [
+            'table' => 'contents',
+            'id'    => $newContentId,
+            'cu'    => $destCuId,
+            'html'  => (string) $content['html'],
+        ];
+
         $ast = $pdo->prepare(
-            'SELECT filename, stored_path, mime, size_bytes FROM content_attachments WHERE content_id = ? ORDER BY id'
+            'SELECT id, filename, stored_path, mime, size_bytes FROM content_attachments WHERE content_id = ? ORDER BY id'
         );
         $ast->execute([(int) $content['id']]);
+
         foreach ($ast->fetchAll() as $att) {
             $ext     = pathinfo((string) $att['stored_path'], PATHINFO_EXTENSION);
             $suffix  = $ext !== '' ? '.' . $ext : '';
             $relDest = 'storage/uploads/tenant_' . $destTenantId . '/content/' . $destCuId . '/' . self::uuid4() . $suffix;
 
-            // Arquivo de origem ausente: pula o anexo (não cria referência órfã).
+            // Arquivo de origem ausente: pula o anexo (não cria referência
+            // órfã). Fica fora do mapa de propósito — a URL segue apontando
+            // pro original em vez de citar um id que não existe.
             if (!self::physicalCopy((string) $att['stored_path'], $relDest, $files)) {
                 continue;
             }
-            self::insertId(
+            $map[(int) $att['id']] = self::insertId(
                 $pdo,
                 'INSERT INTO content_attachments (content_id, filename, stored_path, mime, size_bytes) VALUES (?, ?, ?, ?, ?)',
                 [$newContentId, $att['filename'], $relDest, $att['mime'], (int) $att['size_bytes']]
             );
         }
+    }
+
+    /**
+     * Copia as lições da CU (curso V2).
+     *
+     * Não existia: duplicar curso V2 devolvia uma trilha VAZIA, com as
+     * unidades e atividades no lugar e nenhuma lição — sem erro nenhum, porque
+     * `lessons` simplesmente não era visitada.
+     *
+     * **Destino V1 recebe as lições em RASCUNHO.** Copiar publicado corromperia
+     * o progresso do aluno: `StudentProgress` documenta "em V1 não existem
+     * lições" como a razão de não ramificar por formato, e conta
+     * `lessons WHERE published = 1` no denominador da CU. Como as telas do
+     * aluno e do professor gateiam a trilha inteira em `$isV2`, a lição ficaria
+     * invisível e nunca completável: a CU travaria abaixo de 100% pra sempre,
+     * puxando a média do curso, e o professor não teria nem como despublicá-la.
+     * Rascunho não entra no denominador, então o material chega intacto sem
+     * mexer em progresso nenhum — e aparece pro professor publicar se o curso
+     * virar V2 depois. (`copyCompetenceUnit` permite destino V1: o controller
+     * não checa formato.)
+     *
+     * `lesson_completions` fica de fora por definição: é progresso de aluno.
+     *
+     * @param list<array{table:string,id:int,cu:int,html:string}> $targets
+     */
+    private static function copyLessons(PDO $pdo, int $srcCuId, int $destCuId, int $destCcId, array &$targets): void
+    {
+        $st = $pdo->prepare(
+            'SELECT title, html, xp_value, published, position
+               FROM lessons WHERE competence_unit_id = ? ORDER BY position, id'
+        );
+        $st->execute([$srcCuId]);
+        $lessons = $st->fetchAll();
+        if ($lessons === []) {
+            return;
+        }
+
+        $destIsV2 = self::destCourseIsV2($pdo, $destCcId);
+
+        foreach ($lessons as $lesson) {
+            $newId = self::insertId(
+                $pdo,
+                'INSERT INTO lessons (competence_unit_id, title, html, xp_value, published, position)
+                 VALUES (?, ?, ?, ?, ?, ?)',
+                [
+                    $destCuId, $lesson['title'], $lesson['html'], (int) $lesson['xp_value'],
+                    $destIsV2 ? (int) $lesson['published'] : 0,
+                    (int) $lesson['position'],
+                ]
+            );
+
+            $targets[] = [
+                'table' => 'lessons',
+                'id'    => $newId,
+                'cu'    => $destCuId,
+                'html'  => (string) $lesson['html'],
+            ];
+        }
+    }
+
+    /** O curso que contém a CC de destino é V2? Decide `published` da lição. */
+    private static function destCourseIsV2(PDO $pdo, int $destCcId): bool
+    {
+        $st = $pdo->prepare(
+            'SELECT c.structure_version
+               FROM core_competencies cc
+               JOIN courses c ON c.id = cc.course_id
+              WHERE cc.id = ?
+              LIMIT 1'
+        );
+        $st->execute([$destCcId]);
+        return (int) $st->fetchColumn() === 2;
     }
 
     /** Copia as atividades da CU (+ brief físico + quiz). */

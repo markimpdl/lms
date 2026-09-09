@@ -125,9 +125,36 @@ final class ContentImageRehost
             return ['html' => $html, 'rehosted' => 0, 'skipped' => $skipped, 'blocked' => $blocked];
         }
 
-        // Uma passada só, com o mapa fechado: substituição sequencial poderia
-        // reescrever uma URL recém-criada se o id novo coincidisse com um id
-        // antigo ainda na fila.
+        return [
+            'html'     => self::remap($html, $cuId, $map),
+            'rehosted' => $rehosted,
+            'skipped'  => $skipped,
+            'blocked'  => $blocked,
+        ];
+    }
+
+    /**
+     * Reescreve as URLs de anexo cujo id está em `$map`, apontando pra `$cuId`
+     * e pro id novo, preservando a forma (`/view` inline ou download). URL
+     * fora do mapa fica intocada.
+     *
+     * Pública porque a cópia de curso precisa exatamente disto, com um mapa
+     * que ela mesma construiu (aid de origem => aid recém-inserido) — ela não
+     * pode passar pelo `apply()`, que descobre o mapa copiando arquivo, nem
+     * depende do tenant do anexo, o que importa na cópia entre tenants.
+     *
+     * Substituição em UMA passada, com o mapa fechado: sequencial, reescreveria
+     * de novo uma URL recém-criada se o id novo coincidisse com um id antigo
+     * ainda na fila.
+     *
+     * @param array<int,int> $map aid antigo => aid que a URL passa a citar
+     */
+    public static function remap(string $html, int $cuId, array $map): string
+    {
+        if ($html === '' || $map === []) {
+            return $html;
+        }
+
         $out = preg_replace_callback(
             self::URL_RE,
             static function (array $hit) use ($map, $cuId): string {
@@ -140,12 +167,7 @@ final class ContentImageRehost
             $html
         );
 
-        return [
-            'html'     => $out ?? $html,
-            'rehosted' => $rehosted,
-            'skipped'  => $skipped,
-            'blocked'  => $blocked,
-        ];
+        return $out ?? $html;
     }
 
     /**
