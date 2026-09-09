@@ -181,7 +181,10 @@ final class CourseCopyService
             ]
         );
 
-        self::copyContent($pdo, $srcCuId, $newCuId, $destTenantId, $files);
+        // O mapa de anexos sai do conteúdo e entra nas lições: as duas telas
+        // usam o mesmo acervo da CU, e a cópia tem de reapontar as duas.
+        $attachmentMap = self::copyContent($pdo, $srcCuId, $newCuId, $destTenantId, $files);
+        self::copyLessons($pdo, $srcCuId, $newCuId, $attachmentMap);
         self::copyActivities($pdo, $srcCuId, $newCuId, $destTenantId, $files);
         self::copyEvaluation($pdo, $srcCuId, $newCuId, $destTenantId, $files);
         self::copyLearningOutcomes($pdo, $srcCuId, $newCuId);
@@ -189,16 +192,29 @@ final class CourseCopyService
         return $newCuId;
     }
 
-    /** Copia a página de conteúdo (1:1) + anexos físicos da CU. */
-    private static function copyContent(PDO $pdo, int $srcCuId, int $destCuId, int $destTenantId, array &$files): void
+    /**
+     * Copia a página de conteúdo (1:1) + anexos físicos da CU.
+     *
+     * Devolve o mapa `aid de origem => aid novo` pra que o HTML copiado deixe
+     * de citar os anexos do curso de ORIGEM. Sem isso, curso duplicado nascia
+     * com as imagens apontando pro original: o professor via tudo (autoriza
+     * por tenant) e o aluno do curso novo tomava 404, porque a rota autoriza
+     * pela matrícula no curso DONO do anexo. Mesmo bug que o
+     * `ContentImageRehost` conserta no save, e aqui na raiz.
+     *
+     * @return array<int,int>
+     */
+    private static function copyContent(PDO $pdo, int $srcCuId, int $destCuId, int $destTenantId, array &$files): array
     {
         $st = $pdo->prepare('SELECT id, html, published FROM contents WHERE competence_unit_id = ?');
         $st->execute([$srcCuId]);
         $content = $st->fetch();
         if ($content === false) {
-            return;
+            return [];
         }
 
+        // Insere com o HTML original: os anexos precisam do content_id pra
+        // existir, e só depois de existirem há id novo pra reescrever.
         $newContentId = self::insertId(
             $pdo,
             'INSERT INTO contents (competence_unit_id, html, published) VALUES (?, ?, ?)',
@@ -206,22 +222,78 @@ final class CourseCopyService
         );
 
         $ast = $pdo->prepare(
-            'SELECT filename, stored_path, mime, size_bytes FROM content_attachments WHERE content_id = ? ORDER BY id'
+            'SELECT id, filename, stored_path, mime, size_bytes FROM content_attachments WHERE content_id = ? ORDER BY id'
         );
         $ast->execute([(int) $content['id']]);
+
+        /** @var array<int,int> $map */
+        $map = [];
         foreach ($ast->fetchAll() as $att) {
             $ext     = pathinfo((string) $att['stored_path'], PATHINFO_EXTENSION);
             $suffix  = $ext !== '' ? '.' . $ext : '';
             $relDest = 'storage/uploads/tenant_' . $destTenantId . '/content/' . $destCuId . '/' . self::uuid4() . $suffix;
 
             // Arquivo de origem ausente: pula o anexo (não cria referência órfã).
+            // Fica fora do mapa de propósito — a URL segue apontando pro
+            // original, que é o melhor disponível, em vez de citar um id que
+            // não existe.
             if (!self::physicalCopy((string) $att['stored_path'], $relDest, $files)) {
                 continue;
             }
-            self::insertId(
+            $map[(int) $att['id']] = self::insertId(
                 $pdo,
                 'INSERT INTO content_attachments (content_id, filename, stored_path, mime, size_bytes) VALUES (?, ?, ?, ?, ?)',
                 [$newContentId, $att['filename'], $relDest, $att['mime'], (int) $att['size_bytes']]
+            );
+        }
+
+        $remapped = ContentImageRehost::remap((string) $content['html'], $destCuId, $map);
+        if ($remapped !== (string) $content['html']) {
+            $pdo->prepare('UPDATE contents SET html = ? WHERE id = ?')
+                ->execute([$remapped, $newContentId]);
+        }
+
+        return $map;
+    }
+
+    /**
+     * Copia as lições da CU (curso V2), reapontando as imagens pro acervo novo.
+     *
+     * Não existia: duplicar curso V2 devolvia uma trilha VAZIA, com as
+     * unidades e atividades no lugar e nenhuma lição — sem erro nenhum, porque
+     * `lessons` simplesmente não era visitada.
+     *
+     * `lesson_completions` fica de fora por definição: é progresso de aluno,
+     * não conteúdo.
+     *
+     * Copia mesmo quando o destino é V1. Lição em curso V1 não aparece na UI,
+     * mas perdê-la na cópia é pior do que carregá-la inerte — se o curso virar
+     * V2 depois, o material está lá.
+     *
+     * @param array<int,int> $attachmentMap aid de origem => aid novo
+     */
+    private static function copyLessons(PDO $pdo, int $srcCuId, int $destCuId, array $attachmentMap): void
+    {
+        $st = $pdo->prepare(
+            'SELECT title, html, xp_value, published, position
+               FROM lessons WHERE competence_unit_id = ? ORDER BY position, id'
+        );
+        $st->execute([$srcCuId]);
+
+        foreach ($st->fetchAll() as $lesson) {
+            // Imagem que a lição pegou de OUTRA unidade não está no mapa e
+            // segue apontando pra lá — é o caso que o rehost no save resolve
+            // na próxima gravação; aqui não há id novo pra oferecer.
+            $html = ContentImageRehost::remap((string) $lesson['html'], $destCuId, $attachmentMap);
+
+            self::insertId(
+                $pdo,
+                'INSERT INTO lessons (competence_unit_id, title, html, xp_value, published, position)
+                 VALUES (?, ?, ?, ?, ?, ?)',
+                [
+                    $destCuId, $lesson['title'], $html, (int) $lesson['xp_value'],
+                    (int) $lesson['published'], (int) $lesson['position'],
+                ]
             );
         }
     }
