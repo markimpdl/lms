@@ -1227,6 +1227,15 @@ return [
 
     // Unit track and lessons (E36-03)
     'content.editor.block_formats'   => 'Paragraph=p; Heading 2=h2; Heading 3=h3; Heading 4=h4',
+
+    // Markdown import in the TinyMCE editors (lesson and CU content)
+    'markdown.import.button'          => 'Import markdown',
+    'markdown.import.title'           => 'Import markdown',
+    'markdown.import.help'            => 'Paste your markdown here (an AI assistant answer, for instance). It becomes formatted content in the editor: headings, lists, tables and code blocks. You can still adjust everything before saving.',
+    'markdown.import.placeholder'     => "## Section title\n\nText with **bold** and a list:\n\n- first item\n- second item\n\n```python\nprint('hello')\n```",
+    'markdown.import.replace'         => 'Replace the whole current content (instead of inserting at the cursor)',
+    'markdown.import.err.empty'       => 'Paste some markdown before inserting.',
+    'markdown.import.err.unavailable' => 'Could not convert the markdown right now. Reload the page and try again.',
     'track.cover.title'              => 'Unit cover',
     'track.cover.help'               => 'What the student sees when opening the unit, before the first item of the track.',
     'track.section.title'            => 'Unit track',

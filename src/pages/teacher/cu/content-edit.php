@@ -157,9 +157,15 @@ ob_start();
         <form method="POST" action="/teacher/cu/<?= $cuId ?>/content/edit" class="card card-body shadow-sm mb-3" novalidate>
             <?= csrf_field() ?>
 
-            <label for="contentHtml" class="form-label">
-                <?= e(__t('content.form.body')) ?>
-            </label>
+            <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                <label for="contentHtml" class="form-label">
+                    <?= e(__t('content.form.body')) ?>
+                </label>
+                <button type="button" class="btn btn-sm btn-outline-secondary mb-2"
+                        data-bs-toggle="modal" data-bs-target="#markdownImportModal">
+                    <?= e(__t('markdown.import.button')) ?>
+                </button>
+            </div>
             <textarea id="contentHtml" name="html" rows="20" class="form-control"><?= e($dirtyHtml) ?></textarea>
             <div class="form-text mb-3">
                 <?= e(__t('content.form.body_hint')) ?>
@@ -293,6 +299,26 @@ tinymce.init({
              'alignleft aligncenter alignright | bullist numlist | link table image media | ' +
              'widgetinsert | codesample code removeformat',
     block_formats: 'Parágrafo=p; Título 2=h2; Título 3=h3; Título 4=h4',
+    // Atalhos markdown enquanto digita. Sobrescreve o padrão do TinyMCE de
+    // propósito: o padrão mapeia `#`..`######` pra h1..h6, e h1/h5/h6 não estão
+    // na allowlist do ContentSanitizer — o professor via o título no editor e
+    // perdia a formatação no save. Aqui `#` já começa em h2.
+    text_patterns: [
+        { start: '#',    format: 'h2' },
+        { start: '##',   format: 'h3' },
+        { start: '###',  format: 'h4' },
+        { start: '####', format: 'h4' },
+        { start: '#####',  format: 'h4' },
+        { start: '######', format: 'h4' },
+        { start: '**', end: '**', format: 'bold' },
+        { start: '*',  end: '*',  format: 'italic' },
+        { start: '~~', end: '~~', format: 'strikethrough' },
+        { start: '`',  end: '`',  format: 'code' },
+        { start: '* ',  cmd: 'InsertUnorderedList' },
+        { start: '- ',  cmd: 'InsertUnorderedList' },
+        { start: '1. ', cmd: 'InsertOrderedList' },
+        { start: '1) ', cmd: 'InsertOrderedList' }
+    ],
     codesample_languages: [
         { text: 'Python',     value: 'python' },
         { text: 'C#',         value: 'csharp' },
@@ -481,5 +507,9 @@ document.querySelectorAll('form.js-att-delete-form[data-confirm]').forEach(funct
 });
 </script>
 <?php
+// Modal "Importar markdown" — fora do <form> e depois do tinymce.init().
+$mdEditorId = 'contentHtml';
+require LMS_ROOT . '/src/templates/partials/markdown_import_modal.php';
+
 $page_content = ob_get_clean();
 require LMS_ROOT . '/src/templates/layout.php';

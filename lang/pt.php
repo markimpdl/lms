@@ -1229,6 +1229,15 @@ return [
 
     // Trilha da unidade e lições (E36-03)
     'content.editor.block_formats'   => 'Parágrafo=p; Título 2=h2; Título 3=h3; Título 4=h4',
+
+    // Importação de markdown nos editores TinyMCE (lição e conteúdo da CU)
+    'markdown.import.button'          => 'Importar markdown',
+    'markdown.import.title'           => 'Importar markdown',
+    'markdown.import.help'            => 'Cole o markdown aqui (por exemplo, a resposta de um assistente de IA). Ele vira conteúdo formatado no editor: títulos, listas, tabelas e blocos de código. Você ainda pode ajustar tudo antes de salvar.',
+    'markdown.import.placeholder'     => "## Título da seção\n\nTexto com **negrito** e uma lista:\n\n- primeiro item\n- segundo item\n\n```python\nprint('ola')\n```",
+    'markdown.import.replace'         => 'Substituir todo o conteúdo atual (em vez de inserir no ponto do cursor)',
+    'markdown.import.err.empty'       => 'Cole algum markdown antes de inserir.',
+    'markdown.import.err.unavailable' => 'Não foi possível converter o markdown agora. Recarregue a página e tente de novo.',
     'track.cover.title'              => 'Capa da unidade',
     'track.cover.help'               => 'O que o aluno vê ao abrir a unidade, antes do primeiro item da trilha.',
     'track.section.title'            => 'Trilha da unidade',

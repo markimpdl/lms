@@ -28,6 +28,20 @@ O professor edita o conteúdo em um editor visual tipo CMS. Requisitos mínimos 
 
 **Escolha:** **TinyMCE 6 community** (licença GPLv2+). Motivos: plugin `media` já suporta embed de YouTube/Vimeo por URL; toolbar amigável com toggle "fonte"; boa experiência em mobile; PHP integration bem documentada.
 
+## Markdown
+
+O conteúdo **continua sendo gravado como HTML** — markdown é só uma forma de entrada, convertida antes de chegar ao banco. Vale nos dois editores da CU: a página de conteúdo (capa, em curso V2) e as lições.
+
+**Atalhos enquanto digita** (`text_patterns` do TinyMCE): `#`, `##`, `###` viram H2, H3 e H4; `**negrito**`, `*itálico*`, `~~tachado~~`, `` `código` ``; `- `, `* ` e `1. ` abrem listas. Os níveis começam em H2 de propósito: H1, H5 e H6 não estão na allowlist do sanitizador e sumiriam no save.
+
+**Botão "Importar markdown"**: abre um modal onde o professor cola markdown inteiro (tipicamente a saída de um assistente de IA), convertido no browser e inserido no editor — no ponto do cursor ou substituindo tudo. A conversão normaliza a saída pra allowlist do `ContentSanitizer`:
+
+- títulos redistribuídos em H2–H4, preservando a hierarquia (o menor nível do texto colado vira H2);
+- fences viram blocos de código do `codesample` quando a linguagem é uma das cinco suportadas; qualquer outra vira `<pre>` simples;
+- checkbox de task list vira `☐`/`☑` em texto (`<input>` não sobrevive à sanitização).
+
+A conversão é client-side e não substitui nada no backend: o `ContentSanitizer` continua sendo quem decide o que entra no banco.
+
 ## Embeds de vídeo
 
 O professor insere vídeos do **YouTube** e **Vimeo** colando a URL. O backend converte para iframe seguro com uma **allowlist** restrita a esses dois domínios.
