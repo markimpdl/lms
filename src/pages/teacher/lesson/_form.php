@@ -149,6 +149,8 @@ tinymce.init({
         { start: '##',   format: 'h3' },
         { start: '###',  format: 'h4' },
         { start: '####', format: 'h4' },
+        { start: '#####',  format: 'h4' },
+        { start: '######', format: 'h4' },
         { start: '**', end: '**', format: 'bold' },
         { start: '*',  end: '*',  format: 'italic' },
         { start: '~~', end: '~~', format: 'strikethrough' },

@@ -71,7 +71,10 @@
         each(doc.body.querySelectorAll('pre > code'), function (code) {
             var pre   = code.parentNode;
             var match = /(?:^|\s)language-([\w#+.-]+)/.exec(code.className || '');
-            var lang  = match ? CODE_LANGS[match[1].toLowerCase()] : null;
+            // hasOwnProperty: sem a guarda, um fence ```constructor (ou toString,
+            // __proto__...) acha uma funcao no Object.prototype e vira classe lixo.
+            var key   = match ? match[1].toLowerCase() : '';
+            var lang  = Object.prototype.hasOwnProperty.call(CODE_LANGS, key) ? CODE_LANGS[key] : null;
 
             var fresh = doc.createElement('pre');
             if (lang) {
@@ -171,7 +174,13 @@
             }
 
             if (replaceEl !== null && replaceEl.checked) {
-                editor.setContent(html);
+                // transact(): setContent sozinho nao cria nivel de undo (o
+                // UndoManager nao escuta SetContent). Sem isso o professor nao
+                // consegue Ctrl+Z depois de substituir tudo, e o autosave do
+                // rascunho — preso no evento `change` — guardaria o HTML antigo.
+                editor.undoManager.transact(function () {
+                    editor.setContent(html);
+                });
             } else {
                 editor.insertContent(html);
             }
