@@ -13,6 +13,7 @@ declare(strict_types=1);
  *   $cuId         int — CU dona da atividade
  *   $activityId   int|null — só em edit
  *   $activityName string — título atual (edit) ou nome da CU (new)
+ *   $imagePickerOptions list<array{title:string,value:string}> — imagens anexadas na CU
  */
 ?>
 <div class="row justify-content-center">
@@ -174,13 +175,16 @@ declare(strict_types=1);
 
 <script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js" referrerpolicy="origin"></script>
 <script>
+// Imagens ja anexadas na CU — o mesmo acervo do editor de conteudo e da licao.
+var availableImages = <?= json_encode($imagePickerOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+
 tinymce.init({
     selector: '#f-instruction',
     height: 400,
     menubar: false,
-    plugins: 'lists link table code codesample autolink',
+    plugins: 'lists link table code codesample autolink image',
     toolbar: 'undo redo | blocks | bold italic underline | alignleft aligncenter alignright | ' +
-             'bullist numlist | link table | codesample code removeformat',
+             'bullist numlist | link table image | codesample code removeformat',
     block_formats: 'Parágrafo=p; Título 2=h2; Título 3=h3; Título 4=h4',
     codesample_languages: [
         { text: 'Python',     value: 'python' },
@@ -189,6 +193,10 @@ tinymce.init({
         { text: 'HTML/XML',   value: 'markup' },
         { text: 'CSS',        value: 'css' }
     ],
+    image_list: availableImages,
+    image_caption: false,
+    image_description: true,
+    image_dimensions: true,
     branding: false,
     promotion: false,
     convert_urls: false,

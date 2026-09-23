@@ -224,7 +224,7 @@ final class CourseCopyService
 
         self::copyContent($pdo, $srcCuId, $newCuId, $destTenantId, $files, $map, $targets);
         self::copyLessons($pdo, $srcCuId, $newCuId, $destCcId, $targets);
-        self::copyActivities($pdo, $srcCuId, $newCuId, $destTenantId, $files);
+        self::copyActivities($pdo, $srcCuId, $newCuId, $destTenantId, $files, $targets);
         self::copyEvaluation($pdo, $srcCuId, $newCuId, $destTenantId, $files);
         self::copyLearningOutcomes($pdo, $srcCuId, $newCuId);
 
@@ -264,8 +264,9 @@ final class CourseCopyService
         }
 
         $upd = [
-            'contents' => $pdo->prepare('UPDATE contents SET html = ? WHERE id = ?'),
-            'lessons'  => $pdo->prepare('UPDATE lessons  SET html = ? WHERE id = ?'),
+            'contents'   => $pdo->prepare('UPDATE contents SET html = ? WHERE id = ?'),
+            'lessons'    => $pdo->prepare('UPDATE lessons  SET html = ? WHERE id = ?'),
+            'activities' => $pdo->prepare('UPDATE activities SET instruction = ? WHERE id = ?'),
         ];
 
         foreach ($targets as $t) {
@@ -417,8 +418,14 @@ final class CourseCopyService
         return (int) $st->fetchColumn() === 2;
     }
 
-    /** Copia as atividades da CU (+ brief físico + quiz). */
-    private static function copyActivities(PDO $pdo, int $srcCuId, int $destCuId, int $destTenantId, array &$files): void
+    /**
+     * Copia as atividades da CU (+ brief físico + quiz). O enunciado entra em
+     * `$targets` pelo mesmo motivo do html da lição: imagem apontando pro
+     * anexo do curso de origem quebra pro aluno do curso novo.
+     *
+     * @param list<array{table:string,id:int,cu:int,html:string}> $targets
+     */
+    private static function copyActivities(PDO $pdo, int $srcCuId, int $destCuId, int $destTenantId, array &$files, array &$targets): void
     {
         $st = $pdo->prepare(
             'SELECT id, title, instruction, type, code_language, pdf_path, xp_value, submission_open, allow_online_code_run, position
@@ -436,6 +443,13 @@ final class CourseCopyService
                     (int) $act['xp_value'], (int) $act['submission_open'], (int) $act['allow_online_code_run'], (int) $act['position'],
                 ]
             );
+
+            $targets[] = [
+                'table' => 'activities',
+                'id'    => $newActId,
+                'cu'    => $destCuId,
+                'html'  => (string) $act['instruction'],
+            ];
 
             if (!empty($act['pdf_path'])) {
                 $ext     = pathinfo((string) $act['pdf_path'], PATHINFO_EXTENSION) ?: 'pdf';

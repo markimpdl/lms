@@ -117,6 +117,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ->execute([$upload['stored_path'], $result]);
             }
 
+            // Imagem colada de outra unidade vira anexo desta CU — mesmo
+            // tratamento da licao (ver ContentImageRehost). So depois do
+            // INSERT + brief darem certo: rehost antes copiaria anexos que
+            // um brief recusado deixaria orfaos, repetidos a cada tentativa.
+            $rehost = ContentImageRehost::apply($clean, $cuId, $tenantId);
+            if ($rehost['html'] !== $clean) {
+                Database::pdo()
+                    ->prepare('UPDATE activities SET instruction = ? WHERE id = ?')
+                    ->execute([$rehost['html'], $result]);
+            }
+
             // E33 (F24/ADR-035): auditoria — atividade criada com sucesso.
             course_audit((int) $cu['course_id'], 'create', 'activity', $result, $old['title']);
 
@@ -126,6 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // ainda) até o professor configurar o quiz.
             if ($old['type'] === 'quiz') {
                 flash('success', __t('activities.quiz_created', ['name' => $old['title']]));
+                ContentImageRehost::flashResult($rehost);
                 header('Location: /teacher/activity/' . $result . '/quiz', true, 303);
                 return;
             }
@@ -151,6 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             flash('success', __t('activities.created', ['name' => $old['title']]));
+            ContentImageRehost::flashResult($rehost);
             // E23-02: redireciona pra CU (era /edit; agora pro ponto de retorno natural).
             header('Location: /teacher/cu/' . $cuId, true, 303);
             return;
@@ -174,6 +187,7 @@ $activityId     = null;
 $activityName   = (string) $cu['name'];
 $currentPdfPath = null;
 $maxMb          = (int) ((ActivityBriefStorage::maxBytes()) / (1024 * 1024));
+$imagePickerOptions = lesson_image_picker_options($cuId, $tenantId);
 
 $page_title = __t('activities.new.title');
 ob_start();

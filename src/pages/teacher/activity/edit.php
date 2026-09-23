@@ -108,6 +108,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($errors === []) {
         $clean = ContentSanitizer::purify($old['instruction']);
+        // Imagem colada de outra unidade vira anexo desta CU antes de gravar
+        // — mesmo tratamento da licao (ver ContentImageRehost).
+        $rehost = ContentImageRehost::apply($clean, $cuId, $tenantId);
+        $clean  = $rehost['html'];
         $result = Activity::update($activityId, $tenantId, [
             'title'                 => $old['title'],
             'instruction'           => $clean,
@@ -126,6 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             course_audit((int) $__courseId, 'update', 'activity', $activityId, $old['title']);
             flash('success', __t('activities.updated', ['name' => $old['title']]));
+            ContentImageRehost::flashResult($rehost);
             header('Location: /teacher/cu/' . $cuId, true, 303);
             return;
         }
@@ -146,6 +151,7 @@ $submissions    = Activity::countSubmissions($activityId);
 $activityName   = (string) $activity['title'];
 $currentPdfPath = $activity['pdf_path'] !== null ? (string) $activity['pdf_path'] : null;
 $maxMb          = (int) ((ActivityBriefStorage::maxBytes()) / (1024 * 1024));
+$imagePickerOptions = lesson_image_picker_options($cuId, $tenantId);
 
 // E6-05: contagens e counts formatados pra o modal de exclusão.
 $deleteCounts = Activity::countForDelete($activityId);
