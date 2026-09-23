@@ -89,10 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($errors === []) {
         $clean = ContentSanitizer::purify($old['instruction']);
-        // Imagem colada de outra unidade vira anexo desta CU antes de gravar
-        // — mesmo tratamento da licao (ver ContentImageRehost).
-        $rehost = ContentImageRehost::apply($clean, $cuId, $tenantId);
-        $clean  = $rehost['html'];
         $result = Activity::create($cuId, $tenantId, [
             'title'                 => $old['title'],
             'instruction'           => $clean,
@@ -119,6 +115,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 Database::pdo()
                     ->prepare('UPDATE activities SET pdf_path = ? WHERE id = ?')
                     ->execute([$upload['stored_path'], $result]);
+            }
+
+            // Imagem colada de outra unidade vira anexo desta CU — mesmo
+            // tratamento da licao (ver ContentImageRehost). So depois do
+            // INSERT + brief darem certo: rehost antes copiaria anexos que
+            // um brief recusado deixaria orfaos, repetidos a cada tentativa.
+            $rehost = ContentImageRehost::apply($clean, $cuId, $tenantId);
+            if ($rehost['html'] !== $clean) {
+                Database::pdo()
+                    ->prepare('UPDATE activities SET instruction = ? WHERE id = ?')
+                    ->execute([$rehost['html'], $result]);
             }
 
             // E33 (F24/ADR-035): auditoria — atividade criada com sucesso.
