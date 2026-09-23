@@ -327,7 +327,12 @@ ob_start();
         <!-- Instrução -->
         <div class="card shadow-sm mb-3">
             <div class="card-body content-render">
-                <?= (string) $activity['instruction'] ?>
+                <?php
+                // O picker de imagem grava a URL do PROFESSOR, que da 403 pro
+                // aluno — mesma reescrita da licao (a rota do aluno valida
+                // matricula pelo curso dono do anexo).
+                echo str_replace('"/teacher/cu/', '"/student/cu/', (string) $activity['instruction']);
+                ?>
             </div>
         </div>
 
