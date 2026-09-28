@@ -276,8 +276,10 @@ function resolveVideoUrl(url) {
     // Share oferece (<script src="//onlinegdb.com/embed/js/ID?theme=...">).
     // O script só injeta este mesmo iframe — aqui geramos o iframe direto,
     // porque o ContentSanitizer remove <script>.
+    // O ID do Share mistura maiúscula/dígito (B1CWYyGVD); páginas do site são
+    // minúsculas (online_python_compiler, myfiles) e não podem virar embed.
     m = url.match(/onlinegdb\.com\/(?:embed\/(?:js\/)?)?([A-Za-z0-9_-]{6,})(?=[?#"'\s]|$)/);
-    if (m) {
+    if (m && /[A-Z0-9]/.test(m[1])) {
         var theme = url.match(/[?&]theme=([A-Za-z0-9_-]+)/);
         return '<iframe src="https://www.onlinegdb.com/embed/' + m[1] +
                (theme ? '?theme=' + theme[1] : '') +
