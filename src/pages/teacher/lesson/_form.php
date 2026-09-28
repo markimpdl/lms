@@ -184,7 +184,8 @@ tinymce.init({
     image_description: true,
     image_dimensions: true,
     media_live_embeds: true,
-    // Toda URL do plugin `media` passa pelo resolver: sem match, nada entra.
+    // Toda URL do plugin `media` passa pelo resolver. Sem match, o TinyMCE monta
+    // o embed padrao dele com a URL crua — quem barra e o ContentSanitizer.
     // TinyMCE 6 chama handler({url}, resolve, reject) e ignora o retorno —
     // devolver Promise deixava o dialog esperando pra sempre, sem inserir nada.
     media_url_resolver: function (data, resolve) {
