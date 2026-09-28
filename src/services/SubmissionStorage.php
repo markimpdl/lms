@@ -12,7 +12,7 @@ declare(strict_types=1);
  * editar/remover (ADR-027): o arquivo novo sempre substitui o anterior;
  * o delete apaga o único arquivo daquele aluno pra aquela atividade.
  *
- * Tipos aceitos: pdf, zip, txt (doc 06) por padrão. Para atividades tipo
+ * Tipos aceitos: pdf, zip, txt, jpg, png (doc 06) por padrão. Para atividades tipo
  * `código`, a allowlist é estendida com a extensão da linguagem (.py, .cs,
  * .js, .html) — caller passa `code_language` em `$opts`. Máximo 3 MB.
  */
@@ -24,6 +24,8 @@ final class SubmissionStorage
         'application/pdf' => 'pdf',
         'application/zip' => 'zip',
         'text/plain'      => 'txt',
+        'image/jpeg'      => 'jpg',
+        'image/png'       => 'png',
     ];
 
     /**

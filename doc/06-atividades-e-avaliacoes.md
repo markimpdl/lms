@@ -8,7 +8,7 @@ Tarefa durante a disciplina. **Sem nota** — o propósito é praticar e receber
 - Título e instrução (texto rico).
 - Tipo: `quiz`, `pesquisa`, `formulario`, `projeto`, `codigo`.
 - XP (inteiro) — valor fixo creditado ao aluno no momento da entrega.
-- Arquivos aceitos: `zip`, `pdf`, `txt`. Máximo **3 MB**.
+- Arquivos aceitos: `zip`, `pdf`, `txt`, `jpg`, `png`. Máximo **10 MB** (v0.30.0).
 - Entrega: aberta ou fechada (toggle controlado pelo professor).
 - Não há prazo automático.
 
@@ -36,7 +36,7 @@ Prova final da CU. Tem nota.
 - Título.
 - **PDF do enunciado** (upload feito pelo professor). Esse é o material que o aluno baixa.
 - XP (inteiro) — só é concedido se a nota for ≥ 8/10.
-- Arquivos aceitos na resposta: `zip`, `pdf`, `txt`. Máximo 3 MB.
+- Arquivos aceitos na resposta: `zip`, `pdf`, `txt`, `jpg`, `png`. Máximo 10 MB (v0.30.0).
 - Entrega: aberta ou fechada (toggle do professor).
 - No máximo **uma avaliação por CU**.
 

@@ -11,7 +11,7 @@ declare(strict_types=1);
  * aqui cada tentativa gera um arquivo próprio — o aluno pode ter múltiplas
  * linhas em `evaluation_submissions` (histórico) e cada uma guarda seu PDF.
  *
- * Tipos aceitos: pdf, zip, txt. Máximo 3 MB (mesmo teto do E6).
+ * Tipos aceitos: pdf, zip, txt, jpg, png. Máximo 10 MB (v0.30.0).
  */
 final class EvaluationSubmissionStorage
 {
@@ -21,6 +21,8 @@ final class EvaluationSubmissionStorage
         'application/pdf' => 'pdf',
         'application/zip' => 'zip',
         'text/plain'      => 'txt',
+        'image/jpeg'      => 'jpg',
+        'image/png'       => 'png',
     ];
 
     /**
