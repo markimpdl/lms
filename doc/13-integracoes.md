@@ -33,16 +33,20 @@
 - Mesmos atributos responsivos.
 
 ### OnlineGDB (compilador C++ embutido)
-- Aceita o link do **Share** (`https://onlinegdb.com/<ID>`) ou o código de embed que o Share oferece
-  (`<script src="//onlinegdb.com/embed/js/<ID>?theme=...">`), colados no botão **Mídia** do editor.
-- Converter para `<iframe src="https://www.onlinegdb.com/embed/<ID>[?theme=...]" class="content-code" ...>`.
-  O script oficial só injeta esse mesmo iframe; geramos direto porque `<script>` não passa no sanitizador.
-- Altura fixa de 520px (`iframe.content-code`) em vez de 16:9 — o script oficial ajusta a altura via
-  `postMessage`, o que não temos sem script.
-- O aluno edita e roda o código no próprio iframe, **com stdin** (`cin`) — diferente do nosso Judge0.
+Colado no botão **Mídia** do editor. Dois modos, decididos pelo que o professor cola:
+
+| O professor cola | Vira | Aluno |
+| --- | --- | --- |
+| Link do **Share** (`https://onlinegdb.com/<ID>`) ou `onlinegdb.com/fork/<ID>` | `<iframe src="https://www.onlinegdb.com/fork/<ID>" class="content-ide">`, 600px | **Edita** e roda o código do professor, com console interativo (`cin`) |
+| Código de embed (`<script src="//onlinegdb.com/embed/js/<ID>?theme=...">`) ou `/embed/<ID>` | `<iframe src="https://www.onlinegdb.com/embed/<ID>[?theme=...]" class="content-code">`, 520px | **Só leitura**: o embed oficial trava o editor (`readOnly: true`) e só tem Run |
+
+- O script oficial do embed só injeta o iframe; geramos direto porque `<script>` não passa no sanitizador.
+- Altura fixa em vez de 16:9: o script oficial ajusta a altura via `postMessage`, o que não temos sem script.
+- O modo editável é a IDE inteira do OnlineGDB (barra lateral, Login/Sign Up). O que o aluno digita some
+  ao recarregar a página, a menos que ele entre no OnlineGDB e salve lá.
 - Link do Share tipo "cópia" pode expirar: para lição, usar o link permanente.
 
-**Política de allowlist:** o HTML sanitizado só permite iframes cuja origem seja `youtube.com/embed`, `player.vimeo.com` ou `www.onlinegdb.com/embed`. Qualquer outro iframe é removido.
+**Política de allowlist:** o HTML sanitizado só permite iframes cuja origem seja `youtube.com/embed`, `player.vimeo.com` ou `www.onlinegdb.com/embed` / `www.onlinegdb.com/fork`. Qualquer outro iframe é removido.
 
 ## Uploads
 
