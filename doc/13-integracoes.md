@@ -32,7 +32,17 @@
 - Converter para `<iframe src="https://player.vimeo.com/video/<ID>" ...>`.
 - Mesmos atributos responsivos.
 
-**Política de allowlist:** o HTML sanitizado só permite iframes cuja origem seja `youtube.com/embed` ou `player.vimeo.com`. Qualquer outro iframe é removido.
+### OnlineGDB (compilador C++ embutido)
+- Aceita o link do **Share** (`https://onlinegdb.com/<ID>`) ou o código de embed que o Share oferece
+  (`<script src="//onlinegdb.com/embed/js/<ID>?theme=...">`), colados no botão **Mídia** do editor.
+- Converter para `<iframe src="https://www.onlinegdb.com/embed/<ID>[?theme=...]" class="content-code" ...>`.
+  O script oficial só injeta esse mesmo iframe; geramos direto porque `<script>` não passa no sanitizador.
+- Altura fixa de 520px (`iframe.content-code`) em vez de 16:9 — o script oficial ajusta a altura via
+  `postMessage`, o que não temos sem script.
+- O aluno edita e roda o código no próprio iframe, **com stdin** (`cin`) — diferente do nosso Judge0.
+- Link do Share tipo "cópia" pode expirar: para lição, usar o link permanente.
+
+**Política de allowlist:** o HTML sanitizado só permite iframes cuja origem seja `youtube.com/embed`, `player.vimeo.com` ou `www.onlinegdb.com/embed`. Qualquer outro iframe é removido.
 
 ## Uploads
 

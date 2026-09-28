@@ -108,8 +108,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js" referrerpolicy="origin"></script>
 <script>
-// Mesmo resolver de video do editor de conteudo da CU: so YouTube e Vimeo,
-// convertidos pro iframe canonico. Qualquer outro provedor retorna vazio e o
+// Mesmo resolver de video do editor de conteudo da CU: so YouTube, Vimeo e o
+// compilador OnlineGDB, convertidos pro iframe canonico. Qualquer outro provedor retorna vazio e o
 // plugin nao insere nada. O ContentSanitizer (URI.SafeIframeRegexp) reforca
 // isso no backend — aqui eh so a UX bloquear na hora do paste.
 function resolveVideoUrl(url) {
@@ -123,6 +123,18 @@ function resolveVideoUrl(url) {
     if (m) {
         return '<iframe src="https://player.vimeo.com/video/' + m[1] +
                '" frameborder="0" allowfullscreen loading="lazy" class="content-video"></iframe>';
+    }
+    // OnlineGDB: link do Share ou o código de embed (<script src=".../embed/js/ID">).
+    // O script só injeta este iframe; geramos direto porque <script> não passa
+    // no ContentSanitizer.
+    // ID do Share mistura maiuscula/digito (B1CWYyGVD); paginas do site sao
+    // minusculas (online_python_compiler, myfiles) e nao podem virar embed.
+    m = url.match(/onlinegdb\.com\/(?:embed\/(?:js\/)?)?([A-Za-z0-9_-]{6,})(?=[?#"'\s]|$)/);
+    if (m && /[A-Z0-9]/.test(m[1])) {
+        var theme = url.match(/[?&]theme=([A-Za-z0-9_-]+)/);
+        return '<iframe src="https://www.onlinegdb.com/embed/' + m[1] +
+               (theme ? '?theme=' + theme[1] : '') +
+               '" frameborder="0" loading="lazy" class="content-code"></iframe>';
     }
     return '';
 }
@@ -180,7 +192,8 @@ tinymce.init({
     },
     branding: false,
     promotion: false,
-    convert_urls: false
+    convert_urls: false,
+    content_style: 'iframe.content-code{width:100%;height:520px;border:0}'
 });
 </script>
 
