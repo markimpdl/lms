@@ -354,8 +354,10 @@ tinymce.init({
     media_alt_source: false,
     media_poster: false,
     media_dimensions: false,
+    // TinyMCE 6 passa { url }, não { source } — com `source` o resolver
+    // recebia undefined e quebrava no .match().
     media_url_resolver: function (data, resolve) {
-        var html = resolveVideoUrl(data.source);
+        var html = resolveVideoUrl(data.url || '');
         resolve({ html: html });
     },
     // URLs no HTML salvo são preservadas como foram inseridas — sem isso o
