@@ -124,17 +124,25 @@ function resolveVideoUrl(url) {
         return '<iframe src="https://player.vimeo.com/video/' + m[1] +
                '" frameborder="0" allowfullscreen loading="lazy" class="content-video"></iframe>';
     }
-    // OnlineGDB: link do Share ou o código de embed (<script src=".../embed/js/ID">).
-    // O script só injeta este iframe; geramos direto porque <script> não passa
-    // no ContentSanitizer.
+    // OnlineGDB, dois modos:
+    // - link do Share (onlinegdb.com/ID) ou /fork/ID -> IDE editavel (/fork/ID),
+    //   com o codigo do professor e console interativo (cin);
+    // - codigo de embed (<script src=".../embed/js/ID">) ou /embed/ID -> so
+    //   leitura: o embed oficial trava o editor (readOnly) e so tem Run.
+    // O script do embed so injeta o iframe; geramos direto porque <script> nao
+    // passa no ContentSanitizer.
     // ID do Share mistura maiuscula/digito (B1CWYyGVD); paginas do site sao
     // minusculas (online_python_compiler, myfiles) e nao podem virar embed.
-    m = url.match(/onlinegdb\.com\/(?:embed\/(?:js\/)?)?([A-Za-z0-9_-]{6,})(?=[?#"'\s]|$)/);
-    if (m && /[A-Z0-9]/.test(m[1])) {
-        var theme = url.match(/[?&]theme=([A-Za-z0-9_-]+)/);
-        return '<iframe src="https://www.onlinegdb.com/embed/' + m[1] +
-               (theme ? '?theme=' + theme[1] : '') +
-               '" frameborder="0" loading="lazy" class="content-code"></iframe>';
+    m = url.match(/onlinegdb\.com\/(embed\/(?:js\/)?|fork\/)?([A-Za-z0-9_-]{6,})(?=[?#"'\s]|$)/);
+    if (m && /[A-Z0-9]/.test(m[2])) {
+        if ((m[1] || '').indexOf('embed') === 0) {
+            var theme = url.match(/[?&]theme=([A-Za-z0-9_-]+)/);
+            return '<iframe src="https://www.onlinegdb.com/embed/' + m[2] +
+                   (theme ? '?theme=' + theme[1] : '') +
+                   '" frameborder="0" loading="lazy" class="content-code"></iframe>';
+        }
+        return '<iframe src="https://www.onlinegdb.com/fork/' + m[2] +
+               '" frameborder="0" loading="lazy" class="content-ide"></iframe>';
     }
     return '';
 }
@@ -194,7 +202,8 @@ tinymce.init({
     branding: false,
     promotion: false,
     convert_urls: false,
-    content_style: 'iframe.content-code{width:100%;height:520px;border:0}'
+    content_style: 'iframe.content-code{width:100%;height:520px;border:0}' +
+                   'iframe.content-ide{width:100%;height:600px;border:0}'
 });
 </script>
 
