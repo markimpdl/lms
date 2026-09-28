@@ -162,11 +162,18 @@ final class SubmissionStorage
         }
         $defaultExt = $allowed[$mime];
         $nameExt    = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
-        $allowedExts = array_unique(array_values($allowed));
+        // Só as extensões que o próprio text/plain pode ter: txt + as de
+        // linguagem. Sem esse filtro, um texto chamado x.jpg/x.pdf seria
+        // gravado com extensão binária e baixaria como arquivo quebrado.
+        $textExts = array_unique(array_values(array_filter(
+            $allowed,
+            static fn (string $ext, string $m): bool => str_starts_with($m, 'text/') || str_contains($m, 'javascript'),
+            ARRAY_FILTER_USE_BOTH
+        )));
 
         // Quando MIME é text/plain (ambíguo) e o nome é .py/.cs/.js/.html
         // que está na allowlist, preserva a extensão semanticamente correta.
-        if ($mime === 'text/plain' && in_array($nameExt, $allowedExts, true) && $nameExt !== '') {
+        if ($mime === 'text/plain' && in_array($nameExt, $textExts, true) && $nameExt !== '') {
             return $nameExt;
         }
         return $defaultExt;
