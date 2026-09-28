@@ -29,6 +29,8 @@ $mime       = match ($ext) {
     'pdf'   => 'application/pdf',
     'zip'   => 'application/zip',
     'txt'   => 'text/plain',
+    'jpg'   => 'image/jpeg',
+    'png'   => 'image/png',
     default => 'application/octet-stream',
 };
 
