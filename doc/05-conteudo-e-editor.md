@@ -48,8 +48,8 @@ O professor insere vídeos do **YouTube** e **Vimeo** colando a URL. O backend c
 
 - Colar URL → o editor oferece "inserir vídeo".
 - Renderização para o aluno: iframe responsivo (16:9), com `loading="lazy"`.
-- O mesmo botão **Mídia** aceita o link do Share do **OnlineGDB** e embute o compilador C++ na lição:
-  editável (link do Share) ou só leitura (código de embed). Detalhes em `13-integracoes.md`.
+- O mesmo botão **Mídia** aceita o link do Share do **OnlineGDB** e embute o compilador C++ na lição
+  (iframe de altura fixa, `class="content-code"`). Detalhes em `13-integracoes.md`.
 - Nenhum outro domínio é aceito para evitar XSS via iframe.
 
 ## Anexos
