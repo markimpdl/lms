@@ -7,7 +7,7 @@ declare(strict_types=1);
  *
  * Allowlist estrita (OWASP): tags de texto, títulos, listas, links,
  * tabelas, imagens e iframe restrito ao embed de YouTube e Vimeo
- * (E5-02). Remove silenciosamente qualquer tag/atributo fora da
+ * (E5-02) e ao compilador OnlineGDB (`www.onlinegdb.com/embed/`). Remove silenciosamente qualquer tag/atributo fora da
  * allowlist e event handlers (`onclick`, `onerror`, etc.).
  *
  * Cache de config serializada em `storage/cache/htmlpurifier/` para não
@@ -75,7 +75,7 @@ final class ContentSanitizer
         $config->set('HTML.SafeIframe', true);
         $config->set(
             'URI.SafeIframeRegexp',
-            '%^https://(www\.youtube\.com/embed/|player\.vimeo\.com/video/)%'
+            '%^https://(www\.youtube\.com/embed/|player\.vimeo\.com/video/|www\.onlinegdb\.com/embed/)%'
         );
 
         self::$purifier = new HTMLPurifier($config);

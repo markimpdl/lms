@@ -170,7 +170,7 @@ $lang   = current_lang();
             /* Evita cortar elementos no meio entre páginas. */
             .content pre, .content table, .content blockquote, .content img { break-inside: avoid; }
             .content h1, .content h2, .content h3, .content h4 { break-after: avoid; }
-            /* iframes (YouTube/Vimeo) não imprimem — mostra a URL como nota. */
+            /* iframes (YouTube/Vimeo/OnlineGDB) não imprimem — mostra a URL como nota. */
             .content iframe { display: none; }
         }
 

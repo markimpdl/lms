@@ -1171,6 +1171,11 @@ body.lms-student-area .lms-student-main {
     border-radius: var(--lms-radius-inner);
     margin: 18px 0;
 }
+/* Compilador OnlineGDB: editor + console não cabem em 16:9 numa coluna estreita. */
+.unit-prose iframe.content-code {
+    aspect-ratio: auto;
+    height: 520px;
+}
 
 /* ActivityCard */
 .lms-activity-list { display: flex; flex-direction: column; gap: 12px; }

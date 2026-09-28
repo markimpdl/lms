@@ -249,8 +249,8 @@ ob_start();
 
 <script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js" referrerpolicy="origin"></script>
 <script>
-// Resolver de URL para o plugin `media` (E5-02): só aceita YouTube e Vimeo,
-// converte qualquer forma (watch, youtu.be, shorts, vimeo.com) no iframe
+// Resolver de URL para o plugin `media` (E5-02): só aceita YouTube, Vimeo e
+// OnlineGDB, converte qualquer forma (watch, youtu.be, shorts, vimeo.com) no iframe
 // canônico `/embed/` ou `player.vimeo.com/video/`. Qualquer outro provedor
 // retorna string vazia → o plugin não insere iframe algum. Mesmo que passasse,
 // o ContentSanitizer no backend (URI.SafeIframeRegexp) remove iframes fora dessa
@@ -270,6 +270,18 @@ function resolveVideoUrl(url) {
     if (m) {
         return '<iframe src="https://player.vimeo.com/video/' + m[1] +
                '" frameborder="0" allowfullscreen loading="lazy" class="content-video"></iframe>';
+    }
+
+    // OnlineGDB: link do Share (onlinegdb.com/ID) ou o código de embed que o
+    // Share oferece (<script src="//onlinegdb.com/embed/js/ID?theme=...">).
+    // O script só injeta este mesmo iframe — aqui geramos o iframe direto,
+    // porque o ContentSanitizer remove <script>.
+    m = url.match(/onlinegdb\.com\/(?:embed\/(?:js\/)?)?([A-Za-z0-9_-]{6,})(?=[?#"'\s]|$)/);
+    if (m) {
+        var theme = url.match(/[?&]theme=([A-Za-z0-9_-]+)/);
+        return '<iframe src="https://www.onlinegdb.com/embed/' + m[1] +
+               (theme ? '?theme=' + theme[1] : '') +
+               '" frameborder="0" loading="lazy" class="content-code"></iframe>';
     }
 
     return '';
@@ -335,7 +347,7 @@ tinymce.init({
     image_description: true,
     image_dimensions: true,
 
-    // Plugin `media` — restringe aos provedores YouTube e Vimeo.
+    // Plugin `media` — restringe aos provedores YouTube, Vimeo e OnlineGDB.
     media_live_embeds: false,
     media_alt_source: false,
     media_poster: false,
@@ -357,7 +369,8 @@ tinymce.init({
     content_style: 'body{font-family:system-ui,sans-serif;font-size:15px;line-height:1.6}' +
                    'table{width:100%;border-collapse:collapse}' +
                    'table td,table th{border:1px solid #dee2e6;padding:.4rem}' +
-                   'iframe.content-video{width:100%;aspect-ratio:16/9;border:0}',
+                   'iframe.content-video{width:100%;aspect-ratio:16/9;border:0}' +
+                   'iframe.content-code{width:100%;height:520px;border:0}',
     mobile: { toolbar_mode: 'floating' },
     setup: function (editor) {
         // Autosave de rascunho local — salva em localStorage a cada 3s de

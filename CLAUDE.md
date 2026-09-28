@@ -160,7 +160,7 @@ feat!: muda contrato da API de notificações (BREAKING CHANGE)
 - Toda string visível ao usuário: `__t('chave.ponteada')` — nunca hardcode em pt/en
 - Senhas: `password_hash($pwd, PASSWORD_BCRYPT, ['cost' => 12])` + `password_verify`
 - Conteúdo HTML rico (TinyMCE): **sanitizar com HTML Purifier** antes de salvar
-- iframe: allowlist `youtube.com/embed` e `player.vimeo.com` (qualquer outro removido)
+- iframe: allowlist `youtube.com/embed`, `player.vimeo.com` e `www.onlinegdb.com/embed` (qualquer outro removido)
 - Uploads: `finfo_file` para validar mime real. Limites por contexto (v0.30.0): entrega do aluno (atividade + avaliação) **10 MB**; PDF de enunciado da avaliação **12 MB** (`UPLOAD_MAX_MB_PDF_BRIEF` no env); anexos TinyMCE em conteúdo **12 MB**. Extensões aceitas: `pdf`, `zip`, `txt` (+ imagens em conteúdo, + linguagem da atividade tipo código).
 - Senha do Judge0, SMTP, DB: sempre em `config/env.php` fora do repo (carregado via include)
 
