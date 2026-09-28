@@ -1176,11 +1176,6 @@ body.lms-student-area .lms-student-main {
     aspect-ratio: auto;
     height: 520px;
 }
-/* IDE editável do OnlineGDB (/fork/): barra lateral + editor + painel de input. */
-.unit-prose iframe.content-ide {
-    aspect-ratio: auto;
-    height: 600px;
-}
 
 /* ActivityCard */
 .lms-activity-list { display: flex; flex-direction: column; gap: 12px; }
