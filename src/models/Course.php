@@ -470,7 +470,9 @@ final class Course
      * passagem:
      *  - dados do curso (id, name, language, archived)
      *  - `last_access_at` da matrícula e `enrolled_at`
-     *  - nome do instrutor (owner do tenant — ADR-025)
+     *  - nome do instrutor: owner do tenant DO ALUNO, nao do curso. Num
+     *    curso compartilhado (ADR-033) o aluno matriculado pelo professor B
+     *    ve B como instrutor; em curso normal os dois tenants coincidem.
      *  - totais: CUs do curso, horas somadas (workload), XP teórico
      *
      * O status/percent do aluno é on-the-fly via `StudentProgress` — não
@@ -498,7 +500,7 @@ final class Course
                 e.access_starts_at  AS access_starts_at,
                 e.access_ends_at    AS access_ends_at,
                 e.blocked_at        AS blocked_at,
-                u.name              AS instructor_name,
+                COALESCE(su_owner.name, u.name) AS instructor_name,
                 -- CU em rascunho fica de fora das duas contagens: ela nao
                 -- aparece na pagina do curso e ja saiu da media de
                 -- StudentProgress::coursePercent. Contada aqui, o card do
@@ -519,6 +521,9 @@ final class Course
               JOIN courses c       ON c.id        = e.course_id
               JOIN tenants t       ON t.id        = c.tenant_id
               JOIN users   u       ON u.id        = t.owner_user_id
+              JOIN users   su      ON su.id       = e.student_user_id
+              LEFT JOIN tenants st       ON st.id       = su.tenant_id
+              LEFT JOIN users   su_owner ON su_owner.id = st.owner_user_id
              WHERE e.student_user_id = ?
              ORDER BY e.last_access_at IS NULL ASC,
                       e.last_access_at DESC,
