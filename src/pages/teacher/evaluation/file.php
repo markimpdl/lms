@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /**
  * GET /teacher/evaluation/{id}/submission/{sid}/file — professor baixa o
- * arquivo de uma submissão (E7-03). Valida tenant via findForTeacher.
+ * arquivo de uma submissão (E7-03). Autoriza via teacher_grading_student_tenant.
  */
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
@@ -17,9 +17,21 @@ if ($tenantId === null) {
     abort_subresource(403);
 }
 
+$evaluationId = (int) ($_REQUEST['id']  ?? 0);
 $submissionId = (int) ($_REQUEST['sid'] ?? 0);
-$submission   = EvaluationSubmission::findForTeacher($submissionId, $tenantId);
-if ($submission === null || $submission['filename'] === null) {
+
+// ADR-040: qualquer professor do curso baixa de qualquer aluno da turma. A
+// submissão tem que ser da avaliação da URL (é por ela que o curso é resolvido).
+$__courseId      = Evaluation::courseIdOf($evaluationId);
+$__studentId     = EvaluationSubmission::studentIdOf($submissionId);
+$studentTenantId = ($__courseId !== null && $__studentId !== null)
+    ? teacher_grading_student_tenant($__studentId, $__courseId)
+    : null;
+$submission = $studentTenantId !== null
+    ? EvaluationSubmission::findForTeacher($submissionId, $studentTenantId)
+    : null;
+if ($submission === null || (int) $submission['evaluation_id'] !== $evaluationId
+    || $submission['filename'] === null) {
     abort_subresource(404);
 }
 

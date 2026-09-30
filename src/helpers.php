@@ -1476,6 +1476,49 @@ function effective_authoring_tenant(int $courseId): ?int
 }
 
 /**
+ * Tenant do ALUNO quando o professor logado pode corrigir as entregas dele
+ * neste curso (ADR-040, revisa ADR-033); `null` caso contrário.
+ *
+ * Pode corrigir: (a) aluno do MEU tenant — inclui colaborador revogado, que
+ * segue corrigindo os seus; ou (b) aluno matriculado num curso que eu acesso
+ * (dono OU colaborador) — em curso compartilhado os dois professores corrigem
+ * todos os alunos da turma.
+ *
+ * O retorno é o tenant do aluno (não o meu): as páginas de correção o repassam
+ * aos models/services que filtram `u.tenant_id = ?` e aos efeitos colaterais
+ * (conquistas, progressão), que pertencem ao tenant do aluno.
+ */
+function teacher_grading_student_tenant(int $studentId, int $courseId): ?int
+{
+    $u = current_user();
+    $myTenantId = current_tenant_id();
+    if ($u === null || ($u['role'] ?? null) !== 'teacher' || $myTenantId === null) {
+        return null;
+    }
+    $st = Database::pdo()->prepare(
+        'SELECT u.tenant_id,
+                EXISTS(SELECT 1 FROM enrollments e
+                        WHERE e.course_id = ? AND e.student_user_id = u.id) AS enrolled
+           FROM users u
+          WHERE u.id = ? AND u.role = \'student\'
+          LIMIT 1'
+    );
+    $st->execute([$courseId, $studentId]);
+    $row = $st->fetch();
+    if ($row === false) {
+        return null;
+    }
+    $studentTenantId = (int) $row['tenant_id'];
+    if ($studentTenantId === $myTenantId) {
+        return $studentTenantId;
+    }
+    if ((int) $row['enrolled'] === 1 && teacher_can_access_course((int) $u['id'], $courseId)) {
+        return $studentTenantId;
+    }
+    return null;
+}
+
+/**
  * Registra uma ação de conteúdo na auditoria do curso (E33 / F24 — ADR-035).
  *
  * Wrapper fino sobre `CourseAuditLog::record`: o actor é o professor logado

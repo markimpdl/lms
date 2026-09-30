@@ -10,7 +10,7 @@ declare(strict_types=1);
  * feedback_at, retry_allowed, submission_id IS NULL).
  */
 
-$tenantId = current_tenant_id(); // dados de aluno: SÓ os meus (inalterado)
+$tenantId = current_tenant_id(); // dados de aluno: os meus (ou todos c/ toggle — E34)
 if ($tenantId === null) {
     http_response_code(403);
     require LMS_ROOT . '/src/templates/errors/403.php';
@@ -35,8 +35,11 @@ if ($evaluation === null) {
     return;
 }
 
-$rows    = EvaluationSubmission::listForEvaluation($evaluationId, $tenantId);
-$metrics = CourseMetrics::forEvaluation($evaluationId, $tenantId);
+// E34/ADR-040: toggle "ver todos" em curso compartilhado lista os alunos dos
+// dois professores — e ambos podem corrigir qualquer um (link abaixo).
+$showAllStudents = CourseCollaborator::isShared($__courseId) && teacher_shows_all_shared_students();
+$rows    = EvaluationSubmission::listForEvaluation($evaluationId, $tenantId, $showAllStudents);
+$metrics = CourseMetrics::forEvaluation($evaluationId, $tenantId, $showAllStudents);
 
 $totals = ['none' => 0, 'awaiting' => 0, 'approved' => 0, 'retry' => 0, 'failed' => 0];
 $decorated = [];
@@ -158,7 +161,12 @@ ob_start();
                                 ?>
                                 <tr>
                                     <td>
-                                        <div class="fw-semibold"><?= e((string) $r['student_name']) ?></div>
+                                        <div class="fw-semibold">
+                                            <?= e((string) $r['student_name']) ?>
+                                            <?php if ((int) ($r['is_own'] ?? 1) !== 1): ?>
+                                                <span class="badge text-bg-light text-muted ms-1"><?= e(__t('shared_roster.other_teacher')) ?></span>
+                                            <?php endif; ?>
+                                        </div>
                                         <small class="text-muted"><?= e((string) $r['student_email']) ?></small>
                                     </td>
                                     <td>

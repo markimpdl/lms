@@ -6,7 +6,7 @@ declare(strict_types=1);
  * dos alunos (E6-04). Pendentes de feedback no topo.
  */
 
-$tenantId = current_tenant_id(); // dados de aluno: SÓ os meus (inalterado)
+$tenantId = current_tenant_id(); // dados de aluno: os meus (ou todos c/ toggle — E34)
 if ($tenantId === null) {
     http_response_code(403);
     require LMS_ROOT . '/src/templates/errors/403.php';
@@ -31,9 +31,12 @@ if ($activity === null) {
     return;
 }
 
-$submissions = ActivitySubmission::listForActivity($activityId, $tenantId);
+// E34/ADR-040: toggle "ver todos" em curso compartilhado lista os alunos dos
+// dois professores — e ambos podem corrigir qualquer um (link abaixo).
+$showAllStudents = CourseCollaborator::isShared($__courseId) && teacher_shows_all_shared_students();
+$submissions = ActivitySubmission::listForActivity($activityId, $tenantId, $showAllStudents);
 $cuId        = (int) $activity['competence_unit_id'];
-$metrics     = CourseMetrics::forActivity($activityId, $tenantId);
+$metrics     = CourseMetrics::forActivity($activityId, $tenantId, $showAllStudents);
 
 $page_title = __t('submissions.teacher.title', ['name' => (string) $activity['title']]);
 
@@ -105,6 +108,9 @@ ob_start();
                                    class="fw-semibold text-decoration-none">
                                     <?= e((string) $sub['student_name']) ?>
                                 </a>
+                                <?php if ((int) ($sub['is_own'] ?? 1) !== 1): ?>
+                                    <span class="badge text-bg-light text-muted ms-1"><?= e(__t('shared_roster.other_teacher')) ?></span>
+                                <?php endif; ?>
                                 <small class="text-muted d-block">
                                     <?= e((string) $sub['student_email']) ?> ·
                                     <?= e(__t('submissions.teacher.submitted_at', ['date' => substr((string) $sub['created_at'], 0, 16)])) ?>

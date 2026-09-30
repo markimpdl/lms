@@ -664,8 +664,8 @@ ob_start();
                                         default         => ['bg-light text-muted',                     '—', __t('cu_roster.activity.not_submitted')],
                                     };
                                     $cellContent = '<span class="d-inline-block px-2 py-1 rounded ' . $bg . '" title="' . e($label) . '">' . $icon . '</span>';
-                                    // Aluno de outro professor (ADR-036): mostra status, sem link de correção.
-                                    $cellHref = ($status !== 'not_submitted' && ($r['is_own'] ?? true))
+                                    // ADR-040: qualquer professor do curso corrige aluno de outro professor.
+                                    $cellHref = ($status !== 'not_submitted')
                                         ? '/teacher/activity/' . $aid . '/submission/' . (int) $r['id'] . '?from=' . urlencode('/teacher/cu/' . $cuId)
                                         : null;
                                 ?>
@@ -691,7 +691,7 @@ ob_start();
                                         default    => ['bg-light text-muted',                    __t('cu_roster.evaluation.not_submitted')],
                                     };
                                     $evCellContent = '<span class="d-inline-block px-2 py-1 rounded ' . $bg2 . '">' . e($label2) . '</span>';
-                                    $evHref = ($evState !== 'not_submitted' && ($r['is_own'] ?? true))
+                                    $evHref = ($evState !== 'not_submitted')
                                         ? '/teacher/evaluation/' . (int) $evaluation['id'] . '/submission/' . (int) $r['id']
                                         : null;
                                 ?>

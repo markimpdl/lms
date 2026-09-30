@@ -28,8 +28,13 @@ $perPage = 20;
 $page    = max(1, (int) ($_GET['page'] ?? 1));
 $offset  = ($page - 1) * $perPage;
 
-$total     = TeacherDashboard::countAllSubmissions($tenantId, $pendingOnly);
-$rows      = TeacherDashboard::findAllSubmissions($tenantId, $pendingOnly, $perPage, $offset);
+// E34/ADR-040: mesmo escopo do dashboard (toggle "ver todos" inclui os alunos
+// dos outros professores nos cursos compartilhados comigo).
+$showAllCourseIds = teacher_shows_all_shared_students()
+    ? courses_accessible_by_teacher((int) current_user()['id'])
+    : [];
+$total     = TeacherDashboard::countAllSubmissions($tenantId, $pendingOnly, $showAllCourseIds);
+$rows      = TeacherDashboard::findAllSubmissions($tenantId, $pendingOnly, $perPage, $offset, $showAllCourseIds);
 $lastPage  = max(1, (int) ceil($total / $perPage));
 
 $qs = static fn (array $extra): string => http_build_query(array_merge(

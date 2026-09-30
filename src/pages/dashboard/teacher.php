@@ -18,8 +18,13 @@ if ($tenantId === null) {
     return;
 }
 
-$totals    = TeacherDashboard::totalsForTenant($tenantId);
-$recent    = TeacherDashboard::recentSubmissions($tenantId, 10);
+// E34/ADR-040: com o toggle "ver todos", entram também as entregas dos alunos
+// de outros professores nos cursos que eu acesso (compartilhados) — corrigíveis.
+$showAllCourseIds = teacher_shows_all_shared_students()
+    ? courses_accessible_by_teacher((int) $user['id'])
+    : [];
+$totals    = TeacherDashboard::totalsForTenant($tenantId, $showAllCourseIds);
+$recent    = TeacherDashboard::recentSubmissions($tenantId, 10, $showAllCourseIds);
 $inactive  = TeacherDashboard::inactiveStudents($tenantId, 10);
 $firstName = explode(' ', trim((string) ($user['name'] ?? '')))[0] ?? '';
 

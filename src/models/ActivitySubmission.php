@@ -137,25 +137,28 @@ final class ActivitySubmission
      *
      * @return list<array<string,mixed>>
      */
-    public static function listForActivity(int $activityId, int $tenantId): array
+    public static function listForActivity(int $activityId, int $tenantId, bool $showAll = false): array
     {
+        // E32: por padrão só os alunos do tenant do professor agindo. E34/ADR-040:
+        // com $showAll (toggle em curso compartilhado) todos os alunos do curso;
+        // `is_own` marca os meus. Acesso à atividade gateado na página.
+        $tf = $showAll ? '' : ' AND u.tenant_id = ?';
         $stmt = Database::pdo()->prepare(
             'SELECT s.id, s.student_user_id, s.filename, s.stored_path,
                     s.code_text, s.feedback, s.feedback_at,
                     s.created_at, s.updated_at,
-                    u.name AS student_name, u.email AS student_email
+                    u.name AS student_name, u.email AS student_email,
+                    (u.tenant_id = ?) AS is_own
                FROM activity_submissions s
                JOIN activities a          ON a.id = s.activity_id
                JOIN competence_units cu   ON cu.id = a.competence_unit_id
                JOIN core_competencies cc  ON cc.id = cu.core_competency_id
                JOIN courses c             ON c.id  = cc.course_id
-               JOIN users u               ON u.id  = s.student_user_id AND u.tenant_id = ?
+               JOIN users u               ON u.id  = s.student_user_id' . $tf . '
               WHERE s.activity_id = ?
               ORDER BY (s.feedback_at IS NULL) DESC, s.updated_at DESC, s.id DESC'
         );
-        // E32: alunos filtrados pelo tenant do professor agindo (só os seus);
-        // acesso à atividade gateado na página. Dono: idêntico.
-        $stmt->execute([$tenantId, $activityId]);
+        $stmt->execute($showAll ? [$tenantId, $activityId] : [$tenantId, $tenantId, $activityId]);
         return $stmt->fetchAll();
     }
 
@@ -188,8 +191,8 @@ final class ActivitySubmission
               WHERE s.activity_id = ? AND s.student_user_id = ?
               LIMIT 1'
         );
-        // E32: valida que a submissão é de aluno do MEU tenant (colaborador só
-        // corrige os seus); acesso à atividade gateado na página. Dono: idêntico.
+        // $tenantId = tenant do ALUNO, resolvido por teacher_grading_student_tenant
+        // na página (ADR-040) — é lá que mora a autorização do professor.
         $stmt->execute([$tenantId, $activityId, $studentId]);
         $row = $stmt->fetch();
         if ($row === false) {

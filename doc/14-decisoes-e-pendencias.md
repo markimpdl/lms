@@ -223,7 +223,7 @@
 
 **Mecânica:** preferência booleana por professor (`users.shared_course_show_all_students`, default 0). Só afeta cursos compartilhados (curso normal ignora). Os models de leitura (`CuRoster`, `Enrollment::listByCourse`, `CourseMetrics`, `CourseMatrix`) ganham modo dual: filtrar por tenant do aluno (default) **ou** por `course_id` (ver todos). Ranking de tenant inalterado; ranking do curso já agrega todos (E32-05), independente do toggle. Os caminhos de **correção/entrega permanecem inalterados** (sempre por tenant).
 
-**A revisar quando:** o PO pedir gestão (não só leitura) cross-tenant — aí reabrir a discussão do isolamento de dados de aluno.
+**A revisar quando:** o PO pedir gestão (não só leitura) cross-tenant — aí reabrir a discussão do isolamento de dados de aluno. **Revisado em 2026-09-30 pelo ADR-040:** a correção passou a ser compartilhada entre os professores do curso.
 
 ### ADR-037 — Widgets: sandbox de origem nula, biblioteca compartilhada no curso
 **Decisão (F26/E35, 2026-06-08):** professores cadastram **widgets** (mini-apps interativas num `.zip` com `index.html` na raiz) e os inserem no conteúdo das CUs. Detalhamento em `doc/24-widgets.md`. Decisões-chave:
@@ -268,6 +268,18 @@
 **Por quê:** em curso presencial o professor precisa acomodar o aluno adiantado, o que repete conteúdo, o que voltou de licença — sem afrouxar a regra para a turma toda. Concentrar no helper faz as três páginas que barram URL direta (`student/cu`, `student/activity`, `student/evaluation`) herdarem o comportamento sem alteração nenhuma nelas.
 
 **A revisar quando:** (a) o PO pedir granularidade por lição/exercício em vez de CU inteira; (b) surgir demanda de liberar por grupo em vez de por aluno; (c) o número de desbloqueios exigir uma tela própria de gestão (hoje vive na grade de `/teacher/cu/{id}`).
+
+### ADR-040 — Curso compartilhado: qualquer professor do curso corrige qualquer aluno da turma (revisa ADR-033 e ADR-036)
+**Decisão (2026-09-30, PO):** num curso compartilhado, **dono e colaboradores veem, abrem e corrigem** (feedback de atividade, nota/feedback/reenvio de avaliação, arquivo, report PDF) as entregas de **todos os alunos matriculados no curso**, não só as dos próprios alunos. Continua por tenant o que é **gestão do aluno** (perfil, matrícula, reset de senha, desbloqueio de CU — ADR-039): o link de perfil de aluno de outro professor segue desativado.
+
+**Por quê:** bug relatado pelo PO — o dashboard do dono listava as entregas dos alunos do colaborador (filtro pelo tenant do **dono do curso**), mas a tela de correção filtrava pelo tenant do **aluno** → 404. O PO decidiu que num curso compartilhado os dois professores dividem a correção da turma.
+
+**Mecânica:**
+- Autorização única em `teacher_grading_student_tenant($studentId, $courseId)`: devolve o tenant do **aluno** se ele é do meu tenant (inclui colaborador revogado, que segue corrigindo os seus) **ou** se está matriculado num curso que acesso (`teacher_can_access_course`). As páginas repassam esse tenant aos models/services (`findForTeacher`, `findForGrading`, `EvaluationSubmissionService`) e aos efeitos colaterais (conquistas, progressão) — que são do tenant do aluno. XP segue creditado no tenant do aluno (`XpEvents` já resolvia via `users`).
+- **Listas** (entregas por atividade/avaliação, dashboard, `/teacher/submissions`) seguem o toggle do ADR-036: default = só meus alunos; "ver todos" = todos os alunos dos cursos que acesso, com selo "outro professor" e **com** link de correção. O dashboard passou a escopar pelo tenant do aluno (antes: tenant do dono do curso — o colaborador não via nem as entregas dos próprios alunos no curso compartilhado).
+- Roster da CU: células de entrega de alunos de outro professor passam a ter link de correção.
+
+**Limitação herdada:** os cards de métricas das telas de entregas continuam owner-only (gate por tenant do dono em `CourseMetrics`).
 
 ## Pendências em aberto
 

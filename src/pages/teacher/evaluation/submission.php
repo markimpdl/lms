@@ -23,7 +23,14 @@ if ($tenantId === null) {
 $evaluationId = (int) ($_REQUEST['id']         ?? 0);
 $studentId    = (int) ($_REQUEST['student_id'] ?? 0);
 
-$ctx = EvaluationSubmission::findForGrading($evaluationId, $studentId, $tenantId);
+// ADR-040: em curso compartilhado qualquer professor do curso corrige qualquer
+// aluno da turma. Daqui pra baixo, tudo que é dado do aluno (busca, nota, XP,
+// conquistas, progressão) usa o tenant DO ALUNO, não o do professor logado.
+$__courseId      = Evaluation::courseIdOf($evaluationId);
+$studentTenantId = $__courseId !== null ? teacher_grading_student_tenant($studentId, $__courseId) : null;
+$ctx = $studentTenantId !== null
+    ? EvaluationSubmission::findForGrading($evaluationId, $studentId, $studentTenantId)
+    : null;
 if ($ctx === null) {
     http_response_code(404);
     require LMS_ROOT . '/src/templates/errors/404.php';
@@ -150,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($isLoMode && $loReady) {
             $result = EvaluationSubmissionService::gradeByLo(
                 (int) $current['id'],
-                $tenantId,
+                $studentTenantId,
                 $loGradesParsed,
                 $rawFeedback,
                 $rawRetry
@@ -160,7 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $gradeVal = (float) $normalized;
             $result = EvaluationSubmissionService::grade(
                 (int) $current['id'],
-                $tenantId,
+                $studentTenantId,
                 $gradeVal,
                 $rawFeedback,
                 $rawRetry
@@ -171,11 +178,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Conquistas (E18-04). Best-effort.
             try {
                 AchievementsService::evaluateForEvent(
-                    $studentId, $tenantId, 'evaluation_graded',
+                    $studentId, $studentTenantId, 'evaluation_graded',
                     ['grade' => $gradeVal]
                 );
-                AchievementsService::evaluateForEvent($studentId, $tenantId, 'rank_first_promotion');
-                student_progression_check($studentId, $tenantId, (int) $evaluation['cu_id']);
+                AchievementsService::evaluateForEvent($studentId, $studentTenantId, 'rank_first_promotion');
+                student_progression_check($studentId, $studentTenantId, (int) $evaluation['cu_id']);
             } catch (\Throwable) {
                 // swallow
             }

@@ -28,7 +28,7 @@ final class CourseMetrics
      *   avg_feedback_minutes:?int
      * }|null
      */
-    public static function forActivity(int $activityId, int $tenantId): ?array
+    public static function forActivity(int $activityId, int $tenantId, bool $showAll = false): ?array
     {
         $pdo = Database::pdo();
 
@@ -52,24 +52,28 @@ final class CourseMetrics
         // Enrolled ativos + submitted count + avg feedback time numa só query.
         // E32 (ADR-033): conta só os alunos do tenant do professor (não infla
         // com alunos cross-tenant de cursos compartilhados). Dono: idêntico.
+        // E34/ADR-040: com $showAll conta todos do curso, igual à lista.
+        $uf  = $showAll ? '' : ' AND u.tenant_id = ?';
+        $suf = $showAll ? '' : ' AND su.tenant_id = ?';
         $stmt = $pdo->prepare(
             'SELECT
                (SELECT COUNT(*) FROM enrollments e
                   JOIN users u ON u.id = e.student_user_id
-                 WHERE e.course_id = ? AND u.role = \'student\' AND u.active = 1
-                   AND u.tenant_id = ?
+                 WHERE e.course_id = ? AND u.role = \'student\' AND u.active = 1' . $uf . '
                ) AS enrolled,
                (SELECT COUNT(*) FROM activity_submissions s
-                  JOIN users su ON su.id = s.student_user_id AND su.tenant_id = ?
+                  JOIN users su ON su.id = s.student_user_id' . $suf . '
                  WHERE s.activity_id = ?) AS submitted,
                (SELECT AVG(TIMESTAMPDIFF(MINUTE, s.created_at, s.feedback_at))
                   FROM activity_submissions s
-                  JOIN users su ON su.id = s.student_user_id AND su.tenant_id = ?
+                  JOIN users su ON su.id = s.student_user_id' . $suf . '
                  WHERE s.activity_id = ? AND s.feedback_at IS NOT NULL
                    AND s.feedback_at >= s.created_at
                ) AS avg_minutes'
         );
-        $stmt->execute([$courseId, $tenantId, $tenantId, $activityId, $tenantId, $activityId]);
+        $stmt->execute($showAll
+            ? [$courseId, $activityId, $activityId]
+            : [$courseId, $tenantId, $tenantId, $activityId, $tenantId, $activityId]);
         $row = $stmt->fetch();
 
         $enrolled  = (int) $row['enrolled'];
@@ -96,7 +100,7 @@ final class CourseMetrics
      *   avg_feedback_minutes:?int
      * }|null
      */
-    public static function forEvaluation(int $evaluationId, int $tenantId): ?array
+    public static function forEvaluation(int $evaluationId, int $tenantId, bool $showAll = false): ?array
     {
         $pdo = Database::pdo();
 
@@ -119,30 +123,34 @@ final class CourseMetrics
 
         // E32 (ADR-033): conta só os alunos do tenant do professor (não infla
         // com alunos cross-tenant de cursos compartilhados). Dono: idêntico.
+        // E34/ADR-040: com $showAll conta todos do curso, igual à lista.
+        $uf  = $showAll ? '' : ' AND u.tenant_id = ?';
+        $suf = $showAll ? '' : ' AND su.tenant_id = ?';
         $stmt = $pdo->prepare(
             'SELECT
                (SELECT COUNT(*) FROM enrollments e
                   JOIN users u ON u.id = e.student_user_id
-                 WHERE e.course_id = ? AND u.role = \'student\' AND u.active = 1
-                   AND u.tenant_id = ?
+                 WHERE e.course_id = ? AND u.role = \'student\' AND u.active = 1' . $uf . '
                ) AS enrolled,
                (SELECT COUNT(*) FROM evaluation_submissions s
-                  JOIN users su ON su.id = s.student_user_id AND su.tenant_id = ?
+                  JOIN users su ON su.id = s.student_user_id' . $suf . '
                  WHERE s.evaluation_id = ?
                    AND s.grade IS NOT NULL AND s.grade >= 6.0
                ) AS approved,
                (SELECT AVG(s.grade) FROM evaluation_submissions s
-                  JOIN users su ON su.id = s.student_user_id AND su.tenant_id = ?
+                  JOIN users su ON su.id = s.student_user_id' . $suf . '
                  WHERE s.evaluation_id = ? AND s.grade IS NOT NULL
                ) AS avg_grade,
                (SELECT AVG(TIMESTAMPDIFF(MINUTE, s.created_at, s.feedback_at))
                   FROM evaluation_submissions s
-                  JOIN users su ON su.id = s.student_user_id AND su.tenant_id = ?
+                  JOIN users su ON su.id = s.student_user_id' . $suf . '
                  WHERE s.evaluation_id = ? AND s.feedback_at IS NOT NULL
                    AND s.feedback_at >= s.created_at
                ) AS avg_minutes'
         );
-        $stmt->execute([$courseId, $tenantId, $tenantId, $evaluationId, $tenantId, $evaluationId, $tenantId, $evaluationId]);
+        $stmt->execute($showAll
+            ? [$courseId, $evaluationId, $evaluationId, $evaluationId]
+            : [$courseId, $tenantId, $tenantId, $evaluationId, $tenantId, $evaluationId, $tenantId, $evaluationId]);
         $row = $stmt->fetch();
 
         $enrolled = (int) $row['enrolled'];

@@ -97,9 +97,9 @@ final class EvaluationSubmission
               WHERE e.id = ?
               LIMIT 1'
         );
-        // E32 (ADR-033): sem gate por tenant do curso (a página valida acesso
-        // via effective_authoring_tenant). O aluno é validado pelo MEU tenant
-        // abaixo — colaborador só corrige os próprios alunos.
+        // Sem gate por tenant do curso: $tenantId = tenant do ALUNO, resolvido
+        // por teacher_grading_student_tenant na página (ADR-040) — é lá que mora
+        // a autorização do professor. O aluno é validado por esse tenant abaixo.
         $stmt->execute([$studentId, $evaluationId]);
         $evaluation = $stmt->fetch();
         if ($evaluation === false) {
@@ -147,10 +147,15 @@ final class EvaluationSubmission
      *
      * @return list<array<string,mixed>>
      */
-    public static function listForEvaluation(int $evaluationId, int $tenantId): array
+    public static function listForEvaluation(int $evaluationId, int $tenantId, bool $showAll = false): array
     {
+        // E32: por padrão só os alunos do tenant do professor agindo. E34/ADR-040:
+        // com $showAll (toggle em curso compartilhado) todos os alunos do curso;
+        // `is_own` marca os meus. Acesso à avaliação gateado na página.
+        $tf = $showAll ? '' : ' AND u.tenant_id = ?';
         $stmt = Database::pdo()->prepare(
             'SELECT u.id AS student_id, u.name AS student_name, u.email AS student_email,
+                    (u.tenant_id = ?) AS is_own,
                     s.id AS submission_id, s.attempt, s.filename, s.grade,
                     s.feedback_at, s.retry_allowed, s.created_at AS submitted_at,
                     COALESCE(s.attempt, 0) AS attempts_count
@@ -161,17 +166,14 @@ final class EvaluationSubmission
                JOIN enrollments enr       ON enr.course_id = c.id
                JOIN users u               ON u.id  = enr.student_user_id
                                          AND u.role = \'student\'
-                                         AND u.active = 1
-                                         AND u.tenant_id = ?
+                                         AND u.active = 1' . $tf . '
                LEFT JOIN evaluation_submissions s
                       ON s.evaluation_id = e.id
                      AND s.student_user_id = u.id
               WHERE e.id = ?
               ORDER BY u.name ASC, u.id ASC'
         );
-        // E32: filtra alunos pelo tenant do PROFESSOR agindo (cada um só os
-        // seus). Acesso à avaliação é gateado na página. Dono: idêntico.
-        $stmt->execute([$tenantId, $evaluationId]);
+        $stmt->execute($showAll ? [$tenantId, $evaluationId] : [$tenantId, $tenantId, $evaluationId]);
         return $stmt->fetchAll();
     }
 
@@ -225,7 +227,8 @@ final class EvaluationSubmission
 
     /**
      * Busca 1 submissão específica pro professor baixar o arquivo. Valida
-     * que a submissão pertence a aluno do MEU tenant (E32-05). null se alheia.
+     * que a submissão pertence a aluno de $tenantId — o tenant do ALUNO,
+     * resolvido na página por teacher_grading_student_tenant (ADR-040).
      *
      * @return array<string,mixed>|null
      */
@@ -242,6 +245,20 @@ final class EvaluationSubmission
         $stmt->execute([$tenantId, $submissionId]);
         $row = $stmt->fetch();
         return $row === false ? null : $row;
+    }
+
+    /**
+     * Aluno autor de uma submissão de avaliação, sem gate — só pra página
+     * resolver a autorização via teacher_grading_student_tenant.
+     */
+    public static function studentIdOf(int $submissionId): ?int
+    {
+        $st = Database::pdo()->prepare(
+            'SELECT student_user_id FROM evaluation_submissions WHERE id = ? LIMIT 1'
+        );
+        $st->execute([$submissionId]);
+        $v = $st->fetchColumn();
+        return $v === false ? null : (int) $v;
     }
 
     /**

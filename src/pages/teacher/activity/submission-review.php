@@ -23,7 +23,13 @@ $studentId  = (int) ($_REQUEST['student_id'] ?? 0);
 $fromSafe = teacher_safe_from((string) ($_REQUEST['from'] ?? ''), '');
 $backUrl  = $fromSafe !== '' ? $fromSafe : ('/teacher/activity/' . $activityId . '/submissions');
 
-$ctx = ActivitySubmission::findForTeacher($activityId, $studentId, $tenantId);
+// ADR-040: em curso compartilhado qualquer professor do curso corrige qualquer
+// aluno da turma — a busca usa o tenant do ALUNO, resolvido pelo helper.
+$__courseId       = Activity::courseIdOf($activityId);
+$studentTenantId  = $__courseId !== null ? teacher_grading_student_tenant($studentId, $__courseId) : null;
+$ctx = $studentTenantId !== null
+    ? ActivitySubmission::findForTeacher($activityId, $studentId, $studentTenantId)
+    : null;
 if ($ctx === null) {
     http_response_code(404);
     require LMS_ROOT . '/src/templates/errors/404.php';
