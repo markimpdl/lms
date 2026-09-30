@@ -29,7 +29,8 @@ final class ActivitySubmission
                     a.submission_open, a.allow_online_code_run, a.code_language,
                     a.pdf_path,
                     cu.id AS cu_id, cu.name AS cu_name,
-                    c.id  AS course_id, c.name AS course_name, c.archived AS course_archived
+                    c.id  AS course_id, c.name AS course_name, c.archived AS course_archived,
+                    c.tenant_id AS content_tenant_id
                FROM activities a
                JOIN competence_units cu   ON cu.id = a.competence_unit_id
                JOIN core_competencies cc  ON cc.id = cu.core_competency_id

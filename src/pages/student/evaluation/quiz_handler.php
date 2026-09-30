@@ -25,8 +25,12 @@ $courseId = (int) $evaluation['course_id'];
 $cuId     = (int) $evaluation['cu_id'];
 $evType   = (string) ($evaluation['type'] ?? 'projeto');
 
-$fullQuiz = Quiz::findByOwner('evaluation', $evaluationId, $tenantId);
-$fullQuiz = $fullQuiz === null ? null : Quiz::findFullById((int) $fullQuiz['id'], $tenantId);
+// O quiz mora no tenant da avaliacao (dono do curso), nao no do aluno — em
+// curso compartilhado (E32) sao diferentes. Acesso ja validado pela matricula
+// em findForStudentEvaluation.
+$quizTenantId = (int) $evaluation['tenant_id'];
+$fullQuiz = Quiz::findByOwner('evaluation', $evaluationId, $quizTenantId);
+$fullQuiz = $fullQuiz === null ? null : Quiz::findFullById((int) $fullQuiz['id'], $quizTenantId);
 
 if ($fullQuiz === null || ($fullQuiz['questions'] ?? []) === []) {
     flash('warning', __t('quiz.student.not_ready'));
