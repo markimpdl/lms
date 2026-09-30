@@ -27,8 +27,13 @@ declare(strict_types=1);
 $existingSub = $ctx['submission'] ?? null;
 $readOnly    = $existingSub !== null;
 
-$fullQuiz = Quiz::findByOwner('activity', $activityId, $tenantId);
-$fullQuiz = $fullQuiz === null ? null : Quiz::findFullById((int) $fullQuiz['id'], $tenantId);
+// O quiz mora no tenant dono do curso, nao no do aluno: em curso compartilhado
+// (E32) sao tenants diferentes e a busca pelo tenant do aluno nao achava nada —
+// "quiz nao configurado" com o quiz pronto. O acesso ja foi validado pela
+// matricula em findForStudentActivity.
+$quizTenantId = (int) $activity['content_tenant_id'];
+$fullQuiz = Quiz::findByOwner('activity', $activityId, $quizTenantId);
+$fullQuiz = $fullQuiz === null ? null : Quiz::findFullById((int) $fullQuiz['id'], $quizTenantId);
 
 if ($fullQuiz === null || ($fullQuiz['questions'] ?? []) === []) {
     flash('warning', __t('quiz.student.not_ready'));
