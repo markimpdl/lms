@@ -5,9 +5,9 @@ declare(strict_types=1);
  * /teacher/evaluation/{id}/submission/{student_id}/report.pdf — download
  * do PDF gerado pelo `ReportService` após feedback completo (E26-04).
  *
- * Acesso: APENAS pro professor dono do tenant. Aluno nunca recebe link
- * pra este endpoint (e mesmo se descobrir o path, falha em
- * `findForGrading` que valida ownership via JOIN tenant).
+ * Acesso: APENAS professores do curso (ADR-040 — teacher_grading_student_tenant).
+ * Aluno nunca recebe link pra este endpoint (e mesmo se descobrir o path,
+ * falha no gate de professor).
  *
  * Path no banco é relativo a LMS_ROOT (ex.: `storage/reports/eval_1_student_2_attempt_1.pdf`).
  * Defesa contra path traversal: `realpath` confinado a `LMS_ROOT/storage/reports`.
@@ -21,7 +21,12 @@ if ($tenantId === null) {
 $evaluationId = (int) ($_REQUEST['id']         ?? 0);
 $studentId    = (int) ($_REQUEST['student_id'] ?? 0);
 
-$ctx = EvaluationSubmission::findForGrading($evaluationId, $studentId, $tenantId);
+// ADR-040: qualquer professor do curso (dono ou colaborador) acessa o report.
+$__courseId      = Evaluation::courseIdOf($evaluationId);
+$studentTenantId = $__courseId !== null ? teacher_grading_student_tenant($studentId, $__courseId) : null;
+$ctx = $studentTenantId !== null
+    ? EvaluationSubmission::findForGrading($evaluationId, $studentId, $studentTenantId)
+    : null;
 if ($ctx === null) {
     abort_subresource(404);
 }

@@ -8,8 +8,8 @@ declare(strict_types=1);
  * diferentes — compor numa query só não compensaria. Pra 1-30 alunos
  * e 1-20 cursos, o custo é desprezível.
  *
- * Tenant isolation sempre via `tenant_id = ?` — courses diretamente
- * ou evaluation_submissions via coluna redundante plantada em E7-00.
+ * Tenant isolation via `tenant_id = ?`. Entregas: escopo por tenant do
+ * ALUNO (+ cursos acessíveis com o toggle E34) — ver `submissionsUnion`.
  */
 final class TeacherDashboard
 {
@@ -22,7 +22,7 @@ final class TeacherDashboard
      *   pending_submissions:int
      * }
      */
-    public static function totalsForTenant(int $tenantId): array
+    public static function totalsForTenant(int $tenantId, array $showAllCourseIds = []): array
     {
         $pdo = Database::pdo();
 
@@ -40,24 +40,8 @@ final class TeacherDashboard
         $students = (int) $stmt->fetchColumn();
 
         // Pending = sem feedback_at. Conta atividades + avaliações (corrente)
-        // numa tacada via UNION ALL.
-        $stmt = $pdo->prepare(
-            '(SELECT COUNT(*)
-                FROM activity_submissions s
-                JOIN activities a          ON a.id  = s.activity_id
-                JOIN competence_units cu   ON cu.id = a.competence_unit_id
-                JOIN core_competencies cc  ON cc.id = cu.core_competency_id
-                JOIN courses c             ON c.id  = cc.course_id AND c.tenant_id = ?
-               WHERE s.feedback_at IS NULL)
-             UNION ALL
-             (SELECT COUNT(*)
-                FROM evaluation_submissions s
-                JOIN evaluations e         ON e.id  = s.evaluation_id AND e.tenant_id = ?
-               WHERE s.feedback_at IS NULL)'
-        );
-        $stmt->execute([$tenantId, $tenantId]);
-        $counts = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        $pending = array_sum(array_map('intval', $counts));
+        // no mesmo escopo das listas (ver `submissionsUnion`).
+        $pending = self::countAllSubmissions($tenantId, true, $showAllCourseIds);
 
         return [
             'courses'              => $courses,
@@ -87,37 +71,14 @@ final class TeacherDashboard
      *   cu_name:string
      * }>
      */
-    public static function recentSubmissions(int $tenantId, int $limit = 10): array
+    public static function recentSubmissions(int $tenantId, int $limit = 10, array $showAllCourseIds = []): array
     {
         $limit = max(1, min(50, $limit));
+        [$sql, $params] = self::submissionsUnion($tenantId, false, $showAllCourseIds);
         $stmt = Database::pdo()->prepare(
-            '(SELECT \'activity\' AS src, s.activity_id AS ref_id,
-                     a.title AS ref_title,
-                     s.student_user_id AS student_id, u.name AS student_name,
-                     s.created_at, s.feedback_at,
-                     c.name AS course_name, cc.name AS cc_name, cu.name AS cu_name
-                FROM activity_submissions s
-                JOIN activities a          ON a.id  = s.activity_id
-                JOIN competence_units cu   ON cu.id = a.competence_unit_id
-                JOIN core_competencies cc  ON cc.id = cu.core_competency_id
-                JOIN courses c             ON c.id  = cc.course_id AND c.tenant_id = ?
-                JOIN users u               ON u.id  = s.student_user_id)
-             UNION ALL
-             (SELECT \'evaluation\' AS src, s.evaluation_id AS ref_id,
-                     e.title AS ref_title,
-                     s.student_user_id AS student_id, u.name AS student_name,
-                     s.created_at, s.feedback_at,
-                     c.name AS course_name, cc.name AS cc_name, cu.name AS cu_name
-                FROM evaluation_submissions s
-                JOIN evaluations e         ON e.id  = s.evaluation_id AND e.tenant_id = ?
-                JOIN competence_units cu   ON cu.id = e.competence_unit_id
-                JOIN core_competencies cc  ON cc.id = cu.core_competency_id
-                JOIN courses c             ON c.id  = cc.course_id
-                JOIN users u               ON u.id  = s.student_user_id)
-             ORDER BY (feedback_at IS NOT NULL), created_at DESC
-             LIMIT ?'
+            $sql . ' ORDER BY (feedback_at IS NOT NULL), created_at DESC LIMIT ?'
         );
-        $stmt->execute([$tenantId, $tenantId, $limit]);
+        $stmt->execute([...$params, $limit]);
         return $stmt->fetchAll();
     }
 
@@ -143,113 +104,80 @@ final class TeacherDashboard
         int $tenantId,
         bool $pendingOnly,
         int $perPage,
-        int $offset
+        int $offset,
+        array $showAllCourseIds = []
     ): array {
         $perPage = max(1, min(100, $perPage));
         $offset  = max(0, $offset);
 
-        if ($pendingOnly) {
-            $stmt = Database::pdo()->prepare(
-                '(SELECT \'activity\' AS src, s.activity_id AS ref_id,
-                         a.title AS ref_title,
-                         s.student_user_id AS student_id, u.name AS student_name,
-                         s.created_at, s.feedback_at,
-                         c.name AS course_name, cc.name AS cc_name, cu.name AS cu_name
-                    FROM activity_submissions s
-                    JOIN activities a          ON a.id  = s.activity_id
-                    JOIN competence_units cu   ON cu.id = a.competence_unit_id
-                    JOIN core_competencies cc  ON cc.id = cu.core_competency_id
-                    JOIN courses c             ON c.id  = cc.course_id AND c.tenant_id = ?
-                    JOIN users u               ON u.id  = s.student_user_id
-                   WHERE s.feedback_at IS NULL)
-                 UNION ALL
-                 (SELECT \'evaluation\' AS src, s.evaluation_id AS ref_id,
-                         e.title AS ref_title,
-                         s.student_user_id AS student_id, u.name AS student_name,
-                         s.created_at, s.feedback_at,
-                         c.name AS course_name, cc.name AS cc_name, cu.name AS cu_name
-                    FROM evaluation_submissions s
-                    JOIN evaluations e         ON e.id  = s.evaluation_id AND e.tenant_id = ?
-                    JOIN competence_units cu   ON cu.id = e.competence_unit_id
-                    JOIN core_competencies cc  ON cc.id = cu.core_competency_id
-                    JOIN courses c             ON c.id  = cc.course_id
-                    JOIN users u               ON u.id  = s.student_user_id
-                   WHERE s.feedback_at IS NULL)
-                 ORDER BY created_at DESC
-                 LIMIT ? OFFSET ?'
-            );
-            $stmt->execute([$tenantId, $tenantId, $perPage, $offset]);
-        } else {
-            $stmt = Database::pdo()->prepare(
-                '(SELECT \'activity\' AS src, s.activity_id AS ref_id,
-                         a.title AS ref_title,
-                         s.student_user_id AS student_id, u.name AS student_name,
-                         s.created_at, s.feedback_at,
-                         c.name AS course_name, cc.name AS cc_name, cu.name AS cu_name
-                    FROM activity_submissions s
-                    JOIN activities a          ON a.id  = s.activity_id
-                    JOIN competence_units cu   ON cu.id = a.competence_unit_id
-                    JOIN core_competencies cc  ON cc.id = cu.core_competency_id
-                    JOIN courses c             ON c.id  = cc.course_id AND c.tenant_id = ?
-                    JOIN users u               ON u.id  = s.student_user_id)
-                 UNION ALL
-                 (SELECT \'evaluation\' AS src, s.evaluation_id AS ref_id,
-                         e.title AS ref_title,
-                         s.student_user_id AS student_id, u.name AS student_name,
-                         s.created_at, s.feedback_at,
-                         c.name AS course_name, cc.name AS cc_name, cu.name AS cu_name
-                    FROM evaluation_submissions s
-                    JOIN evaluations e         ON e.id  = s.evaluation_id AND e.tenant_id = ?
-                    JOIN competence_units cu   ON cu.id = e.competence_unit_id
-                    JOIN core_competencies cc  ON cc.id = cu.core_competency_id
-                    JOIN courses c             ON c.id  = cc.course_id
-                    JOIN users u               ON u.id  = s.student_user_id)
-                 ORDER BY created_at DESC
-                 LIMIT ? OFFSET ?'
-            );
-            $stmt->execute([$tenantId, $tenantId, $perPage, $offset]);
-        }
+        [$sql, $params] = self::submissionsUnion($tenantId, $pendingOnly, $showAllCourseIds);
+        $stmt = Database::pdo()->prepare($sql . ' ORDER BY created_at DESC LIMIT ? OFFSET ?');
+        $stmt->execute([...$params, $perPage, $offset]);
         return $stmt->fetchAll();
     }
 
     /**
      * Total de submissões pra paginação (`/teacher/submissions`).
      */
-    public static function countAllSubmissions(int $tenantId, bool $pendingOnly): int
+    public static function countAllSubmissions(int $tenantId, bool $pendingOnly, array $showAllCourseIds = []): int
     {
-        if ($pendingOnly) {
-            $stmt = Database::pdo()->prepare(
-                '(SELECT COUNT(*)
-                    FROM activity_submissions s
-                    JOIN activities a          ON a.id  = s.activity_id
-                    JOIN competence_units cu   ON cu.id = a.competence_unit_id
-                    JOIN core_competencies cc  ON cc.id = cu.core_competency_id
-                    JOIN courses c             ON c.id  = cc.course_id AND c.tenant_id = ?
-                   WHERE s.feedback_at IS NULL)
-                 UNION ALL
-                 (SELECT COUNT(*)
-                    FROM evaluation_submissions s
-                    JOIN evaluations e         ON e.id  = s.evaluation_id AND e.tenant_id = ?
-                   WHERE s.feedback_at IS NULL)'
-            );
-            $stmt->execute([$tenantId, $tenantId]);
-        } else {
-            $stmt = Database::pdo()->prepare(
-                '(SELECT COUNT(*)
-                    FROM activity_submissions s
-                    JOIN activities a          ON a.id  = s.activity_id
-                    JOIN competence_units cu   ON cu.id = a.competence_unit_id
-                    JOIN core_competencies cc  ON cc.id = cu.core_competency_id
-                    JOIN courses c             ON c.id  = cc.course_id AND c.tenant_id = ?)
-                 UNION ALL
-                 (SELECT COUNT(*)
-                    FROM evaluation_submissions s
-                    JOIN evaluations e         ON e.id  = s.evaluation_id AND e.tenant_id = ?)'
-            );
-            $stmt->execute([$tenantId, $tenantId]);
-        }
-        $counts = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        return (int) array_sum(array_map('intval', $counts));
+        [$sql, $params] = self::submissionsUnion($tenantId, $pendingOnly, $showAllCourseIds);
+        $stmt = Database::pdo()->prepare('SELECT COUNT(*) FROM (' . $sql . ') t');
+        $stmt->execute($params);
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * UNION ALL de atividades + avaliações (tentativa corrente) no escopo do
+     * professor, sem ORDER/LIMIT (o caller completa).
+     *
+     * Escopo (ADR-040): entregas dos alunos do MEU tenant, em qualquer curso
+     * (inclui curso compartilhado comigo e colaborador revogado); mais, quando
+     * o toggle "ver todos" (E34) está ligado, as de TODOS os alunos dos cursos
+     * em `$showAllCourseIds` (os que eu acesso) — em curso compartilhado os dois
+     * professores corrigem a turma inteira. Antes filtrava pelo tenant do DONO
+     * do curso: o dono via as entregas dos alunos do colaborador (e caía em 404
+     * ao abrir) e o colaborador não via nem as dos próprios alunos.
+     *
+     * @param list<int> $showAllCourseIds
+     * @return array{0:string, 1:list<int>}
+     */
+    private static function submissionsUnion(int $tenantId, bool $pendingOnly, array $showAllCourseIds): array
+    {
+        $ids = array_values(array_unique(array_map('intval', $showAllCourseIds)));
+        $scope  = $ids === []
+            ? 'u.tenant_id = ?'
+            : '(u.tenant_id = ? OR c.id IN (' . implode(',', array_fill(0, count($ids), '?')) . '))';
+        $scopeParams = [$tenantId, ...$ids];
+        $pending = $pendingOnly ? ' AND s.feedback_at IS NULL' : '';
+
+        $sql = '(SELECT \'activity\' AS src, s.activity_id AS ref_id,
+                        a.title AS ref_title,
+                        s.student_user_id AS student_id, u.name AS student_name,
+                        s.created_at, s.feedback_at,
+                        c.name AS course_name, cc.name AS cc_name, cu.name AS cu_name
+                   FROM activity_submissions s
+                   JOIN activities a          ON a.id  = s.activity_id
+                   JOIN competence_units cu   ON cu.id = a.competence_unit_id
+                   JOIN core_competencies cc  ON cc.id = cu.core_competency_id
+                   JOIN courses c             ON c.id  = cc.course_id
+                   JOIN users u               ON u.id  = s.student_user_id
+                  WHERE ' . $scope . $pending . ')
+                UNION ALL
+                (SELECT \'evaluation\' AS src, s.evaluation_id AS ref_id,
+                        e.title AS ref_title,
+                        s.student_user_id AS student_id, u.name AS student_name,
+                        s.created_at, s.feedback_at,
+                        c.name AS course_name, cc.name AS cc_name, cu.name AS cu_name
+                   FROM evaluation_submissions s
+                   JOIN evaluations e         ON e.id  = s.evaluation_id
+                   JOIN competence_units cu   ON cu.id = e.competence_unit_id
+                   JOIN core_competencies cc  ON cc.id = cu.core_competency_id
+                   JOIN courses c             ON c.id  = cc.course_id
+                   JOIN users u               ON u.id  = s.student_user_id
+                  WHERE ' . $scope . $pending . ')';
+
+        return [$sql, [...$scopeParams, ...$scopeParams]];
     }
 
     /**

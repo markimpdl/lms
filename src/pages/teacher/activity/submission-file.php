@@ -21,7 +21,12 @@ if ($tenantId === null) {
 $activityId = (int) ($_REQUEST['id'] ?? 0);
 $studentId  = (int) ($_REQUEST['student_id'] ?? 0);
 
-$ctx = ActivitySubmission::findForTeacher($activityId, $studentId, $tenantId);
+// ADR-040: professor do curso (dono ou colaborador) baixa de qualquer aluno da turma.
+$__courseId      = Activity::courseIdOf($activityId);
+$studentTenantId = $__courseId !== null ? teacher_grading_student_tenant($studentId, $__courseId) : null;
+$ctx = $studentTenantId !== null
+    ? ActivitySubmission::findForTeacher($activityId, $studentId, $studentTenantId)
+    : null;
 if ($ctx === null || $ctx['submission']['filename'] === null) {
     abort_subresource(404);
 }

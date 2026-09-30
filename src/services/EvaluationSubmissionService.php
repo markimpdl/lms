@@ -246,9 +246,9 @@ final class EvaluationSubmissionService
         string $feedback,
         bool $retryAllowed
     ): array {
-        // E32 (ADR-033): autoriza a correção pela posse do ALUNO (meu tenant),
-        // não pela da avaliação. Em curso compartilhado o professor só corrige
-        // os próprios alunos; o dono segue idêntico (aluno no seu tenant).
+        // $tenantId = tenant do ALUNO (não o da avaliação), resolvido pela página
+        // via teacher_grading_student_tenant — ADR-040: em curso compartilhado
+        // qualquer professor do curso corrige qualquer aluno da turma.
         $stmt = $pdo->prepare(
             'SELECT s.id, s.evaluation_id, s.student_user_id
                FROM evaluation_submissions s
