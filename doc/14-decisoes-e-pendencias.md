@@ -61,7 +61,7 @@
 **Por quê:** escala pequena, risco aceito pelo usuário. Simplifica o MVP.
 **A revisar quando:** entrarem professores externos via SaaS.
 
-### ADR-014 — Idioma do email segue idioma do curso
+### ADR-014 — Idioma do email segue idioma do curso (substituído pelo ADR-041)
 **Decisão:** emails relacionados a um curso (feedback, nota, nova atividade, reenvio liberado) usam o idioma configurado no curso pelo professor. Emails fora desse contexto (boas-vindas, recuperação de senha) usam o idioma do perfil do usuário.
 **Por quê:** preserva coerência com o conteúdo que o aluno está estudando, mesmo que a preferência pessoal dele seja outra.
 
@@ -280,6 +280,11 @@
 - Roster da CU: células de entrega de alunos de outro professor passam a ter link de correção.
 
 **Limitação herdada:** os cards de métricas das telas de entregas continuam owner-only (gate por tenant do dono em `CourseMetrics`).
+
+### ADR-041 — Idioma do email é o do destinatário, inglês por padrão (substitui ADR-014)
+**Decisão:** todo email (notificação de curso, boas-vindas, reset de senha) usa o `users.language` de quem recebe, nunca o idioma do curso. Qualquer valor ausente ou inválido cai em inglês, e o cadastro de aluno e de professor passa a sugerir inglês (antes o formulário de aluno herdava o idioma do professor logado, o que marcava alunos como `pt` sem eles escolherem).
+**Por quê:** o público é de escolas nos Emirados; email em português só faz sentido para quem escolheu português. Pedido do PO em 2026-10-04.
+**Consequência:** alunos já cadastrados como `pt` por herança continuam recebendo em português até o professor trocar o idioma deles no cadastro.
 
 ## Pendências em aberto
 

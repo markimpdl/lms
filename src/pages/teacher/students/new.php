@@ -17,7 +17,7 @@ $errors = [];
 $old = [
     'name'        => '',
     'email'       => '',
-    'language'    => current_user()['language'] ?? 'pt',
+    'language'    => 'en',
     'gender'      => '',
     'id_document' => '',
     'send_email'  => '1',
@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old = [
         'name'        => (string) ($_POST['name']        ?? ''),
         'email'       => (string) ($_POST['email']       ?? ''),
-        'language'    => (string) ($_POST['language']    ?? 'pt'),
+        'language'    => (string) ($_POST['language']    ?? 'en'),
         'gender'      => (string) ($_POST['gender']      ?? ''),
         'id_document' => trim((string) ($_POST['id_document'] ?? '')),
         'send_email'  => isset($_POST['send_email']) ? '1' : '0',

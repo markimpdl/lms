@@ -524,7 +524,7 @@ final class AuthController
             return;
         }
         $primary = $accounts[0];
-        $lang = in_array($primary['language'], ['pt', 'en'], true) ? $primary['language'] : 'pt';
+        $lang = in_array($primary['language'], ['pt', 'en'], true) ? $primary['language'] : 'en';
         $base = rtrim((string) ($GLOBALS['__ENV']['APP_BASE_URL'] ?? ''), '/');
         $isMulti = count($accounts) > 1;
 

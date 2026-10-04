@@ -73,10 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($errors === []) {
         ActivitySubmission::saveFeedback($activityId, $studentId, $oldFeedback);
 
-        // Fanout via NotificationService (E10-00). courseId fica null por
-        // ora — `findForTeacher` só retorna cu_id; E10-03 adiciona o id do
-        // curso ao retorno quando o email for cabeado, pra resolver o
-        // idioma via `courses.language`.
+        // Fanout via NotificationService (E10-00). O idioma do email é o do
+        // aluno (ADR-041), então courseId null não muda nada aqui.
         NotificationService::fanout(
             NotificationService::EVENT_ACTIVITY_FEEDBACK,
             [$studentId],

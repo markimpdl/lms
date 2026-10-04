@@ -270,7 +270,7 @@ final class AdminTeachersController
 
     private static function sendEmailTemplate(string $template, array $teacher): void
     {
-        $lang = in_array($teacher['language'], ['pt', 'en'], true) ? $teacher['language'] : 'pt';
+        $lang = in_array($teacher['language'], ['pt', 'en'], true) ? $teacher['language'] : 'en';
         $path = LMS_ROOT . '/src/templates/email/' . $template . '.' . $lang . '.php';
 
         $base = rtrim((string) ($GLOBALS['__ENV']['APP_BASE_URL'] ?? ''), '/');

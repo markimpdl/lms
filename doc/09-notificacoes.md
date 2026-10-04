@@ -50,7 +50,7 @@ Cada notificação guarda:
 ## Email
 
 - Templates em HTML com versão texto fallback.
-- Templates bilíngues (PT/EN) — escolhe conforme o **idioma do curso relacionado à notificação**. Para emails sem contexto de curso (boas-vindas, recuperação de senha), usa o idioma do perfil do usuário.
+- Templates bilíngues (PT/EN) — escolhe conforme o **idioma do perfil do destinatário** (`users.language`), em qualquer email. Inglês é o padrão: só recebe em português quem tem português definido no perfil (ADR-041).
 - Remetente: configurável por tenant (com fallback para remetente global da plataforma).
 - Link no email sempre aponta para a mesma URL interna da notificação correspondente.
 

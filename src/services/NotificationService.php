@@ -13,8 +13,8 @@ declare(strict_types=1);
  *    impede o sino. Falhas vão pra `storage/logs/mail-failures.log` até
  *    E10-07 promover pra tabela.
  *  - Timeout no SMTP via `SMTP_TIMEOUT` em `config/env.php` (default 10s).
- *  - Idioma do email: `courses.language` quando `$courseId` informado;
- *    senão, `users.language` de cada destinatário (doc/09).
+ *  - Idioma do email: `users.language` de cada destinatário; inglês por
+ *    padrão (ADR-041). `$courseId` não decide mais o idioma.
  *  - Template é `$type` (ex.: 'activity_feedback' → activity_feedback.<lang>.php).
  *    Vars disponíveis: `:student_name`, `:title`, `:body`, `:link` (abs URL).
  *
@@ -123,7 +123,7 @@ final class NotificationService
                 continue;
             }
 
-            $lang = self::resolveLanguage((int) $r['id'], $courseId);
+            $lang = self::resolveLanguage((int) $r['id']);
             $rendered = EmailTemplates::render($type, $lang, [
                 'student_name' => (string) ($r['name'] ?? ''),
                 'title'        => $title,
@@ -146,29 +146,18 @@ final class NotificationService
     }
 
     /**
-     * Resolve o idioma pro template de email: `courses.language` quando
-     * houver contexto de curso (doc/09); senão, `users.language`. Fallback
-     * 'pt' se nenhum dos dois resolver (usuário deletado, curso inválido).
+     * Resolve o idioma pro template de email: sempre `users.language` do
+     * destinatário (ADR-041 — revisa ADR-014; o idioma do curso não entra).
+     * Fallback 'en' se o usuário não resolver.
      */
-    public static function resolveLanguage(int $userId, ?int $courseId): string
+    public static function resolveLanguage(int $userId): string
     {
-        if ($courseId !== null) {
-            $stmt = Database::pdo()->prepare(
-                'SELECT language FROM courses WHERE id = ? LIMIT 1'
-            );
-            $stmt->execute([$courseId]);
-            $lang = $stmt->fetchColumn();
-            if ($lang !== false) {
-                return (string) $lang;
-            }
-        }
-
         $stmt = Database::pdo()->prepare(
             'SELECT language FROM users WHERE id = ? LIMIT 1'
         );
         $stmt->execute([$userId]);
         $lang = $stmt->fetchColumn();
-        return $lang !== false ? (string) $lang : 'pt';
+        return $lang === 'pt' ? 'pt' : 'en';
     }
 
     /**

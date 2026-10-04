@@ -279,7 +279,7 @@ final class TeacherStudentsController
      */
     private static function sendWelcomeEmail(array $student): void
     {
-        $lang = in_array($student['language'], ['pt', 'en'], true) ? $student['language'] : 'pt';
+        $lang = in_array($student['language'], ['pt', 'en'], true) ? $student['language'] : 'en';
         $path = LMS_ROOT . '/src/templates/email/student_welcome.' . $lang . '.php';
 
         $base = rtrim((string) ($GLOBALS['__ENV']['APP_BASE_URL'] ?? ''), '/');
@@ -306,7 +306,7 @@ final class TeacherStudentsController
      */
     private static function sendPasswordResetEmail(array $student): void
     {
-        $lang = in_array($student['language'], ['pt', 'en'], true) ? $student['language'] : 'pt';
+        $lang = in_array($student['language'], ['pt', 'en'], true) ? $student['language'] : 'en';
         $path = LMS_ROOT . '/src/templates/email/student_password_reset.' . $lang . '.php';
 
         $base = rtrim((string) ($GLOBALS['__ENV']['APP_BASE_URL'] ?? ''), '/');

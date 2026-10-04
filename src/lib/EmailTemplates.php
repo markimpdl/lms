@@ -19,8 +19,8 @@ declare(strict_types=1);
  * quando entram no corpo HTML; passam raw no subject e no texto
  * plain-text (onde não há risco de injeção de markup).
  *
- * Fallback: se não existir arquivo para o `$lang` pedido, cai pra `pt`.
- * Se também não existir em `pt`, retorna strings vazias (o chamador
+ * Fallback: se não existir arquivo para o `$lang` pedido, cai pra `en`.
+ * Se também não existir em `en`, retorna strings vazias (o chamador
  * decide se loga / aborta / manda um alerta genérico).
  */
 final class EmailTemplates
@@ -33,7 +33,7 @@ final class EmailTemplates
      */
     public static function render(string $name, string $lang, array $vars = []): array
     {
-        $lang = in_array($lang, ['pt', 'en'], true) ? $lang : 'pt';
+        $lang = in_array($lang, ['pt', 'en'], true) ? $lang : 'en';
 
         // Defesa contra path traversal: `$name` vai direto num `require`.
         // Hoje é sempre um literal interno (ex.: 'activity_feedback'), mas
@@ -65,7 +65,7 @@ final class EmailTemplates
     }
 
     /**
-     * Carrega `<name>.<lang>.php` com fallback pra `<name>.pt.php`.
+     * Carrega `<name>.<lang>.php` com fallback pra `<name>.en.php`.
      * Retorna array vazio e loga em `storage/logs/email-missing.log` se
      * nenhum dos dois existir (padrão igual ao i18n em `helpers.php`).
      *
@@ -74,8 +74,8 @@ final class EmailTemplates
     private static function load(string $name, string $lang): array
     {
         $file = LMS_ROOT . self::BASE . $name . '.' . $lang . '.php';
-        if (!is_file($file) && $lang !== 'pt') {
-            $file = LMS_ROOT . self::BASE . $name . '.pt.php';
+        if (!is_file($file) && $lang !== 'en') {
+            $file = LMS_ROOT . self::BASE . $name . '.en.php';
         }
         if (!is_file($file)) {
             if (!str_starts_with($name, '_')) {

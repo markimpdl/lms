@@ -14,7 +14,7 @@ $errors = [];
 $old    = [
     'name'        => '',
     'email'       => '',
-    'language'    => 'pt',
+    'language'    => 'en',
     'tenant_name' => '',
     'is_actvet'   => '0',
     'send_email'  => '1',
@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old = [
         'name'        => (string) ($_POST['name']        ?? ''),
         'email'       => (string) ($_POST['email']       ?? ''),
-        'language'    => (string) ($_POST['language']    ?? 'pt'),
+        'language'    => (string) ($_POST['language']    ?? 'en'),
         'tenant_name' => (string) ($_POST['tenant_name'] ?? ''),
         'is_actvet'   => isset($_POST['is_actvet']) ? '1' : '0',
         'send_email'  => isset($_POST['send_email']) ? '1' : '0',
