@@ -281,12 +281,11 @@
 
 **Limitação herdada:** os cards de métricas das telas de entregas continuam owner-only (gate por tenant do dono em `CourseMetrics`).
 
-## Pendências em aberto
-
-Nenhuma no momento. (F22–F24 tiveram suas dúvidas resolvidas no story breakdown de 2026-06-05: revogação de colaborador é reversível com "desfazer"; notificação `course_shared` confirmada; cópia mantém `published` da origem; auditoria registra todo save de conteúdo. F25–F26 consolidadas com o PO em 2026-06-08: toggle "ver todos" é só leitura agregada — ver ADR-036; widgets em iframe sandbox de origem nula, biblioteca compartilhada no curso — ver ADR-037 e `doc/24-widgets.md`.)
-
 ### ADR-041 — Idioma do email é o do destinatário, inglês por padrão (substitui ADR-014)
 **Decisão:** todo email (notificação de curso, boas-vindas, reset de senha) usa o `users.language` de quem recebe, nunca o idioma do curso. Qualquer valor ausente ou inválido cai em inglês, e o cadastro de aluno e de professor passa a sugerir inglês (antes o formulário de aluno herdava o idioma do professor logado, o que marcava alunos como `pt` sem eles escolherem).
 **Por quê:** o público é de escolas nos Emirados; email em português só faz sentido para quem escolheu português. Pedido do PO em 2026-10-04.
 **Consequência:** alunos já cadastrados como `pt` por herança continuam recebendo em português até o professor trocar o idioma deles no cadastro.
 
+## Pendências em aberto
+
+Nenhuma no momento. (F22–F24 tiveram suas dúvidas resolvidas no story breakdown de 2026-06-05: revogação de colaborador é reversível com "desfazer"; notificação `course_shared` confirmada; cópia mantém `published` da origem; auditoria registra todo save de conteúdo. F25–F26 consolidadas com o PO em 2026-06-08: toggle "ver todos" é só leitura agregada — ver ADR-036; widgets em iframe sandbox de origem nula, biblioteca compartilhada no curso — ver ADR-037 e `doc/24-widgets.md`.)
