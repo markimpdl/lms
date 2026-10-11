@@ -80,6 +80,8 @@ final class CompetenceUnit
         Database::pdo()
             ->prepare('DELETE FROM competence_units WHERE id = ?')
             ->execute([$id]);
+        // Cascade leva activities/evaluations, mas não o quiz polimórfico.
+        Quiz::purgeOrphans(Database::pdo());
         return 'ok';
     }
 

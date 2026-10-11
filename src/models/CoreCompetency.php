@@ -97,6 +97,8 @@ final class CoreCompetency
         Database::pdo()
             ->prepare('DELETE FROM core_competencies WHERE id = ?')
             ->execute([$id]);
+        // Cascade leva activities/evaluations, mas não o quiz polimórfico.
+        Quiz::purgeOrphans(Database::pdo());
         return 'ok';
     }
 

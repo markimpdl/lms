@@ -137,7 +137,9 @@ final class Activity
                 $data['allow_online_code_run'] ? 1 : 0,
                 $pos,
             ]);
-            return (int) $pdo->lastInsertId();
+            $newId = (int) $pdo->lastInsertId();
+            Quiz::purgeForOwner($pdo, 'activity', $newId);
+            return $newId;
         });
     }
 
@@ -286,6 +288,7 @@ final class Activity
 
             $pdo->prepare('DELETE FROM activities WHERE id = ?')
                 ->execute([$id]);
+            Quiz::purgeForOwner($pdo, 'activity', $id);
 
             return [
                 'status'       => 'ok',

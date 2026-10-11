@@ -457,6 +457,8 @@ final class Course
 
         $pdo->prepare('DELETE FROM courses WHERE id = ? AND tenant_id = ?')
             ->execute([$courseId, $tenantId]);
+        // Cascade leva activities/evaluations, mas não o quiz polimórfico.
+        Quiz::purgeOrphans($pdo);
 
         foreach ($paths as $p) {
             safe_unlink_storage((string) $p);
