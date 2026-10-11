@@ -64,6 +64,38 @@ final class Quiz
         return (int) Database::pdo()->lastInsertId();
     }
 
+    /**
+     * Apaga o quiz preso a um owner, SEM filtro de tenant. Só pra chamar logo
+     * após criar ou apagar a activity/evaluation dona.
+     *
+     * Quiz é polimórfico (sem FK pro dono), e o MariaDB da hospedagem reaproveita
+     * o id de activity apagada (AUTO_INCREMENT volta a MAX+1 no restart). O quiz
+     * que sobrou casava com a atividade nova: a cópia de CU estourava
+     * uk_quiz_owner e a tela de quiz abria com as questões da atividade antiga.
+     * Owner recém-criado não tem quiz legítimo; o que existir é resto — de
+     * qualquer tenant, por isso o filtro não cabe aqui.
+     */
+    public static function purgeForOwner(PDO $pdo, string $ownerType, int $ownerId): void
+    {
+        $pdo->prepare('DELETE FROM quizzes WHERE owner_type = ? AND owner_id = ?')
+            ->execute([$ownerType, $ownerId]);
+    }
+
+    /**
+     * Apaga todo quiz cujo dono não existe mais. Chamado depois de exclusões em
+     * cascata (CU, CC, curso), que levam activities/evaluations pelo schema mas
+     * não alcançam `quizzes`. Só toca linha órfã, então não precisa de tenant.
+     */
+    public static function purgeOrphans(PDO $pdo): void
+    {
+        $pdo->exec(
+            "DELETE q FROM quizzes q
+               LEFT JOIN activities  a ON q.owner_type = 'activity'   AND a.id = q.owner_id
+               LEFT JOIN evaluations e ON q.owner_type = 'evaluation' AND e.id = q.owner_id
+              WHERE a.id IS NULL AND e.id IS NULL"
+        );
+    }
+
     public static function updateShowAnswers(int $quizId, int $tenantId, bool $showAnswers): bool
     {
         $stmt = Database::pdo()->prepare(

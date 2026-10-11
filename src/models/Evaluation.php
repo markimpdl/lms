@@ -136,7 +136,9 @@ final class Evaluation
                 $data['xp_value'],
                 $data['submission_open'] ? 1 : 0,
             ]);
-            return (int) $pdo->lastInsertId();
+            $newId = (int) $pdo->lastInsertId();
+            Quiz::purgeForOwner($pdo, 'evaluation', $newId);
+            return $newId;
         });
     }
 
@@ -268,6 +270,7 @@ final class Evaluation
 
             $pdo->prepare('DELETE FROM evaluations WHERE id = ?')
                 ->execute([$id]);
+            Quiz::purgeForOwner($pdo, 'evaluation', $id);
 
             return [
                 'status'       => 'ok',

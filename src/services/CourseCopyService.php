@@ -443,6 +443,7 @@ final class CourseCopyService
                     (int) $act['xp_value'], (int) $act['submission_open'], (int) $act['allow_online_code_run'], (int) $act['position'],
                 ]
             );
+            Quiz::purgeForOwner($pdo, 'activity', $newActId);
 
             $targets[] = [
                 'table' => 'activities',
@@ -486,6 +487,7 @@ final class CourseCopyService
                 (int) $ev['xp_value'], (int) $ev['submission_open'],
             ]
         );
+        Quiz::purgeForOwner($pdo, 'evaluation', $newEvalId);
 
         if (!empty($ev['pdf_path'])) {
             $ext     = pathinfo((string) $ev['pdf_path'], PATHINFO_EXTENSION) ?: 'pdf';
