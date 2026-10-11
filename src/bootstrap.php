@@ -60,6 +60,22 @@ if (PHP_SAPI !== 'cli' && session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// 3.b Payload anti-WAF ----------------------------------------------------
+// public/assets/js/app.js manda os campos de texto de todo form POST num unico
+// `__waf` = base64(querystring), pra o WAF da hospedagem nao barrar conteudo
+// legitimo com 406. Reconstroi $_POST como se o form tivesse ido cru; a
+// validacao/sanitizacao de sempre (CSRF, HTML Purifier) roda depois, igual.
+if (PHP_SAPI !== 'cli' && isset($_POST['__waf']) && is_string($_POST['__waf'])) {
+    $wafRaw = base64_decode($_POST['__waf'], true);
+    unset($_POST['__waf'], $_REQUEST['__waf']);
+    if ($wafRaw !== false) {
+        parse_str($wafRaw, $wafFields);
+        $_POST    = array_replace($_POST, $wafFields);
+        $_REQUEST = array_replace($_REQUEST, $wafFields);
+    }
+    unset($wafRaw, $wafFields);
+}
+
 // 4. Autoload -----------------------------------------------------------
 // Composer primeiro (dependências com namespace: PHPMailer, etc.). Depois o
 // autoload por convenção do projeto, que cobre classes sem namespace em
