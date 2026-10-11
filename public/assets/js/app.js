@@ -78,6 +78,37 @@
         overlayShowTimer = window.setTimeout(showOverlay, 150);
     }, false);
 
+    // WAF da hospedagem (mod_security) devolve 406 antes do app quando o texto
+    // tem cara de SQL, contas com `=`, certas sequencias de tags, arabe com
+    // harakat... e a lista so cresce. No envio de todo form POST, os campos de
+    // texto viram um unico `__waf` = base64(querystring urlencoded), opaco pro
+    // WAF; src/bootstrap.php reconstroi $_POST. Arquivos seguem no multipart.
+    // Opt-out: atributo data-no-waf-encode no form. Sem JS, envio normal.
+    document.addEventListener('formdata', function (event) {
+        var form = event.target;
+        if (!form || form.tagName !== 'FORM') return;
+        if ((form.getAttribute('method') || 'get').toLowerCase() !== 'post') return;
+        if (form.hasAttribute('data-no-waf-encode')) return;
+
+        var fd = event.formData;
+        if (fd.has('__waf')) return;
+        var params = new URLSearchParams();
+        var names = [];
+        fd.forEach(function (value, name) {
+            if (typeof value !== 'string') return;
+            params.append(name, value);
+            if (names.indexOf(name) === -1) names.push(name);
+        });
+        if (names.length === 0) return;
+        for (var i = 0; i < names.length; i++) {
+            // delete remove todas as entradas do nome; arquivos com o mesmo
+            // nome nao existem (campo de arquivo tem nome proprio).
+            fd.delete(names[i]);
+        }
+        // URLSearchParams ja percent-encoda tudo (saida ASCII) — btoa direto.
+        fd.append('__waf', window.btoa(params.toString()));
+    });
+
     // BFCache (back button): restaura estado quando o navegador "ressuscita"
     // a pagina cacheada — overlay e botões ficariam travados sem isso.
     window.addEventListener('pageshow', function (event) {
