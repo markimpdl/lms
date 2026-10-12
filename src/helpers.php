@@ -1599,6 +1599,28 @@ function lesson_image_picker_options(int $cuId, int $tenantId): array
 }
 
 /**
+ * Áudios (MP3) anexados à CU, no formato do botão "Áudio" dos editores
+ * TinyMCE. Mesma rota autenticada de view das imagens — a reescrita
+ * teacher→student no render, o rehost e o remap da cópia de curso já
+ * tratam o `src` do `<audio>` igual ao do `<img>`.
+ *
+ * @return list<array{title:string, value:string}>
+ */
+function lesson_audio_picker_options(int $cuId, int $tenantId): array
+{
+    $out = [];
+    foreach (ContentAttachment::listByCu($cuId, $tenantId) as $att) {
+        if (str_starts_with((string) $att['mime'], 'audio/')) {
+            $out[] = [
+                'title' => (string) $att['filename'],
+                'value' => '/teacher/cu/' . $cuId . '/attachment/' . (int) $att['id'] . '/view',
+            ];
+        }
+    }
+    return $out;
+}
+
+/**
  * Tema visual do usuário atual (E27 — F18). Apenas aluno tem preferência;
  * teacher/super-admin/deslogado retornam 'light'. Decisão simplificadora
  * do MVP — dark mode pra teacher/admin entra em E29 (visual unificado).

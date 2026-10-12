@@ -94,6 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $imagePickerOptions = lesson_image_picker_options($cuId, $tenantId);
+$audioPickerOptions = lesson_audio_picker_options($cuId, $tenantId);
 
 // Aviso do modal de exclusao: quantos alunos ja concluiram esta licao. Apagar
 // remove as conclusoes (CASCADE) e o XP creditado — o professor tem de ver o

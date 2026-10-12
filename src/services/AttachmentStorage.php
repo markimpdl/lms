@@ -16,7 +16,8 @@ declare(strict_types=1);
  * porque o UUID diferencia no disco.
  *
  * Tipos aceitos + mime validado via `finfo_file` (mime real, não só
- * extensão). Tamanho máximo 12 MB (v0.30.0 — antes 3 MB).
+ * extensão). Tamanho máximo 12 MB (v0.30.0 — antes 3 MB). MP3 entra
+ * pra ser tocado com `<audio>` no conteúdo, lição e atividade.
  */
 final class AttachmentStorage
 {
@@ -32,6 +33,18 @@ final class AttachmentStorage
         'image/jpeg'         => 'jpg',
         'image/gif'          => 'gif',
         'image/webp'         => 'webp',
+        'audio/mpeg'         => 'mp3',
+    ];
+
+    /**
+     * Mimes que o `finfo` devolve pra MP3 dependendo da versão do libmagic e
+     * de o arquivo ter ou não tag ID3. Normalizados pra `audio/mpeg`, que é o
+     * Content-Type que o `<audio>` espera na hora de servir.
+     */
+    private const MIME_ALIASES = [
+        'audio/mp3'    => 'audio/mpeg',
+        'audio/x-mp3'  => 'audio/mpeg',
+        'audio/x-mpeg' => 'audio/mpeg',
     ];
 
     /**
@@ -65,6 +78,7 @@ final class AttachmentStorage
 
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mime  = (string) $finfo->file($tmp);
+        $mime  = self::MIME_ALIASES[$mime] ?? $mime;
         if (!isset(self::ALLOWED[$mime])) {
             return ['status' => 'error', 'error_key' => 'attachments.err.mime'];
         }
@@ -131,11 +145,70 @@ final class AttachmentStorage
         // que poderiam injetar cabeçalhos falsos (CRLF injection).
         $safeName = str_replace(['"', "\n", "\r"], '_', (string) $attachment['filename']);
 
+        // O arquivo pode ser um MP3 longo tocando num `<audio>`: soltar a
+        // trava da sessão já, senão o navegador fica preso nas outras
+        // requisições do mesmo usuário enquanto o áudio baixa.
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+
+        $size  = (int) filesize($realFile);
+        $start = 0;
+        $end   = $size - 1;
+
+        // Range de um intervalo só (`bytes=a-b`, `bytes=a-`, `bytes=-n`).
+        // O Safari/iOS não toca `<audio>` se o servidor não responder 206, e
+        // sem Range nenhum navegador consegue avançar a faixa.
+        // Range malformado ou com vários intervalos é ignorado: vai o arquivo
+        // inteiro com 200, como o RFC 9110 permite.
+        $range = (string) ($_SERVER['HTTP_RANGE'] ?? '');
+        if ($size > 0
+            && preg_match('/^bytes=(\d*)-(\d*)$/', trim($range), $m)
+            && ($m[1] !== '' || $m[2] !== '')
+        ) {
+            if ($m[1] === '') {
+                $start = max(0, $size - (int) $m[2]);
+            } else {
+                $start = (int) $m[1];
+                if ($m[2] !== '') {
+                    $end = min((int) $m[2], $size - 1);
+                }
+            }
+            if ($start > $end || $start >= $size) {
+                header('Content-Range: bytes */' . $size);
+                http_response_code(416);
+                exit;
+            }
+            http_response_code(206);
+            header('Content-Range: bytes ' . $start . '-' . $end . '/' . $size);
+        }
+
         header('Content-Type: ' . $attachment['mime']);
-        header('Content-Length: ' . filesize($realFile));
+        header('Accept-Ranges: bytes');
+        header('Content-Length: ' . ($end - $start + 1));
         header('Content-Disposition: ' . $disposition . '; filename="' . $safeName . '"');
         header('X-Content-Type-Options: nosniff');
-        readfile($realFile);
+
+        if ($start === 0 && $end === $size - 1) {
+            readfile($realFile);
+            exit;
+        }
+
+        $fh = fopen($realFile, 'rb');
+        if ($fh === false) {
+            exit;
+        }
+        fseek($fh, $start);
+        $left = $end - $start + 1;
+        while ($left > 0 && !feof($fh)) {
+            $chunk = fread($fh, min(65536, $left));
+            if ($chunk === false || $chunk === '') {
+                break;
+            }
+            echo $chunk;
+            $left -= strlen($chunk);
+        }
+        fclose($fh);
         exit;
     }
 

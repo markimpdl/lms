@@ -152,6 +152,7 @@ $activityName   = (string) $activity['title'];
 $currentPdfPath = $activity['pdf_path'] !== null ? (string) $activity['pdf_path'] : null;
 $maxMb          = (int) ((ActivityBriefStorage::maxBytes()) / (1024 * 1024));
 $imagePickerOptions = lesson_image_picker_options($cuId, $tenantId);
+$audioPickerOptions = lesson_audio_picker_options($cuId, $tenantId);
 
 // E6-05: contagens e counts formatados pra o modal de exclusão.
 $deleteCounts = Activity::countForDelete($activityId);

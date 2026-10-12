@@ -95,6 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $imagePickerOptions = lesson_image_picker_options($cuId, $tenantId);
+$audioPickerOptions = lesson_audio_picker_options($cuId, $tenantId);
 
 $courseId   = (int) $cu['course_id'];
 $formAction = '/teacher/cu/' . $cuId . '/lesson/new';

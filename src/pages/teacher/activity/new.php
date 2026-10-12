@@ -188,6 +188,7 @@ $activityName   = (string) $cu['name'];
 $currentPdfPath = null;
 $maxMb          = (int) ((ActivityBriefStorage::maxBytes()) / (1024 * 1024));
 $imagePickerOptions = lesson_image_picker_options($cuId, $tenantId);
+$audioPickerOptions = lesson_audio_picker_options($cuId, $tenantId);
 
 $page_title = __t('activities.new.title');
 ob_start();

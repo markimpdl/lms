@@ -66,6 +66,17 @@ foreach ($attachments as $att) {
     }
 }
 
+// MP3 anexados, pro botão "Áudio" do editor (mesma rota de view).
+$audioPickerOptions = [];
+foreach ($attachments as $att) {
+    if (str_starts_with((string) $att['mime'], 'audio/')) {
+        $audioPickerOptions[] = [
+            'title' => (string) $att['filename'],
+            'value' => '/teacher/cu/' . $cuId . '/attachment/' . (int) $att['id'] . '/view',
+        ];
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         csrf_verify();
@@ -203,7 +214,7 @@ ob_start();
                     <div class="flex-grow-1">
                         <label for="fAttachment" class="form-label"><?= e(__t('attachments.upload_label')) ?></label>
                         <input type="file" name="attachment" id="fAttachment" class="form-control"
-                               accept=".pdf,.zip,.txt,.png,.jpg,.jpeg,.gif,.webp" required>
+                               accept=".pdf,.zip,.txt,.png,.jpg,.jpeg,.gif,.webp,.mp3" required>
                         <div class="form-text"><?= e(__t('attachments.upload_hint')) ?></div>
                     </div>
                     <button type="submit" class="btn btn-primary">
@@ -248,6 +259,7 @@ ob_start();
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js" referrerpolicy="origin"></script>
+<?php require LMS_ROOT . '/src/templates/partials/tinymce_audio.php'; ?>
 <script>
 // Resolver de URL para o plugin `media` (E5-02): só aceita YouTube, Vimeo e
 // OnlineGDB, converte qualquer forma (watch, youtu.be, shorts, vimeo.com) no iframe
@@ -310,7 +322,7 @@ tinymce.init({
     menubar: false,
     plugins: 'lists link table code codesample autolink media image',
     toolbar: 'undo redo | blocks | bold italic underline strikethrough forecolor | ' +
-             'alignleft aligncenter alignright | bullist numlist | link table image media | ' +
+             'alignleft aligncenter alignright | bullist numlist | link table image media audioinsert | ' +
              'widgetinsert | codesample code removeformat',
     block_formats: 'Parágrafo=p; Título 2=h2; Título 3=h3; Título 4=h4',
     // Atalhos markdown enquanto digita. Sobrescreve o padrão do TinyMCE de
@@ -374,9 +386,12 @@ tinymce.init({
                    'table{width:100%;border-collapse:collapse}' +
                    'table td,table th{border:1px solid #dee2e6;padding:.4rem}' +
                    'iframe.content-video{width:100%;aspect-ratio:16/9;border:0}' +
-                   'iframe.content-code{width:100%;height:520px;border:0}',
+                   'iframe.content-code{width:100%;height:520px;border:0}' +
+                   'audio{width:100%;max-width:520px}',
     mobile: { toolbar_mode: 'floating' },
     setup: function (editor) {
+        lmsRegisterAudioButton(editor);
+
         // Autosave de rascunho local — salva em localStorage a cada 3s de
         // ociosidade. Protege contra perda de trabalho quando a sessao
         // expira no meio da edicao (CSRF/auth fail no submit).

@@ -6,7 +6,7 @@ declare(strict_types=1);
  * biblioteca ezyang/htmlpurifier.
  *
  * Allowlist estrita (OWASP): tags de texto, títulos, listas, links,
- * tabelas, imagens e iframe restrito ao embed de YouTube e Vimeo
+ * tabelas, imagens, áudio (`<audio>` de MP3 anexado) e iframe restrito ao embed de YouTube e Vimeo
  * (E5-02) e ao compilador OnlineGDB (`www.onlinegdb.com/embed/`). Remove silenciosamente qualquer tag/atributo fora da
  * allowlist e event handlers (`onclick`, `onerror`, etc.).
  *
@@ -63,6 +63,7 @@ final class ContentSanitizer
             'img[src|alt|title|width|height]',
             'iframe[src|width|height|allowfullscreen|frameborder|loading|class]',
             'div[class]', 'figure[class]', 'figcaption',
+            'audio[src|controls|preload]',
         ]));
 
         $config->set('CSS.AllowedProperties', ['color', 'background-color', 'text-align', 'font-weight', 'font-style']);
@@ -71,12 +72,37 @@ final class ContentSanitizer
         $config->set('Attr.DefaultInvalidImageAlt', '');
         $config->set('AutoFormat.AutoParagraph', false);
         $config->set('AutoFormat.RemoveEmpty', true);
+        // `<audio>` é vazio por natureza (o arquivo vem do `src`); sem entrar
+        // no predicado o RemoveEmpty apagaria o player. Os demais são o
+        // padrão da lib.
+        $config->set('AutoFormat.RemoveEmpty.Predicate', [
+            'colgroup' => [], 'th' => [], 'td' => [],
+            'iframe'   => ['src'],
+            'audio'    => ['src'],
+        ]);
 
         $config->set('HTML.SafeIframe', true);
         $config->set(
             'URI.SafeIframeRegexp',
             '%^https://(www\.youtube\.com/embed/|player\.vimeo\.com/video/|www\.onlinegdb\.com/embed/)%'
         );
+
+        // `<audio>` não existe no doctype HTML 4.01 da lib — definido aqui.
+        // Inline pra poder ficar dentro do `<p>` em que o TinyMCE o insere.
+        // Conteúdo `#PCDATA` (e não Empty): elemento Empty sai sem a tag de
+        // fechamento no HTML 4, e o navegador engoliria o resto da página
+        // como fallback do player. ID/Rev versionam o cache serializado —
+        // subir o Rev a cada mudança na definição.
+        $config->set('HTML.DefinitionID', 'lms-content');
+        $config->set('HTML.DefinitionRev', 1);
+        $def = $config->maybeGetRawHTMLDefinition();
+        if ($def !== null) {
+            $def->addElement('audio', 'Inline', 'Optional: #PCDATA', 'Common', [
+                'src'      => 'URI',
+                'controls' => 'Bool#controls',
+                'preload'  => 'Enum#none,metadata,auto',
+            ]);
+        }
 
         self::$purifier = new HTMLPurifier($config);
         return self::$purifier;
