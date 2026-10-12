@@ -1575,20 +1575,26 @@ function lesson_validate(array $input): array
 }
 
 /**
- * Opcoes do picker de imagem do TinyMCE pra uma CU: os anexos da CU que sao
- * imagem, no formato {title, value} que o plugin `image` espera.
+ * Opcoes dos pickers do TinyMCE pra uma CU: os anexos cujo mime comeca com
+ * `$mimePrefix` (`image/` pro plugin `image`, `audio/` pro botao "Audio"), no
+ * formato {title, value}.
  *
- * Mesmo acervo que o editor de conteudo da CU usa — a licao vive na mesma
- * unidade, entao reaproveita os anexos ja subidos. A URL vai pela rota
- * autenticada de view, nunca pelo path do storage.
+ * Mesmo acervo nos tres editores (conteudo, licao, atividade) — vivem na mesma
+ * unidade. A URL vai pela rota autenticada de view, nunca pelo path do
+ * storage; a reescrita teacher->student no render, o rehost e o remap da copia
+ * de curso tratam o `src` do `<img>` e do `<audio>` do mesmo jeito.
  *
+ * Recebe a lista ja buscada (`ContentAttachment::listByCu`) pra que a pagina
+ * monte os dois pickers com uma query so.
+ *
+ * @param list<array<string,mixed>> $attachments
  * @return list<array{title:string, value:string}>
  */
-function lesson_image_picker_options(int $cuId, int $tenantId): array
+function cu_attachment_picker_options(array $attachments, int $cuId, string $mimePrefix): array
 {
     $out = [];
-    foreach (ContentAttachment::listByCu($cuId, $tenantId) as $att) {
-        if (str_starts_with((string) $att['mime'], 'image/')) {
+    foreach ($attachments as $att) {
+        if (str_starts_with((string) $att['mime'], $mimePrefix)) {
             $out[] = [
                 'title' => (string) $att['filename'],
                 'value' => '/teacher/cu/' . $cuId . '/attachment/' . (int) $att['id'] . '/view',

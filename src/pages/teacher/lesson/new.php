@@ -94,7 +94,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$imagePickerOptions = lesson_image_picker_options($cuId, $tenantId);
+$cuAttachments      = ContentAttachment::listByCu($cuId, $tenantId);
+$imagePickerOptions = cu_attachment_picker_options($cuAttachments, $cuId, 'image/');
+$audioPickerOptions = cu_attachment_picker_options($cuAttachments, $cuId, 'audio/');
 
 $courseId   = (int) $cu['course_id'];
 $formAction = '/teacher/cu/' . $cuId . '/lesson/new';

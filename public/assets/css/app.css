@@ -840,3 +840,11 @@ main { flex: 1 0 auto; }
     .lms-loading-overlay { transition: none; }
     .lms-loading-overlay__spinner { animation-duration: 1600ms; }
 }
+
+/* Player de MP3 inserido pelo botão "Áudio" do editor (conteúdo, lição, atividade). */
+audio[controls] {
+    display: block;
+    width: 100%;
+    max-width: 520px;
+    margin: .5rem 0;
+}

@@ -11,6 +11,7 @@
  *   $isEdit     bool
  *   $lessonId   ?int   so no modo edicao
  *   $imagePickerOptions list<array{title:string,value:string}>
+ *   $audioPickerOptions list<array{title:string,value:string}> — MP3 anexados na CU
  *
  * O HTML da licao passa por ContentSanitizer::purify() no POST (ver new.php /
  * edit.php). A allowlist do TinyMCE aqui espelha a do sanitizador — o que
@@ -107,6 +108,7 @@
 <?php endif; ?>
 
 <script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js" referrerpolicy="origin"></script>
+<?php require LMS_ROOT . '/src/templates/partials/tinymce_audio.php'; ?>
 <script>
 // Mesmo resolver de video do editor de conteudo da CU: so YouTube, Vimeo e o
 // compilador OnlineGDB, convertidos pro iframe canonico. Qualquer outro provedor retorna vazio e o
@@ -149,7 +151,7 @@ tinymce.init({
     menubar: false,
     plugins: 'lists link table code codesample autolink media image',
     toolbar: 'undo redo | blocks | bold italic underline strikethrough forecolor | ' +
-             'alignleft aligncenter alignright | bullist numlist | link table image media | ' +
+             'alignleft aligncenter alignright | bullist numlist | link table image media audioinsert | ' +
              'codesample code removeformat',
     block_formats: '<?= e(__t('content.editor.block_formats')) ?>',
     // Atalhos markdown enquanto digita. Sobrescreve o padrao do TinyMCE de
@@ -194,7 +196,11 @@ tinymce.init({
     branding: false,
     promotion: false,
     convert_urls: false,
-    content_style: 'iframe.content-code{width:100%;height:520px;border:0}'
+    content_style: 'iframe.content-code{width:100%;height:520px;border:0}' +
+                   'audio{width:100%;max-width:520px}',
+    setup: function (editor) {
+        lmsRegisterAudioButton(editor);
+    }
 });
 </script>
 
