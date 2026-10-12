@@ -314,12 +314,13 @@ if ($evaluation !== null) {
 $attachments = [];
 if ($content !== false) {
     $stmt = Database::pdo()->prepare(
-        // Imagens são anexadas só para uso inline no corpo do conteúdo (TinyMCE);
-        // não devem aparecer na lista de materiais para download do aluno.
+        // Imagens e áudios são anexados só para uso inline no corpo do conteúdo
+        // (TinyMCE: `<img>` / player `<audio>`); não devem aparecer na lista de
+        // materiais para download do aluno.
         'SELECT a.id, a.filename, a.mime, a.size_bytes
            FROM content_attachments a
           WHERE a.content_id = ?
-            AND (a.mime IS NULL OR a.mime NOT LIKE \'image/%\')
+            AND (a.mime IS NULL OR (a.mime NOT LIKE \'image/%\' AND a.mime NOT LIKE \'audio/%\'))
           ORDER BY a.created_at DESC, a.id DESC'
     );
     $stmt->execute([(int) $content['id']]);

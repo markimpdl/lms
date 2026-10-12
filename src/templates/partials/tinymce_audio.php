@@ -8,7 +8,7 @@ declare(strict_types=1);
  *
  * Espera:
  *   $audioPickerOptions list<array{title:string,value:string}>
- *                       — de `lesson_audio_picker_options()`
+ *                       — de `cu_attachment_picker_options(..., 'audio/')`
  */
 
 $audioPickerOptions = $audioPickerOptions ?? [];

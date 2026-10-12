@@ -56,26 +56,9 @@ $availableWidgets = array_map(static fn (array $w): array => [
 // imagem; URL vai pela rota autenticada que E5-04 vai implementar
 // (`/teacher/cu/{id}/attachment/{aid}/view` ainda não existe — por enquanto
 // essa URL é placeholder. O usuário pode escolher entre imagens já subidas).
-$imagePickerOptions = [];
-foreach ($attachments as $att) {
-    if (str_starts_with((string) $att['mime'], 'image/')) {
-        $imagePickerOptions[] = [
-            'title' => (string) $att['filename'],
-            'value' => '/teacher/cu/' . $cuId . '/attachment/' . (int) $att['id'] . '/view',
-        ];
-    }
-}
-
+$imagePickerOptions = cu_attachment_picker_options($attachments, $cuId, 'image/');
 // MP3 anexados, pro botão "Áudio" do editor (mesma rota de view).
-$audioPickerOptions = [];
-foreach ($attachments as $att) {
-    if (str_starts_with((string) $att['mime'], 'audio/')) {
-        $audioPickerOptions[] = [
-            'title' => (string) $att['filename'],
-            'value' => '/teacher/cu/' . $cuId . '/attachment/' . (int) $att['id'] . '/view',
-        ];
-    }
-}
+$audioPickerOptions = cu_attachment_picker_options($attachments, $cuId, 'audio/');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
@@ -227,7 +210,7 @@ ob_start();
                 <?php else: ?>
                     <ul class="list-group list-group-flush">
                         <?php foreach ($attachments as $att): ?>
-                            <?php $aid = (int) $att['id']; $isImg = str_starts_with((string) $att['mime'], 'image/'); ?>
+                            <?php $aid = (int) $att['id']; $isImg = str_starts_with((string) $att['mime'], 'image/') || str_starts_with((string) $att['mime'], 'audio/'); ?>
                             <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
                                 <div class="flex-grow-1">
                                     <div class="fw-semibold"><?= e((string) $att['filename']) ?></div>

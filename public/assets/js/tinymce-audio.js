@@ -14,34 +14,36 @@
     'use strict';
 
     window.lmsRegisterAudioButton = function (editor) {
-        var cfg    = window.lmsAudioPicker || { items: [], labels: {} };
-        var labels = cfg.labels || {};
+        // Sem o partial não há rótulos traduzidos: melhor não ter botão.
+        var cfg = window.lmsAudioPicker;
+        if (!cfg) return;
+        var labels = cfg.labels;
         var items  = cfg.items || [];
 
         editor.ui.registry.addButton('audioinsert', {
-            text: labels.button || 'Audio',
-            tooltip: labels.title || 'Audio',
+            text: labels.button,
+            tooltip: labels.title,
             onAction: function () {
                 if (!items.length) {
-                    editor.windowManager.alert(labels.none || '');
+                    editor.windowManager.alert(labels.none);
                     return;
                 }
                 editor.windowManager.open({
-                    title: labels.title || 'Audio',
+                    title: labels.title,
                     body: {
                         type: 'panel',
                         items: [{
                             type: 'selectbox',
                             name: 'src',
-                            label: labels.field || 'MP3',
+                            label: labels.field,
                             items: items.map(function (a) {
                                 return { text: a.title, value: a.value };
                             })
                         }]
                     },
                     buttons: [
-                        { type: 'cancel', text: labels.cancel || 'Cancel' },
-                        { type: 'submit', text: labels.insert || 'Insert', primary: true }
+                        { type: 'cancel', text: labels.cancel },
+                        { type: 'submit', text: labels.insert, primary: true }
                     ],
                     onSubmit: function (api) {
                         var src = api.getData().src;

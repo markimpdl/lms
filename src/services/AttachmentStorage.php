@@ -79,6 +79,9 @@ final class AttachmentStorage
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mime  = (string) $finfo->file($tmp);
         $mime  = self::MIME_ALIASES[$mime] ?? $mime;
+        if ($mime === 'application/octet-stream' && self::looksLikeMp3($tmp, (string) $file['name'])) {
+            $mime = 'audio/mpeg';
+        }
         if (!isset(self::ALLOWED[$mime])) {
             return ['status' => 'error', 'error_key' => 'attachments.err.mime'];
         }
@@ -115,6 +118,30 @@ final class AttachmentStorage
         );
 
         return ['status' => 'ok', 'attachment_id' => $aid];
+    }
+
+    /**
+     * MP3 sem tag ID3 (ou com lixo antes do 1º frame) sai como
+     * `application/octet-stream` em algumas versões do libmagic. Aceita só se
+     * o nome termina em `.mp3` E o arquivo começa com `ID3` ou com o sync de
+     * frame MPEG (11 bits em 1) — extensão sozinha não basta.
+     */
+    private static function looksLikeMp3(string $path, string $name): bool
+    {
+        if (strtolower(pathinfo($name, PATHINFO_EXTENSION)) !== 'mp3') {
+            return false;
+        }
+        $fh = @fopen($path, 'rb');
+        if ($fh === false) {
+            return false;
+        }
+        $head = (string) fread($fh, 3);
+        fclose($fh);
+        if (strlen($head) < 2) {
+            return false;
+        }
+        return str_starts_with($head, 'ID3')
+            || (ord($head[0]) === 0xFF && (ord($head[1]) & 0xE0) === 0xE0);
     }
 
     /**
@@ -159,12 +186,14 @@ final class AttachmentStorage
         // Range de um intervalo só (`bytes=a-b`, `bytes=a-`, `bytes=-n`).
         // O Safari/iOS não toca `<audio>` se o servidor não responder 206, e
         // sem Range nenhum navegador consegue avançar a faixa.
-        // Range malformado ou com vários intervalos é ignorado: vai o arquivo
-        // inteiro com 200, como o RFC 9110 permite.
+        // Range malformado, invertido (`500-100`) ou com vários intervalos é
+        // ignorado: vai o arquivo inteiro com 200, como o RFC 9110 manda. 416
+        // só pra início além do fim do arquivo.
         $range = (string) ($_SERVER['HTTP_RANGE'] ?? '');
         if ($size > 0
             && preg_match('/^bytes=(\d*)-(\d*)$/', trim($range), $m)
             && ($m[1] !== '' || $m[2] !== '')
+            && ($m[1] === '' || $m[2] === '' || (int) $m[1] <= (int) $m[2])
         ) {
             if ($m[1] === '') {
                 $start = max(0, $size - (int) $m[2]);

@@ -187,8 +187,9 @@ $activityId     = null;
 $activityName   = (string) $cu['name'];
 $currentPdfPath = null;
 $maxMb          = (int) ((ActivityBriefStorage::maxBytes()) / (1024 * 1024));
-$imagePickerOptions = lesson_image_picker_options($cuId, $tenantId);
-$audioPickerOptions = lesson_audio_picker_options($cuId, $tenantId);
+$cuAttachments      = ContentAttachment::listByCu($cuId, $tenantId);
+$imagePickerOptions = cu_attachment_picker_options($cuAttachments, $cuId, 'image/');
+$audioPickerOptions = cu_attachment_picker_options($cuAttachments, $cuId, 'audio/');
 
 $page_title = __t('activities.new.title');
 ob_start();
