@@ -83,11 +83,8 @@ final class AttachmentStorage
         if ($mime === 'application/octet-stream' && self::looksLikeMp3($tmp, (string) $file['name'])) {
             $mime = 'audio/mpeg';
         }
-        // Office passa pelo `OfficeFile`: nome .docx/.xls/... que falha na
-        // checagem de conteúdo é recusado (não cai como zip genérico).
-        if (OfficeFile::claims((string) $file['name'], $mime)) {
-            $mime = OfficeFile::detect($tmp, (string) $file['name'], $mime) ?? '';
-        }
+        // Office: conteúdo conferido, macro e senha recusados (OfficeFile).
+        $mime = OfficeFile::resolveMime($tmp, (string) $file['name'], $mime);
         if (!isset(self::ALLOWED[$mime])) {
             return ['status' => 'error', 'error_key' => 'attachments.err.mime'];
         }

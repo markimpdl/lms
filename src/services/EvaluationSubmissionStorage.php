@@ -55,11 +55,8 @@ final class EvaluationSubmissionStorage
 
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mime  = (string) $finfo->file($tmp);
-        // Office passa pelo `OfficeFile`: nome .docx/.xls/... que falha na
-        // checagem de conteúdo é recusado (não cai como zip genérico).
-        if (OfficeFile::claims((string) $file['name'], $mime)) {
-            $mime = OfficeFile::detect($tmp, (string) $file['name'], $mime) ?? '';
-        }
+        // Office: conteúdo conferido, macro e senha recusados (OfficeFile).
+        $mime = OfficeFile::resolveMime($tmp, (string) $file['name'], $mime);
         if (!isset(self::ALLOWED[$mime])) {
             return ['status' => 'error', 'error_key' => 'evaluations.student.err.mime'];
         }

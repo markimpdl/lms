@@ -67,11 +67,8 @@ final class SubmissionStorage
 
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mime  = (string) $finfo->file($tmp);
-        // Office passa pelo `OfficeFile`: nome .docx/.xls/... que falha na
-        // checagem de conteúdo é recusado (não cai como zip genérico).
-        if (OfficeFile::claims((string) $file['name'], $mime)) {
-            $mime = OfficeFile::detect($tmp, (string) $file['name'], $mime) ?? '';
-        }
+        // Office: conteúdo conferido, macro e senha recusados (OfficeFile).
+        $mime = OfficeFile::resolveMime($tmp, (string) $file['name'], $mime);
         $allowed = self::resolveAllowed((string) ($opts['code_language'] ?? ''));
         $ext = self::resolveExtension($mime, (string) $file['name'], $allowed);
         if ($ext === null) {

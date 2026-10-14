@@ -508,7 +508,7 @@ return [
     'attachments.deleted'                   => 'Attachment removed.',
     'attachments.image_available_in_editor' => 'available in editor',
     'attachments.err.size'                  => 'File larger than 12 MB — pick a smaller one.',
-    'attachments.err.mime'                  => 'File type not accepted. Use PDF, Word, PowerPoint, Excel, ZIP, TXT, image or MP3.',
+    'attachments.err.mime'                  => 'File type not accepted. Use PDF, Word, PowerPoint, Excel, ZIP, TXT, image or MP3. Files with macros or password protection are not accepted.',
     'attachments.err.no_file'               => 'No file selected.',
     'attachments.err.cu_unavailable'        => 'This CU is not available to you.',
     'attachments.err.not_found'             => 'Attachment not found.',
@@ -825,7 +825,7 @@ return [
     'evaluations.student.err.no_retry'   => 'Resubmission is not allowed for your current attempt.',
     'evaluations.student.err.generic'    => 'Could not save your submission. Please try again.',
     'evaluations.student.err.size'       => 'File larger than 10 MB.',
-    'evaluations.student.err.mime'       => 'Invalid file type. Accepted: PDF, Word, PowerPoint, Excel, ZIP, TXT, JPG, PNG. Files with macros are not accepted.',
+    'evaluations.student.err.mime'       => 'Invalid file type. Accepted: PDF, Word, PowerPoint, Excel, ZIP, TXT, JPG, PNG. Files with macros or password protection are not accepted.',
     'evaluations.student.err.no_file'    => 'Pick a file to send.',
 
     // Submissions (student view, E6-03)
@@ -900,7 +900,7 @@ return [
     'submissions.nav.back'              => 'Back',
     'submissions.nav.forward'           => 'Next',
     'submissions.err.size'              => 'File larger than 10 MB.',
-    'submissions.err.mime'              => 'File type not accepted. Use PDF, Word, PowerPoint, Excel, ZIP, TXT, JPG or PNG. Files with macros are not accepted.',
+    'submissions.err.mime'              => 'File type not accepted. Use PDF, Word, PowerPoint, Excel, ZIP, TXT, JPG or PNG. Files with macros or password protection are not accepted.',
     'submissions.err.no_file'           => 'No file selected.',
     'submissions.err.empty'             => 'Upload a file or paste code before saving.',
     'submissions.err.closed'            => 'This activity has submissions closed.',

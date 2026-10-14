@@ -508,7 +508,7 @@ return [
     'attachments.deleted'                   => 'Anexo removido.',
     'attachments.image_available_in_editor' => 'disponível no editor',
     'attachments.err.size'                  => 'Arquivo maior que 12 MB — selecione outro menor.',
-    'attachments.err.mime'                  => 'Tipo de arquivo não aceito. Use PDF, Word, PowerPoint, Excel, ZIP, TXT, imagem ou MP3.',
+    'attachments.err.mime'                  => 'Tipo de arquivo não aceito. Use PDF, Word, PowerPoint, Excel, ZIP, TXT, imagem ou MP3. Arquivo com macro ou protegido por senha não é aceito.',
     'attachments.err.no_file'               => 'Nenhum arquivo selecionado.',
     'attachments.err.cu_unavailable'        => 'Esta CU não está disponível para você.',
     'attachments.err.not_found'             => 'Anexo não encontrado.',
@@ -826,7 +826,7 @@ return [
     'evaluations.student.err.no_retry'   => 'Reenvio não está liberado para sua tentativa atual.',
     'evaluations.student.err.generic'    => 'Não foi possível salvar sua entrega. Tente novamente.',
     'evaluations.student.err.size'       => 'Arquivo maior que 10 MB.',
-    'evaluations.student.err.mime'       => 'Tipo de arquivo inválido. Aceitos: PDF, Word, PowerPoint, Excel, ZIP, TXT, JPG, PNG. Arquivo com macro não é aceito.',
+    'evaluations.student.err.mime'       => 'Tipo de arquivo inválido. Aceitos: PDF, Word, PowerPoint, Excel, ZIP, TXT, JPG, PNG. Arquivo com macro ou protegido por senha não é aceito.',
     'evaluations.student.err.no_file'    => 'Selecione um arquivo para enviar.',
 
     // Submissões (visão do aluno, E6-03)
@@ -902,7 +902,7 @@ return [
     'submissions.nav.back'              => 'Voltar',
     'submissions.nav.forward'           => 'Avançar',
     'submissions.err.size'              => 'Arquivo maior que 10 MB.',
-    'submissions.err.mime'              => 'Tipo de arquivo não aceito. Use PDF, Word, PowerPoint, Excel, ZIP, TXT, JPG ou PNG. Arquivo com macro não é aceito.',
+    'submissions.err.mime'              => 'Tipo de arquivo não aceito. Use PDF, Word, PowerPoint, Excel, ZIP, TXT, JPG ou PNG. Arquivo com macro ou protegido por senha não é aceito.',
     'submissions.err.no_file'           => 'Nenhum arquivo selecionado.',
     'submissions.err.empty'             => 'Envie um arquivo ou código antes de salvar.',
     'submissions.err.closed'            => 'Esta atividade está com a entrega fechada.',
