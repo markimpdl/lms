@@ -197,7 +197,7 @@ ob_start();
                     <div class="flex-grow-1">
                         <label for="fAttachment" class="form-label"><?= e(__t('attachments.upload_label')) ?></label>
                         <input type="file" name="attachment" id="fAttachment" class="form-control"
-                               accept=".pdf,.zip,.txt,.png,.jpg,.jpeg,.gif,.webp,.mp3" required>
+                               accept=".pdf,.zip,.txt,.png,.jpg,.jpeg,.gif,.webp,.mp3,.doc,.docx,.ppt,.pptx,.xls,.xlsx" required>
                         <div class="form-text"><?= e(__t('attachments.upload_hint')) ?></div>
                     </div>
                     <button type="submit" class="btn btn-primary">

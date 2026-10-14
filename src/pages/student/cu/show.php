@@ -565,24 +565,11 @@ ob_start();
           require LMS_ROOT . '/src/templates/partials/manual_completion_card.php'; ?>
 </section>
 <?php endif; ?>
-
-<!-- Section: Attachments -->
-<?php if ($attachmentsCount > 0): ?>
-<section class="lms-unit-section" id="attachments">
-    <?php
-        $title = __t('student.unit.tab.attachments');
-        $count = $attachmentsCount;
-        $accent = null;
-        require LMS_ROOT . '/src/templates/partials/section_header.php';
-    ?>
-    <div class="lms-attachment-list">
-        <?php foreach ($attachments as $attachment): ?>
-            <?php require LMS_ROOT . '/src/templates/partials/attachment_row.php'; ?>
-        <?php endforeach; ?>
-    </div>
-</section>
-<?php endif; ?>
 <?php endif; /* fim do bloco V1 */ ?>
+
+<?php /* Materiais para download — fora do if($isV2): vale pros dois layouts.
+         Imagem e audio ficam de fora (uso inline no conteudo). */ ?>
+<?php require LMS_ROOT . '/src/templates/partials/unit_attachments_section.php'; ?>
 <?php
 $page_content = ob_get_clean();
 require LMS_ROOT . '/src/templates/layout.php';

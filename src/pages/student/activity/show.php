@@ -211,7 +211,7 @@ $codeLangExt = [
     'javascript' => 'js',
     'html'       => 'html',
 ];
-$acceptExts = ['.pdf', '.zip', '.txt', '.jpg', '.jpeg', '.png'];
+$acceptExts = ['.pdf', '.zip', '.txt', '.jpg', '.jpeg', '.png', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx'];
 if ($isCode && $codeLang !== null && isset($codeLangExt[$codeLang])) {
     array_unshift($acceptExts, '.' . $codeLangExt[$codeLang]);
     $acceptExts = array_values(array_unique($acceptExts));

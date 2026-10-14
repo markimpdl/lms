@@ -16,7 +16,8 @@ declare(strict_types=1);
  * porque o UUID diferencia no disco.
  *
  * Tipos aceitos + mime validado via `finfo_file` (mime real, não só
- * extensão). Tamanho máximo 12 MB (v0.30.0 — antes 3 MB). MP3 entra
+ * extensão). Tamanho máximo 12 MB (v0.30.0 — antes 3 MB). Word, PowerPoint
+ * e Excel (doc/docx, ppt/pptx, xls/xlsx) vão como material para download. MP3 entra
  * pra ser tocado com `<audio>` no conteúdo, lição e atividade.
  */
 final class AttachmentStorage
@@ -25,7 +26,7 @@ final class AttachmentStorage
     public const MAX_ATTACHMENTS_PER_CU = 50; // Previne DDoS via criação em massa
 
     /** Mapa de mime canônico → extensão a gravar. */
-    private const ALLOWED = [
+    private const ALLOWED = OfficeFile::ALLOWED + [
         'application/pdf'    => 'pdf',
         'application/zip'    => 'zip',
         'text/plain'         => 'txt',
@@ -82,6 +83,8 @@ final class AttachmentStorage
         if ($mime === 'application/octet-stream' && self::looksLikeMp3($tmp, (string) $file['name'])) {
             $mime = 'audio/mpeg';
         }
+        // Office: conteúdo conferido, macro e senha recusados (OfficeFile).
+        $mime = OfficeFile::resolveMime($tmp, (string) $file['name'], $mime);
         if (!isset(self::ALLOWED[$mime])) {
             return ['status' => 'error', 'error_key' => 'attachments.err.mime'];
         }
