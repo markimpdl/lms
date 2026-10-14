@@ -12,7 +12,8 @@ declare(strict_types=1);
  * editar/remover (ADR-027): o arquivo novo sempre substitui o anterior;
  * o delete apaga o único arquivo daquele aluno pra aquela atividade.
  *
- * Tipos aceitos: pdf, zip, txt, jpg, png (doc 06) por padrão. Para atividades tipo
+ * Tipos aceitos: pdf, zip, txt, jpg, png (doc 06) + Word/PowerPoint/Excel
+ * (via `OfficeFile`, conteúdo conferido e macro recusado) por padrão. Para atividades tipo
  * `código`, a allowlist é estendida com a extensão da linguagem (.py, .cs,
  * .js, .html) — caller passa `code_language` em `$opts`. Máximo 3 MB.
  */
@@ -20,7 +21,7 @@ final class SubmissionStorage
 {
     public const MAX_BYTES = 10 * 1024 * 1024; // 10 MB (v0.30.0)
 
-    private const ALLOWED_DEFAULT = [
+    private const ALLOWED_DEFAULT = OfficeFile::ALLOWED + [
         'application/pdf' => 'pdf',
         'application/zip' => 'zip',
         'text/plain'      => 'txt',
@@ -66,6 +67,11 @@ final class SubmissionStorage
 
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mime  = (string) $finfo->file($tmp);
+        // Office passa pelo `OfficeFile`: nome .docx/.xls/... que falha na
+        // checagem de conteúdo é recusado (não cai como zip genérico).
+        if (OfficeFile::claims((string) $file['name'], $mime)) {
+            $mime = OfficeFile::detect($tmp, (string) $file['name'], $mime) ?? '';
+        }
         $allowed = self::resolveAllowed((string) ($opts['code_language'] ?? ''));
         $ext = self::resolveExtension($mime, (string) $file['name'], $allowed);
         if ($ext === null) {

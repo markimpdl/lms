@@ -436,7 +436,7 @@ ob_start();
                                 <?= e(__t('evaluations.student.form.file')) ?>
                             </label>
                             <input type="file" name="file" id="f-file"
-                                   accept=".pdf,.zip,.txt,.jpg,.jpeg,.png"
+                                   accept=".pdf,.zip,.txt,.jpg,.jpeg,.png,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
                                    class="form-control<?= isset($errors['file']) ? ' is-invalid' : '' ?>" required>
                             <div class="form-text"><?= e(__t('evaluations.student.form.file_hint')) ?></div>
                         </div>

@@ -17,7 +17,7 @@ final class EvaluationSubmissionStorage
 {
     public const MAX_BYTES = 10 * 1024 * 1024; // 10 MB (v0.30.0)
 
-    private const ALLOWED = [
+    private const ALLOWED = OfficeFile::ALLOWED + [
         'application/pdf' => 'pdf',
         'application/zip' => 'zip',
         'text/plain'      => 'txt',
@@ -55,6 +55,11 @@ final class EvaluationSubmissionStorage
 
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mime  = (string) $finfo->file($tmp);
+        // Office passa pelo `OfficeFile`: nome .docx/.xls/... que falha na
+        // checagem de conteúdo é recusado (não cai como zip genérico).
+        if (OfficeFile::claims((string) $file['name'], $mime)) {
+            $mime = OfficeFile::detect($tmp, (string) $file['name'], $mime) ?? '';
+        }
         if (!isset(self::ALLOWED[$mime])) {
             return ['status' => 'error', 'error_key' => 'evaluations.student.err.mime'];
         }

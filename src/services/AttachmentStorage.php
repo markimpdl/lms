@@ -26,7 +26,7 @@ final class AttachmentStorage
     public const MAX_ATTACHMENTS_PER_CU = 50; // Previne DDoS via criação em massa
 
     /** Mapa de mime canônico → extensão a gravar. */
-    private const ALLOWED = [
+    private const ALLOWED = OfficeFile::ALLOWED + [
         'application/pdf'    => 'pdf',
         'application/zip'    => 'zip',
         'text/plain'         => 'txt',
@@ -35,45 +35,6 @@ final class AttachmentStorage
         'image/gif'          => 'gif',
         'image/webp'         => 'webp',
         'audio/mpeg'         => 'mp3',
-        // Office (Word, PowerPoint, Excel) — moderno (OOXML) e legado (OLE).
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'   => 'docx',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'         => 'xlsx',
-        'application/msword'            => 'doc',
-        'application/vnd.ms-powerpoint' => 'ppt',
-        'application/vnd.ms-excel'      => 'xls',
-    ];
-
-    /**
-     * Office por extensão: mime canônico, contêiner esperado e (no OOXML) a
-     * parte interna que prova o tipo. O `finfo` varia muito com o libmagic
-     * para esses formatos — docx sai como `application/zip`, `.doc` como
-     * `application/CDFV2` ou `application/vnd.ms-office` —, então o mime
-     * final sai da extensão, MAS só depois de o conteúdo confirmar o
-     * contêiner. Extensão sozinha não basta.
-     */
-    private const OFFICE_BY_EXT = [
-        'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'zip', 'word/document.xml'],
-        'pptx' => ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'zip', 'ppt/presentation.xml'],
-        'xlsx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'zip', 'xl/workbook.xml'],
-        'doc'  => ['application/msword', 'ole', null],
-        'ppt'  => ['application/vnd.ms-powerpoint', 'ole', null],
-        'xls'  => ['application/vnd.ms-excel', 'ole', null],
-    ];
-
-    /** Mimes que o `finfo` devolve para arquivos Office, conforme a versão. */
-    private const OFFICE_FINFO_MIMES = [
-        'application/zip',
-        'application/octet-stream',
-        'application/vnd.ms-office',
-        'application/CDFV2',
-        'application/x-ole-storage',
-        'application/msword',
-        'application/vnd.ms-excel',
-        'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     ];
 
     /**
@@ -122,14 +83,10 @@ final class AttachmentStorage
         if ($mime === 'application/octet-stream' && self::looksLikeMp3($tmp, (string) $file['name'])) {
             $mime = 'audio/mpeg';
         }
-        // Office só entra pelo `detectOffice`: nome .docx/.xls/... que não
-        // passa na checagem de conteúdo é recusado (não cai como zip
-        // genérico), e mime Office do finfo sem extensão Office também.
-        $ext = strtolower(pathinfo((string) $file['name'], PATHINFO_EXTENSION));
-        if (isset(self::OFFICE_BY_EXT[$ext])) {
-            $mime = self::detectOffice($tmp, $ext, $mime) ?? '';
-        } elseif (in_array($mime, array_column(self::OFFICE_BY_EXT, 0), true)) {
-            $mime = '';
+        // Office passa pelo `OfficeFile`: nome .docx/.xls/... que falha na
+        // checagem de conteúdo é recusado (não cai como zip genérico).
+        if (OfficeFile::claims((string) $file['name'], $mime)) {
+            $mime = OfficeFile::detect($tmp, (string) $file['name'], $mime) ?? '';
         }
         if (!isset(self::ALLOWED[$mime])) {
             return ['status' => 'error', 'error_key' => 'attachments.err.mime'];
@@ -191,52 +148,6 @@ final class AttachmentStorage
         }
         return str_starts_with($head, 'ID3')
             || (ord($head[0]) === 0xFF && (ord($head[1]) & 0xE0) === 0xE0);
-    }
-
-    /**
-     * Arquivo Office? Devolve o mime canônico pela extensão, ou null. Exige
-     * que o `finfo` tenha visto algo compatível com Office E que o conteúdo
-     * bata com o contêiner: OOXML é zip com a parte principal do tipo
-     * (`word/document.xml` etc.); o legado é OLE (assinatura D0 CF 11 E0).
-     * Sem isso um `.docx` que é um zip qualquer seria aceito como Word.
-     *
-     * Arquivo com macro (VBA) é recusado nos dois formatos: o anexo vai
-     * direto pro download de todos os alunos matriculados.
-     */
-    private static function detectOffice(string $path, string $ext, string $finfoMime): ?string
-    {
-        if (!isset(self::OFFICE_BY_EXT[$ext]) || !in_array($finfoMime, self::OFFICE_FINFO_MIMES, true)) {
-            return null;
-        }
-        [$canonical, $container, $part] = self::OFFICE_BY_EXT[$ext];
-
-        $bytes = @file_get_contents($path); // teto de 12 MB já checado em store()
-        if ($bytes === false) {
-            return null;
-        }
-
-        if ($container === 'ole') {
-            if (!str_starts_with($bytes, "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1")) {
-                return null;
-            }
-            // Nome do stream de projeto VBA no diretório OLE (UTF-16LE).
-            $vba = mb_convert_encoding('_VBA_PROJECT', 'UTF-16LE', 'ASCII');
-            return str_contains($bytes, $vba) ? null : $canonical;
-        }
-
-        // Sem a extensão zip no PHP não dá pra olhar dentro: recusa em vez de
-        // aceitar qualquer zip renomeado.
-        if (!str_starts_with($bytes, "PK\x03\x04") || !class_exists('ZipArchive')) {
-            return null;
-        }
-        $zip = new ZipArchive();
-        if ($zip->open($path, ZipArchive::RDONLY) !== true) {
-            return null;
-        }
-        $ok = $zip->locateName((string) $part) !== false
-            && $zip->locateName('vbaProject.bin', ZipArchive::FL_NODIR) === false;
-        $zip->close();
-        return $ok ? $canonical : null;
     }
 
     /**

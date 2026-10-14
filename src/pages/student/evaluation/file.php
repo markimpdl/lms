@@ -31,7 +31,7 @@ $mime       = match ($ext) {
     'txt'   => 'text/plain',
     'jpg'   => 'image/jpeg',
     'png'   => 'image/png',
-    default => 'application/octet-stream',
+    default => OfficeFile::mimeForExt($ext) ?? 'application/octet-stream',
 };
 
 AttachmentStorage::stream([
