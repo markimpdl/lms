@@ -497,7 +497,7 @@ return [
 
     // Anexos (E5-03)
     'attachments.section'                   => 'Anexos',
-    'attachments.section_hint'              => 'Arquivos de apoio (PDF, ZIP, TXT), imagens e áudios MP3 para inserir no texto. Limite de 12 MB por arquivo.',
+    'attachments.section_hint'              => 'Arquivos de apoio (PDF, Word, PowerPoint, Excel, ZIP, TXT), imagens e áudios MP3 para inserir no texto. Limite de 12 MB por arquivo.',
     'attachments.upload_label'              => 'Selecionar arquivo',
     'attachments.upload_hint'               => 'Aceitos: PDF, Word, PowerPoint, Excel, ZIP, TXT, PNG, JPG, GIF, WEBP, MP3. Máximo 12 MB.',
     'attachments.upload_button'             => 'Enviar',

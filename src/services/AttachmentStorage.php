@@ -122,9 +122,14 @@ final class AttachmentStorage
         if ($mime === 'application/octet-stream' && self::looksLikeMp3($tmp, (string) $file['name'])) {
             $mime = 'audio/mpeg';
         }
-        $officeMime = self::detectOffice($tmp, (string) $file['name'], $mime);
-        if ($officeMime !== null) {
-            $mime = $officeMime;
+        // Office só entra pelo `detectOffice`: nome .docx/.xls/... que não
+        // passa na checagem de conteúdo é recusado (não cai como zip
+        // genérico), e mime Office do finfo sem extensão Office também.
+        $ext = strtolower(pathinfo((string) $file['name'], PATHINFO_EXTENSION));
+        if (isset(self::OFFICE_BY_EXT[$ext])) {
+            $mime = self::detectOffice($tmp, $ext, $mime) ?? '';
+        } elseif (in_array($mime, array_column(self::OFFICE_BY_EXT, 0), true)) {
+            $mime = '';
         }
         if (!isset(self::ALLOWED[$mime])) {
             return ['status' => 'error', 'error_key' => 'attachments.err.mime'];
@@ -194,41 +199,44 @@ final class AttachmentStorage
      * bata com o contêiner: OOXML é zip com a parte principal do tipo
      * (`word/document.xml` etc.); o legado é OLE (assinatura D0 CF 11 E0).
      * Sem isso um `.docx` que é um zip qualquer seria aceito como Word.
+     *
+     * Arquivo com macro (VBA) é recusado nos dois formatos: o anexo vai
+     * direto pro download de todos os alunos matriculados.
      */
-    private static function detectOffice(string $path, string $name, string $finfoMime): ?string
+    private static function detectOffice(string $path, string $ext, string $finfoMime): ?string
     {
-        $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
         if (!isset(self::OFFICE_BY_EXT[$ext]) || !in_array($finfoMime, self::OFFICE_FINFO_MIMES, true)) {
             return null;
         }
         [$canonical, $container, $part] = self::OFFICE_BY_EXT[$ext];
 
-        $fh = @fopen($path, 'rb');
-        if ($fh === false) {
+        $bytes = @file_get_contents($path); // teto de 12 MB já checado em store()
+        if ($bytes === false) {
             return null;
         }
-        $head = (string) fread($fh, 8);
-        fclose($fh);
 
         if ($container === 'ole') {
-            return $head === "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1" ? $canonical : null;
+            if (!str_starts_with($bytes, "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1")) {
+                return null;
+            }
+            // Nome do stream de projeto VBA no diretório OLE (UTF-16LE).
+            $vba = mb_convert_encoding('_VBA_PROJECT', 'UTF-16LE', 'ASCII');
+            return str_contains($bytes, $vba) ? null : $canonical;
         }
 
-        if (!str_starts_with($head, "PK\x03\x04")) {
+        // Sem a extensão zip no PHP não dá pra olhar dentro: recusa em vez de
+        // aceitar qualquer zip renomeado.
+        if (!str_starts_with($bytes, "PK\x03\x04") || !class_exists('ZipArchive')) {
             return null;
-        }
-        // Sem a extensão zip no PHP não dá pra olhar dentro; assinatura de
-        // zip + finfo compatível é o melhor que sobra.
-        if (!class_exists('ZipArchive')) {
-            return $canonical;
         }
         $zip = new ZipArchive();
         if ($zip->open($path, ZipArchive::RDONLY) !== true) {
             return null;
         }
-        $found = $zip->locateName((string) $part) !== false;
+        $ok = $zip->locateName((string) $part) !== false
+            && $zip->locateName('vbaProject.bin', ZipArchive::FL_NODIR) === false;
         $zip->close();
-        return $found ? $canonical : null;
+        return $ok ? $canonical : null;
     }
 
     /**

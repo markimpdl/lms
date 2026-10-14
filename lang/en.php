@@ -497,7 +497,7 @@ return [
 
     // Attachments (E5-03)
     'attachments.section'                   => 'Attachments',
-    'attachments.section_hint'              => 'Support files (PDF, ZIP, TXT), images and MP3 audio to insert in the text. Max 12 MB per file.',
+    'attachments.section_hint'              => 'Support files (PDF, Word, PowerPoint, Excel, ZIP, TXT), images and MP3 audio to insert in the text. Max 12 MB per file.',
     'attachments.upload_label'              => 'Pick file',
     'attachments.upload_hint'               => 'Accepted: PDF, Word, PowerPoint, Excel, ZIP, TXT, PNG, JPG, GIF, WEBP, MP3. Max 12 MB.',
     'attachments.upload_button'             => 'Upload',

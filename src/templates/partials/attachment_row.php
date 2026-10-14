@@ -30,7 +30,7 @@ if (in_array($ext, ['pdf'], true)) {
 } elseif (in_array($ext, ['zip', 'rar', '7z'], true)) {
     $typeColor = '#FEF3C7'; $typeFg = '#92400E';
 } elseif (in_array($ext, ['doc', 'docx'], true)) {
-    $typeColor = '#DBEAFE'; $typeFg = '#1D4ED8';
+    $typeColor = '#E0E7FF'; $typeFg = '#3730A3';
 } elseif (in_array($ext, ['ppt', 'pptx'], true)) {
     $typeColor = '#FFEDD5'; $typeFg = '#C2410C';
 } elseif (in_array($ext, ['xls', 'xlsx'], true)) {
