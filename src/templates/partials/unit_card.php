@@ -83,6 +83,19 @@ $openAttr = $isLocked
         </span>
     </footer>
 
+    <?php /* Ação explícita: o cartão inteiro é o link, mas sem um "Começar →"
+             o aluno não distinguia o cartão do título da competência acima. */ ?>
+    <?php if (!$isLocked): ?>
+        <span class="lms-unit-card__cta">
+            <span><?= e(__t(match ($status) {
+                'completed'   => 'student.course_page.cta_review',
+                'in_progress' => 'student.course_page.cta_continue',
+                default       => 'student.course_page.cta_start',
+            })) ?></span>
+            <span class="lms-unit-card__cta-arrow" aria-hidden="true">&rarr;</span>
+        </span>
+    <?php endif; ?>
+
     <?php if ($isLocked): ?>
         <div class="lms-unit-card__lock-overlay">
             <?= e(__t('progression.next_locked', ['name' => (string) ($cuLockedByName ?? '')])) ?>

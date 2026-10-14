@@ -44,6 +44,12 @@
     --lms-page-bg: #F8F7FB;
     --lms-card-bg: #FFFFFF;
 
+    /* Painel da seção de competência (tela do curso) e texto do CTA do
+       cartão da unidade — valores escuros em student-area.css */
+    --lms-section-bg: #EEF2F7;
+    --lms-cta-fg: #4F46E5;
+    --lms-lock-overlay-bg: rgba(255, 255, 255, 0.55);
+
     --lms-radius-chip: 999px;
     --lms-radius-inner: 12px;
     --lms-radius-card: 20px;
