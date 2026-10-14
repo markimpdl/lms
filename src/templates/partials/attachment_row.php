@@ -29,6 +29,12 @@ if (in_array($ext, ['pdf'], true)) {
     $typeColor = '#FEE2E2'; $typeFg = '#B91C1C';
 } elseif (in_array($ext, ['zip', 'rar', '7z'], true)) {
     $typeColor = '#FEF3C7'; $typeFg = '#92400E';
+} elseif (in_array($ext, ['doc', 'docx'], true)) {
+    $typeColor = '#DBEAFE'; $typeFg = '#1D4ED8';
+} elseif (in_array($ext, ['ppt', 'pptx'], true)) {
+    $typeColor = '#FFEDD5'; $typeFg = '#C2410C';
+} elseif (in_array($ext, ['xls', 'xlsx'], true)) {
+    $typeColor = '#DCFCE7'; $typeFg = '#166534';
 } elseif (in_array($ext, ['png', 'jpg', 'jpeg', 'gif', 'webp'], true)) {
     $typeColor = '#DBEAFE'; $typeFg = '#1E40AF';
 }

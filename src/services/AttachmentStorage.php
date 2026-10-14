@@ -16,7 +16,8 @@ declare(strict_types=1);
  * porque o UUID diferencia no disco.
  *
  * Tipos aceitos + mime validado via `finfo_file` (mime real, não só
- * extensão). Tamanho máximo 12 MB (v0.30.0 — antes 3 MB). MP3 entra
+ * extensão). Tamanho máximo 12 MB (v0.30.0 — antes 3 MB). Word, PowerPoint
+ * e Excel (doc/docx, ppt/pptx, xls/xlsx) vão como material para download. MP3 entra
  * pra ser tocado com `<audio>` no conteúdo, lição e atividade.
  */
 final class AttachmentStorage
@@ -34,6 +35,45 @@ final class AttachmentStorage
         'image/gif'          => 'gif',
         'image/webp'         => 'webp',
         'audio/mpeg'         => 'mp3',
+        // Office (Word, PowerPoint, Excel) — moderno (OOXML) e legado (OLE).
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'   => 'docx',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'         => 'xlsx',
+        'application/msword'            => 'doc',
+        'application/vnd.ms-powerpoint' => 'ppt',
+        'application/vnd.ms-excel'      => 'xls',
+    ];
+
+    /**
+     * Office por extensão: mime canônico, contêiner esperado e (no OOXML) a
+     * parte interna que prova o tipo. O `finfo` varia muito com o libmagic
+     * para esses formatos — docx sai como `application/zip`, `.doc` como
+     * `application/CDFV2` ou `application/vnd.ms-office` —, então o mime
+     * final sai da extensão, MAS só depois de o conteúdo confirmar o
+     * contêiner. Extensão sozinha não basta.
+     */
+    private const OFFICE_BY_EXT = [
+        'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'zip', 'word/document.xml'],
+        'pptx' => ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'zip', 'ppt/presentation.xml'],
+        'xlsx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'zip', 'xl/workbook.xml'],
+        'doc'  => ['application/msword', 'ole', null],
+        'ppt'  => ['application/vnd.ms-powerpoint', 'ole', null],
+        'xls'  => ['application/vnd.ms-excel', 'ole', null],
+    ];
+
+    /** Mimes que o `finfo` devolve para arquivos Office, conforme a versão. */
+    private const OFFICE_FINFO_MIMES = [
+        'application/zip',
+        'application/octet-stream',
+        'application/vnd.ms-office',
+        'application/CDFV2',
+        'application/x-ole-storage',
+        'application/msword',
+        'application/vnd.ms-excel',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     ];
 
     /**
@@ -81,6 +121,10 @@ final class AttachmentStorage
         $mime  = self::MIME_ALIASES[$mime] ?? $mime;
         if ($mime === 'application/octet-stream' && self::looksLikeMp3($tmp, (string) $file['name'])) {
             $mime = 'audio/mpeg';
+        }
+        $officeMime = self::detectOffice($tmp, (string) $file['name'], $mime);
+        if ($officeMime !== null) {
+            $mime = $officeMime;
         }
         if (!isset(self::ALLOWED[$mime])) {
             return ['status' => 'error', 'error_key' => 'attachments.err.mime'];
@@ -142,6 +186,49 @@ final class AttachmentStorage
         }
         return str_starts_with($head, 'ID3')
             || (ord($head[0]) === 0xFF && (ord($head[1]) & 0xE0) === 0xE0);
+    }
+
+    /**
+     * Arquivo Office? Devolve o mime canônico pela extensão, ou null. Exige
+     * que o `finfo` tenha visto algo compatível com Office E que o conteúdo
+     * bata com o contêiner: OOXML é zip com a parte principal do tipo
+     * (`word/document.xml` etc.); o legado é OLE (assinatura D0 CF 11 E0).
+     * Sem isso um `.docx` que é um zip qualquer seria aceito como Word.
+     */
+    private static function detectOffice(string $path, string $name, string $finfoMime): ?string
+    {
+        $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+        if (!isset(self::OFFICE_BY_EXT[$ext]) || !in_array($finfoMime, self::OFFICE_FINFO_MIMES, true)) {
+            return null;
+        }
+        [$canonical, $container, $part] = self::OFFICE_BY_EXT[$ext];
+
+        $fh = @fopen($path, 'rb');
+        if ($fh === false) {
+            return null;
+        }
+        $head = (string) fread($fh, 8);
+        fclose($fh);
+
+        if ($container === 'ole') {
+            return $head === "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1" ? $canonical : null;
+        }
+
+        if (!str_starts_with($head, "PK\x03\x04")) {
+            return null;
+        }
+        // Sem a extensão zip no PHP não dá pra olhar dentro; assinatura de
+        // zip + finfo compatível é o melhor que sobra.
+        if (!class_exists('ZipArchive')) {
+            return $canonical;
+        }
+        $zip = new ZipArchive();
+        if ($zip->open($path, ZipArchive::RDONLY) !== true) {
+            return null;
+        }
+        $found = $zip->locateName((string) $part) !== false;
+        $zip->close();
+        return $found ? $canonical : null;
     }
 
     /**

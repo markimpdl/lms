@@ -479,6 +479,25 @@ ob_start();
         <?php $manualPending = $timelineItems !== [] && !$trackComplete;
               require LMS_ROOT . '/src/templates/partials/manual_completion_card.php'; ?>
     <?php endif; ?>
+
+    <?php /* Materiais para download. A secao vivia so no bloco V1, entao em
+             curso V2 o aluno nunca via os anexos da unidade. Mesma lista do
+             V1: imagem e audio ficam de fora (sao de uso inline no conteudo). */ ?>
+    <?php if ($attachmentsCount > 0): ?>
+    <section class="lms-unit-section" id="attachments">
+        <?php
+            $title = __t('student.unit.tab.attachments');
+            $count = $attachmentsCount;
+            $accent = null;
+            require LMS_ROOT . '/src/templates/partials/section_header.php';
+        ?>
+        <div class="lms-attachment-list">
+            <?php foreach ($attachments as $attachment): ?>
+                <?php require LMS_ROOT . '/src/templates/partials/attachment_row.php'; ?>
+            <?php endforeach; ?>
+        </div>
+    </section>
+    <?php endif; ?>
 <?php else: ?>
 <?php require LMS_ROOT . '/src/templates/partials/section_tabs.php'; ?>
 
