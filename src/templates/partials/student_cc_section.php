@@ -4,9 +4,13 @@ declare(strict_types=1);
 /**
  * Partial: Section header de uma Core Competence no painel do aluno (E14-03).
  *
- * Renderiza o card de cabeçalho (ícone gradient + eyebrow "CORE COMPETENCE N"
- * + H2 + barra linear de progresso + ProgressRing à direita) seguido da grid
- * de UnitCards. CCs sem CUs mostram mensagem.
+ * Renderiza o título da seção (número + eyebrow "CORE COMPETENCE N" + H2 +
+ * resumo com %) seguido da grid de UnitCards, tudo dentro de um painel
+ * tingido. CCs sem CUs mostram mensagem.
+ *
+ * O título NÃO é cartão de propósito: quando tinha cartão, sombra, ícone e
+ * anel de progresso iguais aos do UnitCard (só maior), o aluno clicava nele
+ * achando que era o conteúdo. Quem é clicável é o cartão da unidade.
  *
  * Espera no escopo:
  *   $cc              array com id, name, cus (lista enriquecida)
@@ -50,20 +54,8 @@ if ($ccStatus === 'next') {
                     'done'  => (string) $ccUnitsDone,
                     'total' => (string) $ccUnitsTot,
                 ])) ?>
+                · <?= (int) $ccPercent ?>%
             </div>
-            <div class="lms-cc-header__bar" aria-hidden="true">
-                <div class="lms-cc-header__bar-fill"
-                     style="width: <?= (int) $ccPercent ?>%; background: <?= e($gradient) ?>;"></div>
-            </div>
-        </div>
-        <div class="lms-cc-header__ring">
-            <div class="lms-progress-ring"
-                 style="--pct: <?= (int) $ccPercent ?>;"
-                 role="progressbar"
-                 aria-valuenow="<?= (int) $ccPercent ?>" aria-valuemin="0" aria-valuemax="100">
-                <span class="lms-progress-ring__label"><?= (int) $ccPercent ?>%</span>
-            </div>
-            <span class="lms-cc-header__ring-label"><?= e(__t('student.course_page.overall')) ?></span>
         </div>
     </header>
 

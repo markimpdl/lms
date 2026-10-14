@@ -1570,6 +1570,9 @@ return [
     'student.course_page.cc_units_summary'  => ':done of :total units completed',
     'student.course_page.unit_n'            => 'Unit :n',
     'student.course_page.unit_hours_tooltip' => 'Workload',
+    'student.course_page.cta_start'          => 'Start',
+    'student.course_page.cta_continue'       => 'Continue',
+    'student.course_page.cta_review'         => 'Review',
 
     // Student ProfileSidebar (E14-01)
     'sidebar.total_xp'     => 'TOTAL XP',

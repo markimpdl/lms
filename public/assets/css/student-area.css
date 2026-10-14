@@ -773,31 +773,38 @@ body.lms-student-area .lms-student-main {
 }
 
 .lms-cc-list { display: flex; flex-direction: column; gap: 32px; }
-.lms-cc-section { display: flex; flex-direction: column; gap: 16px; }
+/* Seção da competência: painel tingido que agrupa o título + as unidades.
+   O título NÃO é cartão (sem fundo, borda nem sombra) — quando era, tinha a
+   mesma anatomia do cartão da unidade (ícone, anel, sombra) e o aluno
+   clicava nele achando que era o conteúdo. Os cartões brancos das unidades
+   se destacam sobre o painel e ficam como a única coisa clicável. */
+.lms-cc-section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    background: var(--lms-section-bg, #EEF2F7);
+    border-radius: var(--lms-radius-card);
+    padding: 18px;
+}
 
 .lms-cc-header {
-    background: var(--lms-card-bg);
-    border: 1px solid var(--lms-neutral-200);
-    border-radius: var(--lms-radius-card);
-    padding: 24px;
     display: flex;
-    align-items: flex-start;
-    gap: 20px;
-    box-shadow: var(--lms-shadow-card);
+    align-items: center;
+    gap: 14px;
+    padding: 2px 4px;
 }
 .lms-cc-header__icon {
-    flex: 0 0 52px;
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
     color: #fff;
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-weight: 800;
-    font-size: 22px;
+    font-size: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 6px 14px -6px rgba(99, 102, 241, 0.4);
 }
 .lms-cc-header__body { flex: 1 1 auto; min-width: 0; }
 .lms-cc-header__eyebrow {
@@ -807,40 +814,17 @@ body.lms-student-area .lms-student-main {
     font-size: 11px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 .lms-cc-header__title {
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-weight: 800;
-    font-size: 22px;
+    font-size: 18px;
     color: var(--lms-neutral-900);
-    margin: 0 0 10px;
+    margin: 0 0 2px;
     text-wrap: pretty;
 }
-.lms-cc-header__summary { font-size: 12px; color: var(--lms-neutral-500); margin-bottom: 8px; }
-.lms-cc-header__bar {
-    height: 8px;
-    background: var(--lms-muted-tint);
-    border-radius: 999px;
-    overflow: hidden;
-}
-.lms-cc-header__bar-fill { height: 100%; border-radius: 999px; transition: width 400ms ease; }
-
-.lms-cc-header__ring {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    flex: 0 0 72px;
-}
-.lms-cc-header__ring .lms-progress-ring { width: 72px; height: 72px; }
-.lms-cc-header__ring-label {
-    font-size: 11px;
-    color: var(--lms-neutral-500);
-    text-transform: uppercase;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-}
+.lms-cc-header__summary { font-size: 12px; color: var(--lms-neutral-500); }
 
 .lms-cc-section__empty {
     margin: 0;
@@ -931,14 +915,30 @@ body.lms-student-area .lms-student-main {
 .lms-unit-card__meta svg { vertical-align: -2px; stroke-width: 2; }
 .lms-unit-card__xp { font-weight: 700; color: #7C3AED; }
 
+/* "Começar →" — ação explícita no rodapé do cartão (o cartão inteiro é o
+   link). A seta anda no hover pra reforçar que é aqui que se clica. */
+.lms-unit-card__cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid var(--lms-neutral-200);
+    padding-top: 12px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--lms-cta-fg, #4F46E5);
+}
+.lms-unit-card__cta-arrow { transition: transform 160ms ease; }
+.lms-unit-card:hover .lms-unit-card__cta-arrow,
+.lms-unit-card:focus-visible .lms-unit-card__cta-arrow { transform: translateX(4px); }
+
 @media (max-width: 767.98px) {
     .lms-course-hero { padding: 20px; gap: 16px; }
     .lms-course-hero__title { font-size: 24px; }
     .lms-course-hero__ring-panel { padding: 6px; }
     .lms-course-hero__ring { width: 88px; height: 88px; }
     .lms-course-hero__ring .lms-progress-ring__label { font-size: 16px; }
-    .lms-cc-header { flex-wrap: wrap; padding: 16px; gap: 14px; }
-    .lms-cc-header__ring { order: 2; }
+    .lms-cc-section { padding: 12px; }
     .lms-unit-grid { grid-template-columns: 1fr; gap: 10px; }
 }
 
@@ -2176,6 +2176,10 @@ body.lms-student-area.lms-theme-dark {
     --lms-shadow-card:        0 1px 2px rgba(0, 0, 0, 0.4);
     --lms-shadow-card-hover:  0 18px 40px -18px rgba(0, 0, 0, 0.6);
     --lms-shadow-card-indigo: 0 10px 24px -8px rgba(99, 102, 241, 0.4);
+
+    /* Painel da seção de competência e texto do CTA do cartão da unidade */
+    --lms-section-bg:     #131B2C;
+    --lms-cta-fg:         #A5B4FC;
 }
 
 /* Overrides Bootstrap — classes que não consomem nossos tokens */
