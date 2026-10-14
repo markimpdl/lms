@@ -481,8 +481,8 @@ body.lms-student-area .lms-student-main {
     font-weight: 700;
 }
 
-/* 1 CourseCard por linha (full-width do main, mesma largura do
- * .lms-cc-header). Flex column garante que o card ocupe 100% da
+/* 1 CourseCard por linha (full-width do main). Flex column garante
+ * que o card ocupe 100% da
  * largura independente de intrínseco — grid com 1fr sozinho pode
  * colapsar ao min-content do conteúdo em alguns browsers. */
 .lms-course-grid {
@@ -782,7 +782,7 @@ body.lms-student-area .lms-student-main {
     display: flex;
     flex-direction: column;
     gap: 14px;
-    background: var(--lms-section-bg, #EEF2F7);
+    background: var(--lms-section-bg);
     border-radius: var(--lms-radius-card);
     padding: 18px;
 }
@@ -926,7 +926,7 @@ body.lms-student-area .lms-student-main {
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-weight: 700;
     font-size: 14px;
-    color: var(--lms-cta-fg, #4F46E5);
+    color: var(--lms-cta-fg);
 }
 .lms-unit-card__cta-arrow { transition: transform 160ms ease; }
 .lms-unit-card:hover .lms-unit-card__cta-arrow,
@@ -1942,6 +1942,9 @@ body.lms-student-area .lms-achievements-counter__label {
 body.lms-student-area .lms-cc-section--locked {
     position: relative;
     overflow: hidden;
+    /* Sem a grade de unidades a seção é só o título (~70px); o overlay é
+       absoluto e com nome longo de CC o texto cortava no overflow. */
+    min-height: 140px;
 }
 body.lms-student-area .lms-cc-section--locked .lms-cc-header {
     filter: blur(2px);
@@ -1955,7 +1958,7 @@ body.lms-student-area .lms-cc-section__lock-overlay {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.55);
+    background: var(--lms-lock-overlay-bg);
     backdrop-filter: blur(1px);
     color: var(--lms-neutral-900);
     font-family: 'Plus Jakarta Sans', sans-serif;
@@ -2180,6 +2183,7 @@ body.lms-student-area.lms-theme-dark {
     /* Painel da seção de competência e texto do CTA do cartão da unidade */
     --lms-section-bg:     #131B2C;
     --lms-cta-fg:         #A5B4FC;
+    --lms-lock-overlay-bg: rgba(15, 23, 42, 0.6);
 }
 
 /* Overrides Bootstrap — classes que não consomem nossos tokens */

@@ -1569,7 +1569,7 @@ return [
     'student.course_page.units'             => 'Unidades',
     'student.course_page.cc_count'          => 'Competências',
     'student.course_page.cc_n'              => 'Competência :n',
-    'student.course_page.cc_units_summary'  => ':done de :total unidades concluídas',
+    'student.course_page.cc_units_summary'  => ':done de :total unidades concluídas · :percent%',
     'student.course_page.unit_n'            => 'Unidade :n',
     'student.course_page.unit_hours_tooltip' => 'Carga horária',
     'student.course_page.cta_start'          => 'Começar',

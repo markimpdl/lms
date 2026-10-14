@@ -49,12 +49,16 @@ if ($ccStatus === 'next') {
                 <?= e(__t('student.course_page.cc_n', ['n' => (string) $ccIndex])) ?>
             </span>
             <h2 class="lms-cc-header__title"><?= e((string) $cc['name']) ?></h2>
-            <div class="lms-cc-header__summary">
-                <?= e(__t('student.course_page.cc_units_summary', [
-                    'done'  => (string) $ccUnitsDone,
-                    'total' => (string) $ccUnitsTot,
-                ])) ?>
-                · <?= (int) $ccPercent ?>%
+            <?php $ccSummary = __t('student.course_page.cc_units_summary', [
+                'done'    => (string) $ccUnitsDone,
+                'total'   => (string) $ccUnitsTot,
+                'percent' => (string) $ccPercent,
+            ]); ?>
+            <div class="lms-cc-header__summary"
+                 role="progressbar"
+                 aria-valuenow="<?= (int) $ccPercent ?>" aria-valuemin="0" aria-valuemax="100"
+                 aria-valuetext="<?= e($ccSummary) ?>">
+                <?= e($ccSummary) ?>
             </div>
         </div>
     </header>
