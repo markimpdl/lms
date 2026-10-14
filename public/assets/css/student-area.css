@@ -1158,6 +1158,10 @@ body.lms-student-area .lms-student-main {
 }
 .unit-prose img { max-width: 100%; height: auto; border-radius: var(--lms-radius-inner); }
 .unit-prose table { width: 100%; border-collapse: collapse; margin: 18px 0; }
+/* Invólucro criado pelo app.js: tabela mais larga que o cartão rola aqui
+   dentro em vez de vazar. A margem passa pro invólucro. */
+.unit-prose .lms-table-scroll { overflow-x: auto; margin: 18px 0; }
+.unit-prose .lms-table-scroll > table { margin: 0; }
 .unit-prose th, .unit-prose td {
     padding: 10px 12px;
     border-bottom: 1px solid var(--lms-neutral-200);

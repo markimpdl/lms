@@ -109,6 +109,38 @@
         fd.append('__waf', window.btoa(params.toString()));
     });
 
+    // Tabela do conteúdo rico (lição, capa, enunciado) com texto que não
+    // quebra — ex.: caminho longo em `code` — fica mais larga que o cartão e
+    // vaza por cima da coluna ao lado. O invólucro rola na horizontal só
+    // quando precisa; tabela que cabe continua igual. Feito aqui porque o
+    // HTML vem do TinyMCE/import e não passa por template.
+    var tables = document.querySelectorAll('.unit-prose table');
+    for (var t = 0; t < tables.length; t++) {
+        var table = tables[t];
+        if (table.parentElement && table.parentElement.classList.contains('lms-table-scroll')) continue;
+        var wrap = document.createElement('div');
+        wrap.className = 'lms-table-scroll';
+        table.parentNode.insertBefore(wrap, table);
+        wrap.appendChild(table);
+    }
+    // Caminho em `code` dentro da célula (`Deliverables/project/x.sql`) só
+    // quebra no hífen, e a coluna dele espreme as outras. `<wbr>` depois de
+    // cada `/` deixa quebrar como caminho, e a tabela volta a caber sem rolar.
+    var codes = document.querySelectorAll('.unit-prose td code, .unit-prose th code');
+    for (var c = 0; c < codes.length; c++) {
+        var code = codes[c];
+        if (code.children.length > 0 || code.textContent.indexOf('/') === -1) continue;
+        var parts = code.textContent.split('/');
+        code.textContent = '';
+        for (var p = 0; p < parts.length; p++) {
+            if (p > 0) {
+                code.appendChild(document.createTextNode('/'));
+                code.appendChild(document.createElement('wbr'));
+            }
+            if (parts[p] !== '') code.appendChild(document.createTextNode(parts[p]));
+        }
+    }
+
     // BFCache (back button): restaura estado quando o navegador "ressuscita"
     // a pagina cacheada — overlay e botões ficariam travados sem isso.
     window.addEventListener('pageshow', function (event) {
