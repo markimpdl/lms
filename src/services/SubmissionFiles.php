@@ -171,12 +171,35 @@ final class SubmissionFiles
      */
     public static function findIn(string $kind, array $submission, int $fileId): ?array
     {
-        foreach (self::listFor($kind, $submission) as $f) {
-            if ($f['id'] === $fileId) {
-                return $f;
+        if ($fileId <= 0) {
+            $legacyPath = (string) ($submission['stored_path'] ?? '');
+            if ($legacyPath === '' || ($submission['filename'] ?? null) === null) {
+                return null;
             }
+            return [
+                'id'          => 0,
+                'filename'    => (string) $submission['filename'],
+                'stored_path' => $legacyPath,
+                'size_bytes'  => 0, // download não usa; evita o stat
+            ];
         }
-        return null;
+        $stmt = Database::pdo()->prepare(
+            'SELECT id, filename, stored_path, size_bytes
+               FROM ' . self::table($kind) . '
+              WHERE submission_id = ? AND id = ?
+              LIMIT 1'
+        );
+        $stmt->execute([(int) $submission['id'], $fileId]);
+        $row = $stmt->fetch();
+        if ($row === false) {
+            return null;
+        }
+        return [
+            'id'          => (int) $row['id'],
+            'filename'    => (string) $row['filename'],
+            'stored_path' => (string) $row['stored_path'],
+            'size_bytes'  => (int) $row['size_bytes'],
+        ];
     }
 
     /**
@@ -236,6 +259,14 @@ final class SubmissionFiles
     }
 
     /**
+     * Separador decimal do idioma da interface ("2,4 MB" pt / "2.4 MB" en).
+     */
+    public static function decimalSep(): string
+    {
+        return current_lang() === 'pt' ? ',' : '.';
+    }
+
+    /**
      * "2,4 MB" / "830 KB" — rótulo curto pras listas.
      */
     public static function humanSize(int $bytes): string
@@ -244,7 +275,7 @@ final class SubmissionFiles
             $mb = $bytes / (1024 * 1024);
             return ($bytes % (1024 * 1024) === 0
                 ? (string) (int) $mb
-                : number_format($mb, 1, ',', '.')) . ' MB';
+                : number_format($mb, 1, self::decimalSep(), '')) . ' MB';
         }
         return max(1, (int) round($bytes / 1024)) . ' KB';
     }

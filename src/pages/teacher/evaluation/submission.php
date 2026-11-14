@@ -287,16 +287,7 @@ ob_start();
                     </dd>
                     <dt class="col-4 col-md-3"><?= e(__t('evaluations.grade.files')) ?></dt>
                     <dd class="col-8 col-md-9">
-                        <ul class="list-unstyled mb-0">
-                            <?php foreach (SubmissionFiles::listFor(SubmissionFiles::KIND_EVALUATION, $current) as $sf): ?>
-                                <li>
-                                    <a href="/teacher/evaluation/<?= $evaluationId ?>/submission/<?= (int) $current['id'] ?>/file<?= $sf['id'] > 0 ? '?f=' . $sf['id'] : '' ?>">
-                                        <?= e($sf['filename']) ?>
-                                    </a>
-                                    <small class="text-muted">· <?= e(SubmissionFiles::humanSize($sf['size_bytes'])) ?></small>
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
+                        <?php $filesListItems = SubmissionFiles::listFor(SubmissionFiles::KIND_EVALUATION, $current); $filesListBase = '/teacher/evaluation/' . $evaluationId . '/submission/' . (int) $current['id'] . '/file'; $filesListClass = 'list-unstyled mb-0'; require LMS_ROOT . '/src/templates/partials/submission_files_list.php'; ?>
                     </dd>
                     <dt class="col-4 col-md-3"><?= e(__t('evaluations.grade.sent_at')) ?></dt>
                     <dd class="col-8 col-md-9">

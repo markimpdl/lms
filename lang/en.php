@@ -1342,6 +1342,7 @@ return [
     'cu_roster.col.evaluation'            => 'Assessment',
     'cu_roster.badge.inactive'            => 'Deactivated',
     'cu_roster.activity.with_feedback'    => 'With feedback',
+    'cu_roster.activity.returned'         => 'Returned — awaiting resubmission',
     'cu_roster.activity.pending'          => 'Awaiting feedback',
     'cu_roster.activity.not_submitted'    => 'Not submitted',
     'cu_roster.evaluation.approved'       => 'Approved',

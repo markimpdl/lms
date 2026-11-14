@@ -145,16 +145,7 @@ ob_start();
             <div class="card-body">
                 <?php if ($submissionFiles !== []): ?>
                     <p class="mb-1"><strong><?= e(__t('submissions.form.files')) ?>:</strong></p>
-                    <ul class="mb-2">
-                        <?php foreach ($submissionFiles as $sf): ?>
-                            <li>
-                                <a href="/teacher/activity/<?= $activityId ?>/submission/<?= (int) $student['id'] ?>/file<?= $sf['id'] > 0 ? '?f=' . $sf['id'] : '' ?>">
-                                    <?= e($sf['filename']) ?>
-                                </a>
-                                <small class="text-muted">· <?= e(SubmissionFiles::humanSize($sf['size_bytes'])) ?></small>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
+                    <?php $filesListItems = $submissionFiles; $filesListBase = '/teacher/activity/' . $activityId . '/submission/' . (int) $student['id'] . '/file'; $filesListClass = 'mb-2'; require LMS_ROOT . '/src/templates/partials/submission_files_list.php'; ?>
                 <?php endif; ?>
                 <?php if ($submission['code_text'] !== null): ?>
                     <p class="mb-1 small text-muted"><?= e(__t('submissions.form.code')) ?>:</p>

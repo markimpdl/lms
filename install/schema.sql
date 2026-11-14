@@ -1669,7 +1669,7 @@ ALTER TABLE xp_events
 
 -- [Entrega multi-arquivo] activity_submission_files / evaluation_submission_files
 -- Cada entrega (atividade ou tentativa de avaliacao) passa a ter N arquivos,
--- com a soma limitada na aplicacao (SubmissionUpload::MAX_TOTAL_BYTES).
+-- com a soma limitada na aplicacao (SubmissionFiles::MAX_TOTAL_BYTES).
 -- Filhas da linha de entrega: sem tenant_id proprio (mesmo desenho de
 -- evaluation_submission_lo_grades) — o escopo vem da entrega-mae, e o CASCADE
 -- apaga as linhas junto. O arquivo fisico e removido pela aplicacao.

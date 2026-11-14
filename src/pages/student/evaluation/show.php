@@ -400,16 +400,7 @@ ob_start();
                     <dl class="row mb-0 small">
                         <dt class="col-4 col-md-3"><?= e(__t('evaluations.student.form.files')) ?></dt>
                         <dd class="col-8 col-md-9">
-                            <ul class="list-unstyled mb-0">
-                                <?php foreach (SubmissionFiles::listFor(SubmissionFiles::KIND_EVALUATION, $current) as $sf): ?>
-                                    <li>
-                                        <a href="/student/evaluation/<?= $evaluationId ?>/submission/<?= (int) $current['id'] ?>/file<?= $sf['id'] > 0 ? '?f=' . $sf['id'] : '' ?>">
-                                            <?= e($sf['filename']) ?>
-                                        </a>
-                                        <small class="text-muted">· <?= e(SubmissionFiles::humanSize($sf['size_bytes'])) ?></small>
-                                    </li>
-                                <?php endforeach; ?>
-                            </ul>
+                            <?php $filesListItems = SubmissionFiles::listFor(SubmissionFiles::KIND_EVALUATION, $current); $filesListBase = '/student/evaluation/' . $evaluationId . '/submission/' . (int) $current['id'] . '/file'; $filesListClass = 'list-unstyled mb-0'; require LMS_ROOT . '/src/templates/partials/submission_files_list.php'; ?>
                         </dd>
                         <dt class="col-4 col-md-3"><?= e(__t('evaluations.student.sent_at')) ?></dt>
                         <dd class="col-8 col-md-9">
@@ -449,21 +440,7 @@ ob_start();
             </div>
             <div class="card-body">
                 <?php if ($canShowForm): ?>
-                    <?php if ($errors !== []): ?>
-                        <div class="alert alert-danger" role="alert">
-                            <?php foreach ($errors as $key): ?>
-                                <div>
-                                    <?= e(__t($key, [
-                                        'max'   => SubmissionFiles::humanSize(SubmissionFiles::MAX_TOTAL_BYTES),
-                                        'count' => SubmissionFiles::MAX_FILES,
-                                    ])) ?>
-                                    <?php if (($errorFileName ?? null) !== null): ?>
-                                        <small>(<?= e((string) $errorFileName) ?>)</small>
-                                    <?php endif; ?>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
+                    <?php require LMS_ROOT . '/src/templates/partials/submission_files_errors.php'; ?>
                     <form method="POST" action="/student/evaluation/<?= $evaluationId ?>"
                           enctype="multipart/form-data" class="mb-0" novalidate>
                         <?= csrf_field() ?>

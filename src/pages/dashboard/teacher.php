@@ -151,7 +151,9 @@ ob_start();
                                     <a href="<?= e($url) ?>" class="fw-semibold text-decoration-none flex-grow-1">
                                         <?= e((string) $r['ref_title']) ?>
                                     </a>
-                                    <?php if ($feedbacked): ?>
+                                    <?php if (($r['returned_at'] ?? null) !== null): ?>
+                                        <span class="badge text-bg-danger"><?= e(__t('submissions.teacher.returned')) ?></span>
+                                    <?php elseif ($feedbacked): ?>
                                         <span class="badge text-bg-success"><?= e(__t('teacher_dashboard.recent.with_feedback')) ?></span>
                                     <?php else: ?>
                                         <span class="badge text-bg-warning"><?= e(__t('teacher_dashboard.recent.pending')) ?></span>

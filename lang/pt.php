@@ -1345,6 +1345,7 @@ return [
     'cu_roster.badge.inactive'            => 'Desativado',
     'cu_roster.activity.with_feedback'    => 'Com feedback',
     'cu_roster.activity.pending'          => 'Aguardando feedback',
+    'cu_roster.activity.returned'         => 'Devolvida — aguardando reenvio',
     'cu_roster.activity.not_submitted'    => 'Não entregue',
     'cu_roster.evaluation.approved'       => 'Aprovada',
     'cu_roster.evaluation.failed'         => 'Reprovada',

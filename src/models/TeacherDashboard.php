@@ -154,7 +154,7 @@ final class TeacherDashboard
         $sql = '(SELECT \'activity\' AS src, s.activity_id AS ref_id,
                         a.title AS ref_title,
                         s.student_user_id AS student_id, u.name AS student_name,
-                        s.created_at, s.feedback_at,
+                        s.created_at, s.feedback_at, s.returned_at,
                         c.name AS course_name, cc.name AS cc_name, cu.name AS cu_name
                    FROM activity_submissions s
                    JOIN activities a          ON a.id  = s.activity_id
@@ -167,7 +167,7 @@ final class TeacherDashboard
                 (SELECT \'evaluation\' AS src, s.evaluation_id AS ref_id,
                         e.title AS ref_title,
                         s.student_user_id AS student_id, u.name AS student_name,
-                        s.created_at, s.feedback_at,
+                        s.created_at, s.feedback_at, NULL AS returned_at,
                         c.name AS course_name, cc.name AS cc_name, cu.name AS cu_name
                    FROM evaluation_submissions s
                    JOIN evaluations e         ON e.id  = s.evaluation_id

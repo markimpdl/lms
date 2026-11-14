@@ -285,13 +285,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($errors === []) {
-        $action = ActivitySubmission::save(
-            $activityId, $studentId,
-            ($isCode && $codeText !== '') ? $codeText : null,
-            $newFiles,
-            array_values(array_filter(array_column($removedFiles, 'id'))),
-            in_array(0, array_column($removedFiles, 'id'), true)
-        );
+        try {
+            $action = ActivitySubmission::save(
+                $activityId, $studentId,
+                ($isCode && $codeText !== '') ? $codeText : null,
+                $newFiles,
+                array_values(array_filter(array_column($removedFiles, 'id'))),
+                in_array(0, array_column($removedFiles, 'id'), true)
+            );
+        } catch (\Throwable $e) {
+            // Rollback: os arquivos novos não têm linha — sem isso viram
+            // órfãos que nenhuma exclusão (todas via DB) encontra.
+            foreach ($newFiles as $nf) {
+                safe_unlink_storage($nf['stored_path']);
+            }
+            throw $e;
+        }
+        if ($action === 'locked') {
+            foreach ($newFiles as $nf) {
+                safe_unlink_storage($nf['stored_path']);
+            }
+            flash('danger', __t('submissions.err.after_feedback'));
+            header('Location: /student/activity/' . $activityId, true, 303);
+            return;
+        }
         // Linhas já saíram no commit; agora o disco (best-effort).
         foreach ($removedFiles as $rf) {
             safe_unlink_storage($rf['stored_path']);
@@ -431,16 +448,7 @@ ob_start();
                         <?php if ($submissionFiles !== []): ?>
                             <dt class="col-4 col-md-3"><?= e(__t('submissions.form.files')) ?></dt>
                             <dd class="col-8 col-md-9">
-                                <ul class="list-unstyled mb-0">
-                                    <?php foreach ($submissionFiles as $sf): ?>
-                                        <li>
-                                            <a href="/student/activity/<?= $activityId ?>/file<?= $sf['id'] > 0 ? '?f=' . $sf['id'] : '' ?>">
-                                                <?= e($sf['filename']) ?>
-                                            </a>
-                                            <small class="text-muted">· <?= e(SubmissionFiles::humanSize($sf['size_bytes'])) ?></small>
-                                        </li>
-                                    <?php endforeach; ?>
-                                </ul>
+                                <?php $filesListItems = $submissionFiles; $filesListBase = '/student/activity/' . $activityId . '/file'; $filesListClass = 'list-unstyled mb-0'; require LMS_ROOT . '/src/templates/partials/submission_files_list.php'; ?>
                             </dd>
                         <?php endif; ?>
                         <?php if ($submission['code_text'] !== null): ?>
@@ -449,21 +457,7 @@ ob_start();
                         <?php endif; ?>
                     </dl>
                 <?php else: ?>
-                    <?php if ($errors !== []): ?>
-                        <div class="alert alert-danger" role="alert">
-                            <?php foreach ($errors as $key): ?>
-                                <div>
-                                    <?= e(__t($key, [
-                                        'max'   => SubmissionFiles::humanSize(SubmissionFiles::MAX_TOTAL_BYTES),
-                                        'count' => SubmissionFiles::MAX_FILES,
-                                    ])) ?>
-                                    <?php if (($errorFileName ?? null) !== null): ?>
-                                        <small>(<?= e((string) $errorFileName) ?>)</small>
-                                    <?php endif; ?>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
+                    <?php require LMS_ROOT . '/src/templates/partials/submission_files_errors.php'; ?>
 
                     <form method="POST" action="/student/activity/<?= $activityId ?>"
                           enctype="multipart/form-data" class="mb-0" novalidate>

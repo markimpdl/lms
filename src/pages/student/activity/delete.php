@@ -44,13 +44,13 @@ if (!ActivitySubmission::isDeletable($ctx['submission'])) {
     return;
 }
 
-// Lista os arquivos ANTES do DELETE (as linhas saem pelo CASCADE).
+// Lista os arquivos ANTES do DELETE (as linhas saem pelo CASCADE). Inclui o
+// arquivo legado da entrega de arquivo único (id 0).
 $files = SubmissionFiles::listFor(SubmissionFiles::KIND_ACTIVITY, $ctx['submission']);
 ActivitySubmission::delete($activityId, $studentId);
 foreach ($files as $f) {
     safe_unlink_storage($f['stored_path']);
 }
-SubmissionStorage::delete($activityId, $studentId, $tenantId); // legado <id>.<ext>
 XpEvents::revokeActivity($studentId, $activityId);
 
 flash('success', __t('submissions.deleted'));

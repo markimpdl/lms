@@ -73,7 +73,9 @@ final class ActivitySubmission
      *   `returned_at` e `feedback_at` — volta pra fila de pendentes. O texto
      *   do feedback anterior fica (o professor o vê ao corrigir de novo).
      *
-     * Retorna 'created' | 'updated' | 'resubmitted'.
+     * Retorna 'created' | 'updated' | 'resubmitted' | 'locked'. 'locked' =
+     * o professor corrigiu entre o GET e o POST (gate refeito sob o lock da
+     * linha) — nada é gravado e o caller apaga os arquivos novos do disco.
      *
      * @param list<array{filename:string,stored_path:string,size_bytes:int}> $newFiles
      * @param list<int> $removeIds
@@ -90,7 +92,7 @@ final class ActivitySubmission
             $activityId, $studentId, $codeText, $newFiles, $removeIds, $dropLegacy
         ): string {
             $stmt = $pdo->prepare(
-                'SELECT id, returned_at FROM activity_submissions
+                'SELECT id, feedback_at, returned_at FROM activity_submissions
                   WHERE activity_id = ? AND student_user_id = ?
                   LIMIT 1 FOR UPDATE'
             );
@@ -110,6 +112,9 @@ final class ActivitySubmission
 
             $submissionId = (int) $row['id'];
             $wasReturned  = $row['returned_at'] !== null;
+            if (!self::isMutable($row)) {
+                return 'locked';
+            }
 
             $set = 'code_text = ?';
             if ($dropLegacy) {
@@ -157,12 +162,16 @@ final class ActivitySubmission
     }
 
     /**
-     * Aluno pode REMOVER a entrega inteira só antes de qualquer feedback.
-     * Entrega devolvida se corrige e reenvia — remover revogaria o XP.
+     * Aluno pode REMOVER a entrega inteira só se o professor nunca a viu
+     * corrigida: sem feedback_at E sem texto de feedback. Entrega devolvida
+     * (ou já reenviada depois de devolvida) se corrige — remover revogaria o
+     * XP e apagaria o histórico de correção.
      */
     public static function isDeletable(?array $submission): bool
     {
-        return $submission !== null && $submission['feedback_at'] === null;
+        return $submission !== null
+            && $submission['feedback_at'] === null
+            && ($submission['feedback'] ?? null) === null;
     }
 
     public static function isReturned(?array $submission): bool

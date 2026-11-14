@@ -23,7 +23,8 @@ $__ffMaxBytes = SubmissionFiles::MAX_TOTAL_BYTES;
 $__ffMaxFiles = SubmissionFiles::MAX_FILES;
 $__ffId       = 'f-files-' . bin2hex(random_bytes(3));
 ?>
-<div class="mb-3 lms-files-field" data-max-bytes="<?= $__ffMaxBytes ?>" data-max-files="<?= $__ffMaxFiles ?>">
+<div class="mb-3 lms-files-field" data-max-bytes="<?= $__ffMaxBytes ?>" data-max-files="<?= $__ffMaxFiles ?>"
+     data-dec="<?= e(SubmissionFiles::decimalSep()) ?>">
     <label for="<?= e($__ffId) ?>" class="form-label"><?= e($fileFieldLabel) ?></label>
 
     <?php if ($fileFieldExisting !== []): ?>
@@ -69,7 +70,7 @@ $__ffId       = 'f-files-' . bin2hex(random_bytes(3));
     var maxBytes = +root.dataset.maxBytes, maxFiles = +root.dataset.maxFiles;
 
     function fmt(b) {
-        return b >= 1048576 ? (b % 1048576 === 0 ? String(b / 1048576) : (b / 1048576).toFixed(1).replace('.', ',')) + ' MB'
+        return b >= 1048576 ? (b % 1048576 === 0 ? String(b / 1048576) : (b / 1048576).toFixed(1).replace('.', root.dataset.dec)) + ' MB'
                             : Math.max(1, Math.round(b / 1024)) + ' KB';
     }
     function state() {

@@ -9,7 +9,8 @@ declare(strict_types=1);
  *
  * Multi-arquivo: cada arquivo vira `<student_id>_<hex>.<ext>` + uma linha em
  * `activity_submission_files` (ver `SubmissionFiles`). Entregas antigas
- * guardam `<student_id>.<ext>` (determinístico) — `delete()` ainda limpa esse.
+ * guardam `<student_id>.<ext>` (determinístico), lido como arquivo 0 por
+ * `SubmissionFiles::listFor` — e apagado por stored_path como os demais.
  *
  * Tipos aceitos: pdf, zip, txt, jpg, png (doc 06) + Word/PowerPoint/Excel
  * (via `OfficeFile`, conteúdo conferido e macro recusado) por padrão. Para atividades tipo
@@ -92,41 +93,6 @@ final class SubmissionStorage
             'stored_path' => 'storage/uploads/tenant_' . $tenantId . '/submissions/' . $activityId . '/' . $storedName,
             'size_bytes'  => (int) $file['size'],
         ];
-    }
-
-    /**
-     * Remove o arquivo físico LEGADO (`<studentId>.<ext>`) da submissão. Os
-     * arquivos multi-arquivo são apagados pelo caller via stored_path.
-     * Não erra se já não existe.
-     */
-    public static function delete(int $activityId, int $studentId, int $tenantId): void
-    {
-        $baseDir = LMS_ROOT . '/storage/uploads/tenant_' . $tenantId . '/submissions/' . $activityId;
-        if (is_dir($baseDir)) {
-            self::cleanupExistingFor($studentId, $baseDir);
-        }
-    }
-
-    /**
-     * Apaga qualquer arquivo <studentId>.<ext> no dir da atividade.
-     * Chamado antes de upload novo (pra trocar extensão) e no delete total.
-     * Itera todas as extensões já usadas no projeto (default + extensões de
-     * código) pra cobrir o caso do aluno trocar de .py pra .zip etc.
-     */
-    private static function cleanupExistingFor(int $studentId, string $baseDir): void
-    {
-        $realBase = realpath(LMS_ROOT . '/storage/uploads');
-        $allExts  = array_unique(array_merge(
-            array_values(self::ALLOWED_DEFAULT),
-            array_column(self::LANGUAGE_EXTRA, 'ext')
-        ));
-        foreach ($allExts as $ext) {
-            $path = $baseDir . '/' . $studentId . '.' . $ext;
-            $real = @realpath($path);
-            if ($realBase !== false && $real !== false && str_starts_with($real, $realBase)) {
-                @unlink($real);
-            }
-        }
     }
 
     /**

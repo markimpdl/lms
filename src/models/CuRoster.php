@@ -13,7 +13,7 @@ declare(strict_types=1);
  * Composição final em PHP pra entregar ao template já pronto. Cada
  * aluno tem:
  *  - activity_statuses: map[activity_id => 'not_submitted' | 'pending'
- *      | 'with_feedback']
+ *      | 'with_feedback' | 'returned']
  *  - evaluation_status: array{state, grade?, feedback_at?, retry_allowed?}
  *      com state ∈ {'none', 'not_submitted', 'pending', 'approved',
  *      'failed', 'retry'} — mesmo vocabulário do E7-05 + 'none' quando
@@ -79,7 +79,7 @@ final class CuRoster
 
         // 2. Submissões das atividades da CU, indexadas por (activity_id, student_id)
         $stmt = $pdo->prepare(
-            'SELECT s.activity_id, s.student_user_id, s.feedback_at
+            'SELECT s.activity_id, s.student_user_id, s.feedback_at, s.returned_at
                FROM activity_submissions s
                JOIN activities a ON a.id = s.activity_id
               WHERE a.competence_unit_id = ?'
@@ -91,6 +91,7 @@ final class CuRoster
             $sid = (int) $row['student_user_id'];
             $activityMap[$aid][$sid] = [
                 'feedback_at' => $row['feedback_at'],
+                'returned_at' => $row['returned_at'],
             ];
         }
 
@@ -127,6 +128,8 @@ final class CuRoster
                     $activityStatuses[$aid] = 'not_submitted';
                 } elseif ($sub['feedback_at'] === null) {
                     $activityStatuses[$aid] = 'pending';
+                } elseif ($sub['returned_at'] !== null) {
+                    $activityStatuses[$aid] = 'returned'; // aguardando o aluno reenviar
                 } else {
                     $activityStatuses[$aid] = 'with_feedback';
                 }
