@@ -45,7 +45,10 @@ $student    = $ctx['student'];
 // Decide pela ENTREGA, não pelo tipo atual: se o tipo da atividade mudou
 // depois das entregas (atividade 488 virou quiz com 12 arquivos), a entrega
 // de arquivo ainda abre a correção normal e a de quiz, a tela do quiz.
-if ($submission['quiz_snapshot'] !== null) {
+$__isFileOrCode = $submission['code_text'] !== null
+    || SubmissionFiles::listFor(SubmissionFiles::KIND_ACTIVITY, $submission) !== [];
+if ($submission['quiz_snapshot'] !== null
+    || ((string) ($activity['type'] ?? '') === 'quiz' && !$__isFileOrCode)) {
     require LMS_ROOT . '/src/pages/teacher/activity/submission-review-quiz.php';
     return;
 }
