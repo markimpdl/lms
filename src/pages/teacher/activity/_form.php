@@ -60,14 +60,22 @@ declare(strict_types=1);
                     <label for="f-type" class="form-label"><?= e(__t('activities.form.type')) ?></label>
                     <select name="type" id="f-type"
                             class="form-select<?= isset($errors['type']) ? ' is-invalid' : '' ?>">
+                        <?php
+                            // Com entregas, quiz ↔ projeto/código fica travado
+                            // (o servidor também recusa — ver edit.php).
+                            $__typeLocked = ($submissions ?? 0) > 0;
+                        ?>
                         <?php foreach (Activity::TYPES as $t): ?>
-                            <option value="<?= e($t) ?>" <?= $old['type'] === $t ? 'selected' : '' ?>>
+                            <?php $__crossesQuiz = ($t === 'quiz') !== ($old['type'] === 'quiz'); ?>
+                            <option value="<?= e($t) ?>" <?= $old['type'] === $t ? 'selected' : '' ?><?= $__typeLocked && $__crossesQuiz ? ' disabled' : '' ?>>
                                 <?= e(__t('activities.type.' . $t)) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
                     <?php if (isset($errors['type'])): ?>
                         <div class="invalid-feedback"><?= e(__t($errors['type'])) ?></div>
+                    <?php elseif ($__typeLocked): ?>
+                        <div class="form-text"><?= e(__t('activities.form.type_locked_quiz_hint')) ?></div>
                     <?php endif; ?>
                 </div>
                 <div class="col-12 col-md-6 mb-3">

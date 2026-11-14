@@ -38,6 +38,11 @@ $old = [
 ];
 $errors = [];
 
+// Com entregas, o tipo não cruza a fronteira quiz ↔ projeto/código: entrega
+// de arquivo não tem snapshot de respostas e entrega de quiz não tem arquivo
+// — a correção ficava sem nada pra mostrar (atividade 488, 2026-11-14).
+$submissions = Activity::countSubmissions($activityId);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         csrf_verify();
@@ -69,6 +74,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (!in_array($old['type'], Activity::TYPES, true)) {
         $errors['type'] = 'activities.form.err.type';
+    } elseif ($submissions > 0
+        && ($old['type'] === 'quiz') !== ((string) $activity['type'] === 'quiz')) {
+        $errors['type'] = 'activities.form.err.type_locked_quiz';
+        $old['type']    = (string) $activity['type'];
     }
     if ($old['code_language'] !== null && !in_array($old['code_language'], Activity::CODE_LANGUAGES, true)) {
         $errors['code_language'] = 'activities.form.err.code_language';
@@ -147,7 +156,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $mode           = 'edit';
 $formAction     = '/teacher/activity/' . $activityId . '/edit';
-$submissions    = Activity::countSubmissions($activityId);
 $activityName   = (string) $activity['title'];
 $currentPdfPath = $activity['pdf_path'] !== null ? (string) $activity['pdf_path'] : null;
 $maxMb          = (int) ((ActivityBriefStorage::maxBytes()) / (1024 * 1024));

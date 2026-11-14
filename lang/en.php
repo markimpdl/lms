@@ -576,6 +576,8 @@ return [
     'activities.form.submit_new'       => 'Create activity',
     'activities.form.has_errors'       => 'Review the highlighted fields below.',
     'activities.form.err.title'        => 'Title must be between 3 and 200 characters.',
+    'activities.form.err.type_locked_quiz' => 'This activity already has submissions: it cannot switch between Quiz and Project/Code. Create a new activity instead.',
+    'activities.form.type_locked_quiz_hint' => 'There are submissions: switching between Quiz and Project/Code is blocked.',
     'activities.form.err.type'         => 'Invalid type.',
     'activities.form.err.xp'           => 'XP must be an integer between 0 and 9999.',
     'activities.form.warning_submissions' => ':count student(s) have already submitted. Existing submissions remain and students cannot resubmit — your edit only affects students who have not submitted yet.',
