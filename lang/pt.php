@@ -576,6 +576,8 @@ return [
     'activities.form.submit_new'       => 'Criar atividade',
     'activities.form.has_errors'       => 'Revise os campos destacados abaixo.',
     'activities.form.err.title'        => 'Título precisa ter entre 3 e 200 caracteres.',
+    'activities.form.err.type_locked_quiz' => 'Esta atividade já tem entregas: não dá pra trocar entre Quiz e Projeto/Código. Crie uma atividade nova.',
+    'activities.form.type_locked_quiz_hint' => 'Já há entregas: a troca entre Quiz e Projeto/Código está bloqueada.',
     'activities.form.err.type'         => 'Tipo inválido.',
     'activities.form.err.xp'           => 'XP deve ser um inteiro entre 0 e 9999.',
     'activities.form.warning_submissions' => ':count aluno(s) já enviaram esta atividade. As entregas existentes permanecem e os alunos não podem reenviar — sua edição só afeta alunos que ainda não entregaram.',
