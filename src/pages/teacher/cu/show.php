@@ -660,6 +660,7 @@ ob_start();
                                     $status = (string) ($r['activity_statuses'][$aid] ?? 'not_submitted');
                                     [$bg, $icon, $label] = match ($status) {
                                         'with_feedback' => ['bg-success-subtle text-success-emphasis', '✓', __t('cu_roster.activity.with_feedback')],
+                                        'returned'      => ['bg-danger-subtle text-danger-emphasis',   '↩', __t('cu_roster.activity.returned')],
                                         'pending'       => ['bg-warning-subtle text-warning-emphasis', '⏳', __t('cu_roster.activity.pending')],
                                         default         => ['bg-light text-muted',                     '—', __t('cu_roster.activity.not_submitted')],
                                     };
@@ -744,6 +745,7 @@ ob_start();
                                     $status = (string) ($r['activity_statuses'][$aid] ?? 'not_submitted');
                                     [$bg, $icon] = match ($status) {
                                         'with_feedback' => ['bg-success-subtle text-success-emphasis', '✓'],
+                                        'returned'      => ['bg-danger-subtle text-danger-emphasis',   '↩'],
                                         'pending'       => ['bg-warning-subtle text-warning-emphasis', '⏳'],
                                         default         => ['bg-light text-muted',                     '—'],
                                     };

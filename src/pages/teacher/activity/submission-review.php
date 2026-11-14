@@ -70,20 +70,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['feedback'] = 'submissions.teacher.err.too_long';
     }
 
+    // "Devolver para correção": mesmo form, botão com name=action. O
+    // feedback é obrigatório nos dois casos (é ele que diz o que corrigir).
+    $returning = (string) ($_POST['action'] ?? '') === 'return';
+
     if ($errors === []) {
-        ActivitySubmission::saveFeedback($activityId, $studentId, $oldFeedback);
+        if ($returning) {
+            ActivitySubmission::returnForCorrection($activityId, $studentId, $oldFeedback);
+        } else {
+            ActivitySubmission::saveFeedback($activityId, $studentId, $oldFeedback);
+        }
 
         // Fanout via NotificationService (E10-00). O idioma do email é o do
-        // aluno (ADR-041), então courseId null não muda nada aqui.
+        // aluno (ADR-041), então courseId null não muda nada aqui. Devolução
+        // usa o mesmo evento (o aluno controla as duas pela mesma preferência).
         NotificationService::fanout(
             NotificationService::EVENT_ACTIVITY_FEEDBACK,
             [$studentId],
             (string) $activity['title'],
-            __t('submissions.teacher.notification_body'),
+            __t($returning ? 'submissions.teacher.notification_returned' : 'submissions.teacher.notification_body'),
             '/student/activity/' . $activityId
         );
 
-        flash('success', __t('submissions.teacher.feedback_saved', ['name' => (string) $student['name']]));
+        flash('success', __t(
+            $returning ? 'submissions.teacher.returned_saved' : 'submissions.teacher.feedback_saved',
+            ['name' => (string) $student['name']]
+        ));
         header('Location: ' . $backUrl, true, 303);
         return;
     }
@@ -92,6 +104,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $cuId   = (int) $activity['cu_id'];
 $isCode = $activity['type'] === 'codigo';
 $wasReviewed = $submission['feedback_at'] !== null;
+$isReturned  = ActivitySubmission::isReturned($submission);
+$submissionFiles = SubmissionFiles::listFor(SubmissionFiles::KIND_ACTIVITY, $submission);
 
 $page_title = __t('submissions.teacher.review_title', ['name' => (string) $student['name']]);
 
@@ -129,19 +143,15 @@ ob_start();
                 </small>
             </div>
             <div class="card-body">
-                <?php if ($submission['filename'] !== null): ?>
-                    <p class="mb-2">
-                        <strong><?= e(__t('submissions.form.file')) ?>:</strong>
-                        <a href="/teacher/activity/<?= $activityId ?>/submission/<?= (int) $student['id'] ?>/file">
-                            <?= e((string) $submission['filename']) ?>
-                        </a>
-                    </p>
+                <?php if ($submissionFiles !== []): ?>
+                    <p class="mb-1"><strong><?= e(__t('submissions.form.files')) ?>:</strong></p>
+                    <?php $filesListItems = $submissionFiles; $filesListBase = '/teacher/activity/' . $activityId . '/submission/' . (int) $student['id'] . '/file'; $filesListClass = 'mb-2'; require LMS_ROOT . '/src/templates/partials/submission_files_list.php'; ?>
                 <?php endif; ?>
                 <?php if ($submission['code_text'] !== null): ?>
                     <p class="mb-1 small text-muted"><?= e(__t('submissions.form.code')) ?>:</p>
                     <pre class="bg-light p-3 rounded small mb-0" style="max-height: 400px; overflow: auto;"><?= e((string) $submission['code_text']) ?></pre>
                 <?php endif; ?>
-                <?php if ($submission['filename'] === null && $submission['code_text'] === null): ?>
+                <?php if ($submissionFiles === [] && $submission['code_text'] === null): ?>
                     <p class="text-muted mb-0"><?= e(__t('submissions.teacher.empty_submission')) ?></p>
                 <?php endif; ?>
             </div>
@@ -174,9 +184,19 @@ ob_start();
                 <?php endif; ?>
             </div>
 
+            <?php if ($isReturned): ?>
+                <div class="alert alert-warning small mt-3 mb-0" role="status">
+                    <?= e(__t('submissions.teacher.returned_notice', ['date' => substr((string) $submission['returned_at'], 0, 16)])) ?>
+                </div>
+            <?php endif; ?>
+
             <div class="d-flex gap-2 flex-wrap mt-3">
-                <button type="submit" class="btn btn-primary btn-lg">
+                <button type="submit" name="action" value="save" class="btn btn-primary btn-lg">
                     <?= e(__t('common.save')) ?>
+                </button>
+                <button type="submit" name="action" value="return" class="btn btn-outline-danger btn-lg"
+                        title="<?= e(__t('submissions.teacher.return_hint')) ?>">
+                    <?= e(__t('submissions.teacher.return_button')) ?>
                 </button>
                 <a href="<?= e($backUrl) ?>" class="btn btn-outline-secondary btn-lg">
                     <?= e(__t('common.cancel')) ?>

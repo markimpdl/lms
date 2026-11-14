@@ -14,10 +14,9 @@ declare(strict_types=1);
  *      histórico ("aluno está na 2ª tentativa") mesmo sem o registro antigo.
  *   4. Insere nova linha (única por par eval/student desde v0.30.0).
  *
- * O arquivo no disco já foi salvo antes pelo handler via
- * `EvaluationSubmissionStorage::store($file, $evalId, $studentId, $attempt, $tenantId)`.
- * Se o INSERT falhar a transação é revertida — o arquivo no disco fica
- * órfão mas é inofensivo (caminho inclui attempt, não colide).
+ * Os arquivos no disco já foram salvos antes pelo handler via
+ * `EvaluationSubmissionStorage::store(...)` (um por arquivo). Se o INSERT
+ * falhar a transação é revertida — o handler apaga esses arquivos.
  *
  * **Cascade ao DELETE**: a FK em `evaluation_submission_lo_grades.submission_id`
  * é ON DELETE CASCADE, então notas por LO da tentativa antiga somem juntas.
@@ -27,23 +26,28 @@ declare(strict_types=1);
 final class EvaluationSubmissionService
 {
     /**
+     * `$files`: arquivos da tentativa já gravados no disco (multi-arquivo,
+     * via SubmissionFiles::storeAll) — viram linhas em
+     * `evaluation_submission_files`. A linha-mãe fica com filename/stored_path
+     * NULL (essas colunas são só do formato legado de arquivo único).
+     *
      * Códigos de retorno:
      *   'closed'       — submission_open=0 e sem corrente (primeira tentativa bloqueada)
      *   'no_retry'     — já tem corrente e retry_allowed=0
      *   'ok'           — inseriu (campo `attempt` no retorno)
      *
+     * @param list<array{filename:string,stored_path:string,size_bytes:int}> $files
      * @return array{status:string, attempt?:int}
      */
     public static function submit(
         int $evaluationId,
         int $tenantId,
         int $studentId,
-        string $filename,
-        string $storedPath
+        array $files
     ): array {
         $result = Database::tx(
             static function (PDO $pdo) use (
-                $evaluationId, $tenantId, $studentId, $filename, $storedPath
+                $evaluationId, $tenantId, $studentId, $files
             ): array {
                 $stmt = $pdo->prepare(
                     'SELECT submission_open FROM evaluations WHERE id = ? LIMIT 1'
@@ -85,6 +89,16 @@ final class EvaluationSubmissionService
                             $orphanPaths[] = $p;
                         }
                     }
+                    // Arquivos multi-arquivo da tentativa antiga (as linhas
+                    // saem pelo CASCADE do DELETE abaixo).
+                    $fst = $pdo->prepare(
+                        'SELECT stored_path FROM evaluation_submission_files
+                          WHERE submission_id = ?'
+                    );
+                    $fst->execute([$current['id']]);
+                    foreach ($fst->fetchAll(PDO::FETCH_COLUMN) as $p) {
+                        $orphanPaths[] = (string) $p;
+                    }
 
                     // DELETE da tentativa antiga (cascade limpa
                     // evaluation_submission_lo_grades). Sem mais soft-delete
@@ -96,17 +110,20 @@ final class EvaluationSubmissionService
 
                 $pdo->prepare(
                     'INSERT INTO evaluation_submissions
-                        (tenant_id, evaluation_id, student_user_id, attempt,
-                         filename, stored_path)
-                     VALUES (?, ?, ?, ?, ?, ?)'
+                        (tenant_id, evaluation_id, student_user_id, attempt)
+                     VALUES (?, ?, ?, ?)'
                 )->execute([
                     $tenantId,
                     $evaluationId,
                     $studentId,
                     $nextAttempt,
-                    $filename,
-                    $storedPath,
                 ]);
+                SubmissionFiles::insert(
+                    $pdo,
+                    SubmissionFiles::KIND_EVALUATION,
+                    (int) $pdo->lastInsertId(),
+                    $files
+                );
 
                 return ['status' => 'ok', 'attempt' => $nextAttempt, '_orphan_paths' => $orphanPaths];
             }

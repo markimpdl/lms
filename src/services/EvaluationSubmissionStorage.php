@@ -5,7 +5,8 @@ declare(strict_types=1);
  * Armazenamento de arquivos de submissão de avaliação (E7-02).
  *
  * Layout em disco:
- *   storage/uploads/tenant_<tid>/evaluation_submissions/<evaluation_id>/<student_id>_<attempt>.<ext>
+ *   storage/uploads/tenant_<tid>/evaluation_submissions/<evaluation_id>/<student_id>_<attempt>_<hex>.<ext>
+ *   (multi-arquivo; entregas antigas: <student_id>_<attempt>.<ext>)
  *
  * Diferente de `SubmissionStorage` (1 arquivo por aluno, determinístico),
  * aqui cada tentativa gera um arquivo próprio — o aluno pode ter múltiplas
@@ -31,7 +32,7 @@ final class EvaluationSubmissionStorage
      * mantém histórico.
      *
      * @param array{name:string,tmp_name:string,size:int,error:int,type?:string} $file
-     * @return array{status:string, filename?:string, stored_path?:string, error_key?:string}
+     * @return array{status:string, filename?:string, stored_path?:string, size_bytes?:int, error_key?:string}
      */
     public static function store(
         array $file,
@@ -68,7 +69,8 @@ final class EvaluationSubmissionStorage
             return ['status' => 'error', 'error_key' => 'evaluations.student.err.generic'];
         }
 
-        $storedName = $studentId . '_' . $attempt . '.' . $ext;
+        // Multi-arquivo: sufixo aleatório (a tentativa tem N arquivos).
+        $storedName = $studentId . '_' . $attempt . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
         $storedFull = $baseDir . '/' . $storedName;
         if (!@move_uploaded_file($tmp, $storedFull)) {
             return ['status' => 'error', 'error_key' => 'evaluations.student.err.generic'];
@@ -80,6 +82,7 @@ final class EvaluationSubmissionStorage
             'stored_path' => 'storage/uploads/tenant_' . $tenantId
                            . '/evaluation_submissions/' . $evaluationId
                            . '/' . $storedName,
+            'size_bytes'  => $size,
         ];
     }
 

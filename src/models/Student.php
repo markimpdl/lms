@@ -316,9 +316,19 @@ final class Student
               WHERE student_user_id = ? AND stored_path IS NOT NULL
               UNION ALL
              SELECT stored_path FROM evaluation_submissions
-              WHERE student_user_id = ? AND stored_path IS NOT NULL'
+              WHERE student_user_id = ? AND stored_path IS NOT NULL
+              UNION ALL
+             SELECT f.stored_path
+               FROM activity_submission_files f
+               JOIN activity_submissions s ON s.id = f.submission_id
+              WHERE s.student_user_id = ?
+              UNION ALL
+             SELECT f.stored_path
+               FROM evaluation_submission_files f
+               JOIN evaluation_submissions s ON s.id = f.submission_id
+              WHERE s.student_user_id = ?'
         );
-        $stmt->execute([$id, $id]);
+        $stmt->execute([$id, $id, $id, $id]);
         /** @var list<string> $paths */
         $paths = $stmt->fetchAll(PDO::FETCH_COLUMN);
 

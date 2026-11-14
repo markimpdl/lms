@@ -99,7 +99,8 @@ ob_start();
                         <?php
                             $sid       = (int) $sub['student_user_id'];
                             $pending   = $sub['feedback_at'] === null;
-                            $hasFile   = $sub['filename'] !== null;
+                            $fileCount = (int) ($sub['file_count'] ?? 0);
+                            $returned  = ($sub['returned_at'] ?? null) !== null;
                             $hasCode   = $sub['code_text'] !== null;
                         ?>
                         <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
@@ -117,8 +118,8 @@ ob_start();
                                 </small>
                             </div>
 
-                            <?php if ($hasFile): ?>
-                                <span class="badge text-bg-light border" title="<?= e((string) $sub['filename']) ?>">📎</span>
+                            <?php if ($fileCount > 0): ?>
+                                <span class="badge text-bg-light border" title="<?= e(__t('submissions.teacher.file_count', ['n' => $fileCount])) ?>">📎<?= $fileCount > 1 ? ' ' . $fileCount : '' ?></span>
                             <?php endif; ?>
                             <?php if ($hasCode): ?>
                                 <span class="badge text-bg-light border" title="<?= e(__t('submissions.teacher.has_code')) ?>">&lt;/&gt;</span>
@@ -127,6 +128,10 @@ ob_start();
                             <?php if ($pending): ?>
                                 <span class="badge text-bg-warning">
                                     <?= e(__t('submissions.teacher.pending')) ?>
+                                </span>
+                            <?php elseif ($returned): ?>
+                                <span class="badge text-bg-danger">
+                                    <?= e(__t('submissions.teacher.returned')) ?>
                                 </span>
                             <?php else: ?>
                                 <span class="badge text-bg-success">

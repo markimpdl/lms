@@ -285,11 +285,9 @@ ob_start();
                         <?= e((string) $student['name']) ?>
                         <span class="text-muted">&lt;<?= e((string) $student['email']) ?>&gt;</span>
                     </dd>
-                    <dt class="col-4 col-md-3"><?= e(__t('evaluations.grade.file')) ?></dt>
+                    <dt class="col-4 col-md-3"><?= e(__t('evaluations.grade.files')) ?></dt>
                     <dd class="col-8 col-md-9">
-                        <a href="/teacher/evaluation/<?= $evaluationId ?>/submission/<?= (int) $current['id'] ?>/file">
-                            <?= e((string) $current['filename']) ?>
-                        </a>
+                        <?php $filesListItems = SubmissionFiles::listFor(SubmissionFiles::KIND_EVALUATION, $current); $filesListBase = '/teacher/evaluation/' . $evaluationId . '/submission/' . (int) $current['id'] . '/file'; $filesListClass = 'list-unstyled mb-0'; require LMS_ROOT . '/src/templates/partials/submission_files_list.php'; ?>
                     </dd>
                     <dt class="col-4 col-md-3"><?= e(__t('evaluations.grade.sent_at')) ?></dt>
                     <dd class="col-8 col-md-9">

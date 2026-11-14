@@ -240,37 +240,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $codeText  = $isCode ? trim((string) ($_POST['code_text'] ?? '')) : null;
-    $hasFile   = isset($_FILES['file']) && is_array($_FILES['file'])
-              && (int) ($_FILES['file']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK;
-    $filename  = $submission['filename']    ?? null;
-    $storedPath = $submission['stored_path'] ?? null;
 
-    if ($hasFile) {
-        $result = SubmissionStorage::store(
-            $_FILES['file'], $activityId, $studentId, $tenantId,
-            ['code_language' => $codeLang]
+    // Multi-arquivo: arquivos que o aluno já tinha, menos os que marcou pra
+    // remover, mais os novos. A soma (mantidos + novos) respeita o teto.
+    $existingFiles = $submission !== null
+        ? SubmissionFiles::listFor(SubmissionFiles::KIND_ACTIVITY, $submission)
+        : [];
+    $removeIds = array_map('intval', (array) ($_POST['remove_files'] ?? []));
+    $keptFiles = array_values(array_filter(
+        $existingFiles,
+        static fn (array $f): bool => !in_array($f['id'], $removeIds, true)
+    ));
+    $removedFiles = array_values(array_filter(
+        $existingFiles,
+        static fn (array $f): bool => in_array($f['id'], $removeIds, true)
+    ));
+    $incoming = SubmissionFiles::normalize($_FILES['files'] ?? null);
+    $newFiles = [];
+
+    $limitErr = SubmissionFiles::checkLimits($keptFiles, $incoming, 'submissions.err');
+    if ($limitErr !== null) {
+        $errors['file'] = $limitErr;
+    } elseif ($incoming !== []) {
+        $stored = SubmissionFiles::storeAll(
+            $incoming,
+            static fn (array $f): array => SubmissionStorage::store(
+                $f, $activityId, $studentId, $tenantId, ['code_language' => $codeLang]
+            )
         );
-        if ($result['status'] !== 'ok') {
-            $errors['file'] = $result['error_key'] ?? 'submissions.err.generic';
+        if ($stored['status'] !== 'ok') {
+            $errors['file'] = ($stored['error_key'] ?? '') !== '' ? $stored['error_key'] : 'submissions.err.generic';
+            $errorFileName  = $stored['failed_name'] ?? null;
         } else {
-            $filename   = $result['filename'];
-            $storedPath = $result['stored_path'];
+            $newFiles = $stored['stored'];
         }
     }
 
-    // Exige ao menos arquivo ou código (pra codigo). Pra outros tipos, arquivo obrigatório.
-    $hasAny = $filename !== null || ($isCode && $codeText !== null && $codeText !== '');
-    if ($errors === [] && !$hasAny && $submission === null) {
+    // Exige ao menos um arquivo ou código (pra codigo). Pra remover a entrega
+    // inteira existe o botão próprio — aqui não pode sobrar entrega vazia.
+    $hasAny = $keptFiles !== [] || $newFiles !== []
+           || ($isCode && $codeText !== null && $codeText !== '');
+    if ($errors === [] && !$hasAny) {
         $errors['file'] = 'submissions.err.empty';
     }
 
     if ($errors === []) {
-        $action = ActivitySubmission::upsert(
-            $activityId, $studentId,
-            $filename,
-            $storedPath,
-            ($isCode && $codeText !== '') ? $codeText : null
-        );
+        try {
+            $action = ActivitySubmission::save(
+                $activityId, $studentId,
+                ($isCode && $codeText !== '') ? $codeText : null,
+                $newFiles,
+                array_values(array_filter(array_column($removedFiles, 'id'))),
+                in_array(0, array_column($removedFiles, 'id'), true)
+            );
+        } catch (\Throwable $e) {
+            // Rollback: os arquivos novos não têm linha — sem isso viram
+            // órfãos que nenhuma exclusão (todas via DB) encontra.
+            foreach ($newFiles as $nf) {
+                safe_unlink_storage($nf['stored_path']);
+            }
+            throw $e;
+        }
+        if ($action === 'locked') {
+            foreach ($newFiles as $nf) {
+                safe_unlink_storage($nf['stored_path']);
+            }
+            flash('danger', __t('submissions.err.after_feedback'));
+            header('Location: /student/activity/' . $activityId, true, 303);
+            return;
+        }
+        // Linhas já saíram no commit; agora o disco (best-effort).
+        foreach ($removedFiles as $rf) {
+            safe_unlink_storage($rf['stored_path']);
+        }
         if ($action === 'created') {
             XpEvents::awardActivity($studentId, $activityId);
 
@@ -283,11 +325,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // swallow
             }
         }
-        flash('success', __t($action === 'created' ? 'submissions.submitted' : 'submissions.updated'));
+        // 'resubmitted' (devolvida → reenviada): volta pra fila de pendentes
+        // do professor — mesmo caminho da 1ª entrega, sem notificação.
+        flash('success', __t(match ($action) {
+            'created'     => 'submissions.submitted',
+            'resubmitted' => 'submissions.resubmitted',
+            default       => 'submissions.updated',
+        }));
         header('Location: /student/activity/' . $activityId, true, 303);
         return;
     }
 }
+
+$submissionFiles = $submission !== null
+    ? SubmissionFiles::listFor(SubmissionFiles::KIND_ACTIVITY, $submission)
+    : [];
+$isReturned  = ActivitySubmission::isReturned($submission);
+$canDelete   = ActivitySubmission::isDeletable($submission);
 
 $page_title = (string) $activity['title'];
 
@@ -311,7 +365,9 @@ ob_start();
                 </small>
             </div>
             <?php if ($submission !== null): ?>
-                <?php if ($submission['feedback_at'] !== null): ?>
+                <?php if ($isReturned): ?>
+                    <span class="badge text-bg-danger"><?= e(__t('submissions.status.returned')) ?></span>
+                <?php elseif ($submission['feedback_at'] !== null): ?>
                     <span class="badge text-bg-success"><?= e(__t('submissions.status.with_feedback')) ?></span>
                 <?php else: ?>
                     <span class="badge text-bg-warning"><?= e(__t('submissions.status.submitted')) ?></span>
@@ -358,9 +414,12 @@ ob_start();
 
         <!-- Feedback do professor, quando já entregue -->
         <?php if ($submission !== null && $submission['feedback_at'] !== null): ?>
-            <div class="card shadow-sm mb-3 border-success">
-                <div class="card-header bg-success-subtle">
-                    <h2 class="h6 mb-0"><?= e(__t('submissions.feedback_title')) ?></h2>
+            <div class="card shadow-sm mb-3 <?= $isReturned ? 'border-danger' : 'border-success' ?>">
+                <div class="card-header <?= $isReturned ? 'bg-danger-subtle' : 'bg-success-subtle' ?>">
+                    <h2 class="h6 mb-0"><?= e(__t($isReturned ? 'submissions.returned_title' : 'submissions.feedback_title')) ?></h2>
+                    <?php if ($isReturned): ?>
+                        <div class="small mt-1"><?= e(__t('submissions.returned_hint')) ?></div>
+                    <?php endif; ?>
                 </div>
                 <div class="card-body">
                     <p class="mb-0" style="white-space: pre-wrap;"><?= e((string) $submission['feedback']) ?></p>
@@ -386,12 +445,10 @@ ob_start();
                         <?= e(__t('submissions.readonly_notice')) ?>
                     </p>
                     <dl class="row mb-0 small">
-                        <?php if ($submission['filename'] !== null): ?>
-                            <dt class="col-4 col-md-3"><?= e(__t('submissions.form.file')) ?></dt>
+                        <?php if ($submissionFiles !== []): ?>
+                            <dt class="col-4 col-md-3"><?= e(__t('submissions.form.files')) ?></dt>
                             <dd class="col-8 col-md-9">
-                                <a href="/student/activity/<?= $activityId ?>/file">
-                                    <?= e((string) $submission['filename']) ?>
-                                </a>
+                                <?php $filesListItems = $submissionFiles; $filesListBase = '/student/activity/' . $activityId . '/file'; $filesListClass = 'list-unstyled mb-0'; require LMS_ROOT . '/src/templates/partials/submission_files_list.php'; ?>
                             </dd>
                         <?php endif; ?>
                         <?php if ($submission['code_text'] !== null): ?>
@@ -400,30 +457,22 @@ ob_start();
                         <?php endif; ?>
                     </dl>
                 <?php else: ?>
-                    <?php if ($errors !== []): ?>
-                        <div class="alert alert-danger" role="alert">
-                            <?php foreach ($errors as $key): ?>
-                                <div><?= e(__t($key)) ?></div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
+                    <?php require LMS_ROOT . '/src/templates/partials/submission_files_errors.php'; ?>
 
                     <form method="POST" action="/student/activity/<?= $activityId ?>"
                           enctype="multipart/form-data" class="mb-0" novalidate>
                         <?= csrf_field() ?>
 
-                        <div class="mb-3">
-                            <label for="f-file" class="form-label">
-                                <?= e(__t('submissions.form.file')) ?>
-                                <?php if ($submission !== null && $submission['filename'] !== null): ?>
-                                    <small class="text-muted">(<?= e(__t('submissions.form.current_file')) ?>: <?= e((string) $submission['filename']) ?>)</small>
-                                <?php endif; ?>
-                            </label>
-                            <input type="file" name="file" id="f-file"
-                                   class="form-control<?= isset($errors['file']) ? ' is-invalid' : '' ?>"
-                                   accept="<?= e($acceptAttr) ?>">
-                            <div class="form-text"><?= e(__t('submissions.form.file_hint_dynamic', ['exts' => $acceptHint])) ?></div>
-                        </div>
+                        <?php
+                            $fileFieldError  = isset($errors['file']);
+                            $fileFieldAccept = $acceptAttr;
+                            $fileFieldHint   = __t('submissions.form.file_hint_dynamic', ['exts' => $acceptHint]);
+                            $fileFieldLabel  = __t('submissions.form.files');
+                            $fileFieldRequired = false;
+                            $fileFieldExisting = $submissionFiles;
+                            $fileFieldDownloadBase = '/student/activity/' . $activityId . '/file';
+                            require LMS_ROOT . '/src/templates/partials/submission_files_field.php';
+                        ?>
 
                         <?php if ($isCode): ?>
                             <div class="mb-3">
@@ -508,17 +557,22 @@ ob_start();
 
                         <div class="d-flex gap-2 flex-wrap">
                             <button type="submit" class="btn btn-primary btn-lg">
-                                <?= e(__t($submission === null ? 'submissions.form.submit' : 'submissions.form.update')) ?>
+                                <?= e(__t(match (true) {
+                                    $submission === null => 'submissions.form.submit',
+                                    $isReturned          => 'submissions.form.resubmit',
+                                    default              => 'submissions.form.update',
+                                })) ?>
                             </button>
-                            <?php if ($submission !== null): ?>
-                                <form method="POST" action="/student/activity/<?= $activityId ?>/delete"
-                                      class="d-inline m-0"
-                                      onsubmit="return confirm(<?= e(json_encode(__t('submissions.delete_confirm'), JSON_UNESCAPED_UNICODE)) ?>);">
-                                    <?= csrf_field() ?>
-                                    <button type="submit" class="btn btn-outline-danger btn-lg">
-                                        <?= e(__t('submissions.form.delete')) ?>
-                                    </button>
-                                </form>
+                            <?php if ($canDelete): ?>
+                                <?php /* formaction em vez de <form> aninhado: o
+                                         navegador ignora form dentro de form e o
+                                         botão acabava enviando o form de entrega. */ ?>
+                                <button type="submit" class="btn btn-outline-danger btn-lg"
+                                        formaction="/student/activity/<?= $activityId ?>/delete"
+                                        formnovalidate
+                                        onclick="return confirm(<?= e(json_encode(__t('submissions.delete_confirm'), JSON_UNESCAPED_UNICODE)) ?>);">
+                                    <?= e(__t('submissions.form.delete')) ?>
+                                </button>
                             <?php endif; ?>
                         </div>
                     </form>
