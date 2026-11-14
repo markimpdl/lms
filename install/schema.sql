@@ -1508,8 +1508,13 @@ DEALLOCATE PREPARE stmt;
 -- [v0.31.0] xp_events.source_type — adiciona 'cu_manual' pra creditar XP
 -- quando aluno clica "Mark as completed". MODIFY COLUMN com mesmo set
 -- estendido eh idempotente; UK existente cobre dedup por (student, type, id).
+-- ATENCAO: lista o set COMPLETO atual (inclui 'lesson' do E36). Com o set
+-- antigo, re-rodar o schema numa base que ja tem XP de licao falhava com
+-- #1265 "Dado truncado para coluna 'source_type'" e o phpMyAdmin parava
+-- aqui, sem executar nada abaixo. Ao estender esta ENUM no futuro, atualizar
+-- TAMBEM este bloco (e o do E36 no fim do arquivo).
 ALTER TABLE xp_events
-    MODIFY COLUMN source_type ENUM('activity','evaluation','cu_manual') NOT NULL;
+    MODIFY COLUMN source_type ENUM('activity','evaluation','cu_manual','lesson') NOT NULL;
 
 -- [v0.31.0] cu_manual_completions — registra quando o aluno clicou em
 -- "Mark as completed" pra uma CU. PK composta = idempotencia (1 linha
