@@ -408,6 +408,8 @@ final class Course
         //  4. evaluations.pdf_path (PDF de enunciado da avaliação)
         //  5. evaluation_submissions (entregas de avaliação)
         //  6. evaluation_submissions.report_pdf_path (PDFs Skills Hub gerados)
+        //  + activity_submission_files / evaluation_submission_files
+        //    (entregas multi-arquivo; as linhas saem pelo CASCADE)
         // Todas resolvem `course_id` via JOIN com a hierarquia cu → cc → course.
         $pdo = Database::pdo();
         $stmt = $pdo->prepare(
@@ -424,6 +426,14 @@ final class Course
                INNER JOIN competence_units cu  ON cu.id = a.competence_unit_id
                INNER JOIN core_competencies cc ON cc.id = cu.core_competency_id
               WHERE cc.course_id = ? AND s.stored_path IS NOT NULL
+              UNION ALL
+             SELECT f.stored_path
+               FROM activity_submission_files f
+               INNER JOIN activity_submissions s ON s.id = f.submission_id
+               INNER JOIN activities a         ON a.id  = s.activity_id
+               INNER JOIN competence_units cu  ON cu.id = a.competence_unit_id
+               INNER JOIN core_competencies cc ON cc.id = cu.core_competency_id
+              WHERE cc.course_id = ?
               UNION ALL
              SELECT a.pdf_path
                FROM activities a
@@ -444,6 +454,14 @@ final class Course
                INNER JOIN core_competencies cc ON cc.id = cu.core_competency_id
               WHERE cc.course_id = ? AND es.stored_path IS NOT NULL
               UNION ALL
+             SELECT f.stored_path
+               FROM evaluation_submission_files f
+               INNER JOIN evaluation_submissions es ON es.id = f.submission_id
+               INNER JOIN evaluations e        ON e.id  = es.evaluation_id
+               INNER JOIN competence_units cu  ON cu.id = e.competence_unit_id
+               INNER JOIN core_competencies cc ON cc.id = cu.core_competency_id
+              WHERE cc.course_id = ?
+              UNION ALL
              SELECT es.report_pdf_path
                FROM evaluation_submissions es
                INNER JOIN evaluations e        ON e.id  = es.evaluation_id
@@ -451,7 +469,7 @@ final class Course
                INNER JOIN core_competencies cc ON cc.id = cu.core_competency_id
               WHERE cc.course_id = ? AND es.report_pdf_path IS NOT NULL'
         );
-        $stmt->execute([$courseId, $courseId, $courseId, $courseId, $courseId, $courseId]);
+        $stmt->execute(array_fill(0, 8, $courseId));
         /** @var list<string> $paths */
         $paths = $stmt->fetchAll(PDO::FETCH_COLUMN);
 

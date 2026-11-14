@@ -2,13 +2,10 @@
 declare(strict_types=1);
 
 /**
- * GET /student/activity/{id}/file — aluno baixa o arquivo da própria
- * submissão (E6-03). Só o autor da submissão pode ver. Reusa
+ * GET /student/activity/{id}/file[?f=<file_id>] — aluno baixa um arquivo da
+ * própria submissão (E6-03). Só o autor da submissão pode ver. Sem `f` (ou
+ * f=0) = arquivo legado da entrega de arquivo único. Reusa
  * AttachmentStorage::stream pra emitir headers + readfile.
- *
- * Nota: `activity_submissions` não armazena mime (diferente de
- * `content_attachments`), então inferimos da extensão — o service
- * restringiu a pdf/zip/txt, o mapa é pequeno.
  */
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
@@ -24,24 +21,21 @@ if ($user === null || ($user['role'] ?? '') !== 'student') {
 
 $activityId = (int) ($_REQUEST['id'] ?? 0);
 $ctx = ActivitySubmission::findForStudentActivity($activityId, (int) $user['id']);
-if ($ctx === null || $ctx['submission'] === null
-    || $ctx['submission']['filename'] === null) {
+if ($ctx === null || $ctx['submission'] === null) {
     abort_subresource(404);
 }
 
-$storedPath = (string) $ctx['submission']['stored_path'];
-$ext        = strtolower(pathinfo($storedPath, PATHINFO_EXTENSION));
-$mime       = match ($ext) {
-    'pdf'   => 'application/pdf',
-    'zip'   => 'application/zip',
-    'txt'   => 'text/plain',
-    'jpg'   => 'image/jpeg',
-    'png'   => 'image/png',
-    default => OfficeFile::mimeForExt($ext) ?? 'application/octet-stream',
-};
+$file = SubmissionFiles::findIn(
+    SubmissionFiles::KIND_ACTIVITY,
+    $ctx['submission'],
+    (int) ($_GET['f'] ?? 0)
+);
+if ($file === null) {
+    abort_subresource(404);
+}
 
 AttachmentStorage::stream([
-    'filename'    => (string) $ctx['submission']['filename'],
-    'stored_path' => $storedPath,
-    'mime'        => $mime,
+    'filename'    => $file['filename'],
+    'stored_path' => $file['stored_path'],
+    'mime'        => SubmissionFiles::mimeFor($file['stored_path']),
 ], 'attachment');

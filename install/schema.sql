@@ -233,6 +233,7 @@ CREATE TABLE IF NOT EXISTS activity_submissions (
     quiz_snapshot   JSON NULL DEFAULT NULL,
     feedback        TEXT NULL,
     feedback_at     DATETIME NULL DEFAULT NULL,
+    returned_at     DATETIME NULL DEFAULT NULL,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
@@ -1665,6 +1666,57 @@ ALTER TABLE course_audit_log
 -- a UK (student_user_id, source_type, source_id) ja cobre o dedup.
 ALTER TABLE xp_events
     MODIFY COLUMN source_type ENUM('activity','evaluation','cu_manual','lesson') NOT NULL;
+
+-- [Entrega multi-arquivo] activity_submission_files / evaluation_submission_files
+-- Cada entrega (atividade ou tentativa de avaliacao) passa a ter N arquivos,
+-- com a soma limitada na aplicacao (SubmissionUpload::MAX_TOTAL_BYTES).
+-- Filhas da linha de entrega: sem tenant_id proprio (mesmo desenho de
+-- evaluation_submission_lo_grades) — o escopo vem da entrega-mae, e o CASCADE
+-- apaga as linhas junto. O arquivo fisico e removido pela aplicacao.
+-- Entregas antigas continuam com filename/stored_path na tabela-mae (legado,
+-- lido como "arquivo 0"); entregas novas gravam so aqui.
+CREATE TABLE IF NOT EXISTS activity_submission_files (
+    id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    submission_id  BIGINT UNSIGNED NOT NULL,
+    filename       VARCHAR(255) NOT NULL,
+    stored_path    VARCHAR(500) NOT NULL,
+    size_bytes     INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_asf_submission (submission_id),
+    CONSTRAINT fk_asf_submission FOREIGN KEY (submission_id)
+        REFERENCES activity_submissions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS evaluation_submission_files (
+    id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    submission_id  BIGINT UNSIGNED NOT NULL,
+    filename       VARCHAR(255) NOT NULL,
+    stored_path    VARCHAR(500) NOT NULL,
+    size_bytes     INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_esf_submission (submission_id),
+    CONSTRAINT fk_esf_submission FOREIGN KEY (submission_id)
+        REFERENCES evaluation_submissions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- [Devolucao para correcao] activity_submissions.returned_at — professor
+-- devolveu a entrega (codigo/projeto) pro aluno corrigir e reenviar. Com
+-- returned_at preenchido a entrega volta a ser editavel; no reenvio o aluno
+-- zera returned_at e feedback_at (volta pra fila de pendentes do professor).
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'activity_submissions'
+       AND COLUMN_NAME  = 'returned_at'
+);
+SET @sql := IF(@col_exists = 0,
+    "ALTER TABLE activity_submissions ADD COLUMN returned_at DATETIME NULL DEFAULT NULL AFTER feedback_at",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- ----------------------------------------------------------------------------
 SET FOREIGN_KEY_CHECKS = 1;

@@ -275,10 +275,15 @@ final class Activity
                 'SELECT stored_path FROM activity_submissions
                   WHERE activity_id = ? AND stored_path IS NOT NULL
                   UNION ALL
+                 SELECT f.stored_path
+                   FROM activity_submission_files f
+                   JOIN activity_submissions s ON s.id = f.submission_id
+                  WHERE s.activity_id = ?
+                  UNION ALL
                  SELECT pdf_path FROM activities
                   WHERE id = ? AND pdf_path IS NOT NULL'
             );
-            $stmt->execute([$id, $id]);
+            $stmt->execute([$id, $id, $id]);
             $paths = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
             $pdo->prepare(

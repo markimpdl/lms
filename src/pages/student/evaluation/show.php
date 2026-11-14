@@ -156,35 +156,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         return;
     }
 
-    $file = $_FILES['file'] ?? null;
-    if (!is_array($file) || (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+    // Multi-arquivo: cada tentativa leva o seu conjunto (a tentativa nova
+    // substitui a anterior inteira — não há "manter arquivo" entre tentativas).
+    $incoming = SubmissionFiles::normalize($_FILES['files'] ?? null);
+    if ($incoming === []) {
         $errors['file'] = 'evaluations.student.err.no_file';
+    } else {
+        $limitErr = SubmissionFiles::checkLimits([], $incoming, 'evaluations.student.err');
+        if ($limitErr !== null) {
+            $errors['file'] = $limitErr;
+        }
     }
 
     $nextAttempt = ($current === null ? 0 : (int) $current['attempt']) + 1;
-    $upload = null;
+    $storedFiles = [];
 
     if ($errors === []) {
-        $upload = EvaluationSubmissionStorage::store(
-            $file,
-            $evaluationId,
-            $studentId,
-            $nextAttempt,
-            $tenantId
+        $stored = SubmissionFiles::storeAll(
+            $incoming,
+            static fn (array $f): array => EvaluationSubmissionStorage::store(
+                $f, $evaluationId, $studentId, $nextAttempt, $tenantId
+            )
         );
-        if ($upload['status'] !== 'ok') {
-            $errors['file'] = $upload['error_key'] ?? 'evaluations.student.err.generic';
+        if ($stored['status'] !== 'ok') {
+            $errors['file'] = ($stored['error_key'] ?? '') !== '' ? $stored['error_key'] : 'evaluations.student.err.generic';
+            $errorFileName  = $stored['failed_name'] ?? null;
+        } else {
+            $storedFiles = $stored['stored'];
         }
     }
 
     if ($errors === []) {
-        $result = EvaluationSubmissionService::submit(
-            $evaluationId,
-            $tenantId,
-            $studentId,
-            (string) $upload['filename'],
-            (string) $upload['stored_path']
-        );
+        try {
+            $result = EvaluationSubmissionService::submit(
+                $evaluationId,
+                $tenantId,
+                $studentId,
+                $storedFiles
+            );
+        } catch (\Throwable $e) {
+            foreach ($storedFiles as $sf) {
+                safe_unlink_storage($sf['stored_path']);
+            }
+            throw $e;
+        }
+        if ($result['status'] !== 'ok') {
+            // Gate barrou (fechada / sem reenvio): os arquivos não têm dono.
+            foreach ($storedFiles as $sf) {
+                safe_unlink_storage($sf['stored_path']);
+            }
+        }
 
         if ($result['status'] === 'ok') {
             // Conquistas (E18-04). Best-effort.
@@ -377,11 +398,18 @@ ob_start();
                 </div>
                 <div class="card-body">
                     <dl class="row mb-0 small">
-                        <dt class="col-4 col-md-3"><?= e(__t('evaluations.student.form.file')) ?></dt>
+                        <dt class="col-4 col-md-3"><?= e(__t('evaluations.student.form.files')) ?></dt>
                         <dd class="col-8 col-md-9">
-                            <a href="/student/evaluation/<?= $evaluationId ?>/submission/<?= (int) $current['id'] ?>/file">
-                                <?= e((string) $current['filename']) ?>
-                            </a>
+                            <ul class="list-unstyled mb-0">
+                                <?php foreach (SubmissionFiles::listFor(SubmissionFiles::KIND_EVALUATION, $current) as $sf): ?>
+                                    <li>
+                                        <a href="/student/evaluation/<?= $evaluationId ?>/submission/<?= (int) $current['id'] ?>/file<?= $sf['id'] > 0 ? '?f=' . $sf['id'] : '' ?>">
+                                            <?= e($sf['filename']) ?>
+                                        </a>
+                                        <small class="text-muted">· <?= e(SubmissionFiles::humanSize($sf['size_bytes'])) ?></small>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
                         </dd>
                         <dt class="col-4 col-md-3"><?= e(__t('evaluations.student.sent_at')) ?></dt>
                         <dd class="col-8 col-md-9">
@@ -424,22 +452,33 @@ ob_start();
                     <?php if ($errors !== []): ?>
                         <div class="alert alert-danger" role="alert">
                             <?php foreach ($errors as $key): ?>
-                                <div><?= e(__t($key)) ?></div>
+                                <div>
+                                    <?= e(__t($key, [
+                                        'max'   => SubmissionFiles::humanSize(SubmissionFiles::MAX_TOTAL_BYTES),
+                                        'count' => SubmissionFiles::MAX_FILES,
+                                    ])) ?>
+                                    <?php if (($errorFileName ?? null) !== null): ?>
+                                        <small>(<?= e((string) $errorFileName) ?>)</small>
+                                    <?php endif; ?>
+                                </div>
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
                     <form method="POST" action="/student/evaluation/<?= $evaluationId ?>"
                           enctype="multipart/form-data" class="mb-0" novalidate>
                         <?= csrf_field() ?>
-                        <div class="mb-3">
-                            <label for="f-file" class="form-label">
-                                <?= e(__t('evaluations.student.form.file')) ?>
-                            </label>
-                            <input type="file" name="file" id="f-file"
-                                   accept=".pdf,.zip,.txt,.jpg,.jpeg,.png,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
-                                   class="form-control<?= isset($errors['file']) ? ' is-invalid' : '' ?>" required>
-                            <div class="form-text"><?= e(__t('evaluations.student.form.file_hint')) ?></div>
-                        </div>
+                        <?php
+                            // Tentativa nova leva o próprio conjunto de arquivos
+                            // (sem lista de "manter"): $fileFieldExisting vazio.
+                            $fileFieldError    = isset($errors['file']);
+                            $fileFieldAccept   = '.pdf,.zip,.txt,.jpg,.jpeg,.png,.doc,.docx,.ppt,.pptx,.xls,.xlsx';
+                            $fileFieldHint     = __t('evaluations.student.form.file_hint');
+                            $fileFieldLabel    = __t('evaluations.student.form.files');
+                            $fileFieldRequired = true;
+                            $fileFieldExisting = [];
+                            $fileFieldDownloadBase = '';
+                            require LMS_ROOT . '/src/templates/partials/submission_files_field.php';
+                        ?>
                         <button type="submit" class="btn btn-primary btn-lg">
                             <?= e(__t($canResubmit ? 'evaluations.student.form.resubmit' : 'evaluations.student.form.submit')) ?>
                         </button>

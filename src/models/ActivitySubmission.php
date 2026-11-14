@@ -48,7 +48,7 @@ final class ActivitySubmission
 
         $stmt = Database::pdo()->prepare(
             'SELECT id, filename, stored_path, code_text, quiz_snapshot,
-                    feedback, feedback_at, created_at, updated_at
+                    feedback, feedback_at, returned_at, created_at, updated_at
                FROM activity_submissions
               WHERE activity_id = ? AND student_user_id = ?
               LIMIT 1'
@@ -63,50 +63,76 @@ final class ActivitySubmission
     }
 
     /**
-     * UPSERT da submissão. `filename` / `stored_path` viram NULL quando
-     * o aluno só envia código (type=codigo). `code_text` NULL quando envia
-     * só arquivo. Atualiza `updated_at` automaticamente.
+     * Grava a entrega (cria ou atualiza) com seus arquivos, em transação.
      *
-     * Usa o UK (activity_id, student_user_id) pra detectar se é insert ou
-     * update — retorna 'created' ou 'updated'.
+     * - `$newFiles`: arquivos já gravados no disco (via SubmissionFiles::storeAll)
+     *   — viram linhas em `activity_submission_files`.
+     * - `$removeIds`: ids de `activity_submission_files` que o aluno tirou;
+     *   `$dropLegacy` limpa o arquivo legado (filename/stored_path da linha).
+     * - Entrega devolvida pelo professor (`returned_at`): o reenvio zera
+     *   `returned_at` e `feedback_at` — volta pra fila de pendentes. O texto
+     *   do feedback anterior fica (o professor o vê ao corrigir de novo).
+     *
+     * Retorna 'created' | 'updated' | 'resubmitted'.
+     *
+     * @param list<array{filename:string,stored_path:string,size_bytes:int}> $newFiles
+     * @param list<int> $removeIds
      */
-    public static function upsert(
+    public static function save(
         int $activityId,
         int $studentId,
-        ?string $filename,
-        ?string $storedPath,
-        ?string $codeText
+        ?string $codeText,
+        array $newFiles,
+        array $removeIds,
+        bool $dropLegacy
     ): string {
-        $pdo = Database::pdo();
+        return Database::tx(static function (PDO $pdo) use (
+            $activityId, $studentId, $codeText, $newFiles, $removeIds, $dropLegacy
+        ): string {
+            $stmt = $pdo->prepare(
+                'SELECT id, returned_at FROM activity_submissions
+                  WHERE activity_id = ? AND student_user_id = ?
+                  LIMIT 1 FOR UPDATE'
+            );
+            $stmt->execute([$activityId, $studentId]);
+            $row = $stmt->fetch();
 
-        $stmt = $pdo->prepare(
-            'SELECT id FROM activity_submissions
-              WHERE activity_id = ? AND student_user_id = ?
-              LIMIT 1'
-        );
-        $stmt->execute([$activityId, $studentId]);
-        $exists = $stmt->fetchColumn() !== false;
+            if ($row === false) {
+                $pdo->prepare(
+                    'INSERT INTO activity_submissions
+                        (activity_id, student_user_id, code_text)
+                     VALUES (?, ?, ?)'
+                )->execute([$activityId, $studentId, $codeText]);
+                $submissionId = (int) $pdo->lastInsertId();
+                SubmissionFiles::insert($pdo, SubmissionFiles::KIND_ACTIVITY, $submissionId, $newFiles);
+                return 'created';
+            }
 
-        if ($exists) {
+            $submissionId = (int) $row['id'];
+            $wasReturned  = $row['returned_at'] !== null;
+
+            $set = 'code_text = ?';
+            if ($dropLegacy) {
+                $set .= ', filename = NULL, stored_path = NULL';
+            }
+            if ($wasReturned) {
+                $set .= ', returned_at = NULL, feedback_at = NULL';
+            }
             $pdo->prepare(
-                'UPDATE activity_submissions
-                    SET filename = ?, stored_path = ?, code_text = ?
-                  WHERE activity_id = ? AND student_user_id = ?'
-            )->execute([$filename, $storedPath, $codeText, $activityId, $studentId]);
-            return 'updated';
-        }
+                'UPDATE activity_submissions SET ' . $set . ' WHERE id = ?'
+            )->execute([$codeText, $submissionId]);
 
-        $pdo->prepare(
-            'INSERT INTO activity_submissions
-                (activity_id, student_user_id, filename, stored_path, code_text)
-             VALUES (?, ?, ?, ?, ?)'
-        )->execute([$activityId, $studentId, $filename, $storedPath, $codeText]);
-        return 'created';
+            SubmissionFiles::deleteRows($pdo, SubmissionFiles::KIND_ACTIVITY, $submissionId, $removeIds);
+            SubmissionFiles::insert($pdo, SubmissionFiles::KIND_ACTIVITY, $submissionId, $newFiles);
+
+            return $wasReturned ? 'resubmitted' : 'updated';
+        });
     }
 
     /**
-     * Remove submissão do aluno. Caller validou que `feedback_at IS NULL`
-     * (ADR-027 — professor ainda não deu feedback).
+     * Remove submissão do aluno. Caller validou `isDeletable` (ADR-027 —
+     * professor ainda não deu feedback). As linhas de arquivo saem pelo
+     * CASCADE; o caller apaga os arquivos do disco (listar ANTES do delete).
      */
     public static function delete(int $activityId, int $studentId): void
     {
@@ -119,15 +145,45 @@ final class ActivitySubmission
     }
 
     /**
-     * Verifica se aluno pode editar/remover: true enquanto `feedback_at IS NULL`
-     * (ADR-027). Usado pelas páginas e pelos handlers pra gatear ações.
+     * Aluno pode editar a entrega: enquanto `feedback_at IS NULL` (ADR-027)
+     * ou quando o professor a devolveu pra correção (`returned_at`).
      */
     public static function isMutable(?array $submission): bool
     {
         if ($submission === null) {
             return true; // ainda não existe, aluno pode criar
         }
-        return $submission['feedback_at'] === null;
+        return $submission['feedback_at'] === null || self::isReturned($submission);
+    }
+
+    /**
+     * Aluno pode REMOVER a entrega inteira só antes de qualquer feedback.
+     * Entrega devolvida se corrige e reenvia — remover revogaria o XP.
+     */
+    public static function isDeletable(?array $submission): bool
+    {
+        return $submission !== null && $submission['feedback_at'] === null;
+    }
+
+    public static function isReturned(?array $submission): bool
+    {
+        return $submission !== null && ($submission['returned_at'] ?? null) !== null;
+    }
+
+    /**
+     * Professor devolve a entrega pro aluno corrigir e reenviar. Grava o
+     * feedback (o que precisa corrigir) + feedback_at + returned_at. Só
+     * atividades código/projeto — quiz é auto-corrigido.
+     */
+    public static function returnForCorrection(int $activityId, int $studentId, string $feedback): void
+    {
+        Database::pdo()
+            ->prepare(
+                'UPDATE activity_submissions
+                    SET feedback = ?, feedback_at = NOW(), returned_at = NOW()
+                  WHERE activity_id = ? AND student_user_id = ?'
+            )
+            ->execute([$feedback, $activityId, $studentId]);
     }
 
     /**
@@ -145,8 +201,11 @@ final class ActivitySubmission
         $tf = $showAll ? '' : ' AND u.tenant_id = ?';
         $stmt = Database::pdo()->prepare(
             'SELECT s.id, s.student_user_id, s.filename, s.stored_path,
-                    s.code_text, s.feedback, s.feedback_at,
+                    s.code_text, s.feedback, s.feedback_at, s.returned_at,
                     s.created_at, s.updated_at,
+                    ((SELECT COUNT(*) FROM activity_submission_files f
+                       WHERE f.submission_id = s.id)
+                     + (s.stored_path IS NOT NULL)) AS file_count,
                     u.name AS student_name, u.email AS student_email,
                     (u.tenant_id = ?) AS is_own
                FROM activity_submissions s
@@ -177,7 +236,7 @@ final class ActivitySubmission
     {
         $stmt = Database::pdo()->prepare(
             'SELECT s.id, s.filename, s.stored_path, s.code_text, s.quiz_snapshot,
-                    s.feedback, s.feedback_at, s.created_at, s.updated_at,
+                    s.feedback, s.feedback_at, s.returned_at, s.created_at, s.updated_at,
                     a.id AS activity_id, a.title AS activity_title,
                     a.type AS activity_type, a.instruction,
                     a.xp_value, cu.id AS cu_id, cu.name AS cu_name,
@@ -210,6 +269,7 @@ final class ActivitySubmission
                 'stored_path' => $row['stored_path'], 'code_text' => $row['code_text'],
                 'quiz_snapshot' => $row['quiz_snapshot'],
                 'feedback' => $row['feedback'], 'feedback_at' => $row['feedback_at'],
+                'returned_at' => $row['returned_at'],
                 'created_at' => $row['created_at'], 'updated_at' => $row['updated_at'],
             ],
             'student' => [
@@ -229,7 +289,7 @@ final class ActivitySubmission
         Database::pdo()
             ->prepare(
                 'UPDATE activity_submissions
-                    SET feedback = ?, feedback_at = NOW()
+                    SET feedback = ?, feedback_at = NOW(), returned_at = NULL
                   WHERE activity_id = ? AND student_user_id = ?'
             )
             ->execute([$feedback, $activityId, $studentId]);
@@ -247,7 +307,7 @@ final class ActivitySubmission
         $stmt = Database::pdo()->prepare(
             'SELECT a.id, a.title, a.type, a.xp_value, a.submission_open,
                     a.position,
-                    s.id AS submission_id, s.feedback_at
+                    s.id AS submission_id, s.feedback_at, s.returned_at
                FROM activities a
                JOIN competence_units cu   ON cu.id = a.competence_unit_id
                JOIN core_competencies cc  ON cc.id = cu.core_competency_id

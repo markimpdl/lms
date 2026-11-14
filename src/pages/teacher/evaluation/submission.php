@@ -285,11 +285,18 @@ ob_start();
                         <?= e((string) $student['name']) ?>
                         <span class="text-muted">&lt;<?= e((string) $student['email']) ?>&gt;</span>
                     </dd>
-                    <dt class="col-4 col-md-3"><?= e(__t('evaluations.grade.file')) ?></dt>
+                    <dt class="col-4 col-md-3"><?= e(__t('evaluations.grade.files')) ?></dt>
                     <dd class="col-8 col-md-9">
-                        <a href="/teacher/evaluation/<?= $evaluationId ?>/submission/<?= (int) $current['id'] ?>/file">
-                            <?= e((string) $current['filename']) ?>
-                        </a>
+                        <ul class="list-unstyled mb-0">
+                            <?php foreach (SubmissionFiles::listFor(SubmissionFiles::KIND_EVALUATION, $current) as $sf): ?>
+                                <li>
+                                    <a href="/teacher/evaluation/<?= $evaluationId ?>/submission/<?= (int) $current['id'] ?>/file<?= $sf['id'] > 0 ? '?f=' . $sf['id'] : '' ?>">
+                                        <?= e($sf['filename']) ?>
+                                    </a>
+                                    <small class="text-muted">· <?= e(SubmissionFiles::humanSize($sf['size_bytes'])) ?></small>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
                     </dd>
                     <dt class="col-4 col-md-3"><?= e(__t('evaluations.grade.sent_at')) ?></dt>
                     <dd class="col-8 col-md-9">

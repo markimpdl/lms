@@ -19,23 +19,22 @@ if ($user === null || ($user['role'] ?? '') !== 'student') {
 
 $submissionId = (int) ($_REQUEST['sid'] ?? 0);
 $submission   = EvaluationSubmission::findForStudent($submissionId, (int) $user['id']);
-if ($submission === null || $submission['filename'] === null) {
+if ($submission === null) {
     abort_subresource(404);
 }
 
-$storedPath = (string) $submission['stored_path'];
-$ext        = strtolower(pathinfo($storedPath, PATHINFO_EXTENSION));
-$mime       = match ($ext) {
-    'pdf'   => 'application/pdf',
-    'zip'   => 'application/zip',
-    'txt'   => 'text/plain',
-    'jpg'   => 'image/jpeg',
-    'png'   => 'image/png',
-    default => OfficeFile::mimeForExt($ext) ?? 'application/octet-stream',
-};
+// Sem `f` (ou f=0) = arquivo legado da entrega de arquivo único.
+$file = SubmissionFiles::findIn(
+    SubmissionFiles::KIND_EVALUATION,
+    $submission,
+    (int) ($_GET['f'] ?? 0)
+);
+if ($file === null) {
+    abort_subresource(404);
+}
 
 AttachmentStorage::stream([
-    'filename'    => (string) $submission['filename'],
-    'stored_path' => $storedPath,
-    'mime'        => $mime,
+    'filename'    => $file['filename'],
+    'stored_path' => $file['stored_path'],
+    'mime'        => SubmissionFiles::mimeFor($file['stored_path']),
 ], 'attachment');

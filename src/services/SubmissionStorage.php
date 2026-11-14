@@ -7,10 +7,9 @@ declare(strict_types=1);
  * Layout em disco:
  *   storage/uploads/tenant_<tid>/submissions/<activity_id>/<student_id>.<ext>
  *
- * Diferente de anexos de conteúdo (que usam UUID), o nome do arquivo da
- * submissão é determinístico pelo student_id. Isso simplifica o fluxo de
- * editar/remover (ADR-027): o arquivo novo sempre substitui o anterior;
- * o delete apaga o único arquivo daquele aluno pra aquela atividade.
+ * Multi-arquivo: cada arquivo vira `<student_id>_<hex>.<ext>` + uma linha em
+ * `activity_submission_files` (ver `SubmissionFiles`). Entregas antigas
+ * guardam `<student_id>.<ext>` (determinístico) — `delete()` ainda limpa esse.
  *
  * Tipos aceitos: pdf, zip, txt, jpg, png (doc 06) + Word/PowerPoint/Excel
  * (via `OfficeFile`, conteúdo conferido e macro recusado) por padrão. Para atividades tipo
@@ -45,12 +44,12 @@ final class SubmissionStorage
     ];
 
     /**
-     * Valida + salva arquivo, sobrescrevendo qualquer versão anterior do
-     * mesmo aluno pra mesma atividade. Retorna status + contexto.
+     * Valida + salva UM arquivo da entrega (chamado por arquivo via
+     * `SubmissionFiles::storeAll`). Não mexe nos arquivos já existentes.
      *
      * @param array{name:string,tmp_name:string,size:int,error:int,type?:string} $file
      * @param array{code_language?:?string} $opts
-     * @return array{status:string, filename?:string, stored_path?:string, error_key?:string}
+     * @return array{status:string, filename?:string, stored_path?:string, size_bytes?:int, error_key?:string}
      */
     public static function store(array $file, int $activityId, int $studentId, int $tenantId, array $opts = []): array
     {
@@ -79,12 +78,9 @@ final class SubmissionStorage
             return ['status' => 'error', 'error_key' => 'submissions.err.generic'];
         }
 
-        // Apaga versão anterior (se houver) antes de mover nova — evita
-        // deixar arquivos de extensão antiga no disco quando o aluno
-        // troca de pdf pra zip, por exemplo.
-        self::cleanupExistingFor($studentId, $baseDir);
-
-        $storedName = $studentId . '.' . $ext;
+        // Multi-arquivo: nome único por upload (a entrega tem N arquivos).
+        // O formato antigo `<studentId>.<ext>` só existe em entregas legadas.
+        $storedName = $studentId . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
         $storedFull = $baseDir . '/' . $storedName;
         if (!@move_uploaded_file($tmp, $storedFull)) {
             return ['status' => 'error', 'error_key' => 'submissions.err.generic'];
@@ -94,11 +90,14 @@ final class SubmissionStorage
             'status'      => 'ok',
             'filename'    => self::sanitizeFilename((string) $file['name']),
             'stored_path' => 'storage/uploads/tenant_' . $tenantId . '/submissions/' . $activityId . '/' . $storedName,
+            'size_bytes'  => (int) $file['size'],
         ];
     }
 
     /**
-     * Remove arquivo físico da submissão. Não erra se já não existe.
+     * Remove o arquivo físico LEGADO (`<studentId>.<ext>`) da submissão. Os
+     * arquivos multi-arquivo são apagados pelo caller via stored_path.
+     * Não erra se já não existe.
      */
     public static function delete(int $activityId, int $studentId, int $tenantId): void
     {

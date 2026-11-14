@@ -114,8 +114,16 @@ foreach ($activitiesRaw as $a) {
     $open   = (int) $a['submission_open'] === 1;
     $hasSub = $a['submission_id'] !== null;
     $hasFb  = $hasSub && $a['feedback_at'] !== null;
+    $returned = $hasSub && ($a['returned_at'] ?? null) !== null;
 
-    if ($hasFb) {
+    if ($returned) {
+        // Professor devolveu pra correção: mesmo visual do "reenvio liberado"
+        // da avaliação. Continua contando como entregue pra progressão.
+        $state = 'resubmit-pending';
+        $progress = 50;
+        $ctaKey = 'student.unit.cta.resubmit';
+        $ctaVariant = 'gradient';
+    } elseif ($hasFb) {
         $state = 'with-feedback';
         $progress = 100;
         $ctaKey = 'student.unit.cta.view_feedback';

@@ -258,9 +258,14 @@ final class Evaluation
         return Database::tx(static function (PDO $pdo) use ($id, $evaluation): array {
             $stmt = $pdo->prepare(
                 'SELECT stored_path FROM evaluation_submissions
-                  WHERE evaluation_id = ? AND stored_path IS NOT NULL'
+                  WHERE evaluation_id = ? AND stored_path IS NOT NULL
+                  UNION ALL
+                 SELECT f.stored_path
+                   FROM evaluation_submission_files f
+                   JOIN evaluation_submissions s ON s.id = f.submission_id
+                  WHERE s.evaluation_id = ?'
             );
-            $stmt->execute([$id]);
+            $stmt->execute([$id, $id]);
             $paths = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
             $pdo->prepare(
