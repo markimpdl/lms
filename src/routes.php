@@ -26,6 +26,7 @@ return [
         '/forgot'           => '/src/pages/forgot.php',
         '/reset'            => '/src/pages/reset.php',
         '/register-teacher' => '/src/pages/register-teacher.php',
+        '/vibecoding27'     => '/src/pages/static/vibecoding27.php',
     ],
 
     'authenticated' => [
