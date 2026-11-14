@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ESNC27 · Registrations</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--line:#e5e7ef;--text:#1f2433;--muted:#6b7280;--brand:#4f46e5;
+  --g:#047857;--gb:#e7f6ee;--r:#b42318;--rb:#fdecea;--a:#a15c07;--ab:#fef4e1}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+.wrap{max-width:1240px;margin:0 auto;padding:24px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+h1{margin:0;font-size:20px}
+.sub{color:var(--muted);font-size:13px;margin-top:4px}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.kpi .l{font-size:12px;color:var(--muted)}
+.kpi .v{font-size:24px;font-weight:700;margin-top:2px}
+.kpi .s{font-size:12px;color:var(--muted)}
+.tabs{display:flex;gap:2px;overflow-x:auto;margin-bottom:-1px;position:relative}
+.tab{background:none;border:0;border-bottom:2px solid transparent;padding:10px 14px;font:inherit;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--brand);border-color:var(--brand);background:var(--card);border-radius:10px 10px 0 0;box-shadow:0 0 0 1px var(--line)}
+.tab .c{display:inline-block;margin-left:6px;font-size:12px;background:#eef0f6;color:var(--muted);border-radius:999px;padding:1px 8px}
+.tab.active .c{background:#eceafd;color:var(--brand)}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:16px 0 4px}
+.stat{font-size:13px;color:var(--muted)}
+.stat b{color:var(--text)}
+.sp{flex:1}
+input{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;width:240px;background:#fff}
+select{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;background:#fff}
+.note-box{margin:12px 0 0;padding:10px 12px;background:var(--ab);color:var(--a);border-radius:8px;font-size:13px}
+h2{font-size:14px;margin:22px 0 8px;display:flex;align-items:center;gap:8px}
+h2 span{font-weight:500;color:var(--muted)}
+table{width:100%;table-layout:fixed;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+th{background:#f9fafc;text-align:left;font-size:12px;color:var(--muted);font-weight:600;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;overflow-wrap:anywhere;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:#fafbff}
+.name{font-weight:600}
+.mail{color:var(--muted);font-size:12px;word-break:break-all}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.yes{background:var(--gb);color:var(--g)} .no{background:var(--rb);color:var(--r)} .rev{background:var(--ab);color:var(--a)}
+.notes{font-size:12px;color:var(--muted)}
+.empty{padding:16px;text-align:center;color:var(--muted);background:var(--card);border:1px dashed var(--line);border-radius:10px}
+
+.hb{background:linear-gradient(120deg,#4f46e5,#06b6d4);color:#fff;border-radius:14px;padding:18px 20px;justify-content:flex-start;align-items:center}
+.hb .sub{color:rgba(255,255,255,.85)}
+.logo{width:42px;height:42px;border-radius:10px;background:rgba(255,255,255,.18);display:grid;place-items:center;font-weight:800;font-family:ui-monospace,Menlo,monospace}
+.kpi{border-left:4px solid var(--k)}
+.mini{height:6px;background:#eef0f6;border-radius:999px;margin-top:8px;overflow:hidden}
+.mini i{display:block;height:100%;background:var(--k);border-radius:999px}
+.tabbox{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px 16px 18px}
+.sumrow{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.sum{background:#f9fafc;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.sum .t{font-size:12px;color:var(--muted);display:flex;justify-content:space-between}
+.sum .t b{color:var(--text)}
+.av{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff;flex:none}
+.who{display:flex;gap:10px;align-items:flex-start}
+.chip{display:inline-block;font-size:12px;background:#eef2ff;color:#3730a3;border-radius:6px;padding:2px 7px}
+.dot{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600}
+.dot::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.dot.ok{color:var(--g)} .dot.bad{color:var(--r)}
+h2 .tag{display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--c)}
+footer{margin-top:28px;font-size:12px;color:var(--muted)}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.notes{max-width:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hb">
+    <div class="logo">&lt;/&gt;</div>
+    <div><h1>ESNC27 – Vibe Coding for Juniors · Registrations</h1>
+    <div class="sub">Eligibility: students born 2012–2015 · cities Al Ain, Abu Dhabi, Al Dhafra · LMS checked 14 Nov 2026</div></div>
+  </header>
+  <section class="kpis" id="kpis"></section>
+  <nav class="tabs" id="tabs"></nav>
+  <main id="view" class="tabbox"></main>
+  <footer>Source: Registrations_Clean.xlsx</footer>
+</div>
+<script>
+const DATA = {"Al Ain": [{"s": "T", "n": "Alyazya Khalid Khamis Khalfan Alyahyaiee", "e": "766874@aths.ac.ae", "sc": "Applied technology school", "c": "Al Ain", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "T", "n": "Siti Hamimah Sheikh Ismail", "e": "siti.hamimah@aths.ac.ae", "sc": "Applied Technology School Aqabiyya", "c": "Al Ain", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "T", "n": "Ali Ramadan", "e": "ali.ramadan@actvet.gov.ae", "sc": "Applied Technology Schools", "c": "Al Ain", "x": "Male", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "T", "n": "Yousuf Hasan Alduhoori", "e": "805750@ats.ac.ae", "sc": "Applied Technology Schools (ATS) - Al Aqabiya Campus", "c": "Al Ain", "x": "Male", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "T", "n": "Rahaf Murtada", "e": "Rahaf.murtada@actvet.gov.ae", "sc": "ATS - Al Aqabiyah", "c": "Al Ain", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "T", "n": "Farouk Mardini", "e": "farouk.mardini@sts.adveti.ac.ae", "sc": "ATS - Hili", "c": "Al Ain", "x": "Male", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-02"}, {"s": "T", "n": "Iman Megdadi", "e": "eman.megdadi@gmail.com", "sc": "ATS Hili", "c": "Al Ain", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-10-23"}, {"s": "T", "n": "Shruthi Narayanan Soman", "e": "Shruthi.soman@aths.ac.ae", "sc": "ATS TBMEC", "c": "Al Ain", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-13"}, {"s": "T", "n": "Mohammed zeyad shakeb Alkatheeri", "e": "831289@aths.ac.ae", "sc": "ATS-AQB", "c": "Al Ain", "x": "Male", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "T", "n": "Kamar Fayez Kamar", "e": "kamar.fayez@actvet.gov.ae", "sc": "ATS-Hili", "c": "Al Ain", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-10-27"}, {"s": "T", "n": "Hashem ALQaisi", "e": "Hashem.alqaisi@actvet.gov.ae", "sc": "ATS-TBMEC", "c": "Al Ain", "x": "Male", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-10-25"}, {"s": "T", "n": "Walaa Mohamed Hosni Ali", "e": "w.hosny@tca.ens.sch.ae", "sc": "Training Career and Technoloy Center - Emirates National Schools AlAin branch", "c": "Al Ain", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-10"}, {"s": "S", "n": "Saif Saeed Saleh Almansoori", "e": "f82alketbi@gmail.com", "sc": "Applied technology school", "c": "Al Ain", "x": "Male", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-12"}, {"s": "S", "n": "Meera Mohammed Almas Mohammed Alblooshi", "e": "20240000272@ats.sch.ae", "sc": "Applied technology schools TBMEC", "c": "Al Ain", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-13"}, {"s": "S", "n": "Mansour Mohammed jump alaqrab alkaabi", "e": "829994@ats.sch.ae", "sc": "ATS", "c": "Al Ain", "x": "Male", "el": "Yes", "no": "Pending: invalid/incomplete EID ('784-2014-4793298')", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Theyab Abdulla Alderei", "e": "20250019767@aths.ac.ae", "sc": "ATS", "c": "Al Ain", "x": "Male", "el": "Yes", "no": "Pending: invalid/incomplete EID ('20250019767@aths.ac.ae'); E-mail updated to LMS account (registration had wadimaaldarei@gmail.com)", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Wadima Abdulla Alnuaimi", "e": "748955@aths.ac.ae  Or 748955@ats.sch.ae they both work so I just gave you to in case you try to send it on one and it does not allow you, but I’m pretty sure positive they both work", "sc": "ATS apply technology school", "c": "Al Ain", "x": "Female", "el": "Yes", "no": "More than one e-mail provided", "lr": "Yes", "la": "Yes - last login 2026-11-06"}, {"s": "S", "n": "MAHRA OMAR SAEED MUBARAK AL SHANDOURI", "e": "734398@ats.sch.ae", "sc": "ATS TBMEC", "c": "Al Ain", "x": "Female", "el": "Yes", "no": "Two cities given (Abu Dhabi and Al Ain) - both accepted; listed under Al Ain (school campus is in Al Ain); Pending: invalid/incomplete EID ('AL SHANDOURI')", "lr": "Yes", "la": "Yes - last login 2026-11-13"}, {"s": "S", "n": "Meera Salem Shuhail Alsaedi", "e": "1263841@ats.sch.ae", "sc": "ATS.TBMEC", "c": "Al Ain", "x": "Female", "el": "Yes", "no": "Two cities given (Abu Dhabi and Al Ain) - both accepted; listed under Al Ain (school campus is in Al Ain)", "lr": "Yes", "la": "Yes - last login 2026-11-13"}, {"s": "S", "n": "Hanan Adel Salem Alawi Alnuaimi", "e": "n_ashjan@icloud.com", "sc": "Emarites national school", "c": "Al Ain", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-03"}, {"s": "S", "n": "Alia Saeed Musabeh alkaabi", "e": "63740@aac.ens.sch.ae", "sc": "Emirates National School", "c": "Al Ain", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-13"}, {"s": "S", "n": "Afra Khalifa Eisa Mohammed Alkhyeli", "e": "afrakhyeli@gmail.com", "sc": "Emirates National School Alain campus girls", "c": "Al Ain", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-10"}, {"s": "S", "n": "Shaikha mohammed alowain", "e": "Shaikhaalowain456@gmail.com", "sc": "Emirates National schools", "c": "Al Ain", "x": "Female", "el": "Yes", "no": "Pending: invalid/incomplete EID ('784-2012-026494-4')", "lr": "Yes", "la": "Yes - last login 2026-11-10"}, {"s": "S", "n": "Sultan Mohammed Aldhaheri", "e": "sultan1555551s@gmail.com", "sc": "Ens", "c": "Al Ain", "x": "Male", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-12"}, {"s": "S", "n": "Nouf Alshamsi", "e": "739209@ats.sch.ae", "sc": "TBMEC", "c": "Al Ain", "x": "Female", "el": "Yes", "no": "Pending: invalid/incomplete EID ('739209')", "lr": "Yes", "la": "Yes - last login 2026-11-06"}, {"s": "S", "n": "WADHA AREF HUSAIN ABDULRAHIM ALBLOOSHI", "e": "20250019601@aths.ac.ae", "sc": "TBMEC(ATS)", "c": "Al Ain", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-13"}, {"s": "S", "n": "Mahra Mohammed yahya", "e": "18210@acc.ens.sch.ae", "sc": "TCC- ENS - AlAin", "c": "Al Ain", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-13"}], "Abu Dhabi": [{"s": "T", "n": "Achala Badve", "e": "Achala.badve@actvet.gov.ae", "sc": "Applied Technology School Baniyas", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-02"}, {"s": "T", "n": "Shaki Ali", "e": "shaki.ali@actvet.gov.ae", "sc": "Applied Technology School- Baniyas", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-01"}, {"s": "T", "n": "Manju Vishnu Sankar", "e": "vismanju@gmail.com", "sc": "Applied Technology Schools", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "T", "n": "Fathima Nisana", "e": "fathima.nisana@actvet.gov.ae", "sc": "Applied Technology Schools - Abudhabi Girls", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "T", "n": "Ayesha Abdullah", "e": "Ayesha.abdullah@actvet.gov.ae", "sc": "Applied Technology Schools Abu Dhabi Girls", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-13"}, {"s": "T", "n": "Wasim Khachan", "e": "wasim.khachan@actvet.gov.ae", "sc": "ATS - Baniyas", "c": "Abu Dhabi", "x": "Male", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-10"}, {"s": "T", "n": "Sabah Mhanna", "e": "90003276@aths.ac.ae", "sc": "AUHG (ATS Abu Dhabi Female Campus)", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-03"}, {"s": "T", "n": "NOORULAYIN SHAINSHA", "e": "n.shainsha@tca.ens.sch.ae", "sc": "Emirates National School", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-10-28"}, {"s": "S", "n": "Aljoud albreiki", "e": "20240000440@ats.sch.ae", "sc": "Applied technology school", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Aysha matar Mohammed Ali alameri", "e": "815114@ats.sch.ae", "sc": "Applied technology school", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Huda Taha Sulaiman Saeed Alkhadhouri", "e": "Hudaalkhadhouri@gmail.com", "sc": "Applied Technology School", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Maha Salahaldeen Mohyialdeen Abdelsattar Alansaari", "e": "812909@ats.sch.ae", "sc": "Applied technology school", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Reema Ali Mabkhoot Taleb Almenhali", "e": "822420@aths.ac.ae", "sc": "applied technology school", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "Mohamed Bin Zayed City counted as part of Abu Dhabi; LMS account kept: 822420@aths.ac.ae (registration e-mail was reema.almenhali6@gmail.com; second LMS account to be removed)", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Shamma Mohamed Alhameli", "e": "792442@ats.sch.ae", "sc": "Applied technology school", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Elyazeya Ibrahim Ali Ismaeel Mohammed Alhosani", "e": "754635@actvet.gov.ae", "sc": "Applied Technology School - Abu Dhabi Girls", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Alreem aref Mohamed khalfan alshehhi", "e": "2016082613@ats.sch.ae", "sc": "Applied technology school abudhabi girl campus", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Hamda Adel Mohamed AlMemari", "e": "261415@ats.sch.ae", "sc": "Applied technology school AUH-G", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Haya Ali Alyammahi", "e": "800272@aths.ac.ae", "sc": "Applied technology school girls abu dabi", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Abdulla Mohamed Abdulla ahmed bamabad", "e": "740399@actvet.gov.ae", "sc": "Applied technology school-baniyas", "c": "Abu Dhabi", "x": "Male", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-13"}, {"s": "S", "n": "Shamsa Obaid Mohamed Subait Alshemeili", "e": "20240000342@actvet.gov.ae", "sc": "Applied technology school/ Abu Dhabi girls", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "Mohamed Bin Zayed City counted as part of Abu Dhabi", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Danah Ali Salem Alabd Almehrzi", "e": "740495@actvet.gov.ae", "sc": "Applied Technology Schools", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "Khalifa City counted as part of Abu Dhabi", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Fatima Naser Abbas Abdulmohsin Alfarakki", "e": "20240000422@actvet.gov.ae", "sc": "Applied Technology Schools", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "Al Shawamekh counted as part of Abu Dhabi", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Marwa fadhel alhammadi", "e": "810472@aths.ac.ae", "sc": "Applied technology schools", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Abdulaziz Alhajri", "e": "753630@actvet.gov.ae", "sc": "Applied Technology Schools - baniyas", "c": "Abu Dhabi", "x": "Male", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-11"}, {"s": "S", "n": "Abdullah Khameis Ahmed Alzeyoudi", "e": "765628@actvet.gov.ae", "sc": "Applied Technology Schools - Baniyas", "c": "Abu Dhabi", "x": "Male", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-11"}, {"s": "S", "n": "Humaid Tareq Alawadhi", "e": "759910@actvet.gov.ae", "sc": "Applied Technology Schools - Baniyas", "c": "Abu Dhabi", "x": "Male", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-11"}, {"s": "S", "n": "Mohamed saeed alhammadi", "e": "2016006192@actvet.gov.ae", "sc": "Applied technology schools - baniyas", "c": "Abu Dhabi", "x": "Male", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-11"}, {"s": "S", "n": "Mohammed sultan Mohammed Alhammadi محمد سلطان محمد الحمادي", "e": "755090@actvet.gov.ae", "sc": "Applied technology schools - baniyas", "c": "Abu Dhabi", "x": "Male", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-13"}, {"s": "S", "n": "Aisha Hashem saeed Ali alalalwi", "e": "816083@actvet.gov.ae", "sc": "Applied technology schools AUH", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Fatima Yahya Ahmed Ali Alhosani", "e": "falhosani42@gmail.com", "sc": "Applied Technology Schools AUH", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-03"}, {"s": "S", "n": "Alghala Ahmed Abdullah Abdullah Alhammadi", "e": "821393@aths.ac.ae", "sc": "Applied technology schools girl campus abudhabi", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Ali Ahmed Alshateri", "e": "746488@actvet.gov.ae", "sc": "Applied Technology Schools-Baniyas", "c": "Abu Dhabi", "x": "Male", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-06"}, {"s": "S", "n": "Zayed al tamimi", "e": "758427@actvet.gov.ae", "sc": "Applied technology schools-baniyas", "c": "Abu Dhabi", "x": "Male", "el": "Yes", "no": "", "lr": "Yes", "la": "Yes - last login 2026-11-11"}, {"s": "S", "n": "Nasraa Ismael Suwaid Sulaiman Al Sulaimani", "e": "781721@aths.sch.ae", "sc": "ATS", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "Al Shahama counted as part of Abu Dhabi", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Raya Saif Salem Saif Almeqbaali", "e": "794241@ats.sch.ae", "sc": "Ats", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Dalal Abdulla Saeed Salmein Alkaabi", "e": "20240000226@aths.ac.ae", "sc": "ATS Abu Dhabi girls", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "S", "n": "DEMA FAISAL  NASER SALEM ALWAHEDI", "e": "805587@aths.ac.ae", "sc": "ATS abudhabi", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "Pending: invalid/incomplete EID ('ALWAHEDI')", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Alia Hamad Aljaber", "e": "749594@aths.ac.ae", "sc": "ATS girls abudhabi", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "S", "n": "deema burqan ahmed abdullah alhammad", "e": "20200014246@ats.sch.ae", "sc": "ATS- abu dhabi girls", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Wedeema Saif Mohamed Bureshaid Al Naqbi", "e": "khulood_alali85@hotmail.com", "sc": "AUH-G ( Applied Technology School )", "c": "Abu Dhabi", "x": "Female", "el": "Yes", "no": "", "lr": "Yes", "la": "No"}], "Al Dhafra": [{"s": "S", "n": "Maha Mohamed", "e": "712615@aths.ac.ae", "sc": "Applied Technology Schools", "c": "Al Dhafra", "x": "Female", "el": "Yes", "no": "Madinat Zayed is in the Al Dhafra region; E-mail updated to LMS account (registration had '712615')", "lr": "Yes", "la": "Yes - last login 2026-10-22"}], "Other cities": [{"s": "T", "n": "Sawsan Malaka", "e": "Sawsan.malaka@actvet.gov.ae", "sc": "ATS-RAK", "c": "Ras Al Khaimah", "x": "Female", "el": "Review", "no": "City outside accepted area (RAK)", "lr": "Yes", "la": "No"}, {"s": "T", "n": "Zafar Ali MAHBOOB Ali Khan", "e": "zafar.ali@actvet.gov.ae", "sc": "ATS-UAQ", "c": "Umm Al Quwain", "x": "Male", "el": "Review", "no": "City outside accepted area (UAQ)", "lr": "Yes", "la": "Yes - last login 2026-11-04"}, {"s": "S", "n": "Saif khalid Hamad huraimel al ali", "e": "saifhuraimel@gmail.com", "sc": "Applied technology school", "c": "Falaj Al Mualla (UAQ)", "x": "Male", "el": "Review", "no": "City outside accepted area (Falaj al mualla); Pending: invalid/incomplete EID ('1021021922')", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Mosabbah Mohamed qareiny", "e": "2016003588@ats.sch.ae", "sc": "ATS", "c": "Fujairah", "x": "Male", "el": "Review", "no": "City outside accepted area (FUJAIRAH); E-mail updated to LMS account (registration had '2016003588')", "lr": "Yes", "la": "Yes - last login 2026-10-30"}, {"s": "S", "n": "Mohamed ajil obaid", "e": "2016004601@ats.sch.ae", "sc": "ATS (applied technology schools)", "c": "Umm Al Quwain", "x": "Male", "el": "Review", "no": "City outside accepted area (Umm Al quwain); Pending: invalid/incomplete EID ('7213857213')", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Alreem Hamad khalifa alrayssi", "e": "736098@ats.sch.ae", "sc": "ATS tbmec", "c": "Not specified", "x": "Female", "el": "Review", "no": "City given only as 'UAE' - confirm city", "lr": "Yes", "la": "Yes - last login 2026-11-13"}, {"s": "S", "n": "Abdullah Mohammed Allaabi", "e": "2016005746@actvet.gov.ae", "sc": "Ats um Al Quiwen", "c": "Ajman", "x": "Male", "el": "Review", "no": "City outside accepted area (Ajman)", "lr": "Yes", "la": "Yes - last login 2026-11-06"}, {"s": "S", "n": "Ahmed JUMAH Ahmed Ali Aldahmani", "e": "ahaldahmani@gmail.com", "sc": "Ats Umm Al Quwain", "c": "Fujairah", "x": "Male", "el": "Review", "no": "City outside accepted area (إمارة الفجيرة)", "lr": "Yes", "la": "No"}], "Out of age range": [{"s": "S", "n": "Hessa Khaled Mohammed Alblooshi", "e": "hessaalblooshi8841@gmail.com", "sc": "Emirates National School", "c": "Al Ain", "x": "Female", "el": "No", "no": "Birth year 2011 outside 2012-2015 range", "lr": "Yes", "la": "Yes - last login 2026-11-10"}, {"s": "S", "n": "Mahrah Salem aljaberi", "e": "729350@aths.ac.ae", "sc": "Applied technology schools - Abu Dhabi girls", "c": "Abu Dhabi", "x": "Female", "el": "No", "no": "Birth year 2011 outside 2012-2015 range", "lr": "Yes", "la": "No"}, {"s": "S", "n": "Fares Naser Ali Alyaarobi", "e": "688072@actvet.gov.ae", "sc": "Applied Technology Schools - Baniyas", "c": "Abu Dhabi", "x": "Male", "el": "No", "no": "Birth year 2011 outside 2012-2015 range", "lr": "Yes", "la": "Yes - last login 2026-11-03"}, {"s": "S", "n": "Saleh Ayman Alkatheeri", "e": "20200020081@actvet.gov.ae", "sc": "Applied Technology Schools - Baniyas", "c": "Abu Dhabi", "x": "Male", "el": "No", "no": "Birth year 2011 outside 2012-2015 range", "lr": "Yes", "la": "Yes - last login 2026-10-28"}, {"s": "S", "n": "Mahra Naser Almehairbi", "e": "20200018825@aths.ac.ae", "sc": "ATS Abu Dhabi girls", "c": "Abu Dhabi", "x": "Female", "el": "No", "no": "Birth year 2011 outside 2012-2015 range", "lr": "Yes", "la": "No"}]};
+const TABS = ["Al Ain","Abu Dhabi","Al Dhafra","Other cities","Out of age range"];
+const all = Object.values(DATA).flat();
+const acc = p => String(p.la).startsWith("Yes");
+const esc = s => String(s ?? "").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pct = (a,b) => b ? Math.round(a*100/b)+"%" : "0%";
+let st = {tab:TABS[0], q:"", f:"all"};
+
+(function(){
+  const el = all.filter(p=>p.el==="Yes").length, a = all.filter(acc).length;
+  const n = all.length, en = all.filter(p=>p.lr==="Yes").length;
+  const k = [["Registrations",n,`${all.filter(p=>p.s==="T").length} trainers · ${all.filter(p=>p.s==="S").length} students`,"#4f46e5",n],
+    ["Eligible",el,pct(el,n)+" of total","#059669",el],
+    ["Enrolled in ESNC27",en,pct(en,n)+" in the LMS","#0891b2",en],
+    ["Logged in",a,pct(a,n)+" of total","#2563eb",a],
+    ["Never logged in",n-a,"follow up","#dc2626",n-a]];
+  document.getElementById("kpis").innerHTML = k.map(([l,v,s,c,x])=>`<div class="kpi" style="--k:${c}"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s}</div><div class="mini"><i style="width:${x*100/n}%"></i></div></div>`).join("");
+})();
+
+const pill = v => v==="Yes" ? `<span class="pill yes">Yes</span>` : v==="No" ? `<span class="pill no">No</span>` : `<span class="pill rev">Review</span>`;
+const login = p => acc(p) ? `<span class="dot ok">${esc(p.la.replace(/^Yes - last login /,""))}</span>` : `<span class="dot bad">Never</span>`;
+const PAL = ["#6366f1","#0891b2","#db2777","#059669","#d97706","#7c3aed","#2563eb","#e11d48"];
+const col = n => PAL[[...n].reduce((a,c)=>a+c.charCodeAt(0),0)%PAL.length];
+const ini = n => n.trim().split(/\s+/).filter(w=>/^[A-Za-z]/.test(w)).slice(0,2).map(w=>w[0].toUpperCase()).join("")||"?";
+
+function table(list){
+  if(!list.length) return `<div class="empty">No records</div>`;
+  return `<table><colgroup><col style="width:23%"><col style="width:21%"><col style="width:9%"><col style="width:7%"><col style="width:7%"><col style="width:7%"><col style="width:10%"><col style="width:16%"></colgroup><thead><tr><th>Name / e-mail</th><th>School</th><th>City</th><th>Sex</th><th>Eligible</th><th>In LMS</th><th>Last login</th><th>Notes</th></tr></thead><tbody>${
+    list.map(p=>`<tr><td><div class="who"><div class="av" style="background:${col(p.n)}">${ini(p.n)}</div><div><div class="name">${esc(p.n)}</div><div class="mail">${esc(p.e)}</div></div></div></td><td><span class="chip">${esc(p.sc)}</span></td><td>${esc(p.c)}</td><td>${esc(p.x)}</td>
+      <td>${pill(p.el)}</td><td>${pill(p.lr)}</td><td>${login(p)}</td><td class="notes">${esc(p.no)}</td></tr>`).join("")}</tbody></table>`;
+}
+
+function render(){
+  document.getElementById("tabs").innerHTML = TABS.map(t=>`<button class="tab ${t===st.tab?"active":""}" data-t="${t}">${t}<span class="c">${DATA[t].length}</span></button>`).join("");
+  document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{st.tab=b.dataset.t;render()});
+  const rows = DATA[st.tab], q = st.q.toLowerCase();
+  const f = rows.filter(p=>(!q||[p.n,p.e,p.sc].join(" ").toLowerCase().includes(q)) &&
+    (st.f==="all"||(st.f==="el"&&p.el==="Yes")||(st.f==="nel"&&p.el!=="Yes")||(st.f==="acc"&&acc(p))||(st.f==="never"&&!acc(p))));
+  const a = rows.filter(acc).length, el = rows.filter(p=>p.el==="Yes").length;
+  const T = f.filter(p=>p.s==="T"), S = f.filter(p=>p.s==="S");
+  document.getElementById("view").innerHTML = `
+    ${st.tab==="Out of age range"?`<div class="note-box">Students born before 2012 – outside the 2012–2015 range, not eligible.</div>`:""}
+    <div class="sumrow">
+      ${[["Eligible",el,"#059669"],["Logged in",a,"#2563eb"],["Never logged in",rows.length-a,"#dc2626"]].map(([l,v,c])=>
+        `<div class="sum" style="--k:${c}"><div class="t">${l}<b>${v} / ${rows.length} · ${pct(v,rows.length)}</b></div><div class="mini"><i style="width:${rows.length?v*100/rows.length:0}%"></i></div></div>`).join("")}
+    </div>
+    <div class="bar">
+      <div class="sp"></div>
+      <input id="q" placeholder="Search name, e-mail, school" value="${esc(st.q)}">
+      <select id="f">
+        ${[["all","All"],["el","Eligible"],["nel","Not eligible / review"],["acc","Logged in"],["never","Never logged in"]].map(([k,l])=>`<option value="${k}" ${st.f===k?"selected":""}>${l}</option>`).join("")}
+      </select>
+    </div>
+    ${st.tab!=="Out of age range"?`<h2><i class="tag" style="--c:#4f46e5"></i>Trainers <span>${T.length}</span></h2>${table(T)}`:""}
+    <h2><i class="tag" style="--c:#0891b2"></i>Students <span>${S.length}</span></h2>${table(S)}`;
+  const qi=document.getElementById("q");
+  qi.oninput=e=>{st.q=e.target.value;const pos=e.target.selectionStart;render();const n=document.getElementById("q");n.focus();n.setSelectionRange(pos,pos)};
+  document.getElementById("f").onchange=e=>{st.f=e.target.value;render()};
+}
+render();
+</script>
+</body>
+</html>
