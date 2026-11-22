@@ -81,21 +81,6 @@ final class Quiz
             ->execute([$ownerType, $ownerId]);
     }
 
-    /**
-     * Apaga todo quiz cujo dono não existe mais. Chamado depois de exclusões em
-     * cascata (CU, CC, curso), que levam activities/evaluations pelo schema mas
-     * não alcançam `quizzes`. Só toca linha órfã, então não precisa de tenant.
-     */
-    public static function purgeOrphans(PDO $pdo): void
-    {
-        $pdo->exec(
-            "DELETE q FROM quizzes q
-               LEFT JOIN activities  a ON q.owner_type = 'activity'   AND a.id = q.owner_id
-               LEFT JOIN evaluations e ON q.owner_type = 'evaluation' AND e.id = q.owner_id
-              WHERE a.id IS NULL AND e.id IS NULL"
-        );
-    }
-
     public static function updateShowAnswers(int $quizId, int $tenantId, bool $showAnswers): bool
     {
         $stmt = Database::pdo()->prepare(

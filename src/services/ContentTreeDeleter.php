@@ -26,8 +26,16 @@ declare(strict_types=1);
 final class ContentTreeDeleter
 {
     /** @return list<string> caminhos relativos a apagar depois do commit */
-    public static function course(PDO $pdo, int $courseId): array
+    public static function course(PDO $pdo, int $courseId, int $tenantId): array
     {
+        // Raiz sempre filtrada pelo tenant (o chamador já validou, mas a árvore
+        // só desce se o curso for mesmo deste professor).
+        $own = $pdo->prepare('SELECT 1 FROM courses WHERE id = ? AND tenant_id = ?');
+        $own->execute([$courseId, $tenantId]);
+        if ($own->fetchColumn() === false) {
+            return [];
+        }
+
         $ccIds = self::ids($pdo, 'SELECT id FROM core_competencies WHERE course_id = ?', [$courseId]);
         $paths = self::coreCompetencies($pdo, $ccIds);
 
@@ -36,7 +44,7 @@ final class ContentTreeDeleter
         $pdo->prepare('DELETE FROM course_audit_log WHERE course_id = ?')->execute([$courseId]);
         // Mesmo efeito do ON DELETE SET NULL do schema para o XP que sobrar.
         $pdo->prepare('UPDATE xp_events SET course_id = NULL WHERE course_id = ?')->execute([$courseId]);
-        $pdo->prepare('DELETE FROM courses WHERE id = ?')->execute([$courseId]);
+        $pdo->prepare('DELETE FROM courses WHERE id = ? AND tenant_id = ?')->execute([$courseId, $tenantId]);
 
         return $paths;
     }
@@ -205,11 +213,26 @@ final class ContentTreeDeleter
             ->execute($params);
     }
 
-    /** @param list<string> $paths */
+    /**
+     * Apaga os arquivos e, em seguida, as pastas que ficaram vazias
+     * (submissions/{id}, activities/{id}...). rmdir só remove pasta vazia, e
+     * nunca sobe acima de storage/uploads.
+     *
+     * @param list<string> $paths
+     */
     public static function unlinkAll(array $paths): void
     {
+        $base = @realpath(LMS_ROOT . '/storage/uploads');
+        $dirs = [];
         foreach (array_unique($paths) as $p) {
+            $dir = @realpath(dirname(LMS_ROOT . '/' . ltrim($p, '/')));
             safe_unlink_storage($p);
+            if ($base !== false && $dir !== false && str_starts_with($dir, $base . '/')) {
+                $dirs[$dir] = true;
+            }
+        }
+        foreach (array_keys($dirs) as $dir) {
+            @rmdir($dir);
         }
     }
 

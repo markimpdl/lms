@@ -20,6 +20,9 @@
 -- NÃO mexe em xp_events: o XP já ganho pelos alunos continua contando no
 -- ranking, como acontecia antes.
 --
+-- Não pega órfão "enxertado" (pai apagado e id reaproveitado): para esses,
+-- rode antes scripts/maintenance/diagnostico-enxertos.sql (só leitura).
+--
 -- Arquivos físicos (entregas, anexos) dos órfãos continuam em storage/uploads;
 -- só as linhas do banco saem.
 -- ============================================================================

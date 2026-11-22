@@ -404,7 +404,7 @@ final class Course
         // (CCs, CUs, conteúdo, entregas, matrículas, colaboradores, audit log)
         // e só depois do commit remove os arquivos físicos.
         $paths = Database::tx(
-            static fn (PDO $pdo): array => ContentTreeDeleter::course($pdo, $courseId)
+            static fn (PDO $pdo): array => ContentTreeDeleter::course($pdo, $courseId, $tenantId)
         );
         ContentTreeDeleter::unlinkAll($paths);
 
