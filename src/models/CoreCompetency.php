@@ -79,8 +79,9 @@ final class CoreCompetency
     }
 
     /**
-     * Exclui CC do tenant após revalidar nome. Cascade cuida de CUs → contents,
-     * activities, evaluations e suas submissões.
+     * Exclui CC do tenant após revalidar nome, com toda a árvore abaixo
+     * (CUs, capas, lições, atividades, avaliações, entregas e arquivos) via
+     * ContentTreeDeleter — não depende de FK.
      *
      * Retorna 'ok' | 'not_found' | 'name_mismatch'. Curso arquivado não bloqueia
      * (o professor pode limpar restos de cursos arquivados).
@@ -94,11 +95,11 @@ final class CoreCompetency
         if ((string) $cc['name'] !== $expectedName) {
             return 'name_mismatch';
         }
-        Database::pdo()
-            ->prepare('DELETE FROM core_competencies WHERE id = ?')
-            ->execute([$id]);
-        // Cascade leva activities/evaluations, mas não o quiz polimórfico.
-        Quiz::purgeOrphans(Database::pdo());
+        // Produção não tem as FKs da hierarquia: apaga a árvore explicitamente.
+        $paths = Database::tx(
+            static fn (PDO $pdo): array => ContentTreeDeleter::coreCompetencies($pdo, [$id])
+        );
+        ContentTreeDeleter::unlinkAll($paths);
         return 'ok';
     }
 
