@@ -240,8 +240,8 @@ final class Evaluation
      * Exclui avaliação após revalidar título (case-sensitive). Retorna o
      * pdf_path e os stored_paths das submissions pro handler apagar do disco.
      *
-     * Ordem: snapshot dos paths → DELETE xp_events (polimórfico, sem FK) →
-     * DELETE evaluations (cascade apaga evaluation_submissions).
+     * A exclusão é explícita em ContentTreeDeleter::evaluations — não depende
+     * de FK.
      *
      * @return array{status:string, pdf_path?:?string, stored_paths?:list<string>}
      */
@@ -255,33 +255,16 @@ final class Evaluation
             return ['status' => 'name_mismatch'];
         }
 
-        return Database::tx(static function (PDO $pdo) use ($id, $evaluation): array {
-            $stmt = $pdo->prepare(
-                'SELECT stored_path FROM evaluation_submissions
-                  WHERE evaluation_id = ? AND stored_path IS NOT NULL
-                  UNION ALL
-                 SELECT f.stored_path
-                   FROM evaluation_submission_files f
-                   JOIN evaluation_submissions s ON s.id = f.submission_id
-                  WHERE s.evaluation_id = ?'
-            );
-            $stmt->execute([$id, $id]);
-            $paths = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        // Entregas, notas por LO, arquivos, quiz e XP saem explicitamente:
+        // produção não tem as FKs, e o id apagado é reaproveitado.
+        $paths = Database::tx(
+            static fn (PDO $pdo): array => ContentTreeDeleter::evaluations($pdo, [$id])
+        );
 
-            $pdo->prepare(
-                'DELETE FROM xp_events
-                  WHERE source_type = \'evaluation\' AND source_id = ?'
-            )->execute([$id]);
-
-            $pdo->prepare('DELETE FROM evaluations WHERE id = ?')
-                ->execute([$id]);
-            Quiz::purgeForOwner($pdo, 'evaluation', $id);
-
-            return [
-                'status'       => 'ok',
-                'pdf_path'     => $evaluation['pdf_path'] !== null ? (string) $evaluation['pdf_path'] : null,
-                'stored_paths' => array_map('strval', $paths),
-            ];
-        });
+        return [
+            'status'       => 'ok',
+            'pdf_path'     => $evaluation['pdf_path'] !== null ? (string) $evaluation['pdf_path'] : null,
+            'stored_paths' => $paths,
+        ];
     }
 }

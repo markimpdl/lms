@@ -63,8 +63,8 @@ final class CompetenceUnit
     }
 
     /**
-     * Exclui CU do tenant após revalidar nome. Cascade cuida de contents,
-     * activities, evaluations e suas submissões.
+     * Exclui CU do tenant após revalidar nome, com capa, lições, atividades,
+     * avaliações, entregas e arquivos via ContentTreeDeleter — não depende de FK.
      *
      * Retorna 'ok' | 'not_found' | 'name_mismatch'.
      */
@@ -77,11 +77,11 @@ final class CompetenceUnit
         if ((string) $cu['name'] !== $expectedName) {
             return 'name_mismatch';
         }
-        Database::pdo()
-            ->prepare('DELETE FROM competence_units WHERE id = ?')
-            ->execute([$id]);
-        // Cascade leva activities/evaluations, mas não o quiz polimórfico.
-        Quiz::purgeOrphans(Database::pdo());
+        // Produção não tem as FKs da hierarquia: apaga a árvore explicitamente.
+        $paths = Database::tx(
+            static fn (PDO $pdo): array => ContentTreeDeleter::competenceUnits($pdo, [$id])
+        );
+        ContentTreeDeleter::unlinkAll($paths);
         return 'ok';
     }
 

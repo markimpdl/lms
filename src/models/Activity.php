@@ -254,8 +254,8 @@ final class Activity
      * ao tenant. Retorna 'ok' + lista de stored_paths pro handler apagar, ou
      * 'not_found' / 'name_mismatch' em erro.
      *
-     * Ordem: snapshot dos paths → DELETE xp_events (polimórfico, sem FK) →
-     * DELETE activities (cascade apaga activity_submissions).
+     * A exclusão (entregas, arquivos, quiz, XP, atividade) é explícita em
+     * ContentTreeDeleter::activities — não depende de FK.
      *
      * @return array{status:string, stored_paths?:list<string>}
      */
@@ -269,37 +269,16 @@ final class Activity
             return ['status' => 'name_mismatch'];
         }
 
-        return Database::tx(static function (PDO $pdo) use ($id): array {
-            // Submissões + brief PDF (v0.30.0) — UNION ALL pra um SELECT só.
-            $stmt = $pdo->prepare(
-                'SELECT stored_path FROM activity_submissions
-                  WHERE activity_id = ? AND stored_path IS NOT NULL
-                  UNION ALL
-                 SELECT f.stored_path
-                   FROM activity_submission_files f
-                   JOIN activity_submissions s ON s.id = f.submission_id
-                  WHERE s.activity_id = ?
-                  UNION ALL
-                 SELECT pdf_path FROM activities
-                  WHERE id = ? AND pdf_path IS NOT NULL'
-            );
-            $stmt->execute([$id, $id, $id]);
-            $paths = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        // Entregas, arquivos, quiz e XP saem explicitamente: produção não tem
+        // as FKs, e o id apagado é reaproveitado pela próxima atividade.
+        $paths = Database::tx(
+            static fn (PDO $pdo): array => ContentTreeDeleter::activities($pdo, [$id])
+        );
 
-            $pdo->prepare(
-                'DELETE FROM xp_events
-                  WHERE source_type = \'activity\' AND source_id = ?'
-            )->execute([$id]);
-
-            $pdo->prepare('DELETE FROM activities WHERE id = ?')
-                ->execute([$id]);
-            Quiz::purgeForOwner($pdo, 'activity', $id);
-
-            return [
-                'status'       => 'ok',
-                'stored_paths' => array_map('strval', $paths),
-            ];
-        });
+        return [
+            'status'       => 'ok',
+            'stored_paths' => $paths,
+        ];
     }
 
     /**

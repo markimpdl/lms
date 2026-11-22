@@ -223,11 +223,9 @@ final class Lesson
             return ['status' => 'name_mismatch'];
         }
 
-        return Database::tx(static function (PDO $pdo) use ($id): array {
-            $pdo->prepare("DELETE FROM xp_events WHERE source_type = 'lesson' AND source_id = ?")
-                ->execute([$id]);
-            $pdo->prepare('DELETE FROM lessons WHERE id = ?')->execute([$id]);
-            return ['status' => 'ok'];
+        Database::tx(static function (PDO $pdo) use ($id): void {
+            ContentTreeDeleter::lessons($pdo, [$id]);
         });
+        return ['status' => 'ok'];
     }
 }
