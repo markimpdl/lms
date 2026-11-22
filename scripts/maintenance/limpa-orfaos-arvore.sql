@@ -9,10 +9,9 @@
 --
 -- Como rodar:
 --   1. Selecione o banco do LMS na barra da esquerda e abra a aba SQL.
---   2. Cole o script INTEIRO como está (termina em ROLLBACK = ensaio).
---      O phpMyAdmin mostra "N linhas afetadas" em cada DELETE. Nada é gravado.
---   3. Confira os números. Se fizerem sentido, troque o ROLLBACK final por
---      COMMIT e rode de novo.
+--   2. Cole o script INTEIRO e clique em Executar. Cada DELETE grava na hora
+--      (sem transação: o phpMyAdmin não manteve o COMMIT). Não tem volta.
+--   3. Confira com a contagem de órfãos: tudo deve voltar 0.
 --
 -- A ordem é de cima para baixo: cada passo apaga o que ficou sem pai, inclusive
 -- o que perdeu o pai no passo anterior. Rodar duas vezes não faz mal.
@@ -26,8 +25,6 @@
 -- Arquivos físicos (entregas, anexos) dos órfãos continuam em storage/uploads;
 -- só as linhas do banco saem.
 -- ============================================================================
-
-START TRANSACTION;
 
 -- 1. CC sem curso
 DELETE x FROM core_competencies x
@@ -94,6 +91,3 @@ DELETE x FROM course_collaborators x
   LEFT JOIN courses p ON p.id = x.course_id WHERE p.id IS NULL;
 DELETE x FROM course_audit_log x
   LEFT JOIN courses p ON p.id = x.course_id WHERE p.id IS NULL;
-
--- Ensaio: troque por COMMIT depois de conferir os números.
-ROLLBACK;
