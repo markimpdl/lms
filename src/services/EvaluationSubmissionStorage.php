@@ -58,6 +58,8 @@ final class EvaluationSubmissionStorage
         $mime  = (string) $finfo->file($tmp);
         // Office: conteúdo conferido, macro e senha recusados (OfficeFile).
         $mime = OfficeFile::resolveMime($tmp, (string) $file['name'], $mime);
+        // .txt com código dentro (finfo diz text/x-c etc.) conta como texto.
+        $mime = SubmissionStorage::resolveTxtMime($mime, (string) $file['name']);
         if (!isset(self::ALLOWED[$mime])) {
             return ['status' => 'error', 'error_key' => 'evaluations.student.err.mime'];
         }
