@@ -69,6 +69,7 @@ final class SubmissionStorage
         $mime  = (string) $finfo->file($tmp);
         // Office: conteúdo conferido, macro e senha recusados (OfficeFile).
         $mime = OfficeFile::resolveMime($tmp, (string) $file['name'], $mime);
+        $mime = self::resolveTxtMime($mime, (string) $file['name']);
         $allowed = self::resolveAllowed((string) ($opts['code_language'] ?? ''));
         $ext = self::resolveExtension($mime, (string) $file['name'], $allowed);
         if ($ext === null) {
@@ -93,6 +94,36 @@ final class SubmissionStorage
             'stored_path' => 'storage/uploads/tenant_' . $tenantId . '/submissions/' . $activityId . '/' . $storedName,
             'size_bytes'  => (int) $file['size'],
         ];
+    }
+
+    /**
+     * MIMEs de texto que o finfo devolve conforme o CONTEÚDO de um .txt:
+     * código C/C#/Python/HTML/PHP colado num .txt vira text/x-c, text/x-c++,
+     * text/x-script.python, text/html... e era recusado. Fora os text/*,
+     * estes formatos textuais também aparecem.
+     */
+    private const TXT_TEXTUAL_MIMES = [
+        'application/json',
+        'application/xml',
+        'application/csv',
+        'application/javascript',
+        'application/x-ndjson',
+    ];
+
+    /**
+     * Arquivo com nome .txt e conteúdo textual conta como text/plain (vai ser
+     * gravado .txt e servido como text/plain no download). Binário renomeado
+     * pra .txt continua com o MIME real e cai na recusa.
+     */
+    public static function resolveTxtMime(string $mime, string $originalName): string
+    {
+        if (strtolower(pathinfo($originalName, PATHINFO_EXTENSION)) !== 'txt') {
+            return $mime;
+        }
+        if (str_starts_with($mime, 'text/') || in_array($mime, self::TXT_TEXTUAL_MIMES, true)) {
+            return 'text/plain';
+        }
+        return $mime;
     }
 
     /**
