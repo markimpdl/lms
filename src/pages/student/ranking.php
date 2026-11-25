@@ -180,19 +180,21 @@ ob_start();
         </p>
     </div>
 
-    <button type="button" class="btn btn-sm btn-outline-secondary d-print-none" onclick="window.print()">
-        <?= e(__t('ranking.print')) ?>
-    </button>
+    <div class="d-flex flex-wrap align-items-center gap-2 d-print-none">
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+            <?= e(__t('ranking.print')) ?>
+        </button>
 
-    <div class="lms-filter-pills d-print-none" role="tablist" aria-label="<?= e(__t('ranking.window.aria')) ?>">
-        <?php foreach (RankingService::WINDOWS as $w): ?>
-            <a class="lms-filter-pill <?= $w === $window ? 'is-active' : '' ?>"
-               href="<?= e($qs(['window' => $w, 'page' => 1])) ?>"
-               role="tab"
-               aria-selected="<?= $w === $window ? 'true' : 'false' ?>">
-                <?= e(__t('ranking.window.' . $w)) ?>
-            </a>
-        <?php endforeach; ?>
+        <div class="lms-filter-pills" role="tablist" aria-label="<?= e(__t('ranking.window.aria')) ?>">
+            <?php foreach (RankingService::WINDOWS as $w): ?>
+                <a class="lms-filter-pill <?= $w === $window ? 'is-active' : '' ?>"
+                   href="<?= e($qs(['window' => $w, 'page' => 1])) ?>"
+                   role="tab"
+                   aria-selected="<?= $w === $window ? 'true' : 'false' ?>">
+                    <?= e(__t('ranking.window.' . $w)) ?>
+                </a>
+            <?php endforeach; ?>
+        </div>
     </div>
 </header>
 
