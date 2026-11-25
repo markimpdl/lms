@@ -24,6 +24,9 @@ final class RankingService
     public const DEFAULT_PER_PAGE = 50;
     private const MAX_PER_PAGE    = 500;
 
+    /** Opções do seletor "Mostrar" nas telas de ranking (`?per=`). */
+    public const PER_PAGE_OPTIONS = [50, 100, 200];
+
     /**
      * Calcula o ranking paginado.
      *
@@ -391,6 +394,15 @@ final class RankingService
             }
         }
         return null;
+    }
+
+    /** Valida `?per=`: só valores de PER_PAGE_OPTIONS; qualquer outro = DEFAULT_PER_PAGE. */
+    public static function pickPerPage(mixed $raw): int
+    {
+        if (is_string($raw) && ctype_digit($raw) && in_array((int) $raw, self::PER_PAGE_OPTIONS, true)) {
+            return (int) $raw;
+        }
+        return self::DEFAULT_PER_PAGE;
     }
 
     /** Valida `?trainer=`: só `only` ou `exclude`; qualquer outro = todos (null). */

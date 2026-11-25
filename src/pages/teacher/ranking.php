@@ -94,7 +94,7 @@ if ($rawYear === 'all') {
 }
 
 $page    = max(1, (int) ($_GET['page'] ?? 1));
-$perPage = RankingService::DEFAULT_PER_PAGE;
+$perPage = RankingService::pickPerPage($_GET['per'] ?? null);
 
 if ($courseId > 0 && $courseShared) {
     // E32-05: curso compartilhado → ranking UNIFICADO (todos os alunos
@@ -116,8 +116,9 @@ $lastPage = max(1, (int) ceil($total / $perPage));
 // Indicador "online agora" — flip pra lookup O(1) por student_id.
 $onlineSet = array_flip(StudentSession::onlineUserIds($tenantId));
 
-$qs = static function (array $overrides = []) use ($window, $groupId, $year, $page, $school, $trainer): string {
+$qs = static function (array $overrides = []) use ($window, $groupId, $year, $page, $school, $trainer, $perPage): string {
     $params = ['window' => $window, 'page' => (string) $page];
+    if ($perPage !== RankingService::DEFAULT_PER_PAGE) { $params['per'] = (string) $perPage; }
     if ($groupId !== null) { $params['group']   = (string) $groupId; }
     if ($year    !== null) { $params['year']    = (string) $year; }
     if ($school  !== null) { $params['school']  = $school; }
@@ -156,19 +157,26 @@ ob_start();
         </p>
     </div>
 
-    <div class="btn-group" role="tablist" aria-label="<?= e(__t('ranking.window.aria')) ?>">
-        <?php foreach (RankingService::WINDOWS as $w): ?>
-            <a class="btn btn-sm <?= $w === $window ? 'btn-primary' : 'btn-outline-secondary' ?>"
-               href="<?= e($qs(['window' => $w, 'page' => 1])) ?>"
-               role="tab"
-               aria-selected="<?= $w === $window ? 'true' : 'false' ?>">
-                <?= e(__t('ranking.window.' . $w)) ?>
-            </a>
-        <?php endforeach; ?>
+    <div class="d-flex flex-wrap gap-2 d-print-none">
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+            <?= e(__t('ranking.print')) ?>
+        </button>
+        <div class="btn-group" role="tablist" aria-label="<?= e(__t('ranking.window.aria')) ?>">
+            <?php foreach (RankingService::WINDOWS as $w): ?>
+                <a class="btn btn-sm <?= $w === $window ? 'btn-primary' : 'btn-outline-secondary' ?>"
+                   href="<?= e($qs(['window' => $w, 'page' => 1])) ?>"
+                   role="tab"
+                   aria-selected="<?= $w === $window ? 'true' : 'false' ?>">
+                    <?= e(__t('ranking.window.' . $w)) ?>
+                </a>
+            <?php endforeach; ?>
+        </div>
     </div>
 </div>
 
-<form method="get" class="card card-body mb-3 py-2" aria-label="<?= e(__t('ranking.filter.aria')) ?>">
+<?php require LMS_ROOT . '/src/templates/partials/ranking_print.php'; ?>
+
+<form method="get" class="card card-body mb-3 py-2 d-print-none" aria-label="<?= e(__t('ranking.filter.aria')) ?>">
     <input type="hidden" name="window" value="<?= e($window) ?>">
     <div class="row g-2 align-items-end">
         <div class="col-12 col-md-3">
@@ -227,7 +235,17 @@ ob_start();
             </select>
         </div>
         <?php endif; ?>
-        <div class="col-12 col-md-2">
+        <div class="col-6 col-md-1">
+            <label for="rkg-per" class="form-label small text-muted text-uppercase mb-1">
+                <?= e(__t('ranking.filter.per_page')) ?>
+            </label>
+            <select id="rkg-per" name="per" class="form-select form-select-sm">
+                <?php foreach (RankingService::PER_PAGE_OPTIONS as $opt): ?>
+                    <option value="<?= (int) $opt ?>" <?= $perPage === $opt ? 'selected' : '' ?>><?= (int) $opt ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="col-6 col-md-1">
             <button type="submit" class="btn btn-primary btn-sm w-100">
                 <?= e(__t('ranking.filter.apply')) ?>
             </button>
@@ -248,14 +266,14 @@ ob_start();
                     <tr>
                         <th style="width: 80px;"><?= e(__t('ranking.col.position')) ?></th>
                         <th><?= e(__t('ranking.col.name')) ?></th>
-                        <th class="d-none d-md-table-cell" style="width: 130px;"><?= e(__t('ranking.col.rank')) ?></th>
+                        <th class="d-none d-md-table-cell d-print-table-cell" style="width: 130px;"><?= e(__t('ranking.col.rank')) ?></th>
                         <?php if ($attrFilters): ?>
-                            <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.school')) ?></th>
+                            <th class="d-none d-md-table-cell d-print-table-cell"><?= e(__t('ranking.col.school')) ?></th>
                         <?php endif; ?>
-                        <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.groups')) ?></th>
+                        <th class="d-none d-md-table-cell d-print-table-cell"><?= e(__t('ranking.col.groups')) ?></th>
                         <th class="text-end" style="width: 80px;"><?= e(__t('ranking.col.hours')) ?></th>
                         <th class="text-end" style="width: 110px;"><?= e(__t('ranking.col.xp')) ?></th>
-                        <th class="d-none d-lg-table-cell" style="width: 140px;">
+                        <th class="d-none d-lg-table-cell d-print-table-cell" style="width: 140px;">
                             <?= e(__t('ranking.col.last_event')) ?>
                         </th>
                     </tr>
@@ -284,11 +302,11 @@ ob_start();
                                     <span class="badge rounded-pill text-bg-info ms-1"><?= e(__t('ranking.badge.trainer')) ?></span>
                                 <?php endif; ?>
                                 <?php if ($rankName !== null): ?>
-                                    <span class="lms-rank-pill lms-rank-pill--inline d-md-none"
+                                    <span class="lms-rank-pill lms-rank-pill--inline d-md-none d-print-none"
                                           style="background: <?= e($rankColor) ?>"><?= e($rankName) ?></span>
                                 <?php endif; ?>
                             </td>
-                            <td class="d-none d-md-table-cell">
+                            <td class="d-none d-md-table-cell d-print-table-cell">
                                 <?php if ($rankName !== null): ?>
                                     <span class="lms-rank-pill" style="background: <?= e($rankColor) ?>"><?= e($rankName) ?></span>
                                 <?php else: ?>
@@ -296,11 +314,11 @@ ob_start();
                                 <?php endif; ?>
                             </td>
                             <?php if ($attrFilters): ?>
-                                <td class="d-none d-md-table-cell text-muted small">
+                                <td class="d-none d-md-table-cell d-print-table-cell text-muted small">
                                     <?= $row['school'] !== null ? e((string) $row['school']) : '<span class="text-muted">—</span>' ?>
                                 </td>
                             <?php endif; ?>
-                            <td class="d-none d-md-table-cell text-muted small">
+                            <td class="d-none d-md-table-cell d-print-table-cell text-muted small">
                                 <?= $row['group_names'] !== '' ? e($row['group_names']) : '<span class="text-muted">—</span>' ?>
                             </td>
                             <td class="text-end text-muted small">
@@ -310,7 +328,7 @@ ob_start();
                                 <strong><?= e(number_format((int) $row['xp'], 0, ',', '.')) ?></strong>
                                 <span class="text-muted small ms-1">XP</span>
                             </td>
-                            <td class="d-none d-lg-table-cell text-muted small">
+                            <td class="d-none d-lg-table-cell d-print-table-cell text-muted small">
                                 <?= $row['last_event_at'] !== null
                                     ? e(format_short_date((string) $row['last_event_at']))
                                     : '<span class="text-muted">—</span>' ?>
@@ -323,7 +341,7 @@ ob_start();
     </div>
 
     <?php if ($lastPage > 1): ?>
-        <nav aria-label="<?= e(__t('ranking.pagination.aria')) ?>" class="mt-3">
+        <nav aria-label="<?= e(__t('ranking.pagination.aria')) ?>" class="mt-3 d-print-none">
             <ul class="pagination justify-content-center mb-0">
                 <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
                     <a class="page-link" href="<?= e($qs(['page' => max(1, $page - 1)])) ?>">
