@@ -108,7 +108,7 @@ if ($rawYear === 'all') {
 }
 
 $page    = max(1, (int) ($_GET['page'] ?? 1));
-$perPage = RankingService::DEFAULT_PER_PAGE;
+$perPage = RankingService::pickPerPage($_GET['per'] ?? null);
 
 $filters = [];
 if ($groupId !== null) { $filters['group_id']  = $groupId; }
@@ -138,8 +138,9 @@ $onlineSet = $tenantId > 0
 // Builder de querystring que preserva o estado completo dos filtros. Aceita
 // overrides; passar null em uma chave remove. Também resseta `page` quando
 // se troca janela ou filtros (overrides explícitos passam por cima).
-$qs = static function (array $overrides = []) use ($window, $groupId, $year, $page, $school, $trainer): string {
+$qs = static function (array $overrides = []) use ($window, $groupId, $year, $page, $school, $trainer, $perPage): string {
     $params = ['window' => $window, 'page' => (string) $page];
+    if ($perPage !== RankingService::DEFAULT_PER_PAGE) { $params['per'] = (string) $perPage; }
     if ($groupId !== null) { $params['group']   = (string) $groupId; }
     if ($year    !== null) { $params['year']    = (string) $year; }
     if ($school  !== null) { $params['school']  = $school; }
@@ -179,7 +180,11 @@ ob_start();
         </p>
     </div>
 
-    <div class="lms-filter-pills" role="tablist" aria-label="<?= e(__t('ranking.window.aria')) ?>">
+    <button type="button" class="btn btn-sm btn-outline-secondary d-print-none" onclick="window.print()">
+        <?= e(__t('ranking.print')) ?>
+    </button>
+
+    <div class="lms-filter-pills d-print-none" role="tablist" aria-label="<?= e(__t('ranking.window.aria')) ?>">
         <?php foreach (RankingService::WINDOWS as $w): ?>
             <a class="lms-filter-pill <?= $w === $window ? 'is-active' : '' ?>"
                href="<?= e($qs(['window' => $w, 'page' => 1])) ?>"
@@ -191,7 +196,9 @@ ob_start();
     </div>
 </header>
 
-<form method="get" class="lms-ranking-filters" aria-label="<?= e(__t('ranking.filter.aria')) ?>">
+<?php require LMS_ROOT . '/src/templates/partials/ranking_print.php'; ?>
+
+<form method="get" class="lms-ranking-filters d-print-none" aria-label="<?= e(__t('ranking.filter.aria')) ?>">
     <input type="hidden" name="window" value="<?= e($window) ?>">
 
     <label class="lms-ranking-filter">
@@ -248,6 +255,15 @@ ob_start();
     </label>
     <?php endif; ?>
 
+    <label class="lms-ranking-filter">
+        <span class="lms-ranking-filter__label"><?= e(__t('ranking.filter.per_page')) ?></span>
+        <select name="per" class="form-select form-select-sm">
+            <?php foreach (RankingService::PER_PAGE_OPTIONS as $opt): ?>
+                <option value="<?= (int) $opt ?>" <?= $perPage === $opt ? 'selected' : '' ?>><?= (int) $opt ?></option>
+            <?php endforeach; ?>
+        </select>
+    </label>
+
     <button type="submit" class="btn btn-primary btn-sm lms-ranking-filter__submit">
         <?= e(__t('ranking.filter.apply')) ?>
     </button>
@@ -265,11 +281,11 @@ ob_start();
                 <tr>
                     <th class="lms-ranking-table__pos"><?= e(__t('ranking.col.position')) ?></th>
                     <th><?= e(__t('ranking.col.name')) ?></th>
-                    <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.rank')) ?></th>
+                    <th class="d-none d-md-table-cell d-print-table-cell"><?= e(__t('ranking.col.rank')) ?></th>
                     <?php if ($attrFilters): ?>
-                        <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.school')) ?></th>
+                        <th class="d-none d-md-table-cell d-print-table-cell"><?= e(__t('ranking.col.school')) ?></th>
                     <?php endif; ?>
-                    <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.groups')) ?></th>
+                    <th class="d-none d-md-table-cell d-print-table-cell"><?= e(__t('ranking.col.groups')) ?></th>
                     <th class="lms-ranking-table__hours"><?= e(__t('ranking.col.hours')) ?></th>
                     <th class="lms-ranking-table__xp"><?= e(__t('ranking.col.xp')) ?></th>
                 </tr>
@@ -298,7 +314,7 @@ ob_start();
                             <?php endif; ?>
                             <span class="lms-ranking-name" title="<?= e((string) $row['name']) ?>"><?= e(format_short_name((string) $row['name'])) ?></span>
                             <?php if ($rankName !== null): ?>
-                                <span class="lms-rank-pill lms-rank-pill--inline d-md-none"
+                                <span class="lms-rank-pill lms-rank-pill--inline d-md-none d-print-none"
                                       style="background: <?= e($rankColor) ?>"><?= e($rankName) ?></span>
                             <?php endif; ?>
                             <?php if (!empty($row['is_trainer'])): ?>
@@ -308,7 +324,7 @@ ob_start();
                                 <span class="lms-ranking-you"><?= e(__t('ranking.you')) ?></span>
                             <?php endif; ?>
                         </td>
-                        <td class="d-none d-md-table-cell">
+                        <td class="d-none d-md-table-cell d-print-table-cell">
                             <?php if ($rankName !== null): ?>
                                 <span class="lms-rank-pill" style="background: <?= e($rankColor) ?>"><?= e($rankName) ?></span>
                             <?php else: ?>
@@ -316,11 +332,11 @@ ob_start();
                             <?php endif; ?>
                         </td>
                         <?php if ($attrFilters): ?>
-                            <td class="d-none d-md-table-cell lms-ranking-groups">
+                            <td class="d-none d-md-table-cell d-print-table-cell lms-ranking-groups">
                                 <?= $row['school'] !== null ? e((string) $row['school']) : '<span class="lms-ranking-muted">—</span>' ?>
                             </td>
                         <?php endif; ?>
-                        <td class="d-none d-md-table-cell lms-ranking-groups">
+                        <td class="d-none d-md-table-cell d-print-table-cell lms-ranking-groups">
                             <?= $row['group_names'] !== '' ? e($row['group_names']) : '<span class="lms-ranking-muted">—</span>' ?>
                         </td>
                         <td class="lms-ranking-table__hours">
@@ -337,7 +353,7 @@ ob_start();
     </div>
 
     <?php if ($lastPage > 1): ?>
-        <nav aria-label="<?= e(__t('ranking.pagination.aria')) ?>" class="mt-3">
+        <nav aria-label="<?= e(__t('ranking.pagination.aria')) ?>" class="mt-3 d-print-none">
             <ul class="pagination justify-content-center">
                 <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
                     <a class="page-link" href="<?= e($qs(['page' => max(1, $page - 1)])) ?>">
