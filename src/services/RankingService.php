@@ -308,6 +308,7 @@ final class RankingService
                            COALESCE(SUM(x.value), 0) AS xp,
                            MAX(x.created_at)         AS last_event_at,
                            '' AS group_names,
+                           u.is_trainer AS is_trainer,
                            MAX(rk.id)        AS rank_id,
                            MAX(rk.name)      AS rank_name,
                            MAX(rk.color_hex) AS rank_color_hex,
@@ -334,7 +335,7 @@ final class RankingService
                            GROUP BY user_id, tenant_id
                       ) ss ON ss.user_id = u.id AND ss.tenant_id = u.tenant_id
                      WHERE en.course_id = :cid
-                     GROUP BY u.id, u.name, u.tenant_id
+                     GROUP BY u.id, u.name, u.tenant_id, u.is_trainer
                      {$having}
                      ORDER BY xp DESC, last_event_at DESC, u.name ASC
                      LIMIT :lim OFFSET :off";

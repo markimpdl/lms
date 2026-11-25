@@ -74,10 +74,13 @@ if ($rawGroupId > 0) {
 }
 
 // Filtros de escola e trainer: escola precisa existir no tenant (senão ignora),
-// trainer só aceita only|exclude.
-$schools = Student::listSchools($tenantId);
-$school  = RankingService::pickSchoolFilter($_GET['school'] ?? null, $schools);
-$trainer = RankingService::pickTrainerFilter($_GET['trainer'] ?? null);
+// trainer só aceita only|exclude. Curso compartilhado usa computeForCourse
+// (alunos de 2 tenants), que não filtra por esses atributos: some com os
+// selects e a coluna Escola em vez de mostrar filtro que não filtra.
+$attrFilters = !($courseId > 0 && $courseShared);
+$schools = $attrFilters ? Student::listSchools($tenantId) : [];
+$school  = $attrFilters ? RankingService::pickSchoolFilter($_GET['school'] ?? null, $schools) : null;
+$trainer = $attrFilters ? RankingService::pickTrainerFilter($_GET['trainer'] ?? null) : null;
 
 $currentYear = (int) date('Y');
 $rawYear     = $_GET['year'] ?? null;
@@ -181,6 +184,7 @@ ob_start();
                 <?php endforeach; ?>
             </select>
         </div>
+        <?php if ($attrFilters): ?>
         <div class="col-12 col-md-3">
             <label for="rkg-school" class="form-label small text-muted text-uppercase mb-1">
                 <?= e(__t('ranking.filter.school')) ?>
@@ -192,6 +196,7 @@ ob_start();
                 <?php endforeach; ?>
             </select>
         </div>
+        <?php endif; ?>
         <div class="col-6 col-md-2">
             <label for="rkg-year" class="form-label small text-muted text-uppercase mb-1">
                 <?= e(__t('ranking.filter.year')) ?>
@@ -210,6 +215,7 @@ ob_start();
                 <?php endif; ?>
             </select>
         </div>
+        <?php if ($attrFilters): ?>
         <div class="col-6 col-md-2">
             <label for="rkg-trainer" class="form-label small text-muted text-uppercase mb-1">
                 <?= e(__t('ranking.filter.trainer')) ?>
@@ -220,6 +226,7 @@ ob_start();
                 <option value="exclude" <?= $trainer === 'exclude' ? 'selected' : '' ?>><?= e(__t('ranking.filter.trainer.exclude')) ?></option>
             </select>
         </div>
+        <?php endif; ?>
         <div class="col-12 col-md-2">
             <button type="submit" class="btn btn-primary btn-sm w-100">
                 <?= e(__t('ranking.filter.apply')) ?>
@@ -242,7 +249,9 @@ ob_start();
                         <th style="width: 80px;"><?= e(__t('ranking.col.position')) ?></th>
                         <th><?= e(__t('ranking.col.name')) ?></th>
                         <th class="d-none d-md-table-cell" style="width: 130px;"><?= e(__t('ranking.col.rank')) ?></th>
-                        <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.school')) ?></th>
+                        <?php if ($attrFilters): ?>
+                            <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.school')) ?></th>
+                        <?php endif; ?>
                         <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.groups')) ?></th>
                         <th class="text-end" style="width: 80px;"><?= e(__t('ranking.col.hours')) ?></th>
                         <th class="text-end" style="width: 110px;"><?= e(__t('ranking.col.xp')) ?></th>
@@ -286,9 +295,11 @@ ob_start();
                                     <span class="text-muted" title="<?= e(__t('ranking.no_rank')) ?>">—</span>
                                 <?php endif; ?>
                             </td>
-                            <td class="d-none d-md-table-cell text-muted small">
-                                <?= $row['school'] !== null ? e((string) $row['school']) : '<span class="text-muted">—</span>' ?>
-                            </td>
+                            <?php if ($attrFilters): ?>
+                                <td class="d-none d-md-table-cell text-muted small">
+                                    <?= $row['school'] !== null ? e((string) $row['school']) : '<span class="text-muted">—</span>' ?>
+                                </td>
+                            <?php endif; ?>
                             <td class="d-none d-md-table-cell text-muted small">
                                 <?= $row['group_names'] !== '' ? e($row['group_names']) : '<span class="text-muted">—</span>' ?>
                             </td>

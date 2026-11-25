@@ -84,10 +84,13 @@ if ($rawGroupId > 0) {
 }
 
 // Filtros de escola e trainer: escola precisa existir no tenant (senão ignora),
-// trainer só aceita only|exclude.
-$schools = $tenantId > 0 ? Student::listSchools($tenantId) : [];
-$school  = RankingService::pickSchoolFilter($_GET['school'] ?? null, $schools);
-$trainer = RankingService::pickTrainerFilter($_GET['trainer'] ?? null);
+// trainer só aceita only|exclude. Curso compartilhado usa computeForCourse
+// (alunos de 2 tenants), que não filtra por esses atributos: some com os
+// selects e a coluna Escola em vez de mostrar filtro que não filtra.
+$attrFilters = !($courseId > 0 && $courseShared);
+$schools = $attrFilters && $tenantId > 0 ? Student::listSchools($tenantId) : [];
+$school  = $attrFilters ? RankingService::pickSchoolFilter($_GET['school'] ?? null, $schools) : null;
+$trainer = $attrFilters ? RankingService::pickTrainerFilter($_GET['trainer'] ?? null) : null;
 
 // Filtro de ano:
 //   - sem `?year=` na URL → default = ano corrente
@@ -234,6 +237,7 @@ ob_start();
         </label>
     <?php endif; ?>
 
+    <?php if ($attrFilters): ?>
     <label class="lms-ranking-filter">
         <span class="lms-ranking-filter__label"><?= e(__t('ranking.filter.trainer')) ?></span>
         <select name="trainer" class="form-select form-select-sm">
@@ -242,6 +246,7 @@ ob_start();
             <option value="exclude" <?= $trainer === 'exclude' ? 'selected' : '' ?>><?= e(__t('ranking.filter.trainer.exclude')) ?></option>
         </select>
     </label>
+    <?php endif; ?>
 
     <button type="submit" class="btn btn-primary btn-sm lms-ranking-filter__submit">
         <?= e(__t('ranking.filter.apply')) ?>
@@ -261,7 +266,9 @@ ob_start();
                     <th class="lms-ranking-table__pos"><?= e(__t('ranking.col.position')) ?></th>
                     <th><?= e(__t('ranking.col.name')) ?></th>
                     <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.rank')) ?></th>
-                    <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.school')) ?></th>
+                    <?php if ($attrFilters): ?>
+                        <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.school')) ?></th>
+                    <?php endif; ?>
                     <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.groups')) ?></th>
                     <th class="lms-ranking-table__hours"><?= e(__t('ranking.col.hours')) ?></th>
                     <th class="lms-ranking-table__xp"><?= e(__t('ranking.col.xp')) ?></th>
@@ -308,9 +315,11 @@ ob_start();
                                 <span class="lms-ranking-muted" title="<?= e(__t('ranking.no_rank')) ?>">—</span>
                             <?php endif; ?>
                         </td>
-                        <td class="d-none d-md-table-cell lms-ranking-groups">
-                            <?= $row['school'] !== null ? e((string) $row['school']) : '<span class="lms-ranking-muted">—</span>' ?>
-                        </td>
+                        <?php if ($attrFilters): ?>
+                            <td class="d-none d-md-table-cell lms-ranking-groups">
+                                <?= $row['school'] !== null ? e((string) $row['school']) : '<span class="lms-ranking-muted">—</span>' ?>
+                            </td>
+                        <?php endif; ?>
                         <td class="d-none d-md-table-cell lms-ranking-groups">
                             <?= $row['group_names'] !== '' ? e($row['group_names']) : '<span class="lms-ranking-muted">—</span>' ?>
                         </td>
