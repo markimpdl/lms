@@ -29,6 +29,8 @@ $old = [
     'language'    => (string) $student['language'],
     'gender'      => (string) $student['gender'],
     'id_document' => (string) ($student['id_document'] ?? ''),
+    'school'      => (string) ($student['school'] ?? ''),
+    'is_trainer'  => (int) ($student['is_trainer'] ?? 0) === 1 ? '1' : '0',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -45,6 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'language'    => (string) ($_POST['language']    ?? $old['language']),
         'gender'      => (string) ($_POST['gender']      ?? $old['gender']),
         'id_document' => trim((string) ($_POST['id_document'] ?? $old['id_document'])),
+        'school'      => (string) ($_POST['school'] ?? $old['school']),
+        // Checkbox desmarcado não vem no POST: ausência = não é trainer.
+        'is_trainer'  => isset($_POST['is_trainer']) ? '1' : '0',
     ];
 
     $errors = TeacherStudentsController::update($studentId, $old);
@@ -214,6 +219,29 @@ ob_start();
                 <?php if (isset($errors['id_document'])): ?>
                     <div class="invalid-feedback"><?= e(__t($errors['id_document'])) ?></div>
                 <?php endif; ?>
+            </div>
+
+            <div class="mb-3">
+                <label for="f-school" class="form-label"><?= e(__t('students.form.school')) ?></label>
+                <input type="text" name="school" id="f-school" list="lms-schools"
+                       maxlength="<?= (int) Student::SCHOOL_MAX ?>" autocomplete="off"
+                       class="form-control form-control-lg"
+                       value="<?= e($old['school']) ?>">
+                <datalist id="lms-schools">
+                    <?php foreach (Student::listSchools((int) $tenantId) as $schoolOpt): ?>
+                        <option value="<?= e($schoolOpt) ?>"></option>
+                    <?php endforeach; ?>
+                </datalist>
+                <div class="form-text"><?= e(__t('students.form.school.help')) ?></div>
+            </div>
+
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" role="switch" name="is_trainer" id="f-trainer"
+                       value="1" <?= $old['is_trainer'] === '1' ? 'checked' : '' ?>>
+                <label class="form-check-label" for="f-trainer">
+                    <?= e(__t('students.form.is_trainer')) ?>
+                </label>
+                <div class="form-text"><?= e(__t('students.form.is_trainer.help')) ?></div>
             </div>
 
             <div class="d-flex flex-wrap gap-2">

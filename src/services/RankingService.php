@@ -32,11 +32,11 @@ final class RankingService
      * progressão histórica, não atividade na janela. NULL quando aluno não tem XP
      * suficiente pra entrar em nenhuma patente OU tenant não cadastrou patentes.
      *
-     * @param array{group_id?:int, year?:int, course_id?:int} $filters
+     * @param array{group_id?:int, year?:int, course_id?:int, school?:string, trainer?:string} $filters
      * @return array{
      *   rows: list<array{
      *     position:int, student_id:int, name:string,
-     *     group_names:string, xp:int, last_event_at:?string,
+     *     school:?string, is_trainer:bool, group_names:string, xp:int, last_event_at:?string,
      *     rank_id:?int, rank_name:?string, rank_color_hex:?string,
      *     online_seconds:int
      *   }>,
@@ -68,6 +68,7 @@ final class RankingService
         $f = self::normaliseFilters($filters);
         [$xpJoinSql, $xpParams]    = self::xpJoinClause($window, $f);
         [$enrollSql, $enrollParams] = self::enrollmentYearClause($f);
+        [$attrSql, $attrParams]     = self::userAttrClause($f);
         $groupJoinSql = $f['group_id'] !== null
             ? 'INNER JOIN group_members gm ON gm.student_user_id = u.id AND gm.group_id = :group_id'
             : '';
@@ -86,11 +87,12 @@ final class RankingService
                           AND u.role      = 'student'
                           AND u.active    = 1
                           {$enrollSql}
+                          {$attrSql}
                         GROUP BY u.id
                         {$havingSql}
                      ) c";
         $stmtTotal = $pdo->prepare($countSql);
-        self::bindFilters($stmtTotal, $f, $xpParams, $enrollParams);
+        self::bindFilters($stmtTotal, $f, $xpParams, $enrollParams, $attrParams);
         $stmtTotal->bindValue(':tenant_id', $tenantId, PDO::PARAM_INT);
         $stmtTotal->execute();
         $total = (int) $stmtTotal->fetchColumn();
@@ -102,6 +104,8 @@ final class RankingService
         $secs = StudentSession::sqlEffectiveSeconds();
         $rowsSql = "SELECT u.id   AS student_id,
                            u.name AS name,
+                           u.school     AS school,
+                           u.is_trainer AS is_trainer,
                            COALESCE(SUM(x.value), 0) AS xp,
                            MAX(x.created_at)         AS last_event_at,
                            (SELECT GROUP_CONCAT(g.name ORDER BY g.name SEPARATOR ', ')
@@ -138,12 +142,13 @@ final class RankingService
                        AND u.role      = 'student'
                        AND u.active    = 1
                        {$enrollSql}
-                     GROUP BY u.id, u.name
+                       {$attrSql}
+                     GROUP BY u.id, u.name, u.school, u.is_trainer
                      {$havingSql}
                      ORDER BY xp DESC, last_event_at DESC, u.name ASC
                      LIMIT :lim OFFSET :off";
         $stmt = $pdo->prepare($rowsSql);
-        self::bindFilters($stmt, $f, $xpParams, $enrollParams);
+        self::bindFilters($stmt, $f, $xpParams, $enrollParams, $attrParams);
         $stmt->bindValue(':tenant_id',          $tenantId, PDO::PARAM_INT);
         $stmt->bindValue(':tenant_id_total',    $tenantId, PDO::PARAM_INT);
         $stmt->bindValue(':tenant_id_rank',     $tenantId, PDO::PARAM_INT);
@@ -160,6 +165,8 @@ final class RankingService
                 'position'       => $position,
                 'student_id'     => (int) $r['student_id'],
                 'name'           => (string) $r['name'],
+                'school'         => isset($r['school']) && $r['school'] !== '' ? (string) $r['school'] : null,
+                'is_trainer'     => (int) ($r['is_trainer'] ?? 0) === 1,
                 'group_names'    => (string) ($r['group_names'] ?? ''),
                 'xp'             => (int) $r['xp'],
                 'last_event_at'  => $r['last_event_at'] !== null ? (string) $r['last_event_at'] : null,
@@ -180,7 +187,7 @@ final class RankingService
      *
      * Usa ROW_NUMBER() pra calcular sem precisar trazer toda a lista pro PHP.
      *
-     * @param array{group_id?:int, year?:int, course_id?:int} $filters
+     * @param array{group_id?:int, year?:int, course_id?:int, school?:string, trainer?:string} $filters
      */
     public static function myPosition(int $studentId, int $tenantId, string $window, array $filters = []): ?int
     {
@@ -194,6 +201,7 @@ final class RankingService
         $f = self::normaliseFilters($filters);
         [$xpJoinSql, $xpParams]    = self::xpJoinClause($window, $f);
         [$enrollSql, $enrollParams] = self::enrollmentYearClause($f);
+        [$attrSql, $attrParams]     = self::userAttrClause($f);
         $groupJoinSql = $f['group_id'] !== null
             ? 'INNER JOIN group_members gm ON gm.student_user_id = u.id AND gm.group_id = :group_id'
             : '';
@@ -215,6 +223,7 @@ final class RankingService
                      AND u.role      = 'student'
                      AND u.active    = 1
                      {$enrollSql}
+                     {$attrSql}
                    GROUP BY u.id, u.name
                    {$havingSql}
                 ) r
@@ -222,7 +231,7 @@ final class RankingService
                 LIMIT 1";
 
         $stmt = Database::pdo()->prepare($sql);
-        self::bindFilters($stmt, $f, $xpParams, $enrollParams);
+        self::bindFilters($stmt, $f, $xpParams, $enrollParams, $attrParams);
         $stmt->bindValue(':tenant_id',  $tenantId,  PDO::PARAM_INT);
         $stmt->bindValue(':student_id', $studentId, PDO::PARAM_INT);
         $stmt->execute();
@@ -299,6 +308,7 @@ final class RankingService
                            COALESCE(SUM(x.value), 0) AS xp,
                            MAX(x.created_at)         AS last_event_at,
                            '' AS group_names,
+                           u.is_trainer AS is_trainer,
                            MAX(rk.id)        AS rank_id,
                            MAX(rk.name)      AS rank_name,
                            MAX(rk.color_hex) AS rank_color_hex,
@@ -325,7 +335,7 @@ final class RankingService
                            GROUP BY user_id, tenant_id
                       ) ss ON ss.user_id = u.id AND ss.tenant_id = u.tenant_id
                      WHERE en.course_id = :cid
-                     GROUP BY u.id, u.name, u.tenant_id
+                     GROUP BY u.id, u.name, u.tenant_id, u.is_trainer
                      {$having}
                      ORDER BY xp DESC, last_event_at DESC, u.name ASC
                      LIMIT :lim OFFSET :off";
@@ -343,6 +353,8 @@ final class RankingService
                 'position'       => $position,
                 'student_id'     => (int) $r['student_id'],
                 'name'           => (string) $r['name'],
+                'school'         => isset($r['school']) && $r['school'] !== '' ? (string) $r['school'] : null,
+                'is_trainer'     => (int) ($r['is_trainer'] ?? 0) === 1,
                 'group_names'    => (string) ($r['group_names'] ?? ''),
                 'xp'             => (int) $r['xp'],
                 'last_event_at'  => $r['last_event_at'] !== null ? (string) $r['last_event_at'] : null,
@@ -357,15 +369,58 @@ final class RankingService
     }
 
     /**
+     * Valida `?school=` da URL contra as escolas do tenant (Student::listSchools).
+     * Compara normalizado e sem caixa; devolve o nome canônico da lista ou null
+     * (valor desconhecido/de outro tenant é ignorado, como o filtro de grupo).
+     *
+     * @param list<string> $schools
+     */
+    public static function pickSchoolFilter(mixed $raw, array $schools): ?string
+    {
+        if (!is_string($raw)) {
+            return null;
+        }
+        $wanted = Student::normalizeSchool($raw);
+        if ($wanted === null) {
+            return null;
+        }
+        $wanted = mb_strtolower($wanted);
+        foreach ($schools as $school) {
+            if (mb_strtolower($school) === $wanted) {
+                return $school;
+            }
+        }
+        return null;
+    }
+
+    /** Valida `?trainer=`: só `only` ou `exclude`; qualquer outro = todos (null). */
+    public static function pickTrainerFilter(mixed $raw): ?string
+    {
+        return $raw === 'only' || $raw === 'exclude' ? $raw : null;
+    }
+
+    /**
      * @param array<string,mixed> $filters
-     * @return array{group_id:?int, year:?int, course_id:?int}
+     * @return array{group_id:?int, year:?int, course_id:?int, school:?string, trainer:?string}
      */
     private static function normaliseFilters(array $filters): array
     {
         $groupId  = isset($filters['group_id'])  && (int) $filters['group_id']  > 0 ? (int) $filters['group_id']  : null;
         $year     = isset($filters['year'])      && (int) $filters['year']      > 0 ? (int) $filters['year']      : null;
         $courseId = isset($filters['course_id']) && (int) $filters['course_id'] > 0 ? (int) $filters['course_id'] : null;
-        return ['group_id' => $groupId, 'year' => $year, 'course_id' => $courseId];
+        $school   = isset($filters['school']) && is_string($filters['school']) && trim($filters['school']) !== ''
+            ? trim($filters['school'])
+            : null;
+        $trainer  = isset($filters['trainer']) && in_array($filters['trainer'], ['only', 'exclude'], true)
+            ? (string) $filters['trainer']
+            : null;
+        return [
+            'group_id'  => $groupId,
+            'year'      => $year,
+            'course_id' => $courseId,
+            'school'    => $school,
+            'trainer'   => $trainer,
+        ];
     }
 
     /**
@@ -375,7 +430,7 @@ final class RankingService
      * filtro de ano restringe alunos por `enrollments.enrolled_at`, não pela
      * data do XP (ver `enrollmentJoinClause`).
      *
-     * @param array{group_id:?int, year:?int, course_id:?int} $f
+     * @param array{group_id:?int, year:?int, course_id:?int, school:?string, trainer:?string} $f
      * @return array{0:string, 1:array<string,int>}
      */
     private static function xpJoinClause(string $window, array $f): array
@@ -420,12 +475,36 @@ final class RankingService
     }
 
     /**
+     * Filtros por atributo do aluno: escola (igualdade; collation _ci ignora
+     * maiúsculas) e trainer (`only` = só trainers, `exclude` = sem trainers).
+     * O literal 1/0 do trainer vem de whitelist, nunca do input.
+     *
+     * @param array{school:?string, trainer:?string} $f
+     * @return array{0:string, 1:array<string,string>}
+     */
+    private static function userAttrClause(array $f): array
+    {
+        $sql    = '';
+        $params = [];
+        if ($f['school'] !== null) {
+            $sql .= ' AND u.school = :school ';
+            $params[':school'] = $f['school'];
+        }
+        if ($f['trainer'] === 'only') {
+            $sql .= ' AND u.is_trainer = 1 ';
+        } elseif ($f['trainer'] === 'exclude') {
+            $sql .= ' AND u.is_trainer = 0 ';
+        }
+        return [$sql, $params];
+    }
+
+    /**
      * Janela "all" sem filtros temporais/curso → preserva aluno zero XP
      * (LEFT JOIN sem HAVING). Caso contrário, exclui (consistente com spec).
      * Filtro de `year` (matrícula) não exige HAVING — alunos matriculados em
      * `:year` mas sem XP ainda devem aparecer com 0.
      *
-     * @param array{group_id:?int, year:?int, course_id:?int} $f
+     * @param array{group_id:?int, year:?int, course_id:?int, school:?string, trainer:?string} $f
      */
     private static function havingClause(string $window, array $f): string
     {
@@ -435,12 +514,21 @@ final class RankingService
     }
 
     /**
-     * @param array{group_id:?int, year:?int, course_id:?int} $f
+     * @param array{group_id:?int, year:?int, course_id:?int, school:?string, trainer:?string} $f
      * @param array<string,int>                                $xpParams
      * @param array<string,int>                                $enrollParams
+     * @param array<string,string>                             $attrParams
      */
-    private static function bindFilters(PDOStatement $stmt, array $f, array $xpParams, array $enrollParams = []): void
-    {
+    private static function bindFilters(
+        PDOStatement $stmt,
+        array $f,
+        array $xpParams,
+        array $enrollParams = [],
+        array $attrParams = []
+    ): void {
+        foreach ($attrParams as $k => $v) {
+            $stmt->bindValue($k, $v, PDO::PARAM_STR);
+        }
         if ($f['group_id'] !== null) {
             $stmt->bindValue(':group_id', $f['group_id'], PDO::PARAM_INT);
         }

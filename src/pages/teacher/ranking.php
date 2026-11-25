@@ -73,6 +73,15 @@ if ($rawGroupId > 0) {
     }
 }
 
+// Filtros de escola e trainer: escola precisa existir no tenant (senão ignora),
+// trainer só aceita only|exclude. Curso compartilhado usa computeForCourse
+// (alunos de 2 tenants), que não filtra por esses atributos: some com os
+// selects e a coluna Escola em vez de mostrar filtro que não filtra.
+$attrFilters = !($courseId > 0 && $courseShared);
+$schools = $attrFilters ? Student::listSchools($tenantId) : [];
+$school  = $attrFilters ? RankingService::pickSchoolFilter($_GET['school'] ?? null, $schools) : null;
+$trainer = $attrFilters ? RankingService::pickTrainerFilter($_GET['trainer'] ?? null) : null;
+
 $currentYear = (int) date('Y');
 $rawYear     = $_GET['year'] ?? null;
 if ($rawYear === 'all') {
@@ -96,6 +105,8 @@ if ($courseId > 0 && $courseShared) {
     if ($groupId !== null) { $filters['group_id']  = $groupId; }
     if ($year    !== null) { $filters['year']      = $year; }
     if ($courseId > 0)     { $filters['course_id'] = $courseId; }
+    if ($school  !== null) { $filters['school']    = $school; }
+    if ($trainer !== null) { $filters['trainer']   = $trainer; }
     $result = RankingService::compute($tenantId, $window, $filters, $page, $perPage);
 }
 $rows     = $result['rows'];
@@ -105,10 +116,12 @@ $lastPage = max(1, (int) ceil($total / $perPage));
 // Indicador "online agora" — flip pra lookup O(1) por student_id.
 $onlineSet = array_flip(StudentSession::onlineUserIds($tenantId));
 
-$qs = static function (array $overrides = []) use ($window, $groupId, $year, $page): string {
+$qs = static function (array $overrides = []) use ($window, $groupId, $year, $page, $school, $trainer): string {
     $params = ['window' => $window, 'page' => (string) $page];
-    if ($groupId !== null) { $params['group'] = (string) $groupId; }
-    if ($year    !== null) { $params['year']  = (string) $year; }
+    if ($groupId !== null) { $params['group']   = (string) $groupId; }
+    if ($year    !== null) { $params['year']    = (string) $year; }
+    if ($school  !== null) { $params['school']  = $school; }
+    if ($trainer !== null) { $params['trainer'] = $trainer; }
     foreach ($overrides as $k => $v) {
         if ($v === null) {
             unset($params[$k]);
@@ -158,7 +171,7 @@ ob_start();
 <form method="get" class="card card-body mb-3 py-2" aria-label="<?= e(__t('ranking.filter.aria')) ?>">
     <input type="hidden" name="window" value="<?= e($window) ?>">
     <div class="row g-2 align-items-end">
-        <div class="col-12 col-md-5">
+        <div class="col-12 col-md-3">
             <label for="rkg-group" class="form-label small text-muted text-uppercase mb-1">
                 <?= e(__t('ranking.filter.group')) ?>
             </label>
@@ -171,7 +184,20 @@ ob_start();
                 <?php endforeach; ?>
             </select>
         </div>
-        <div class="col-12 col-md-5">
+        <?php if ($attrFilters): ?>
+        <div class="col-12 col-md-3">
+            <label for="rkg-school" class="form-label small text-muted text-uppercase mb-1">
+                <?= e(__t('ranking.filter.school')) ?>
+            </label>
+            <select id="rkg-school" name="school" class="form-select form-select-sm">
+                <option value=""><?= e(__t('ranking.filter.all_schools')) ?></option>
+                <?php foreach ($schools as $s): ?>
+                    <option value="<?= e($s) ?>" <?= $school === $s ? 'selected' : '' ?>><?= e($s) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <?php endif; ?>
+        <div class="col-6 col-md-2">
             <label for="rkg-year" class="form-label small text-muted text-uppercase mb-1">
                 <?= e(__t('ranking.filter.year')) ?>
             </label>
@@ -189,6 +215,18 @@ ob_start();
                 <?php endif; ?>
             </select>
         </div>
+        <?php if ($attrFilters): ?>
+        <div class="col-6 col-md-2">
+            <label for="rkg-trainer" class="form-label small text-muted text-uppercase mb-1">
+                <?= e(__t('ranking.filter.trainer')) ?>
+            </label>
+            <select id="rkg-trainer" name="trainer" class="form-select form-select-sm">
+                <option value=""><?= e(__t('ranking.filter.trainer.all')) ?></option>
+                <option value="only" <?= $trainer === 'only' ? 'selected' : '' ?>><?= e(__t('ranking.filter.trainer.only')) ?></option>
+                <option value="exclude" <?= $trainer === 'exclude' ? 'selected' : '' ?>><?= e(__t('ranking.filter.trainer.exclude')) ?></option>
+            </select>
+        </div>
+        <?php endif; ?>
         <div class="col-12 col-md-2">
             <button type="submit" class="btn btn-primary btn-sm w-100">
                 <?= e(__t('ranking.filter.apply')) ?>
@@ -211,6 +249,9 @@ ob_start();
                         <th style="width: 80px;"><?= e(__t('ranking.col.position')) ?></th>
                         <th><?= e(__t('ranking.col.name')) ?></th>
                         <th class="d-none d-md-table-cell" style="width: 130px;"><?= e(__t('ranking.col.rank')) ?></th>
+                        <?php if ($attrFilters): ?>
+                            <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.school')) ?></th>
+                        <?php endif; ?>
                         <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.groups')) ?></th>
                         <th class="text-end" style="width: 80px;"><?= e(__t('ranking.col.hours')) ?></th>
                         <th class="text-end" style="width: 110px;"><?= e(__t('ranking.col.xp')) ?></th>
@@ -239,6 +280,9 @@ ob_start();
                                           aria-label="<?= e(__t('ranking.online')) ?>">●</span>
                                 <?php endif; ?>
                                 <span title="<?= e((string) $row['name']) ?>"><?= e(format_short_name((string) $row['name'])) ?></span>
+                                <?php if (!empty($row['is_trainer'])): ?>
+                                    <span class="badge rounded-pill text-bg-info ms-1"><?= e(__t('ranking.badge.trainer')) ?></span>
+                                <?php endif; ?>
                                 <?php if ($rankName !== null): ?>
                                     <span class="lms-rank-pill lms-rank-pill--inline d-md-none"
                                           style="background: <?= e($rankColor) ?>"><?= e($rankName) ?></span>
@@ -251,6 +295,11 @@ ob_start();
                                     <span class="text-muted" title="<?= e(__t('ranking.no_rank')) ?>">—</span>
                                 <?php endif; ?>
                             </td>
+                            <?php if ($attrFilters): ?>
+                                <td class="d-none d-md-table-cell text-muted small">
+                                    <?= $row['school'] !== null ? e((string) $row['school']) : '<span class="text-muted">—</span>' ?>
+                                </td>
+                            <?php endif; ?>
                             <td class="d-none d-md-table-cell text-muted small">
                                 <?= $row['group_names'] !== '' ? e($row['group_names']) : '<span class="text-muted">—</span>' ?>
                             </td>

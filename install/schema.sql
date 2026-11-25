@@ -66,6 +66,8 @@ CREATE TABLE IF NOT EXISTS users (
     name                  VARCHAR(150) NOT NULL,
     gender                ENUM('male','female') NOT NULL DEFAULT 'male',
     id_document           VARCHAR(30)  NULL DEFAULT NULL,
+    school                VARCHAR(150) NULL DEFAULT NULL,
+    is_trainer            TINYINT(1)   NOT NULL DEFAULT 0,
     role                  ENUM('super_admin','teacher','student') NOT NULL,
     language              ENUM('pt','en') NOT NULL DEFAULT 'pt',
     theme                 ENUM('light','dark') NOT NULL DEFAULT 'light',
@@ -77,6 +79,7 @@ CREATE TABLE IF NOT EXISTS users (
     UNIQUE KEY uk_users_email_tenant (email_tenant_key),
     KEY idx_users_tenant (tenant_id),
     KEY idx_users_role (role),
+    KEY idx_users_tenant_school (tenant_id, school),
     CONSTRAINT fk_users_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
     CONSTRAINT chk_users_role_tenant CHECK (
         (role = 'student'     AND tenant_id IS NOT NULL) OR
@@ -1718,6 +1721,47 @@ SET @col_exists := (
 );
 SET @sql := IF(@col_exists = 0,
     "ALTER TABLE activity_submissions ADD COLUMN returned_at DATETIME NULL DEFAULT NULL AFTER feedback_at",
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- [Escola/trainer] users.school + users.is_trainer: escola do aluno (texto
+-- livre com sugestao) e flag de trainer; ambos filtram o ranking.
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'users'
+       AND COLUMN_NAME  = 'school'
+);
+SET @sql := IF(@col_exists = 0,
+    'ALTER TABLE users ADD COLUMN school VARCHAR(150) NULL DEFAULT NULL AFTER id_document',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'users'
+       AND COLUMN_NAME  = 'is_trainer'
+);
+SET @sql := IF(@col_exists = 0,
+    'ALTER TABLE users ADD COLUMN is_trainer TINYINT(1) NOT NULL DEFAULT 0 AFTER school',
+    'DO 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @idx_exists := (
+    SELECT COUNT(*) FROM information_schema.STATISTICS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME   = 'users'
+       AND INDEX_NAME  = 'idx_users_tenant_school'
+);
+SET @sql := IF(@idx_exists = 0,
+    'ALTER TABLE users ADD KEY idx_users_tenant_school (tenant_id, school)',
     'DO 1');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;

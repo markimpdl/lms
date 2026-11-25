@@ -21,7 +21,8 @@ final class StudentProvisioningService
     public const PASS_MIN = 8;
 
     /**
-     * @param array<string,string> $input Chaves: name, email, password, language, gender, id_document.
+     * @param array<string,string> $input Chaves: name, email, password, language, gender, id_document,
+     *                                   school (opcional), is_trainer ('1' marca).
      *
      * @return array{
      *   errors:  array<string,string>,
@@ -96,6 +97,8 @@ final class StudentProvisioningService
                 'language'      => $lang,
                 'gender'        => $gender,
                 'id_document'   => $idDoc !== '' ? $idDoc : null,
+                'school'        => Student::normalizeSchool((string) ($input['school'] ?? '')),
+                'is_trainer'    => !empty($input['is_trainer']) ? 1 : 0,
             ]);
         } catch (PDOException $e) {
             // Rede de segurança: race entre o SELECT de email e o INSERT.
