@@ -368,6 +368,37 @@ final class RankingService
     }
 
     /**
+     * Valida `?school=` da URL contra as escolas do tenant (Student::listSchools).
+     * Compara normalizado e sem caixa; devolve o nome canônico da lista ou null
+     * (valor desconhecido/de outro tenant é ignorado, como o filtro de grupo).
+     *
+     * @param list<string> $schools
+     */
+    public static function pickSchoolFilter(mixed $raw, array $schools): ?string
+    {
+        if (!is_string($raw)) {
+            return null;
+        }
+        $wanted = Student::normalizeSchool($raw);
+        if ($wanted === null) {
+            return null;
+        }
+        $wanted = mb_strtolower($wanted);
+        foreach ($schools as $school) {
+            if (mb_strtolower($school) === $wanted) {
+                return $school;
+            }
+        }
+        return null;
+    }
+
+    /** Valida `?trainer=`: só `only` ou `exclude`; qualquer outro = todos (null). */
+    public static function pickTrainerFilter(mixed $raw): ?string
+    {
+        return $raw === 'only' || $raw === 'exclude' ? $raw : null;
+    }
+
+    /**
      * @param array<string,mixed> $filters
      * @return array{group_id:?int, year:?int, course_id:?int, school:?string, trainer:?string}
      */

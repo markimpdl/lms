@@ -83,6 +83,12 @@ if ($rawGroupId > 0) {
     }
 }
 
+// Filtros de escola e trainer: escola precisa existir no tenant (senão ignora),
+// trainer só aceita only|exclude.
+$schools = $tenantId > 0 ? Student::listSchools($tenantId) : [];
+$school  = RankingService::pickSchoolFilter($_GET['school'] ?? null, $schools);
+$trainer = RankingService::pickTrainerFilter($_GET['trainer'] ?? null);
+
 // Filtro de ano:
 //   - sem `?year=` na URL → default = ano corrente
 //   - `?year=all`         → "todos os anos" (null no Service)
@@ -105,6 +111,8 @@ $filters = [];
 if ($groupId !== null) { $filters['group_id']  = $groupId; }
 if ($year    !== null) { $filters['year']      = $year; }
 if ($courseId > 0)     { $filters['course_id'] = $courseId; }
+if ($school  !== null) { $filters['school']    = $school; }
+if ($trainer !== null) { $filters['trainer']   = $trainer; }
 
 if ($courseId > 0 && $courseShared) {
     // E32-05: curso compartilhado → ranking UNIFICADO (alunos dos 2 professores
@@ -127,10 +135,12 @@ $onlineSet = $tenantId > 0
 // Builder de querystring que preserva o estado completo dos filtros. Aceita
 // overrides; passar null em uma chave remove. Também resseta `page` quando
 // se troca janela ou filtros (overrides explícitos passam por cima).
-$qs = static function (array $overrides = []) use ($window, $groupId, $year, $page): string {
+$qs = static function (array $overrides = []) use ($window, $groupId, $year, $page, $school, $trainer): string {
     $params = ['window' => $window, 'page' => (string) $page];
-    if ($groupId !== null) { $params['group'] = (string) $groupId; }
-    if ($year    !== null) { $params['year']  = (string) $year; }
+    if ($groupId !== null) { $params['group']   = (string) $groupId; }
+    if ($year    !== null) { $params['year']    = (string) $year; }
+    if ($school  !== null) { $params['school']  = $school; }
+    if ($trainer !== null) { $params['trainer'] = $trainer; }
     foreach ($overrides as $k => $v) {
         if ($v === null) {
             unset($params[$k]);
@@ -212,6 +222,27 @@ ob_start();
         </select>
     </label>
 
+    <?php if ($schools !== []): ?>
+        <label class="lms-ranking-filter">
+            <span class="lms-ranking-filter__label"><?= e(__t('ranking.filter.school')) ?></span>
+            <select name="school" class="form-select form-select-sm">
+                <option value=""><?= e(__t('ranking.filter.all_schools')) ?></option>
+                <?php foreach ($schools as $s): ?>
+                    <option value="<?= e($s) ?>" <?= $school === $s ? 'selected' : '' ?>><?= e($s) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+    <?php endif; ?>
+
+    <label class="lms-ranking-filter">
+        <span class="lms-ranking-filter__label"><?= e(__t('ranking.filter.trainer')) ?></span>
+        <select name="trainer" class="form-select form-select-sm">
+            <option value=""><?= e(__t('ranking.filter.trainer.all')) ?></option>
+            <option value="only" <?= $trainer === 'only' ? 'selected' : '' ?>><?= e(__t('ranking.filter.trainer.only')) ?></option>
+            <option value="exclude" <?= $trainer === 'exclude' ? 'selected' : '' ?>><?= e(__t('ranking.filter.trainer.exclude')) ?></option>
+        </select>
+    </label>
+
     <button type="submit" class="btn btn-primary btn-sm lms-ranking-filter__submit">
         <?= e(__t('ranking.filter.apply')) ?>
     </button>
@@ -230,6 +261,7 @@ ob_start();
                     <th class="lms-ranking-table__pos"><?= e(__t('ranking.col.position')) ?></th>
                     <th><?= e(__t('ranking.col.name')) ?></th>
                     <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.rank')) ?></th>
+                    <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.school')) ?></th>
                     <th class="d-none d-md-table-cell"><?= e(__t('ranking.col.groups')) ?></th>
                     <th class="lms-ranking-table__hours"><?= e(__t('ranking.col.hours')) ?></th>
                     <th class="lms-ranking-table__xp"><?= e(__t('ranking.col.xp')) ?></th>
@@ -262,6 +294,9 @@ ob_start();
                                 <span class="lms-rank-pill lms-rank-pill--inline d-md-none"
                                       style="background: <?= e($rankColor) ?>"><?= e($rankName) ?></span>
                             <?php endif; ?>
+                            <?php if (!empty($row['is_trainer'])): ?>
+                                <span class="badge rounded-pill text-bg-info ms-1"><?= e(__t('ranking.badge.trainer')) ?></span>
+                            <?php endif; ?>
                             <?php if ($isMe): ?>
                                 <span class="lms-ranking-you"><?= e(__t('ranking.you')) ?></span>
                             <?php endif; ?>
@@ -272,6 +307,9 @@ ob_start();
                             <?php else: ?>
                                 <span class="lms-ranking-muted" title="<?= e(__t('ranking.no_rank')) ?>">—</span>
                             <?php endif; ?>
+                        </td>
+                        <td class="d-none d-md-table-cell lms-ranking-groups">
+                            <?= $row['school'] !== null ? e((string) $row['school']) : '<span class="lms-ranking-muted">—</span>' ?>
                         </td>
                         <td class="d-none d-md-table-cell lms-ranking-groups">
                             <?= $row['group_names'] !== '' ? e($row['group_names']) : '<span class="lms-ranking-muted">—</span>' ?>
