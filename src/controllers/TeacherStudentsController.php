@@ -130,6 +130,8 @@ final class TeacherStudentsController
             'language'    => $lang,
             'gender'      => $gender,
             'id_document' => $idDoc !== '' ? $idDoc : null,
+            'school'      => Student::normalizeSchool((string) ($input['school'] ?? '')),
+            'is_trainer'  => !empty($input['is_trainer']) ? 1 : 0,
         ]);
 
         flash('success', __t('students.edit.updated', ['name' => $name]));

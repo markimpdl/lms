@@ -1073,6 +1073,10 @@ return [
     'students.form.gender.female'  => 'Feminino',
     'students.form.id_document'    => 'Doc. identificação',
     'students.form.id_document.help' => 'Apenas números, sem máscara (opcional).',
+    'students.form.school'         => 'Escola',
+    'students.form.school.help'    => 'Opcional. Comece a digitar para ver as escolas que você já usou.',
+    'students.form.is_trainer'     => 'É trainer',
+    'students.form.is_trainer.help' => 'Aparece no ranking com o selo Trainer.',
 
     'students.created'               => 'Aluno :name cadastrado com sucesso.',
     'students.edit.title'            => 'Editar aluno',

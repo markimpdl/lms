@@ -1071,6 +1071,10 @@ return [
     'students.form.gender.female'  => 'Female',
     'students.form.id_document'    => 'ID document',
     'students.form.id_document.help' => 'Digits only, no mask (optional).',
+    'students.form.school'         => 'School',
+    'students.form.school.help'    => 'Optional. Start typing to see schools you have already used.',
+    'students.form.is_trainer'     => 'Trainer',
+    'students.form.is_trainer.help' => 'Shows up in the ranking with the Trainer badge.',
 
     'students.created'               => 'Student :name created successfully.',
     'students.edit.title'            => 'Edit student',

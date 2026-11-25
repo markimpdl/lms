@@ -176,7 +176,7 @@ final class Student
         $sql = <<<SQL
             SELECT
                 u.id, u.tenant_id, u.name, u.email, u.language, u.active,
-                u.gender, u.id_document,
+                u.gender, u.id_document, u.school, u.is_trainer,
                 u.created_at, u.last_login_at,
                 COUNT(DISTINCT e.course_id) AS enrollments_count,
                 COUNT(DISTINCT gm.group_id) AS groups_count
@@ -185,7 +185,7 @@ final class Student
             LEFT JOIN group_members gm ON gm.student_user_id = u.id
             WHERE u.id = ? AND u.tenant_id = ? AND u.role = 'student'
             GROUP BY u.id, u.tenant_id, u.name, u.email, u.language, u.active,
-                     u.gender, u.id_document,
+                     u.gender, u.id_document, u.school, u.is_trainer,
                      u.created_at, u.last_login_at
             LIMIT 1
             SQL;
@@ -227,15 +227,16 @@ final class Student
      *
      * @param array{
      *   name:string, email:string, password_hash:string, language:string,
-     *   gender:string, id_document:?string
+     *   gender:string, id_document:?string, school:?string, is_trainer:int
      * } $data
      */
     public static function create(int $tenantId, array $data): int
     {
         $stmt = Database::pdo()->prepare(
             'INSERT INTO users
-                (tenant_id, email, password_hash, name, gender, id_document, role, language, active)
-             VALUES (?, ?, ?, ?, ?, ?, "student", ?, 1)'
+                (tenant_id, email, password_hash, name, gender, id_document,
+                 school, is_trainer, role, language, active)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, "student", ?, 1)'
         );
         $stmt->execute([
             $tenantId,
@@ -244,6 +245,8 @@ final class Student
             $data['name'],
             $data['gender'],
             $data['id_document'] ?? null,
+            $data['school'],
+            $data['is_trainer'],
             $data['language'],
         ]);
         return (int) Database::pdo()->lastInsertId();
@@ -253,12 +256,15 @@ final class Student
      * Atualiza nome/idioma/sexo/doc. Email é imutável (ADR-021) — não aceitar
      * no input. `gender` obrigatório; `id_document` aceita string vazia (vira NULL).
      *
-     * @param array{name:string, language:string, gender:string, id_document:?string} $data
+     * `school` já normalizada (ver normalizeSchool); `is_trainer` 0|1 obrigatório.
+     *
+     * @param array{name:string, language:string, gender:string, id_document:?string, school:?string, is_trainer:int} $data
      */
     public static function update(int $id, int $tenantId, array $data): bool
     {
         $stmt = Database::pdo()->prepare(
-            'UPDATE users SET name = ?, language = ?, gender = ?, id_document = ?
+            'UPDATE users SET name = ?, language = ?, gender = ?, id_document = ?,
+                              school = ?, is_trainer = ?
               WHERE id = ? AND tenant_id = ? AND role = "student"'
         );
         $stmt->execute([
@@ -266,6 +272,8 @@ final class Student
             $data['language'],
             $data['gender'],
             $data['id_document'] ?? null,
+            $data['school'],
+            $data['is_trainer'],
             $id,
             $tenantId,
         ]);
@@ -340,5 +348,42 @@ final class Student
         }
 
         return 'ok';
+    }
+
+    /** Tamanho máximo de `users.school`. */
+    public const SCHOOL_MAX = 150;
+
+    /**
+     * Normaliza a escola digitada: trim, colapsa espaços (inclui NBSP) e corta
+     * em SCHOOL_MAX. Vazio vira null. Assim "Al  Noor " e "Al Noor" casam no
+     * filtro do ranking (case já é ignorado pela collation _ci).
+     */
+    public static function normalizeSchool(string $raw): ?string
+    {
+        $clean = trim((string) preg_replace('/[\s\x{00A0}]+/u', ' ', $raw));
+        if ($clean === '') {
+            return null;
+        }
+        return mb_substr($clean, 0, self::SCHOOL_MAX);
+    }
+
+    /**
+     * Escolas distintas já usadas nos alunos do tenant, em ordem alfabética.
+     * Alimenta o <datalist> do cadastro e o filtro do ranking. GROUP BY com
+     * collation _ci junta variações de maiúscula/minúscula numa só.
+     *
+     * @return list<string>
+     */
+    public static function listSchools(int $tenantId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            "SELECT MIN(school) AS school
+               FROM users
+              WHERE tenant_id = ? AND role = 'student' AND school IS NOT NULL AND school <> ''
+              GROUP BY school
+              ORDER BY school"
+        );
+        $stmt->execute([$tenantId]);
+        return array_map(static fn (array $r): string => (string) $r['school'], $stmt->fetchAll());
     }
 }
